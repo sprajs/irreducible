@@ -228,9 +228,8 @@ Result Consumer::evaluate_common(std::span<const Point> points,
       remaining_evaluations -= slot.background_evaluations;
     }
     if (prediction.status != cosmology::Status::ok) {
-      if constexpr (std::is_same_v<Point, PiecewiseModelPoint>)
-        if (prediction.status == cosmology::Status::work_limit)
-          slot.numerical_status = numerics::Status::work_limit;
+      if (prediction.status == cosmology::Status::work_limit)
+        slot.numerical_status = numerics::Status::work_limit;
       slot.status = prediction.status == cosmology::Status::work_limit
                         ? Status::work_limit
                         : Status::numerical_failure;

@@ -438,6 +438,29 @@ void ordinary() {
   check(querycap.slots[1].status == supernova::Status::work_limit &&
             querycap.slots[1].numerical_status == numerics::Status::work_limit,
         "query cap precise cause");
+  auto oldcap = prep;
+  oldcap.background.maximum_queries = 0;
+  std::array<supernova::ModelPoint, 1> oldpoint{
+      {{cosmology::Model::flat_lcdm_late_v1, .3, 0}}};
+  auto v1failure = consumer.evaluate_batch(oldpoint, oldcap).slots[0];
+  check(v1failure.status == supernova::Status::work_limit &&
+            v1failure.numerical_status == numerics::Status::work_limit,
+        "v1 query cap numerical cause");
+  check(v1failure.shape_magnitudes.empty() &&
+            v1failure.base_residuals.empty() &&
+            v1failure.profiled_residuals.empty(),
+        "v1 failed payload absent");
+  std::array<supernova::ModelPointV2, 1> v2point{
+      {{cosmology::Model::flat_cpl_late_v1, .3, 0, -.9, .4}}};
+  auto v2failure =
+      consumer.evaluate_batch_v2(v2point, oldcap).slots[0].calculation;
+  check(v2failure.status == supernova::Status::work_limit &&
+            v2failure.numerical_status == numerics::Status::work_limit,
+        "v2 query cap numerical cause");
+  check(v2failure.shape_magnitudes.empty() &&
+            v2failure.base_residuals.empty() &&
+            v2failure.profiled_residuals.empty(),
+        "v2 failed payload absent");
   cap = policy;
   cap.maximum_models = 1;
   check(consumer.evaluate_piecewise_batch(points, cap).slots.empty(),
