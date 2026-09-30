@@ -1,5 +1,9 @@
 # Contributing
 
-Thanks for taking an interest. Open a PR—code, fixes, tests and documentation are all welcome. AI-assisted and agent-written contributions are welcome too.
+Help turn a scientific question into a calculation we can trust. Models, readers, numerical fixes, independent tests and clearer documentation are all welcome, including work written with an agent.
 
-Tell us what you changed and how you checked it. [The docs](docs/README.md) cover building and testing.
+Work on a branch and open a coherent pull request. A substantial change is welcome when its parts belong together and a reader can understand and test it. Use useful intermediate commits and explain dependencies; split unrelated work rather than imposing a line-count limit. Explain the problem, what changes and how you checked it. Keep code, tests and the documentation needed to use the change together. Branch pushes and PRs are welcome; merging or pushing directly to `main` needs an explicit request from the repository owner. CI checks PRs and merged `main`, rather than every unpublished branch push. Green checks do not authorize a merge; no additional reviewer count is required. Do not force-push without authorization.
+
+For physics or statistics, state the assumptions, supported domain and error budget, and bring a comparison that can challenge the implementation. Preserve original inputs and failed results. Documentation-only changes need working links and truthful examples, rather than a full scientific test campaign.
+
+[Development](docs/development.md) explains the workflow; [testing](docs/testing.md) lists the checks. Agents should also read [AGENTS.md](AGENTS.md).

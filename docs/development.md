@@ -20,14 +20,49 @@ Start with a calculation an agent needs. Add a physical model, reader or numeric
 
 Do not mutate source while another build is reading it. Coordinate shared CPU/memory budgets. The exclusive build-identity test belongs in an isolated checkout and must run directly as described in [testing](testing.md).
 
-Use `irred` for generic C++ namespaces and `irred_core` for the native library. Public headers live under `cpp/include/irred/`. Current cosmological models use `irred::cosmology`; this is not the root for generic numerical or observation infrastructure. Keep one current public interface; coherent changes may replace obsolete C ABI names and callers together. Preserve immutable scientific/method/source identities rather than iteration plumbing.
+Use `irred` for generic C++ namespaces and `irred_core` for the native library. Public headers live under `cpp/include/irred/`. Expansion models use `irred::cosmology`; supernova and BAO consumers use `irred::supernova` and `irred::bao`. Cosmology is not the root for generic numerical or observation infrastructure. Keep one current public interface; coherent changes may replace obsolete C ABI names and callers together. Preserve immutable scientific/method/source identities rather than iteration plumbing.
 
 ## Publishing
 
-Use small commits with explicit paths, respect `.gitignore`, and review `git diff --cached`. Keep the docs current with changes to public behavior.
+Use coherent commits with explicit paths, respect `.gitignore`, and review `git diff --cached`. Keep the docs current with changes to public behavior.
 
-The integration owner coordinates shared workers and publishes validated milestones under the repository's standing authorization. Other contributors submit PRs. Do not force-push without explicit authorization.
+Choose a coherent PR scope. A shared-interface migration may need code, callers, tests and documentation to land together, even when the diff is large. Keep useful validated intermediate commits, document dependencies and separate unrelated work. A dependent PR must say which base change it needs; validate the final integrated candidate rather than treating earlier component checks as its gate.
 
+Agents create a `codex/` branch; human contributors can choose their branch name. Test locally, commit coherent changes and push the branch. Open a PR when the candidate is ready for review. Include the checks actually run, scientific or engineering limits, and any unresolved discrepancy. Inspect CI for the PR commit. Coordinate one integration owner for shared agent work; this does not grant permission to push `main` or merge. Those actions, and force pushes, require an explicit user request.
+
+CI starts when a PR targeting `main` is opened, reopened or receives new commits, and checks the merged candidate. Ordinary branch pushes before a PR do not start CI. Each push to `main` runs the post-merge checks; manual runs are also available. Superseded runs for the same PR are cancelled, while `main` runs are never cancelled by this policy. Update a dependent PR's integration base and rerun when needed. The required `public-tree` check must pass against an up-to-date base, and review conversations must be resolved. This is a personal project: no additional reviewer count is required.
+
+Merges use merge commits to preserve the structured commits and their ancestry; squash, rebase and automatic merging are disabled. Merge authorization still comes from the user, not from a green check.
+
+If the integrated candidate fails, preserve the failure and fix or explicitly block the affected change; passing component tests do not override a failed integrated gate. If `main` turns red after a merge, stop new merges and withhold the affected claims, preserve the failing commit and logs, and prioritize a focused repair or revert PR. A revert or repair still needs explicit authorization to merge; do not bypass the failure with a direct push or weakened checks.
+
+### Clean up after a verified merge
+
+After an authorized merge, verify the PR state, its exact head commit and merge commit. Wait for the post-merge CI result on that exact `main` commit. GitHub automatically deletes the merged remote branch; local cleanup remains the agent's responsibility and cannot be done safely by a GitHub runner.
+
+For local cleanup, first check `git status --short` and `git worktree list`. Preserve a dirty checkout, ongoing work, extra unmerged commits or a branch used by another worktree. Record the verified PR head and merge SHA from `gh pr view <number> --json state,headRefOid,mergeCommit` (or GitHub). The state must be `MERGED`, the merge SHA must have passing post-merge CI, and the local branch tip must equal that PR head. If the branch is already absent, report cleanup complete without attempting deletion. Then use this procedure, substituting the actual branch name and verified commit IDs:
+
+```sh
+(
+set -eu
+task_branch=codex/your-change
+pr_head=REPLACE_WITH_VERIFIED_HEAD_SHA
+merge_sha=REPLACE_WITH_VERIFIED_MERGE_SHA
+test -z "$(git status --porcelain)"
+git fetch origin --prune
+test "$(git rev-parse "$task_branch")" = "$pr_head"
+git merge-base --is-ancestor "$merge_sha" origin/main
+git merge-base --is-ancestor main origin/main
+git switch main
+git merge --ff-only origin/main
+git merge-base --is-ancestor "$task_branch" origin/main
+git branch -d "$task_branch"
+)
+```
+
+The subshell stops on the first failed command without exiting your interactive shell. The ancestry check must pass before deletion: `git branch -d` alone may compare against the feature branch upstream, which is not proof of integration into `main`. Verify the fetched remote SHA against the merged commit and any later known merges. The local `main` ancestry check also rejects an ahead or diverged local `main`; a fast-forward-only merge alone would report an ahead branch as already up to date. If the local tip contains extra work or any check fails, preserve the branch and report why cleanup is deferred. Never use `git branch -D`, reset away work or force a fast-forward. There is no cleanup daemon, global hook or background helper.
+
+Review documentation and wiki mirror changes in the same PR when they explain the capability. [Maintenance](maintenance.md) describes the separate wiki publication step.
 
 `python3 tools/build.py --profile release --jobs 3` selects three build jobs while preserving the Release compiler settings. `--jobs` accepts 1 through 4 and defaults to 4; the selected value is recorded in the build manifest. Installation checks use the explicit matching profile: `python3 tools/check_install.py --profile release` (default debug).
 

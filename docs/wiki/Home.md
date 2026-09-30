@@ -1,12 +1,17 @@
 # Irreducible
 
-A physics tool for agents, starting with cosmology. Agents use the non-interactive `irred` CLI to run calculations and can extend the source with new models and data readers. Fitting and analysis can live in other tools.
+What should we see in the sky if an idea about the Universe is right?
 
-The [README](https://github.com/sprajs/irreducible#readme) explains why I'm building it. The documentation lives alongside the code:
+Irreducible is being built to help turn a paper's equations into predictions we can compare with observations. A different expansion history might change how bright distant supernovae appear. A theory of gravity might change a lens image or the way galaxies cluster. The aim is to follow those ideas through shared physics to spectra, images, light curves and catalogues, rather than build a separate calculation for every test.
 
-- [Agent instructions](https://github.com/sprajs/irreducible/blob/main/AGENTS.md)
-- [Documentation index](https://github.com/sprajs/irreducible/blob/main/docs/README.md)
-- [Build and first run](https://github.com/sprajs/irreducible/blob/main/docs/getting-started.md)
-- [Current capabilities](https://github.com/sprajs/irreducible/blob/main/docs/capabilities.md)
-- [CLI reference](https://github.com/sprajs/irreducible/blob/main/docs/cli.md)
-- [Development](https://github.com/sprajs/irreducible/blob/main/docs/development.md)
+We want to explore the expansion rate H₀, Cepheid and supernova distances, lensing, large-scale structure and the cosmic microwave background. Today the engine offers a smaller set of tools: flat-FLRW backgrounds, conditional supernova and BAO calculations, and Gaussian calculations. You can drive them through a non-interactive CLI or use the C++ library; fitting and plotting can live in your own tools.
+
+A future recipe format would put the data sources, model choices and calculation steps in one file, so another person or agent could repeat a paper test and see its assumptions. There is no recipe runner yet. New equations belong in compiled code with tests and review.
+
+## Try, explore or contribute
+
+- [Build and run an example](https://github.com/sprajs/irreducible/blob/main/docs/getting-started.md), then browse [what works today](https://github.com/sprajs/irreducible/blob/main/docs/capabilities.md) and the [CLI guide](https://github.com/sprajs/irreducible/blob/main/docs/cli.md).
+- Read the [roadmap](https://github.com/sprajs/irreducible/blob/main/docs/roadmap.md) for the next experiments and [gaps](https://github.com/sprajs/irreducible/blob/main/docs/gaps.md) for the missing physics and data.
+- Have a model, reader or useful test to add? [Contributions](https://github.com/sprajs/irreducible/blob/main/CONTRIBUTING.md) are welcome, including agent-written pull requests. Start with [agent instructions](https://github.com/sprajs/irreducible/blob/main/AGENTS.md) and the [development guide](https://github.com/sprajs/irreducible/blob/main/docs/development.md).
+
+The [documentation index](https://github.com/sprajs/irreducible/blob/main/docs/README.md) has the full guides. They live alongside the code so that the instructions and calculations can be reviewed together.
