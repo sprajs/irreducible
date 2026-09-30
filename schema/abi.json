@@ -2387,6 +2387,268 @@
           "F64Buffer"
         ]
       ]
+    },
+    {
+      "rust_name": "BaoPiecewiseModel",
+      "c_name": "cosmo_bao_piecewise_model",
+      "fields": [
+        [
+          "q",
+          "FiveCoefficients"
+        ],
+        [
+          "h0_rd_km_s",
+          "f64"
+        ]
+      ]
+    },
+    {
+      "rust_name": "BaoPiecewisePolicy",
+      "c_name": "cosmo_bao_piecewise_policy",
+      "fields": [
+        [
+          "struct_size",
+          "u32"
+        ],
+        [
+          "abi_version",
+          "u32"
+        ],
+        [
+          "arithmetic",
+          "u32"
+        ],
+        [
+          "include_predictions",
+          "u32"
+        ],
+        [
+          "include_residuals",
+          "u32"
+        ],
+        [
+          "reserved",
+          "u32"
+        ],
+        [
+          "maximum_models",
+          "u64"
+        ],
+        [
+          "maximum_rows",
+          "u64"
+        ],
+        [
+          "maximum_matrix_elements",
+          "u64"
+        ],
+        [
+          "maximum_string_bytes",
+          "u64"
+        ],
+        [
+          "maximum_native_bytes",
+          "u64"
+        ],
+        [
+          "maximum_array_elements",
+          "u64"
+        ],
+        [
+          "maximum_native_output_bytes",
+          "u64"
+        ],
+        [
+          "maximum_queries",
+          "u64"
+        ],
+        [
+          "maximum_total_segment_visits",
+          "u64"
+        ],
+        [
+          "maximum_forward_sensitivity",
+          "f64"
+        ]
+      ]
+    },
+    {
+      "rust_name": "BaoPiecewiseBatch",
+      "c_name": "cosmo_bao_piecewise_batch",
+      "fields": [
+        [
+          "struct_size",
+          "u32"
+        ],
+        [
+          "abi_version",
+          "u32"
+        ],
+        [
+          "models",
+          "const_BaoPiecewiseModel_ptr"
+        ],
+        [
+          "model_count",
+          "u64"
+        ],
+        [
+          "model_byte_length",
+          "u64"
+        ]
+      ]
+    },
+    {
+      "rust_name": "BaoPiecewiseSourceView",
+      "c_name": "cosmo_bao_piecewise_source_view_t",
+      "fields": [
+        [
+          "struct_size",
+          "u32"
+        ],
+        [
+          "abi_version",
+          "u32"
+        ],
+        [
+          "status",
+          "u32"
+        ],
+        [
+          "numerical_status",
+          "u32"
+        ],
+        [
+          "source",
+          "BaoDescriptor"
+        ],
+        [
+          "prepare_policy",
+          "BaoPiecewisePolicy"
+        ],
+        [
+          "arithmetic_id",
+          "Bytes"
+        ],
+        [
+          "equation_id",
+          "Bytes"
+        ],
+        [
+          "constants_id",
+          "Bytes"
+        ]
+      ]
+    },
+    {
+      "rust_name": "BaoPiecewiseRow",
+      "c_name": "cosmo_bao_piecewise_row",
+      "fields": [
+        [
+          "struct_size",
+          "u32"
+        ],
+        [
+          "abi_version",
+          "u32"
+        ],
+        [
+          "model_index",
+          "u64"
+        ],
+        [
+          "source_parameters",
+          "BaoPiecewiseModel"
+        ],
+        [
+          "status",
+          "u32"
+        ],
+        [
+          "background_status",
+          "u32"
+        ],
+        [
+          "numerical_status",
+          "u32"
+        ],
+        [
+          "reserved",
+          "u32"
+        ],
+        [
+          "model_id",
+          "Bytes"
+        ],
+        [
+          "arithmetic_id",
+          "Bytes"
+        ],
+        [
+          "equation_id",
+          "Bytes"
+        ],
+        [
+          "ruler_convention_id",
+          "Bytes"
+        ],
+        [
+          "computational_h0_convention_id",
+          "Bytes"
+        ],
+        [
+          "log_density",
+          "f64"
+        ],
+        [
+          "quadratic",
+          "f64"
+        ],
+        [
+          "log_determinant",
+          "f64"
+        ],
+        [
+          "normalization",
+          "f64"
+        ],
+        [
+          "backward_residual",
+          "f64"
+        ],
+        [
+          "estimated_forward_sensitivity",
+          "f64"
+        ],
+        [
+          "segment_visits",
+          "u64"
+        ],
+        [
+          "predictions",
+          "F64Buffer"
+        ],
+        [
+          "residuals",
+          "F64Buffer"
+        ],
+        [
+          "ordered_ids",
+          "Strings"
+        ],
+        [
+          "queries",
+          "const_BaoQuery_ptr"
+        ],
+        [
+          "query_count",
+          "u64"
+        ],
+        [
+          "query_byte_length",
+          "u64"
+        ]
+      ]
     }
   ],
   "functions": [
@@ -3218,6 +3480,104 @@
           "supernova_piecewise_result"
         ]
       ]
+    },
+    {
+      "name": "cosmo_bao_piecewise_prepare",
+      "args": [
+        [
+          "descriptor",
+          "const_BaoDescriptor_ptr"
+        ],
+        [
+          "policy",
+          "const_BaoPiecewisePolicy_ptr"
+        ],
+        [
+          "out",
+          "bao_piecewise_out"
+        ]
+      ]
+    },
+    {
+      "name": "cosmo_bao_piecewise_source_view",
+      "args": [
+        [
+          "owner",
+          "const_bao_piecewise"
+        ],
+        [
+          "out",
+          "BaoPiecewiseSourceView_ptr"
+        ]
+      ]
+    },
+    {
+      "name": "cosmo_bao_piecewise_evaluate",
+      "args": [
+        [
+          "owner",
+          "const_bao_piecewise"
+        ],
+        [
+          "batch",
+          "const_BaoPiecewiseBatch_ptr"
+        ],
+        [
+          "policy",
+          "const_BaoPiecewisePolicy_ptr"
+        ],
+        [
+          "out",
+          "bao_piecewise_result_out"
+        ]
+      ]
+    },
+    {
+      "name": "cosmo_bao_piecewise_result_view",
+      "args": [
+        [
+          "owner",
+          "const_bao_piecewise_result"
+        ],
+        [
+          "rows",
+          "const_bao_piecewise_row_out"
+        ],
+        [
+          "count",
+          "u64_ptr"
+        ],
+        [
+          "status",
+          "u32_ptr"
+        ],
+        [
+          "numerical_status",
+          "u32_ptr"
+        ],
+        [
+          "segment_visits",
+          "u64_ptr"
+        ]
+      ]
+    },
+    {
+      "name": "cosmo_bao_piecewise_result_destroy",
+      "args": [
+        [
+          "owner",
+          "bao_piecewise_result"
+        ]
+      ]
+    },
+    {
+      "name": "cosmo_bao_piecewise_destroy",
+      "args": [
+        [
+          "owner",
+          "bao_piecewise"
+        ]
+      ]
     }
   ],
   "max_batch_elements": 1000000,
@@ -3485,5 +3845,84 @@
     },
     "matrix_cap": "maximum_matrix_elements checks full source N*N before preparation copying; selected factor validation scope remains explicit and separate",
     "resource_failure_ownership": "Existing prepare/source/full-N*N rejection remains transport INVALID_INPUT/null. Source/matrix caps apply only to preparation. New well-formed evaluation exceeding configured models/array/aggregate native-byte caps yields owned empty status work_limit, zero segments; bounded diagnostic owner allocation allowed even bytecap0. Malformed policy/hardcaps/storage/alignment/overflow => INVALID_INPUT/null; version mismatch => ABI_MISMATCH/null. Native selected-query/segment failures retain row causes."
+  },
+  "bao_piecewise_contract": {
+    "operation": "bao.piecewise_gaussian_batch.v1",
+    "state": "implemented",
+    "owner": "distinct analytic cosmo_bao_piecewise opaque handle, shared private templated preparation/view/evaluation core; existing concrete legacy owner layout preserved",
+    "cross_family": "compile-time C++ pointer type separation; valid matching handle caller contract; forged casts outside contract, no runtime forged-handle detection promise",
+    "source": "reuse existing exact13 mean/cov adapter and descriptor; released family declaration distinct from actual asset hashes; declared axes not verified; free ruler/fixed computational H0=70 conventions retained",
+    "model_packet": {
+      "bytes": 48,
+      "fields": [
+        "q[5] required f64",
+        "h0_rd_km_s required f64"
+      ]
+    },
+    "policy_packet": {
+      "proposed_bytes": 104,
+      "fields": [
+        "header two u32",
+        "arithmetic u32",
+        "include_predictions u32",
+        "include_residuals u32",
+        "reserved0 u32",
+        "maximum_models u64",
+        "maximum_rows u64",
+        "maximum_matrix_elements u64",
+        "maximum_string_bytes u64",
+        "maximum_native_bytes u64",
+        "maximum_array_elements u64",
+        "maximum_native_output_bytes u64",
+        "maximum_queries u64",
+        "maximum_total_segment_visits u64",
+        "maximum_forward_sensitivity f64"
+      ]
+    },
+    "policies": "separately retain actual preparation and evaluation analytic policy; no quadrature fields or fabricated quadrature provenance",
+    "source_view": "distinct analytic source view reports actual preparation policy; legacy view unchanged",
+    "result": "distinct analytic row q/ruler plus normalized density/quadratic/logdet/normalization/diagnostics/segments; owned copied IDs/source queries/predictions/residuals independent of source owner; failed finite payload absent",
+    "resources": "hard bounds checked before copy/allocation; preparation source/matrix/native caps separately interpreted; evaluation accounts retained result/model/identity arrays/native scratch and internal arrays even export suppressed; caller input/allocator overhead excluded; malformed/version dedicated transport failure, native semantic empty/status/cause preserved",
+    "acceptance": [
+      "old BAO API/layout/source-policy parity",
+      "distinct typed families; valid matching-handle caller contract, null/default/failedowner",
+      "native exact normalized terms and query/order/arrays parity",
+      "bad_alloc cleanup/lifetimes/caps/globalsegments/failure causes",
+      "CLI strict q5/ruler/noquadrature fields/immutable source identities",
+      "original24 matching current native transcript separate independent assembled reference allocations; runtime remains unqualified"
+    ],
+    "hypotheses": "no sound horizon prediction, joint SNBAO, priors or sampler",
+    "phase_scope": {
+      "preparation_only": [
+        "maximum_rows",
+        "maximum_matrix_elements",
+        "maximum_string_bytes",
+        "maximum_native_bytes"
+      ],
+      "evaluation_only": [
+        "maximum_models",
+        "maximum_queries",
+        "maximum_array_elements",
+        "maximum_native_output_bytes",
+        "maximum_total_segment_visits",
+        "include_predictions",
+        "include_residuals"
+      ],
+      "both_phases": [
+        "arithmetic",
+        "maximum_forward_sensitivity"
+      ],
+      "notes": "Preparation nativebytes bounds wrapper/source/factor copies. Evaluation nativeoutputbytes bounds the entire wrapper/native/scratch aggregate, including suppressed arrays; not two independent promised budgets. Caller input and allocator overhead excluded."
+    },
+    "failure_ownership_proposal": {
+      "malformed": "hard policy/descriptor/alignment/count arithmetic overflow => transport INVALID_INPUT/null",
+      "prepare": "same existing structural source descriptor/cap guards as old wrapper; valid copied native preparation failure publishes typed owner with exact native status/cause/source",
+      "configured_eval_quota": "well-formed wrapper count/array/aggregate-byte exhaustion should return owned empty DensityStatus::invalid_input with numerical::work_limit, matching existing native budget classification; zero segments; bounded diagnostic owner permitted independently of data bytecap",
+      "native_semantics": "delegate to existing native result exactly, including valid precision mismatch empty invalid_input/numericalinvalid_input currently; no fabricated rows/cause",
+      "version": "dedicated ABI_MISMATCH and reset output"
+    },
+    "owner_layout_probe": "Current x86_64 old/variant both1520; distinct type chosen for clean representation/portable design, not confirmed current cap defect; old threshold tested on actual supported build",
+    "cli_available": true,
+    "qualification": "unqualified; named native24 and bounded interface evidence do not establish request applicability"
   }
 }

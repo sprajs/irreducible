@@ -91,6 +91,53 @@ b::DensityPolicy policy(const cosmo_bao_policy &p) {
       p.background.maximum_depth};
   return q;
 }
+bool valid(const cosmo_bao_piecewise_policy &p) {
+  return p.struct_size == sizeof(p) && p.abi_version == COSMO_ABI_VERSION &&
+         !p.reserved && p.arithmetic <= 1 && p.include_predictions <= 1 &&
+         p.include_residuals <= 1 && p.maximum_models <= 64 &&
+         p.maximum_rows <= 4096 && p.maximum_queries <= 4096 &&
+         p.maximum_matrix_elements <= 16777216 &&
+         p.maximum_string_bytes <= 16777216 &&
+         p.maximum_native_bytes <= 512u * 1024u * 1024u &&
+         p.maximum_native_output_bytes <= 512u * 1024u * 1024u &&
+         p.maximum_array_elements <= COSMO_MAX_BATCH_ELEMENTS &&
+         p.maximum_total_segment_visits <= SIZE_MAX &&
+         std::isfinite(p.maximum_forward_sensitivity) &&
+         p.maximum_forward_sensitivity > 0;
+}
+b::DensityPolicy policy(const cosmo_bao_piecewise_policy &p) {
+  // Preparation has no integration policy: only source/factor resources.
+  b::DensityPolicy q{};
+  q.maximum_models = p.maximum_models;
+  q.maximum_matrix_elements = p.maximum_matrix_elements;
+  q.maximum_string_bytes = p.maximum_string_bytes;
+  q.maximum_native_bytes = p.maximum_native_bytes;
+  q.maximum_forward_sensitivity = p.maximum_forward_sensitivity;
+  q.arithmetic = static_cast<n::Arithmetic>(p.arithmetic);
+  q.observables.maximum_queries = p.maximum_rows;
+  return q;
+}
+b::PiecewiseDensityPolicy
+evaluation_policy(const cosmo_bao_piecewise_policy &p) {
+  b::PiecewiseDensityPolicy q{};
+  q.maximum_models = p.maximum_models;
+  q.maximum_native_bytes = p.maximum_native_output_bytes;
+  q.maximum_forward_sensitivity = p.maximum_forward_sensitivity;
+  q.arithmetic = static_cast<n::Arithmetic>(p.arithmetic);
+  q.observables.maximum_queries = p.maximum_queries;
+  q.observables.maximum_native_bytes = p.maximum_native_output_bytes;
+  q.observables.background.maximum_queries = p.maximum_queries;
+  q.observables.background.maximum_segment_visits =
+      p.maximum_total_segment_visits;
+  return q;
+}
+bool versions(const cosmo_bao_policy &p) {
+  return p.abi_version == COSMO_ABI_VERSION &&
+         p.background.abi_version == COSMO_ABI_VERSION;
+}
+bool versions(const cosmo_bao_piecewise_policy &p) {
+  return p.abi_version == COSMO_ABI_VERSION;
+}
 cosmo_bytes view(std::string_view s) {
   return {reinterpret_cast<const uint8_t *>(s.data()), s.size()};
 }
@@ -146,16 +193,29 @@ struct cosmo_bao_result {
   std::vector<cosmo_bytes> id_views;
   std::vector<cosmo_bao_query> queries;
 };
-extern "C" uint32_t cosmo_bao_prepare(const cosmo_bao_descriptor *d,
-                                      const cosmo_bao_policy *p,
-                                      cosmo_bao **out) {
+struct cosmo_bao_piecewise {
+  b::DensityInput source;
+  b::PreparedDensity native;
+  cosmo_bao_piecewise_policy preparation{};
+  std::vector<cosmo_bao_query> queries;
+  std::vector<cosmo_bytes> ids;
+  std::string redshift, ruler, h0;
+};
+struct cosmo_bao_piecewise_result {
+  b::PiecewiseDensityBatch native;
+  std::vector<cosmo_bao_piecewise_row> rows;
+  std::vector<std::string> ordered_ids;
+  std::vector<cosmo_bytes> id_views;
+  std::vector<cosmo_bao_query> queries;
+};
+template <class Owner, class Policy>
+uint32_t prepare_common(const cosmo_bao_descriptor *d, const Policy *p,
+                        Owner **out) {
   if (aligned(out))
     *out = nullptr;
   if (!aligned(out) || !aligned(d) || !aligned(p))
     return COSMO_INVALID_INPUT;
-  if (d->abi_version != COSMO_ABI_VERSION ||
-      p->abi_version != COSMO_ABI_VERSION ||
-      p->background.abi_version != COSMO_ABI_VERSION)
+  if (d->abi_version != COSMO_ABI_VERSION || !versions(*p))
     return COSMO_ABI_MISMATCH;
   if (d->struct_size != sizeof(*d) || !valid(*p) || d->role > 1 ||
       d->covariance_unit != 0)
@@ -187,7 +247,7 @@ extern "C" uint32_t cosmo_bao_prepare(const cosmo_bao_descriptor *d,
   // Bound wrapper retained inputs plus native copies/factors/workspace before
   // copying.
   uint64_t left = p->maximum_native_bytes;
-  if (!consume(1, sizeof(cosmo_bao), left) ||
+  if (!consume(1, sizeof(Owner), left) ||
       !consume(count,
                sizeof(cosmo_bao_query) + 2 * sizeof(b::Query) +
                    4 * sizeof(std::string) + 2 * sizeof(cosmo_bytes) +
@@ -197,7 +257,7 @@ extern "C" uint32_t cosmo_bao_prepare(const cosmo_bao_descriptor *d,
       !consume(p->maximum_string_bytes - strings_left, 3, left))
     return COSMO_INVALID_INPUT;
   try {
-    auto owner = std::make_unique<cosmo_bao>();
+    auto owner = std::make_unique<Owner>();
     owner->preparation = *p;
     owner->queries.assign(d->queries, d->queries + count);
     auto &s = owner->source;
@@ -232,8 +292,19 @@ extern "C" uint32_t cosmo_bao_prepare(const cosmo_bao_descriptor *d,
     return COSMO_EXCEPTION;
   }
 }
-extern "C" uint32_t cosmo_bao_source_view(const cosmo_bao *owner,
-                                          cosmo_bao_source_view_t *out) {
+extern "C" uint32_t cosmo_bao_prepare(const cosmo_bao_descriptor *d,
+                                      const cosmo_bao_policy *p,
+                                      cosmo_bao **out) {
+  return prepare_common(d, p, out);
+}
+extern "C" uint32_t
+cosmo_bao_piecewise_prepare(const cosmo_bao_descriptor *d,
+                            const cosmo_bao_piecewise_policy *p,
+                            cosmo_bao_piecewise **out) {
+  return prepare_common(d, p, out);
+}
+template <class Owner, class View>
+uint32_t source_view_common(const Owner *owner, View *out) {
   if (aligned(out))
     *out = {};
   if (!owner || !aligned(out))
@@ -269,6 +340,19 @@ extern "C" uint32_t cosmo_bao_source_view(const cosmo_bao *owner,
   d.redshift_convention = view(owner->redshift);
   d.ruler_convention = view(owner->ruler);
   d.computational_h0_convention = view(owner->h0);
+  return COSMO_OK;
+}
+extern "C" uint32_t cosmo_bao_source_view(const cosmo_bao *owner,
+                                          cosmo_bao_source_view_t *out) {
+  return source_view_common(owner, out);
+}
+extern "C" uint32_t
+cosmo_bao_piecewise_source_view(const cosmo_bao_piecewise *owner,
+                                cosmo_bao_piecewise_source_view_t *out) {
+  return source_view_common(owner, out);
+}
+extern "C" uint32_t cosmo_bao_piecewise_destroy(cosmo_bao_piecewise *owner) {
+  delete owner;
   return COSMO_OK;
 }
 extern "C" uint32_t cosmo_bao_destroy(cosmo_bao *owner) {
@@ -408,6 +492,146 @@ extern "C" uint32_t cosmo_bao_result_view(const cosmo_bao_result *owner,
   return COSMO_OK;
 }
 extern "C" uint32_t cosmo_bao_result_destroy(cosmo_bao_result *owner) {
+  delete owner;
+  return COSMO_OK;
+}
+
+extern "C" uint32_t cosmo_bao_piecewise_evaluate(
+    const cosmo_bao_piecewise *owner, const cosmo_bao_piecewise_batch *batch,
+    const cosmo_bao_piecewise_policy *p, cosmo_bao_piecewise_result **out) {
+  if (aligned(out))
+    *out = nullptr;
+  if (!owner || !aligned(batch) || !aligned(p) || !aligned(out))
+    return COSMO_INVALID_INPUT;
+  if (batch->abi_version != COSMO_ABI_VERSION || !versions(*p))
+    return COSMO_ABI_MISMATCH;
+  if (batch->struct_size != sizeof(*batch) || !valid(*p) ||
+      !bounded(batch->models, batch->model_count, batch->model_byte_length, 64))
+    return COSMO_INVALID_INPUT;
+  const auto count = batch->model_count, rows = owner->source.queries.size();
+  uint64_t arrays;
+  if (!multiply(count, rows, arrays))
+    return COSMO_INVALID_INPUT;
+  uint64_t left = p->maximum_native_output_bytes;
+  bool quota = count > p->maximum_models ||
+               arrays > p->maximum_array_elements / 2 ||
+               !consume(1, sizeof(cosmo_bao_piecewise_result), left) ||
+               !consume(count,
+                        sizeof(cosmo_bao_piecewise_row) +
+                            sizeof(b::PiecewiseDensitySlot) +
+                            sizeof(b::PiecewiseModelPoint),
+                        left) ||
+               !consume(count, 256, left) ||
+               !consume(rows,
+                        sizeof(std::string) + sizeof(cosmo_bytes) +
+                            sizeof(cosmo_bao_query),
+                        left) ||
+               !consume(arrays, 2 * sizeof(double), left) ||
+               !consume(rows,
+                        sizeof(b::PiecewiseSlot) + sizeof(c::PiecewiseSlot) +
+                            sizeof(c::Query) + sizeof(size_t) +
+                            4 * sizeof(long double) + 2 * sizeof(double),
+                        left);
+  if (!quota)
+    for (const auto &id : owner->source.ordered_ids)
+      if (!consume(id.size() + 1, 1, left)) {
+        quota = true;
+        break;
+      }
+  try {
+    auto result = std::make_unique<cosmo_bao_piecewise_result>();
+    if (quota) {
+      result->native.numerical_status = n::Status::work_limit;
+      *out = result.release();
+      return COSMO_OK;
+    }
+    result->ordered_ids = owner->source.ordered_ids;
+    result->queries = owner->queries;
+    result->id_views.reserve(result->ordered_ids.size());
+    for (const auto &id : result->ordered_ids)
+      result->id_views.push_back(view(id));
+    std::vector<b::PiecewiseModelPoint> models;
+    models.reserve(count);
+    for (uint64_t i = 0; i < count; ++i) {
+      std::array<double, 5> values;
+      std::copy_n(batch->models[i].q, 5, values.begin());
+      models.emplace_back(values, b::Ruler(batch->models[i].h0_rd_km_s));
+    }
+    result->native =
+        owner->native.evaluate_piecewise(models, evaluation_policy(*p));
+    result->rows.resize(result->native.slots.size());
+    for (size_t i = 0; i < result->rows.size(); ++i) {
+      auto &row = result->rows[i];
+      const auto &slot = result->native.slots[i];
+      row.struct_size = sizeof(row);
+      row.abi_version = COSMO_ABI_VERSION;
+      row.model_index = i;
+      row.source_parameters = batch->models[i];
+      row.status = static_cast<uint32_t>(slot.result.density.status);
+      row.background_status = static_cast<uint32_t>(slot.background_status);
+      row.numerical_status = static_cast<uint32_t>(slot.numerical_status);
+      row.model_id = view(slot.model_id);
+      row.arithmetic_id = view(slot.arithmetic_id);
+      row.equation_id = view(slot.equation_id);
+      row.ruler_convention_id = view(b::ruler_convention_id);
+      row.computational_h0_convention_id = view(h0_id);
+      row.segment_visits = slot.segment_visits;
+      row.ordered_ids = {result->id_views.data(), result->id_views.size(),
+                         result->id_views.size() * sizeof(cosmo_bytes)};
+      row.queries = result->queries.data();
+      row.query_count = result->queries.size();
+      row.query_byte_length = result->queries.size() * sizeof(cosmo_bao_query);
+      if (slot.result.density.status ==
+          irred::statistics::DensityStatus::finite) {
+        row.log_density = slot.result.density.log_value;
+        row.quadratic = slot.result.quadratic;
+        row.log_determinant = slot.result.log_determinant;
+        row.normalization = slot.result.normalization;
+        row.backward_residual = slot.result.backward_residual;
+        row.estimated_forward_sensitivity =
+            slot.result.estimated_forward_sensitivity;
+        if (p->include_predictions)
+          row.predictions = view(slot.predictions);
+        if (p->include_residuals)
+          row.residuals = view(slot.residuals);
+      }
+    }
+    *out = result.release();
+    return COSMO_OK;
+  } catch (const std::bad_alloc &) {
+    return COSMO_ALLOCATION_FAILURE;
+  } catch (...) {
+    return COSMO_EXCEPTION;
+  }
+}
+extern "C" uint32_t
+cosmo_bao_piecewise_result_view(const cosmo_bao_piecewise_result *owner,
+                                const cosmo_bao_piecewise_row **rows,
+                                uint64_t *count, uint32_t *status,
+                                uint32_t *numerical, uint64_t *segments) {
+  if (aligned(rows))
+    *rows = nullptr;
+  if (aligned(count))
+    *count = 0;
+  if (aligned(status))
+    *status =
+        static_cast<uint32_t>(irred::statistics::DensityStatus::invalid_input);
+  if (aligned(numerical))
+    *numerical = static_cast<uint32_t>(n::Status::invalid_input);
+  if (aligned(segments))
+    *segments = 0;
+  if (!owner || !aligned(rows) || !aligned(count) || !aligned(status) ||
+      !aligned(numerical) || !aligned(segments))
+    return COSMO_INVALID_INPUT;
+  *rows = owner->rows.data();
+  *count = owner->rows.size();
+  *status = static_cast<uint32_t>(owner->native.status);
+  *numerical = static_cast<uint32_t>(owner->native.numerical_status);
+  *segments = owner->native.segment_visits;
+  return COSMO_OK;
+}
+extern "C" uint32_t
+cosmo_bao_piecewise_result_destroy(cosmo_bao_piecewise_result *owner) {
   delete owner;
   return COSMO_OK;
 }

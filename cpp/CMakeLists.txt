@@ -208,6 +208,9 @@ add_test(NAME bao_piecewise_contract COMMAND test_bao_piecewise)
 add_executable(test_bao_piecewise_hostile tests/test_bao_piecewise_hostile.cpp)
 target_link_libraries(test_bao_piecewise_hostile PRIVATE irred_core)
 add_test(NAME bao_piecewise_hostile_contract COMMAND test_bao_piecewise_hostile)
+add_executable(test_bao_piecewise_abi_hostile tests/test_bao_piecewise_abi_hostile.cpp)
+target_link_libraries(test_bao_piecewise_abi_hostile PRIVATE irred_core)
+add_test(NAME bao_piecewise_abi_hostile_contract COMMAND test_bao_piecewise_abi_hostile)
 
 # Reference arithmetic only; never a production dependency or default test.
 option(IRRED_REFERENCE_GMP_MPFR "Enable optional directed-interval BAO reference test" OFF)

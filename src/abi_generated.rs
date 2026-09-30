@@ -873,6 +873,84 @@ pub struct SupernovaPiecewiseSlot {
     pub expansion_z: F64Buffer,
     pub observer_z: F64Buffer,
 }
+#[allow(non_snake_case)]
+#[repr(C)]
+pub struct BaoPiecewiseModel {
+    pub q: [f64; 5],
+    pub h0_rd_km_s: f64,
+}
+#[allow(non_snake_case)]
+#[repr(C)]
+pub struct BaoPiecewisePolicy {
+    pub struct_size: u32,
+    pub abi_version: u32,
+    pub arithmetic: u32,
+    pub include_predictions: u32,
+    pub include_residuals: u32,
+    pub reserved: u32,
+    pub maximum_models: u64,
+    pub maximum_rows: u64,
+    pub maximum_matrix_elements: u64,
+    pub maximum_string_bytes: u64,
+    pub maximum_native_bytes: u64,
+    pub maximum_array_elements: u64,
+    pub maximum_native_output_bytes: u64,
+    pub maximum_queries: u64,
+    pub maximum_total_segment_visits: u64,
+    pub maximum_forward_sensitivity: f64,
+}
+#[allow(non_snake_case)]
+#[repr(C)]
+pub struct BaoPiecewiseBatch {
+    pub struct_size: u32,
+    pub abi_version: u32,
+    pub models: *const BaoPiecewiseModel,
+    pub model_count: u64,
+    pub model_byte_length: u64,
+}
+#[allow(non_snake_case)]
+#[repr(C)]
+pub struct BaoPiecewiseSourceView {
+    pub struct_size: u32,
+    pub abi_version: u32,
+    pub status: u32,
+    pub numerical_status: u32,
+    pub source: BaoDescriptor,
+    pub prepare_policy: BaoPiecewisePolicy,
+    pub arithmetic_id: Bytes,
+    pub equation_id: Bytes,
+    pub constants_id: Bytes,
+}
+#[allow(non_snake_case)]
+#[repr(C)]
+pub struct BaoPiecewiseRow {
+    pub struct_size: u32,
+    pub abi_version: u32,
+    pub model_index: u64,
+    pub source_parameters: BaoPiecewiseModel,
+    pub status: u32,
+    pub background_status: u32,
+    pub numerical_status: u32,
+    pub reserved: u32,
+    pub model_id: Bytes,
+    pub arithmetic_id: Bytes,
+    pub equation_id: Bytes,
+    pub ruler_convention_id: Bytes,
+    pub computational_h0_convention_id: Bytes,
+    pub log_density: f64,
+    pub quadratic: f64,
+    pub log_determinant: f64,
+    pub normalization: f64,
+    pub backward_residual: f64,
+    pub estimated_forward_sensitivity: f64,
+    pub segment_visits: u64,
+    pub predictions: F64Buffer,
+    pub residuals: F64Buffer,
+    pub ordered_ids: Strings,
+    pub queries: *const BaoQuery,
+    pub query_count: u64,
+    pub query_byte_length: u64,
+}
 unsafe extern "C" {
     pub fn cosmo_add(
         a: *const Buffer,
@@ -1086,6 +1164,31 @@ unsafe extern "C" {
         segment_visits: *mut u64,
     ) -> u32;
     pub fn cosmo_supernova_piecewise_result_destroy(owner: *mut std::ffi::c_void) -> u32;
+    pub fn cosmo_bao_piecewise_prepare(
+        descriptor: *const BaoDescriptor,
+        policy: *const BaoPiecewisePolicy,
+        out: *mut *mut std::ffi::c_void,
+    ) -> u32;
+    pub fn cosmo_bao_piecewise_source_view(
+        owner: *const std::ffi::c_void,
+        out: *mut BaoPiecewiseSourceView,
+    ) -> u32;
+    pub fn cosmo_bao_piecewise_evaluate(
+        owner: *const std::ffi::c_void,
+        batch: *const BaoPiecewiseBatch,
+        policy: *const BaoPiecewisePolicy,
+        out: *mut *mut std::ffi::c_void,
+    ) -> u32;
+    pub fn cosmo_bao_piecewise_result_view(
+        owner: *const std::ffi::c_void,
+        rows: *mut *const BaoPiecewiseRow,
+        count: *mut u64,
+        status: *mut u32,
+        numerical_status: *mut u32,
+        segment_visits: *mut u64,
+    ) -> u32;
+    pub fn cosmo_bao_piecewise_result_destroy(owner: *mut std::ffi::c_void) -> u32;
+    pub fn cosmo_bao_piecewise_destroy(owner: *mut std::ffi::c_void) -> u32;
 }
 #[derive(Clone, serde::Deserialize, serde::Serialize)]
 #[serde(deny_unknown_fields)]

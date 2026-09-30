@@ -64,13 +64,13 @@ fn policy(p: &Policy) -> Result<BaoPolicy, String> {
         maximum_forward_sensitivity: p.maximum_forward_sensitivity,
     })
 }
-fn bytes(s: &str) -> Bytes {
+pub(super) fn bytes(s: &str) -> Bytes {
     Bytes {
         data: s.as_ptr(),
         length: s.len() as u64,
     }
 }
-fn buffer(s: &[f64]) -> F64Buffer {
+pub(super) fn buffer(s: &[f64]) -> F64Buffer {
     F64Buffer {
         struct_size: std::mem::size_of::<F64Buffer>() as u32,
         abi_version: ABI_VERSION,
@@ -81,14 +81,14 @@ fn buffer(s: &[f64]) -> F64Buffer {
         byte_length: std::mem::size_of_val(s) as u64,
     }
 }
-fn strings(s: &[Bytes]) -> Strings {
+pub(super) fn strings(s: &[Bytes]) -> Strings {
     Strings {
         data: s.as_ptr(),
         length: s.len() as u64,
         byte_length: std::mem::size_of_val(s) as u64,
     }
 }
-fn text(s: &Bytes) -> Result<String, String> {
+pub(super) fn text(s: &Bytes) -> Result<String, String> {
     if s.length > 16777216 || (s.length > 0 && s.data.is_null()) {
         return Err("INVALID_NATIVE_TEXT".into());
     }
@@ -99,7 +99,7 @@ fn text(s: &Bytes) -> Result<String, String> {
         .map(str::to_owned)
         .map_err(|_| "INVALID_NATIVE_UTF8".into())
 }
-fn doubles(s: &F64Buffer, cap: usize) -> Result<Vec<f64>, String> {
+pub(super) fn doubles(s: &F64Buffer, cap: usize) -> Result<Vec<f64>, String> {
     if s.struct_size == 0
         && s.abi_version == 0
         && s.element_type == 0
@@ -142,7 +142,7 @@ impl Drop for ResultOwner {
         }
     }
 }
-fn status(s: u32) -> Result<(), String> {
+pub(super) fn status(s: u32) -> Result<(), String> {
     if s == OK {
         Ok(())
     } else {

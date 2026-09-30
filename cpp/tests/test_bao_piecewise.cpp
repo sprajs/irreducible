@@ -10,6 +10,7 @@
 #include <cfenv>
 #include <cmath>
 #include <cstdio>
+#include <cstdlib>
 #include <fstream>
 #include <limits>
 #include <sstream>
@@ -408,6 +409,97 @@ struct ReferenceContext {
     return result;
   }
 };
+// Transport-only native transcript. Scientific acceptance is the independently
+// directed interval gate; the older failed conservative ledger remains intact.
+void direct_native(const char *mean, const char *cov) {
+  auto input = original_source(mean, cov);
+  // Transport adapter alone adopts the structural reader's canonical identity.
+  // The scientific original_source reader and its accepted evidence are
+  // unchanged.
+  for (size_t i = 0; i < input.queries.size(); ++i) {
+    const auto tag = input.queries[i].observable;
+    const char *label =
+        tag == bao::Observable::transverse_over_ruler ? "DM_over_rs"
+        : tag == bao::Observable::hubble_over_ruler   ? "DH_over_rs"
+                                                      : "DV_over_rs";
+    input.ordered_ids[i] =
+        input.table_identity + ":row:" + std::to_string(i) + ":" + label;
+  }
+  input.ordering_provenance =
+      "supplied released original row order; not independently verified from "
+      "unlabeled covariance";
+  input.calibration_provenance =
+      "released fitted-distance Gaussian; free empirical ruler";
+  input.dependence_provenance =
+      "internal covariance supplied; external probe dependence not assessed";
+
+  auto prep = density_policy();
+  prep.maximum_matrix_elements = 169;
+  auto prepared = bao::prepare_density(input, prep);
+  check(prepared.status() == statistics::DensityStatus::finite,
+        "direct prepare");
+  auto points = grid();
+  auto batch = prepared.evaluate_piecewise(points, analytic_policy());
+  check(batch.slots.size() == 24, "direct24 rows");
+  std::printf(
+      "{\"suite\":\"piecewise_BAO_direct_native_transport\",\"asset_identity_"
+      "provenance\":\"external Rust SHA guard assertion; C++ does not "
+      "hash\",\"mean_sha256\":\"%s\",\"covariance_sha256\":\"%s\",\"status\":%"
+      "u,\"numerical_status\":%u,\"segments\":%zu,\"source\":{",
+      test_reference::bao_mean_sha256.data(),
+      test_reference::bao_cov_sha256.data(), (unsigned)batch.status,
+      (unsigned)batch.numerical_status, batch.segment_visits);
+  std::printf(
+      "\"table_identity\":\"%s\",\"covariance_identity\":\"%s\","
+      "\"ordering_provenance\":\"%s\",\"calibration_provenance\":\"%s\","
+      "\"dependence_provenance\":\"%s\",\"role\":%u,\"covariance_unit\":%u,"
+      "\"ordered_ids\":[",
+      input.table_identity.c_str(), input.covariance_identity.c_str(),
+      input.ordering_provenance.c_str(), input.calibration_provenance.c_str(),
+      input.dependence_provenance.c_str(), (unsigned)input.role,
+      (unsigned)input.covariance_unit);
+  for (size_t i = 0; i < input.ordered_ids.size(); ++i)
+    std::printf("%s\"%s\"", i ? "," : "", input.ordered_ids[i].c_str());
+  std::printf("],\"queries\":[");
+  for (size_t i = 0; i < input.queries.size(); ++i)
+    std::printf("%s{\"z\":%.17g,\"observable\":%u}", i ? "," : "",
+                input.queries[i].z, (unsigned)input.queries[i].observable);
+  std::printf("],\"observed\":[");
+  for (size_t i = 0; i < input.observed.size(); ++i)
+    std::printf("%s%.17g", i ? "," : "", input.observed[i]);
+  std::printf("],\"covariance\":[");
+  for (size_t i = 0; i < input.covariance.size(); ++i)
+    std::printf("%s%.17g", i ? "," : "", input.covariance[i]);
+  std::printf("]},\"rows\":[");
+  for (size_t j = 0; j < batch.slots.size(); ++j) {
+    auto &s = batch.slots[j];
+    check(s.result.density.status == statistics::DensityStatus::finite,
+          "direct finite");
+    if (j)
+      std::printf(",");
+    std::printf("{\"point\":%zu,\"q\":[", j);
+    for (size_t k = 0; k < 5; ++k)
+      std::printf("%s%.17g", k ? "," : "", s.source.q[k]);
+    std::printf("],\"h0rd\":%.17g,\"background_status\":%u,\"numerical_"
+                "status\":%u,\"density_status\":%u,\"segments\":%zu,"
+                "\"density\":%.17g,\"quadratic\":%.17g,\"logdet\":%.17g,"
+                "\"normalization\":%.17g,\"backward_residual\":%.17g,\"forward_"
+                "sensitivity\":%.17g,\"prediction\":[",
+                s.source.ruler.h0_rd_km_s, (unsigned)s.background_status,
+                (unsigned)s.numerical_status, (unsigned)s.result.density.status,
+                s.segment_visits, s.result.density.log_value,
+                s.result.quadratic, s.result.log_determinant,
+                s.result.normalization, s.result.backward_residual,
+                s.result.estimated_forward_sensitivity);
+    for (size_t k = 0; k < s.predictions.size(); ++k)
+      std::printf("%s%.17g", k ? "," : "", s.predictions[k]);
+    std::printf("],\"residual\":[");
+    for (size_t k = 0; k < s.residuals.size(); ++k)
+      std::printf("%s%.17g", k ? "," : "", s.residuals[k]);
+    std::printf("]}");
+  }
+  std::printf("]}\n");
+}
 void original(const char *mean, const char *cov) {
   check(std::numeric_limits<long double>::digits >= 64 &&
             std::fegetround() == FE_TONEAREST,
@@ -600,6 +692,16 @@ int main(int argc, char **argv) {
   try {
     if (argc == 2 && std::string(argv[1]) == "--legacy-transcript") {
       legacy_transcript();
+      return 0;
+    }
+    if (argc == 5 && std::string(argv[1]) == "--verified-original-assets" &&
+        std::string(argv[4]) == "--direct-native-transcript") {
+      direct_native(argv[2], argv[3]);
+      return 0;
+    }
+    if (argc == 4 && std::string(argv[1]) == "--verified-original-assets" &&
+        std::getenv("IRRED_BAO_DIRECT_NATIVE_TRANSCRIPT")) {
+      direct_native(argv[2], argv[3]);
       return 0;
     }
     if (argc == 4 && std::string(argv[1]) == "--verified-original-assets") {

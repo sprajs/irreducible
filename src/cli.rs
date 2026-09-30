@@ -46,7 +46,7 @@ pub(crate) fn execute() -> Result<(), String> {
         Some("describe") | Some("version") if args.len() == 3 && args[2] == "--json" => {
             println!(
                 "{}",
-                json!({"schema_version":1,"product":"Irreducible","executable":"irred","version":env!("CARGO_PKG_VERSION"),"abi_version":ABI_VERSION,"build":manifest,"capabilities":[{"id":"fixture.checked_i64_add.v1","implementation":"implemented","qualification":"unqualified","scientific":false},{"id":"quantity.convert.v1","implementation":"implemented","qualification":"unqualified","scientific":true},{"id":"numerics.scalar_batch.v1","implementation":"implemented","qualification":"unqualified","scientific":true},{"id":"background.parameter_query_batch.v1","implementation":"implemented","qualification":"unqualified","scientific":true,"interface_gate":"bounded_native_and_cli_passed","models":["flat_lcdm_late_v1","constant_q_flat_v1"]},{"id":"supernova.profile_batch.v1","implementation":"implemented","qualification":"unqualified","scientific":true,"interface_gate":"bounded_native_and_cli_passed","models":["flat_lcdm_late_v1","constant_q_flat_v1"],"target":"relative single-offset profile score; density and evidence not applicable","validation_coverage":"named original-input seven-point native regression; request applicability not established"},{"id":"background.parameter_query_batch.v2","implementation":"implemented","qualification":"unqualified","scientific":true,"interface_gate":"bounded_native_and_cli_passed","models":["flat_lcdm_late_v1","constant_q_flat_v1","flat_cpl_late_v1"],"parameters":"all fields explicit; canonical inactive values required","validation_coverage":"bounded native model and synthetic interface fixtures; request applicability not established"},{"id":"supernova.profile_batch.v2","implementation":"implemented","qualification":"unqualified","scientific":true,"interface_gate":"bounded_native_and_cli_passed","models":["flat_lcdm_late_v1","constant_q_flat_v1","flat_cpl_late_v1"],"target":"relative single-offset profile score; density and evidence not applicable","validation_coverage":"named four-point original-input native comparison and synthetic interface cases; request applicability not established"},{"id":"background.piecewise_query_batch.v1","implementation":"implemented","qualification":"unqualified","scientific":true,"interface_gate":"bounded_native_and_cli_passed","parameters":"required H0 and five ordered q coefficients","work":"one global analytic segment budget; no quadrature callbacks","validation_coverage":"bounded native fixed-five-bin and hostile transport cases; request applicability not established"},{"id":"supernova.piecewise_profile_batch.v1","implementation":"implemented","qualification":"unqualified","scientific":true,"interface_gate":"bounded_native_and_cli_passed","parameters":"required five ordered q coefficients; explicit cached arithmetic and analytic segment policy","target":"relative single-offset profile score; density and evidence not applicable","validation_coverage":"named six-point original-input native comparison and synthetic interface cases; request applicability not established"},{"id":"bao.gaussian_batch.v1","implementation":"implemented","qualification":"unqualified","scientific":true,"interface_gate":"bounded_native_and_cli_passed","target":"normalized conditional free-ruler Gaussian density","computational_h0_km_s_mpc":70,"validation_coverage":"named native eleven-point original-input regression; request applicability not established"},{"id":"statistics.gaussian_batch.v1","implementation":"implemented","qualification":"unqualified","scientific":true,"interface_gate":"bounded_native_and_cli_passed","modes":["normalized_density","profile_offset_score"]},{"id":"observations.prepare.v1","implementation":"implemented","qualification":"unqualified","scientific":true,"profiles":["pantheon_plus_released_v1","gaussian_fixture_v1"],"fits_codec":"unavailable_in_product"}],"abi_schema":serde_json::from_str::<Value>(include_str!("../schema/abi.json")).map_err(|e|e.to_string())?,"commands":["describe --json","version --json","run REQUEST STORE"],"scientific_qualifications":[]})
+                json!({"schema_version":1,"product":"Irreducible","executable":"irred","version":env!("CARGO_PKG_VERSION"),"abi_version":ABI_VERSION,"build":manifest,"capabilities":[{"id":"fixture.checked_i64_add.v1","implementation":"implemented","qualification":"unqualified","scientific":false},{"id":"quantity.convert.v1","implementation":"implemented","qualification":"unqualified","scientific":true},{"id":"numerics.scalar_batch.v1","implementation":"implemented","qualification":"unqualified","scientific":true},{"id":"background.parameter_query_batch.v1","implementation":"implemented","qualification":"unqualified","scientific":true,"interface_gate":"bounded_native_and_cli_passed","models":["flat_lcdm_late_v1","constant_q_flat_v1"]},{"id":"supernova.profile_batch.v1","implementation":"implemented","qualification":"unqualified","scientific":true,"interface_gate":"bounded_native_and_cli_passed","models":["flat_lcdm_late_v1","constant_q_flat_v1"],"target":"relative single-offset profile score; density and evidence not applicable","validation_coverage":"named original-input seven-point native regression; request applicability not established"},{"id":"background.parameter_query_batch.v2","implementation":"implemented","qualification":"unqualified","scientific":true,"interface_gate":"bounded_native_and_cli_passed","models":["flat_lcdm_late_v1","constant_q_flat_v1","flat_cpl_late_v1"],"parameters":"all fields explicit; canonical inactive values required","validation_coverage":"bounded native model and synthetic interface fixtures; request applicability not established"},{"id":"supernova.profile_batch.v2","implementation":"implemented","qualification":"unqualified","scientific":true,"interface_gate":"bounded_native_and_cli_passed","models":["flat_lcdm_late_v1","constant_q_flat_v1","flat_cpl_late_v1"],"target":"relative single-offset profile score; density and evidence not applicable","validation_coverage":"named four-point original-input native comparison and synthetic interface cases; request applicability not established"},{"id":"background.piecewise_query_batch.v1","implementation":"implemented","qualification":"unqualified","scientific":true,"interface_gate":"bounded_native_and_cli_passed","parameters":"required H0 and five ordered q coefficients","work":"one global analytic segment budget; no quadrature callbacks","validation_coverage":"bounded native fixed-five-bin and hostile transport cases; request applicability not established"},{"id":"supernova.piecewise_profile_batch.v1","implementation":"implemented","qualification":"unqualified","scientific":true,"interface_gate":"bounded_native_and_cli_passed","parameters":"required five ordered q coefficients; explicit cached arithmetic and analytic segment policy","target":"relative single-offset profile score; density and evidence not applicable","validation_coverage":"named six-point original-input native comparison and synthetic interface cases; request applicability not established"},{"id":"bao.piecewise_gaussian_batch.v1","implementation":"implemented","qualification":"unqualified","scientific":true,"interface_gate":"bounded_native_and_cli_passed","parameters":"required five ordered q coefficients and free H0rd","target":"normalized conditional free-ruler Gaussian density","computational_h0_km_s_mpc":70,"work":"one global analytic segment budget; no quadrature callbacks","validation_coverage":"named native twenty-four-point original-input regression; request applicability not established"},{"id":"bao.gaussian_batch.v1","implementation":"implemented","qualification":"unqualified","scientific":true,"interface_gate":"bounded_native_and_cli_passed","target":"normalized conditional free-ruler Gaussian density","computational_h0_km_s_mpc":70,"validation_coverage":"named native eleven-point original-input regression; request applicability not established"},{"id":"statistics.gaussian_batch.v1","implementation":"implemented","qualification":"unqualified","scientific":true,"interface_gate":"bounded_native_and_cli_passed","modes":["normalized_density","profile_offset_score"]},{"id":"observations.prepare.v1","implementation":"implemented","qualification":"unqualified","scientific":true,"profiles":["pantheon_plus_released_v1","gaussian_fixture_v1"],"fits_codec":"unavailable_in_product"}],"abi_schema":serde_json::from_str::<Value>(include_str!("../schema/abi.json")).map_err(|e|e.to_string())?,"commands":["describe --json","version --json","run REQUEST STORE"],"scientific_qualifications":[]})
             );
             Ok(())
         }
@@ -138,6 +138,9 @@ pub(crate) fn execute() -> Result<(), String> {
                         "background.piecewise_query_batch.v1" => {
                             let (spec,output)=crate::piecewise_run::execute(&input,&store)?;resolved=Some(spec);Ok(output)
                         }
+                        "bao.piecewise_gaussian_batch.v1" => {
+                            let (spec,output)=crate::bao_piecewise_run::execute(&input,&store)?;resolved=Some(spec);Ok(output)
+                        }
                         "bao.gaussian_batch.v1" => {
                             let (spec,output)=crate::bao_run::execute(&input,&store)?;resolved=Some(spec);Ok(output)
                         }
@@ -186,6 +189,7 @@ pub(crate) fn execute() -> Result<(), String> {
             let is_observation = resolved.as_ref().is_some_and(|spec| {
                 spec["operation"] == "background.piecewise_query_batch.v1"
                     || spec["operation"] == "bao.gaussian_batch.v1"
+                    || spec["operation"] == "bao.piecewise_gaussian_batch.v1"
                     || spec["operation"] == "observations.prepare.v1"
                     || spec["operation"] == "statistics.gaussian_batch.v1"
                     || spec["operation"] == "background.parameter_query_batch.v1"
@@ -199,10 +203,13 @@ pub(crate) fn execute() -> Result<(), String> {
                     || spec["operation"] == "supernova.profile_batch.v2"
                     || spec["operation"] == "supernova.piecewise_profile_batch.v1"
             });
-            let is_piecewise = resolved.as_ref().is_some_and(|spec|spec["operation"] == "background.piecewise_query_batch.v1");
-            let is_bao = resolved
+            let is_piecewise = resolved
                 .as_ref()
-                .is_some_and(|spec| spec["operation"] == "bao.gaussian_batch.v1");
+                .is_some_and(|spec| spec["operation"] == "background.piecewise_query_batch.v1");
+            let is_bao = resolved.as_ref().is_some_and(|spec| {
+                spec["operation"] == "bao.gaussian_batch.v1"
+                    || spec["operation"] == "bao.piecewise_gaussian_batch.v1"
+            });
             let mut final_record = initial;
             final_record["precision"] = json!(if is_observation {
                 "binary64_source_parse_no_scientific_transformation"
@@ -220,8 +227,10 @@ pub(crate) fn execute() -> Result<(), String> {
                     resolved.as_ref().unwrap()["policy"].clone();
             }
             if is_piecewise {
-                final_record["precision"]=json!("binary64_storage_native_longdouble_analytic_intermediate");
-                final_record["resource_budget"]["piecewise_policy"]=resolved.as_ref().unwrap()["policy"].clone();
+                final_record["precision"] =
+                    json!("binary64_storage_native_longdouble_analytic_intermediate");
+                final_record["resource_budget"]["piecewise_policy"] =
+                    resolved.as_ref().unwrap()["policy"].clone();
             }
             if is_bao {
                 final_record["precision"] =
@@ -240,7 +249,12 @@ pub(crate) fn execute() -> Result<(), String> {
                 final_record["outputs"] = json!([{"id":if is_observation {"prepared_observations"} else if is_numerical {"evaluations"} else {"converted"},"required":true,"numerical":"not_assessed","inference":"not_applicable","evidence":[]}]);
             }
             if is_supernova {
-                let validation_coverage = if resolved.as_ref().is_some_and(|spec|spec["operation"] == "supernova.piecewise_profile_batch.v1") { "named original-input six-point piecewise regression; request applicability not established" } else if resolved
+                let validation_coverage = if resolved
+                    .as_ref()
+                    .is_some_and(|spec| spec["operation"] == "supernova.piecewise_profile_batch.v1")
+                {
+                    "named original-input six-point piecewise regression; request applicability not established"
+                } else if resolved
                     .as_ref()
                     .is_some_and(|spec| spec["operation"] == "supernova.profile_batch.v2")
                 {
@@ -251,10 +265,10 @@ pub(crate) fn execute() -> Result<(), String> {
                 final_record["outputs"] = json!([{ "id":"profile_scores", "required":true, "numerical":output["calculation"]["numerical_status"].as_str().unwrap_or("not_evaluated"), "inference":"not_applicable", "interpretation":"unqualified", "evidence":[], "validation_coverage":validation_coverage }]);
             }
             if is_piecewise {
-                final_record["outputs"]=json!([{ "id":"piecewise_background_slots","required":true,"numerical":if success {"checks_passed"}else{"failed"},"inference":"not_applicable","interpretation":"unqualified","evidence":[],"validation_coverage":"named native fixed-five-bin comparisons; request applicability not established" }]);
+                final_record["outputs"] = json!([{ "id":"piecewise_background_slots","required":true,"numerical":if success {"checks_passed"}else{"failed"},"inference":"not_applicable","interpretation":"unqualified","evidence":[],"validation_coverage":"named native fixed-five-bin comparisons; request applicability not established" }]);
             }
             if is_bao {
-                final_record["outputs"] = json!([{ "id":"bao_densities", "required":true, "numerical":output["calculation"]["numerical_status"].as_str().unwrap_or("not_evaluated"), "inference":"not_applicable", "interpretation":"unqualified", "evidence":[], "validation_coverage":"named native eleven-point original-input regression; request applicability not established" }]);
+                final_record["outputs"] = json!([{ "id":"bao_densities", "required":true, "numerical":output["calculation"]["numerical_status"].as_str().unwrap_or("not_evaluated"), "inference":"not_applicable", "interpretation":"unqualified", "evidence":[], "validation_coverage":if resolved.as_ref().is_some_and(|spec|spec["operation"]=="bao.piecewise_gaussian_batch.v1"){"named native twenty-four-point piecewise original-input regression; request applicability not established"}else{"named native eleven-point original-input regression; request applicability not established"} }]);
             }
             if let Some(spec) = resolved {
                 let spec_bytes = serde_json::to_vec(&spec).unwrap();
@@ -265,12 +279,13 @@ pub(crate) fn execute() -> Result<(), String> {
                 final_record["execution_identity"] =
                     json!(hash(&serde_json::to_vec(&execution_spec).unwrap()));
             }
-            final_record["execution"] =
-                json!(if success || ((is_supernova || is_bao || is_piecewise) && result.is_ok()) {
-                    "completed"
-                } else {
-                    "failed"
-                });
+            final_record["execution"] = json!(if success
+                || ((is_supernova || is_bao || is_piecewise) && result.is_ok())
+            {
+                "completed"
+            } else {
+                "failed"
+            });
             final_record["output_digest"] = json!(output_hash);
             publish(
                 &store
