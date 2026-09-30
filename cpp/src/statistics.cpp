@@ -1,10 +1,153 @@
 #include "irred/statistics.hpp"
+#include "payload_accounting.hpp"
 #include <algorithm>
 #include <cmath>
 #include <limits>
 #include <numbers>
 #include <unordered_set>
 namespace irred::statistics {
+namespace {
+void metadata_payload(detail::PayloadAccounting &b,
+                      const Metadata &m) noexcept {
+  b.strings(m.ordered_ids);
+  for (const auto *s :
+       {&m.arithmetic_id, &m.measure, &m.table_identity,
+        &m.uncertainty_identity, &m.ordering_provenance,
+        &m.calibration_provenance, &m.dependence_provenance,
+        &m.source_semantics, &m.input_matrix_convention, &m.treatment})
+    b.string(*s);
+}
+void history_payload(detail::PayloadAccounting &b,
+                     const std::vector<SelectionRecord> &h) noexcept {
+  b.vector(h);
+  for (const auto &r : h) {
+    b.string(r.operation);
+    b.strings(r.kept_row_ids);
+    b.strings(r.complement_row_ids);
+  }
+}
+} // namespace
+std::optional<size_t> gaussian_preparation_payload_bound(
+    size_t n, MatrixKind kind, numerics::Arithmetic arithmetic,
+    const Metadata &metadata) noexcept {
+  if ((arithmetic != numerics::Arithmetic::binary64_legacy_v1 &&
+       arithmetic != numerics::Arithmetic::longdouble_cpu_v1) ||
+      (kind != MatrixKind::covariance && kind != MatrixKind::precision) ||
+      (n && n > SIZE_MAX / n))
+    return {};
+  detail::PayloadAccounting b(sizeof(Gaussian) + 2 * sizeof(numerics::Factorization));
+  metadata_payload(b, metadata);
+  // Supported libstdc++ validation-set envelope: string-bearing node plus
+  // bucket storage <=128 bytes/ID, separately charging copied string storage.
+  b.add(n, 128);
+  for (const auto &id : metadata.ordered_ids)
+    b.string(id);
+  b.add(n * n, kind == MatrixKind::precision
+                   ? 6 * sizeof(double) + 3 * sizeof(long double)
+                   : 4 * sizeof(double) + 2 * sizeof(long double));
+  b.add(n, 16 * sizeof(double) + 16 * sizeof(long double));
+  b.add(1, 4096); // compiled identity/default metadata growth envelope
+  return b.result();
+}
+std::optional<size_t> selected_gaussian_preparation_payload_bound(
+    const observations::Prepared &source, size_t k,
+    numerics::Arithmetic arithmetic) noexcept {
+  const auto &s = source.source();
+  const auto n = s.values.size();
+  if (source.status() != observations::Status::ok || !k || k > n ||
+      (arithmetic != numerics::Arithmetic::binary64_legacy_v1 &&
+       arithmetic != numerics::Arithmetic::longdouble_cpu_v1) ||
+      (s.uncertainty != observations::Uncertainty::covariance &&
+       s.uncertainty != observations::Uncertainty::precision) ||
+      (n && n > SIZE_MAX / n) || k > SIZE_MAX / k)
+    return {};
+  detail::PayloadAccounting b(2 * sizeof(Gaussian) + 3 * sizeof(numerics::Factorization));
+  b.add(n, 4 * sizeof(std::string) + 128 + sizeof(uint8_t));
+  b.add(k, sizeof(size_t));
+  // Full ordered-ID metadata is initially copied even for selected covariance;
+  // retained kept/complement history and validation copies coexist by phase.
+  for (const auto &id : s.measurement_ids) {
+    if (id.capacity() == SIZE_MAX)
+      return {};
+    b.add(id.capacity() + 1, 8);
+  }
+  for (const auto *text :
+       {&s.table_sha256, &s.uncertainty_sha256, &s.ordering_provenance,
+        &s.calibration_provenance, &s.dependence_provenance}) {
+    if (text->capacity() == SIZE_MAX)
+      return {};
+    b.add(text->capacity() + 1, 3);
+  }
+  b.add(k * k, 6 * sizeof(double) + 3 * sizeof(long double));
+  if (s.uncertainty == observations::Uncertainty::precision)
+    // Full inverse/factor remains live during the selected marginal factor.
+    b.add(n * n, 6 * sizeof(double) + 3 * sizeof(long double));
+  b.add(n, 16 * sizeof(double) + 16 * sizeof(long double));
+  b.add(k, 16 * sizeof(double) + 16 * sizeof(long double));
+  b.add(1, 12288);
+  return b.result();
+}
+std::optional<size_t>
+Gaussian::proper_offset_payload_bound(std::string_view identity) const noexcept {
+  const auto retained = retained_payload_bound();
+  const auto n = factor_.size();
+  const auto preparation = gaussian_preparation_payload_bound(
+      n, MatrixKind::covariance, factor_.arithmetic(), metadata_);
+  if (!retained || !preparation || (n && n > SIZE_MAX / n) ||
+      identity.size() == SIZE_MAX)
+    return {};
+  detail::PayloadAccounting b(0);
+  b.add(*retained, 3); // existing owner plus conservative history/prior growth
+  b.add(*preparation, 1);
+  b.add(n * n, sizeof(double)); // proper-offset local covariance update
+  b.add(n, 8 * sizeof(double) + 2 * sizeof(std::string));
+  for (const auto &id : metadata_.ordered_ids) {
+    if (id.capacity() == SIZE_MAX)
+      return {};
+    b.add(id.capacity() + 1, 2);
+  }
+  b.add(std::max(identity.size(), std::string{}.capacity()) + 1, 6);
+  b.add(1, 4096);
+  return b.result();
+}
+std::optional<size_t> Gaussian::retained_payload_bound() const noexcept {
+  detail::PayloadAccounting b(sizeof(*this));
+  metadata_payload(b, metadata_);
+  b.vector(covariance_);
+  b.vector(mean_shift_);
+  b.strings(latent_ids_);
+  b.vector(priors_);
+  for (const auto &r : priors_) {
+    b.string(r.latent_identity);
+    b.vector(r.response);
+    b.strings(r.applied_row_ids);
+  }
+  history_payload(b, history_);
+  b.embedded(factor_.retained_payload_bound(), sizeof(factor_));
+  return b.result();
+}
+std::optional<size_t>
+Gaussian::evaluation_payload_bound(size_t row_count, bool profile_mode) const noexcept {
+  if (!row_count)
+    return size_t{0};
+  detail::PayloadAccounting b(sizeof(GaussianResult) + sizeof(ProfileResult) +
+                              3 * sizeof(numerics::SolveResult));
+  const auto work_size = factor_.arithmetic() == numerics::Arithmetic::longdouble_cpu_v1
+                             ? sizeof(long double) : sizeof(double);
+  // Density: centered + returned solve + triangular work. Profile additionally
+  // retains response solve and residual solve across adjusted-residual solve.
+  b.add(factor_.size(), (profile_mode ? 4 : 2) * sizeof(double) + work_size);
+  return b.result();
+}
+std::optional<size_t> ProfileOperator::retained_payload_bound() const noexcept {
+  detail::PayloadAccounting b(sizeof(*this));
+  metadata_payload(b, metadata_);
+  history_payload(b, history_);
+  b.vector(response_);
+  b.vector(wx_);
+  b.embedded(factor_.retained_payload_bound(), sizeof(factor_));
+  return b.result();
+}
 namespace {
 constexpr long double log2pi = 1.8378770664093454835606594728112352797228L;
 DensityResult finite(long double v) {

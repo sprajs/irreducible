@@ -1,5 +1,6 @@
 #pragma once
 #include <cstddef>
+#include <optional>
 #include <span>
 #include <vector>
 namespace irred::numerics {
@@ -57,6 +58,8 @@ public:
     return "F02/unsupported-arithmetic";
   }
   std::size_t size() const noexcept { return n_; }
+  // Owner header plus retained vector capacities; excludes allocator/RSS.
+  std::optional<std::size_t> retained_payload_bound() const noexcept;
   double log_determinant() const noexcept { return log_determinant_; }
   double condition_estimate_inf() const noexcept {
     return condition_estimate_inf_;

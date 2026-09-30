@@ -72,9 +72,21 @@ struct SelectionRecord {
   std::vector<std::string> kept_row_ids, complement_row_ids;
 };
 enum class MatrixKind { covariance, precision };
+// Conservative simultaneous preparation payload. Borrowed matrix/source and
+// allocator overhead/RSS are excluded; transferred metadata capacities count.
+std::optional<std::size_t> gaussian_preparation_payload_bound(
+    std::size_t, MatrixKind, numerics::Arithmetic, const Metadata &) noexcept;
+std::optional<std::size_t> selected_gaussian_preparation_payload_bound(
+    const observations::Prepared &, std::size_t selected,
+    numerics::Arithmetic) noexcept;
 class ProfileOperator;
 class Gaussian {
 public:
+  // Includes this retained owner and the candidate transform simultaneously;
+  // callers must not add its retained charge a second time to this peak.
+  std::optional<std::size_t>
+  proper_offset_payload_bound(std::string_view identity) const noexcept;
+  std::optional<std::size_t> retained_payload_bound() const noexcept;
   DensityStatus status() const noexcept { return status_; }
   numerics::Arithmetic arithmetic() const noexcept {
     return factor_.arithmetic();
@@ -92,6 +104,10 @@ public:
   GaussianResult evaluate(std::span<const double> residual,
                           std::span<const std::string> ordered_ids,
                           double maximum_forward_sensitivity) const;
+  // Serial evaluation scratch only; excludes retained owner, borrowed inputs,
+  // wrapper output rows/ID copies, allocator bookkeeping and RSS.
+  std::optional<size_t> evaluation_payload_bound(size_t row_count,
+                                                bool profile_mode) const noexcept;
   Gaussian marginal(std::span<const std::size_t> kept,
                     std::size_t maximum_elements,
                     double maximum_forward_sensitivity) const;
@@ -146,6 +162,7 @@ private:
 };
 class ProfileOperator {
 public:
+  std::optional<std::size_t> retained_payload_bound() const noexcept;
   DensityStatus status() const noexcept { return status_; }
   numerics::Arithmetic arithmetic() const noexcept {
     return factor_.arithmetic();

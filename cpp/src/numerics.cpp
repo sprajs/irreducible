@@ -1,4 +1,5 @@
 #include "irred/numerics.hpp"
+#include "payload_accounting.hpp"
 #include <algorithm>
 #include <cfenv>
 #include <cmath>
@@ -6,6 +7,13 @@
 #include <numeric>
 #include <type_traits>
 namespace irred::numerics {
+std::optional<size_t> Factorization::retained_payload_bound() const noexcept {
+  detail::PayloadAccounting bytes(sizeof(*this));
+  bytes.vector(lower_);
+  bytes.vector(original_);
+  bytes.vector(wide_lower_);
+  return bytes.result();
+}
 namespace {
 ScalarResult finite_result(long double x, double error = 0,
                            std::size_t evaluations = 0) noexcept {

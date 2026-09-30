@@ -54,4 +54,29 @@ SelectionResult Prepared::select(Selection choice) const {
  }
  r.status=Status::ok;return r;
 }
+std::optional<std::size_t> retained_source_payload_bound(const Prepared& prepared) noexcept {
+ const auto& s=prepared.source(); std::size_t bytes=0;
+ auto add=[&](std::size_t count,std::size_t width){
+  if(count>std::numeric_limits<std::size_t>::max()/width)return false;
+  const auto n=count*width;
+  if(n>std::numeric_limits<std::size_t>::max()-bytes)return false;
+  bytes+=n;return true;
+ };
+ auto string=[&](const std::string& value){
+  // Conservatively charge SSO capacity too; implementation-independent upper bound.
+  return value.capacity()!=std::numeric_limits<std::size_t>::max()&&add(value.capacity()+1,1);
+ };
+ auto strings=[&](const std::vector<std::string>& values){
+  if(!add(values.capacity(),sizeof(std::string)))return false;
+  for(const auto& value:values)if(!string(value))return false;
+  return true;
+ };
+ for(const auto* value:{&s.ordering_provenance,&s.calibration_provenance,&s.dependence_provenance,&s.quality_dictionary,&s.table_sha256,&s.uncertainty_sha256})if(!string(*value))return std::nullopt;
+ for(const auto* values:{&s.measurement_ids,&s.event_ids,&s.uncertainty_axis_ids})if(!strings(*values))return std::nullopt;
+ for(const auto* values:{&s.values,&s.zhd,&s.zcmb,&s.zhel,&s.uncertainty_matrix})if(!add(values->capacity(),sizeof(double)))return std::nullopt;
+ for(const auto* values:{&s.missing,&s.zhd_missing,&s.zcmb_missing,&s.zhel_missing,&s.source_selection})if(!add(values->capacity(),sizeof(std::uint8_t)))return std::nullopt;
+ if(!add(s.quality.capacity(),sizeof(std::uint64_t)))return std::nullopt;
+ return bytes;
+}
+
 }

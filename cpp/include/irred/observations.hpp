@@ -2,6 +2,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <span>
+#include <optional>
 #include <string>
 #include <vector>
 namespace irred::observations {
@@ -47,4 +48,7 @@ private:
 // Copies/moves into owned immutable storage. No covariance arithmetic, repair,
 // SPD claim, deduplication, or reinterpretation of posterior products.
 Prepared prepare(Input,Policy);
+// Retained dynamic container capacities, including owned string storage.
+// Excludes the owner header, allocator metadata and RSS. Overflow is explicit.
+std::optional<std::size_t> retained_source_payload_bound(const Prepared&) noexcept;
 }
