@@ -1,8 +1,8 @@
 #include "irred/supernova.hpp"
 #include <algorithm>
 #include <cmath>
-#include <utility>
 #include <type_traits>
+#include <utility>
 namespace irred::supernova {
 Consumer prepare(observations::Prepared observations, Policy policy) {
   const auto &source = observations.source();
@@ -119,12 +119,18 @@ BatchResult Consumer::evaluate_batch(std::span<const ModelPoint> points,
   return evaluate_common<ModelPoint, BatchResult>(points, policy);
 }
 BatchResultV2 Consumer::evaluate_batch_v2(std::span<const ModelPointV2> points,
-                                        Policy policy) const {
+                                          Policy policy) const {
   return evaluate_common<ModelPointV2, BatchResultV2>(points, policy);
 }
-template <class Point, class Result>
+PiecewiseBatchResult
+Consumer::evaluate_piecewise_batch(std::span<const PiecewiseModelPoint> points,
+                                   PiecewiseEvaluationPolicy policy) const {
+  return evaluate_common<PiecewiseModelPoint, PiecewiseBatchResult>(points,
+                                                                    policy);
+}
+template <class Point, class Result, class EvaluationPolicy>
 Result Consumer::evaluate_common(std::span<const Point> points,
-                                Policy policy) const {
+                                 EvaluationPolicy policy) const {
   Result out;
   if (!(policy.maximum_forward_sensitivity > 0) ||
       !std::isfinite(policy.maximum_forward_sensitivity))
@@ -143,21 +149,30 @@ Result Consumer::evaluate_common(std::span<const Point> points,
   }
   out.status = Status::ok;
   out.slots.reserve(points.size());
-  auto remaining_evaluations = policy.background.maximum_total_evaluations;
+  auto remaining_evaluations = [&]() {
+    if constexpr (std::is_same_v<Point, PiecewiseModelPoint>)
+      return policy.background.maximum_segment_visits;
+    else
+      return policy.background.maximum_total_evaluations;
+  }();
   for (const auto &point : points) {
     auto row = [&]() {
-      if constexpr (std::is_same_v<Point, ModelPoint>)
+      if constexpr (std::is_same_v<Point, PiecewiseModelPoint>)
+        return PiecewiseSlot{point};
+      else if constexpr (std::is_same_v<Point, ModelPoint>)
         return Slot{};
       else
         return SlotV2{point, Slot{}};
     }();
-    Slot &slot = [&]() -> Slot & {
-      if constexpr (std::is_same_v<Point, ModelPoint>)
+    auto &slot = [&]() -> auto & {
+      if constexpr (std::is_same_v<Point, ModelPoint> ||
+                    std::is_same_v<Point, PiecewiseModelPoint>)
         return row;
       else
         return row.calculation;
     }();
-    slot.source = {point.model, point.omega_m, point.constant_q};
+    if constexpr (!std::is_same_v<Point, PiecewiseModelPoint>)
+      slot.source = {point.model, point.omega_m, point.constant_q};
     if constexpr (std::is_same_v<Point, ModelPointV2>)
       if (point.model == cosmology::Model::flat_cpl_late_v1 &&
           point.constant_q != 0) {
@@ -165,15 +180,18 @@ Result Consumer::evaluate_common(std::span<const Point> points,
         continue;
       }
     auto background = [&]() {
-      if constexpr (std::is_same_v<Point, ModelPointV2>) {
+      if constexpr (std::is_same_v<Point, PiecewiseModelPoint>) {
+        return cosmology::prepare_piecewise_q(
+            {computational_h0_km_s_mpc, point.q});
+      } else if constexpr (std::is_same_v<Point, ModelPointV2>) {
         if (point.model == cosmology::Model::flat_cpl_late_v1)
-          return cosmology::prepare_cpl({computational_h0_km_s_mpc,
-                                        point.omega_m, point.w0, point.wa});
+          return cosmology::prepare_cpl(
+              {computational_h0_km_s_mpc, point.omega_m, point.w0, point.wa});
         // Keep attempted inactive fields: legacy prepare rejects noncanonical
         // values instead of silently replacing them with defaults.
         return cosmology::prepare({point.model, computational_h0_km_s_mpc,
-                                   point.omega_m, point.constant_q,
-                                   point.w0, point.wa});
+                                   point.omega_m, point.constant_q, point.w0,
+                                   point.wa});
       } else {
         // The existing entry remains strict: prepare does not admit model 2.
         return cosmology::prepare({point.model, computational_h0_km_s_mpc,
@@ -185,7 +203,8 @@ Result Consumer::evaluate_common(std::span<const Point> points,
       out.slots.push_back(std::move(row));
       continue;
     }
-    if (remaining_evaluations < 3) {
+    if (remaining_evaluations <
+        (std::is_same_v<Point, PiecewiseModelPoint> ? 1 : 3)) {
       slot.status = Status::work_limit;
       slot.background_status = cosmology::Status::work_limit;
       slot.numerical_status = numerics::Status::work_limit;
@@ -193,13 +212,25 @@ Result Consumer::evaluate_common(std::span<const Point> points,
       continue;
     }
     auto background_policy = policy.background;
-    background_policy.maximum_total_evaluations = remaining_evaluations;
+    if constexpr (std::is_same_v<Point, PiecewiseModelPoint>)
+      background_policy.maximum_segment_visits = remaining_evaluations;
+    else
+      background_policy.maximum_total_evaluations = remaining_evaluations;
     auto prediction = background.evaluate_batch(queries_, background_policy);
     slot.background_status = prediction.status;
-    for (const auto &value : prediction.slots)
-      slot.background_evaluations += value.evaluations;
-    remaining_evaluations -= slot.background_evaluations;
+    if constexpr (std::is_same_v<Point, PiecewiseModelPoint>) {
+      slot.segment_visits = prediction.segments_processed;
+      out.segment_visits += slot.segment_visits;
+      remaining_evaluations -= slot.segment_visits;
+    } else {
+      for (const auto &value : prediction.slots)
+        slot.background_evaluations += value.evaluations;
+      remaining_evaluations -= slot.background_evaluations;
+    }
     if (prediction.status != cosmology::Status::ok) {
+      if constexpr (std::is_same_v<Point, PiecewiseModelPoint>)
+        if (prediction.status == cosmology::Status::work_limit)
+          slot.numerical_status = numerics::Status::work_limit;
       slot.status = prediction.status == cosmology::Status::work_limit
                         ? Status::work_limit
                         : Status::numerical_failure;
@@ -211,15 +242,20 @@ Result Consumer::evaluate_common(std::span<const Point> points,
       const auto &value = prediction.slots[i];
       slot.numerical_status = value.numerical_status;
       slot.background_status = value.status;
-      if (value.status != cosmology::Status::ok ||
-          !(value.dimensionless_luminosity_shape > 0)) {
+      const double luminosity_shape = [&]() {
+        if constexpr (std::is_same_v<Point, PiecewiseModelPoint>)
+          return value.geometry.dimensionless_luminosity_shape;
+        else
+          return value.dimensionless_luminosity_shape;
+      }();
+      if (value.status != cosmology::Status::ok || !(luminosity_shape > 0)) {
         slot.status = value.status == cosmology::Status::work_limit
                           ? Status::work_limit
                           : Status::numerical_failure;
         failed = true;
         break;
       }
-      const auto shape = 5 * std::log10(value.dimensionless_luminosity_shape);
+      const auto shape = 5 * std::log10(luminosity_shape);
       slot.shape_magnitudes.push_back(shape);
       slot.base_residuals.push_back(observed_[i] - shape);
     }

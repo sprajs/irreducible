@@ -1,6 +1,7 @@
 #pragma once
 #include "irred/background.hpp"
 #include "irred/observations.hpp"
+#include "irred/piecewise_background.hpp"
 #include "irred/statistics.hpp"
 #include <cstddef>
 #include <span>
@@ -56,11 +57,41 @@ struct BatchResult {
 };
 struct SlotV2 {
   ModelPointV2 source; // Full attempted parameters, including failed rows.
-  Slot calculation;  // source here is the three-field compatibility projection.
+  Slot calculation; // source here is the three-field compatibility projection.
 };
 struct BatchResultV2 {
   Status status = Status::invalid_input;
   std::vector<SlotV2> slots;
+};
+// Analytic fixed-five-bin provider; no defaults, priors or legacy model tag.
+struct PiecewiseModelPoint {
+  std::array<double, 5> q;
+  explicit PiecewiseModelPoint(std::array<double, 5> values) : q(values) {}
+};
+struct PiecewiseEvaluationPolicy {
+  cosmology::PiecewisePolicy background;
+  numerics::Arithmetic arithmetic =
+      static_cast<numerics::Arithmetic>(UINT32_MAX);
+  std::size_t maximum_models = 64;
+  double maximum_forward_sensitivity = 0;
+};
+struct PiecewiseSlot {
+  explicit PiecewiseSlot(PiecewiseModelPoint point) : source(point) {}
+  PiecewiseModelPoint source;
+  Status status = Status::invalid_input;
+  cosmology::Status background_status = cosmology::Status::invalid_input;
+  numerics::Status numerical_status = numerics::Status::invalid_input;
+  statistics::ProfileResult solve_diagnostics;
+  statistics::DensityStatus profile_status =
+      statistics::DensityStatus::invalid_input;
+  double offset_coefficient = 0, quadratic = 0, relative_profile_score = 0;
+  std::vector<double> shape_magnitudes, base_residuals, profiled_residuals;
+  std::size_t segment_visits = 0;
+};
+struct PiecewiseBatchResult {
+  std::size_t segment_visits = 0;
+  Status status = Status::invalid_input;
+  std::vector<PiecewiseSlot> slots;
 };
 class Consumer {
 public:
@@ -101,13 +132,16 @@ public:
       "zHD radial integral with zHEL luminosity prefactor";
   BatchResult evaluate_batch(std::span<const ModelPoint>, Policy) const;
   BatchResultV2 evaluate_batch_v2(std::span<const ModelPointV2>, Policy) const;
+  PiecewiseBatchResult
+      evaluate_piecewise_batch(std::span<const PiecewiseModelPoint>,
+                               PiecewiseEvaluationPolicy) const;
   static constexpr double computational_h0_km_s_mpc = 70;
   static constexpr const char *score_id =
       "W01/intercept-free-profile-relative-score/v1";
 
 private:
-  template <class Point, class Result>
-  Result evaluate_common(std::span<const Point>, Policy) const;
+  template <class Point, class Result, class EvaluationPolicy>
+  Result evaluate_common(std::span<const Point>, EvaluationPolicy) const;
   Status status_ = Status::invalid_input;
   bool synthetic_ = false;
   numerics::Status preparation_numerical_status_ =
