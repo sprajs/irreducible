@@ -173,6 +173,218 @@
           "u32"
         ]
       ]
+    },
+    {
+      "c_name": "cosmo_bytes",
+      "rust_name": "Bytes",
+      "fields": [
+        [
+          "data",
+          "const_u8_ptr"
+        ],
+        [
+          "length",
+          "u64"
+        ]
+      ]
+    },
+    {
+      "c_name": "cosmo_strings",
+      "rust_name": "Strings",
+      "fields": [
+        [
+          "data",
+          "const_Bytes_ptr"
+        ],
+        [
+          "length",
+          "u64"
+        ],
+        [
+          "byte_length",
+          "u64"
+        ]
+      ]
+    },
+    {
+      "c_name": "cosmo_u8_buffer",
+      "rust_name": "U8Buffer",
+      "fields": [
+        [
+          "data",
+          "const_u8_ptr"
+        ],
+        [
+          "length",
+          "u64"
+        ],
+        [
+          "byte_length",
+          "u64"
+        ]
+      ]
+    },
+    {
+      "c_name": "cosmo_u64_buffer",
+      "rust_name": "U64Buffer",
+      "fields": [
+        [
+          "data",
+          "const_u64_ptr"
+        ],
+        [
+          "length",
+          "u64"
+        ],
+        [
+          "byte_length",
+          "u64"
+        ]
+      ]
+    },
+    {
+      "c_name": "cosmo_observation_policy",
+      "rust_name": "ObservationPolicy",
+      "fields": [
+        [
+          "maximum_rows",
+          "u64"
+        ],
+        [
+          "maximum_matrix_elements",
+          "u64"
+        ],
+        [
+          "maximum_string_bytes",
+          "u64"
+        ]
+      ]
+    },
+    {
+      "c_name": "cosmo_observation_descriptor",
+      "rust_name": "ObservationDescriptor",
+      "fields": [
+        [
+          "struct_size",
+          "u32"
+        ],
+        [
+          "abi_version",
+          "u32"
+        ],
+        [
+          "reserved",
+          "u32"
+        ],
+        [
+          "profile",
+          "u32"
+        ],
+        [
+          "role",
+          "u32"
+        ],
+        [
+          "unit",
+          "u32"
+        ],
+        [
+          "calibration",
+          "u32"
+        ],
+        [
+          "uncertainty",
+          "u32"
+        ],
+        [
+          "uncertainty_unit",
+          "u32"
+        ],
+        [
+          "component",
+          "u32"
+        ],
+        [
+          "table_sha256",
+          "Bytes"
+        ],
+        [
+          "uncertainty_sha256",
+          "Bytes"
+        ],
+        [
+          "calibration_provenance",
+          "Bytes"
+        ],
+        [
+          "dependence_provenance",
+          "Bytes"
+        ],
+        [
+          "quality_dictionary",
+          "Bytes"
+        ],
+        [
+          "ordering_provenance",
+          "Bytes"
+        ],
+        [
+          "measurement_ids",
+          "Strings"
+        ],
+        [
+          "event_ids",
+          "Strings"
+        ],
+        [
+          "uncertainty_axis_ids",
+          "Strings"
+        ],
+        [
+          "values",
+          "F64Buffer"
+        ],
+        [
+          "zhd",
+          "F64Buffer"
+        ],
+        [
+          "zcmb",
+          "F64Buffer"
+        ],
+        [
+          "zhel",
+          "F64Buffer"
+        ],
+        [
+          "uncertainty_matrix",
+          "F64Buffer"
+        ],
+        [
+          "missing",
+          "U8Buffer"
+        ],
+        [
+          "zhd_missing",
+          "U8Buffer"
+        ],
+        [
+          "zcmb_missing",
+          "U8Buffer"
+        ],
+        [
+          "zhel_missing",
+          "U8Buffer"
+        ],
+        [
+          "source_selection",
+          "U8Buffer"
+        ],
+        [
+          "quality",
+          "U64Buffer"
+        ]
+      ]
     }
   ],
   "functions": [
@@ -310,6 +522,95 @@
           "u64_ptr"
         ]
       ]
+    },
+    {
+      "name": "cosmo_prepare_observations",
+      "args": [
+        [
+          "descriptor",
+          "const_ObservationDescriptor_ptr"
+        ],
+        [
+          "policy",
+          "const_ObservationPolicy_ptr"
+        ],
+        [
+          "out",
+          "prepared_out"
+        ],
+        [
+          "semantic_status",
+          "u32_ptr"
+        ]
+      ]
+    },
+    {
+      "name": "cosmo_observation_source_view",
+      "args": [
+        [
+          "prepared",
+          "const_prepared"
+        ],
+        [
+          "descriptor",
+          "ObservationDescriptor_ptr"
+        ]
+      ]
+    },
+    {
+      "name": "cosmo_observation_select",
+      "args": [
+        [
+          "prepared",
+          "const_prepared"
+        ],
+        [
+          "selection",
+          "u32"
+        ],
+        [
+          "out",
+          "result_out"
+        ],
+        [
+          "semantic_status",
+          "u32_ptr"
+        ]
+      ]
+    },
+    {
+      "name": "cosmo_result_selection_view",
+      "args": [
+        [
+          "result",
+          "const_result"
+        ],
+        [
+          "mask",
+          "const_u8_out"
+        ],
+        [
+          "mask_length",
+          "u64_ptr"
+        ],
+        [
+          "indices",
+          "const_u64_out"
+        ],
+        [
+          "index_length",
+          "u64_ptr"
+        ]
+      ]
+    },
+    {
+      "name": "cosmo_observation_destroy",
+      "args": [
+        [
+          "prepared",
+          "prepared"
+        ]
+      ]
     }
   ],
   "max_batch_elements": 1000000,
@@ -339,5 +640,58 @@
     "log1p": "per_input",
     "expm1": "per_input",
     "log_gamma_positive": "per_input"
+  },
+  "observation_tags": {
+    "profile": {
+      "pantheon_plus_released_v1": 0,
+      "gaussian_fixture_v1": 1,
+      "fits_length_fixture_v1": 2
+    },
+    "role": {
+      "observed_measurement": 0,
+      "released_fitted_summary": 1,
+      "synthetic_control": 2,
+      "posterior_summary": 3
+    },
+    "unit": {
+      "magnitude": 0,
+      "metre": 1
+    },
+    "calibration": {
+      "unknown": 0,
+      "released_corrected": 1,
+      "not_applicable": 2
+    },
+    "uncertainty": {
+      "none": 0,
+      "covariance": 1,
+      "precision": 2
+    },
+    "uncertainty_unit": {
+      "none": 0,
+      "magnitude_squared": 1,
+      "inverse_magnitude_squared": 2,
+      "metre_squared": 3,
+      "inverse_metre_squared": 4
+    },
+    "component": {
+      "unknown": 0,
+      "statistical": 1,
+      "systematic": 2,
+      "total": 3
+    },
+    "selection": {
+      "all": 0,
+      "pantheon_zhd_gt_001": 1
+    },
+    "status": {
+      "ok": 0,
+      "invalid_shape": 1,
+      "invalid_identity": 2,
+      "incompatible_semantics": 3,
+      "missing_required_value": 4,
+      "nonfinite_required_value": 5,
+      "resource_limit": 6
+    }
   }
 }

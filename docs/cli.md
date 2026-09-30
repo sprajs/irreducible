@@ -30,6 +30,14 @@ A scalar/reduction request:
 
 Methods are `compensated_sum`, `log_sum_exp`, `log1p`, `expm1` and `log_gamma_positive`. The first two reduce a batch; the others evaluate ordered elements. Domain/size restrictions are enforced by the implementation. Diagnostics are labelled as empirical or arithmetic diagnostics, not certified bounds.
 
+## Prepared ASCII observations
+
+Use [the synthetic observation request](../tests/fixtures/observations-gaussian.json) for a bounded local example. `metadata` declares profile, role, unit, calibration, uncertainty type/unit and component. `selection` is `all` or the compiled `pantheon_zhd_gt_001` selector. Explicit resources limit asset bytes, rows, matrix elements and metadata strings. Unknown fields/tags and incompatible scientific semantics fail closed.
+
+`table` and optional `uncertainty` are local paths resolved from the process working directory. Each asset is read once into bounded bytes, hashed and retained. The scientific specification uses those content hashes, so changing bytes at the same path changes scientific identity. The unlabeled matrix's axis linkage is a supplied ordering convention, not something independently verified from its bytes; declare `ordering_provenance` explicitly.
+
+Output preserves source rows and full uncertainty, and separately reports the selected mask and ordered source indices. The full matrix is an immutable object reference, not a large stdout array. ASCII readers do not decode quality flags: zeros are explicitly labelled structural placeholders, not all-clear flags. Missingness and nonfinite source values have separate masks; required selected missing/nonfinite values fail. There is no covariance projection, numerical repair, event deduplication or inference in this operation.
+
 ## Outputs and exit codes
 
 For an evaluated request, stdout contains `result` and `receipt`. Errors also produce a structured failure on stderr. Some early failures occur before a complete receipt can be written. See [run records](run-records.md).

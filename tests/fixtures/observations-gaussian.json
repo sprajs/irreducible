@@ -1,0 +1,23 @@
+{
+  "schema_version": 1,
+  "operation": "observations.prepare.v1",
+  "table": "tests/fixtures/observations-gaussian-table.txt",
+  "uncertainty": "tests/fixtures/observations-gaussian-covariance.txt",
+  "metadata": {
+    "profile": "gaussian_fixture_v1",
+    "role": "synthetic_control",
+    "unit": "magnitude",
+    "calibration": "not_applicable",
+    "uncertainty": "covariance",
+    "uncertainty_unit": "magnitude_squared",
+    "component": "unknown"
+  },
+  "selection": "all",
+  "ordering_provenance": "Synthetic declared row order r0,r1; unlabeled matrix axes supplied by that convention",
+  "resources": {
+    "maximum_asset_bytes": 1048576,
+    "maximum_rows": 16,
+    "maximum_matrix_elements": 256,
+    "maximum_string_bytes": 4096
+  }
+}

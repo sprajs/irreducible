@@ -22,7 +22,7 @@ That is the workflow Irreducible is working toward:
 - **Explore efficiently.** Reuse prepared data and send batches into native code instead of launching a process for each likelihood evaluation.
 - **Work with agents.** Let an agent handle orchestration while explicit schemas, native tests and qualification rules constrain what its results can mean.
 
-These are the intended uses, not a claim that every step is available today. Irreducible is in early development. The current public executable provides strict JSON requests, immutable local run records, checked integer fixtures, tagged quantity conversions and a small scalar numerical interface. The C++ library contains additional numerical building blocks. End-to-end cosmological models, likelihood workflows and inference are still being developed. See [capabilities and limits](docs/capabilities.md).
+These are the intended uses, not a claim that every step is available today. Irreducible is in early development. The current public executable provides strict JSON requests, immutable local run records, checked integer fixtures, tagged quantity conversions and a small scalar numerical interface, and typed local ASCII observation preparation. The C++ library contains additional numerical building blocks. End-to-end cosmological models, likelihood workflows and inference are still being developed. See [capabilities and limits](docs/capabilities.md).
 
 ## Try the foundation
 

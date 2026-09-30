@@ -6,6 +6,7 @@ extern "C" {
 #endif
 #define COSMO_ABI_VERSION 1u
 typedef struct cosmo_result cosmo_result;
+typedef struct cosmo_prepared cosmo_prepared;
 #define COSMO_OK 0u
 #define COSMO_ABI_MISMATCH 1u
 #define COSMO_INVALID_INPUT 2u
@@ -64,9 +65,48 @@ typedef struct cosmo_result cosmo_result;
 #define COSMO_NUMERICAL_STATUS_SINGULAR 6u
 #define COSMO_NUMERICAL_STATUS_NOT_POSITIVE_DEFINITE 7u
 #define COSMO_NUMERICAL_STATUS_CONDITIONING_BUDGET_EXCEEDED 8u
+#define COSMO_OBSERVATION_PROFILE_PANTHEON_PLUS_RELEASED_V1 0u
+#define COSMO_OBSERVATION_PROFILE_GAUSSIAN_FIXTURE_V1 1u
+#define COSMO_OBSERVATION_PROFILE_FITS_LENGTH_FIXTURE_V1 2u
+#define COSMO_OBSERVATION_ROLE_OBSERVED_MEASUREMENT 0u
+#define COSMO_OBSERVATION_ROLE_RELEASED_FITTED_SUMMARY 1u
+#define COSMO_OBSERVATION_ROLE_SYNTHETIC_CONTROL 2u
+#define COSMO_OBSERVATION_ROLE_POSTERIOR_SUMMARY 3u
+#define COSMO_OBSERVATION_UNIT_MAGNITUDE 0u
+#define COSMO_OBSERVATION_UNIT_METRE 1u
+#define COSMO_OBSERVATION_CALIBRATION_UNKNOWN 0u
+#define COSMO_OBSERVATION_CALIBRATION_RELEASED_CORRECTED 1u
+#define COSMO_OBSERVATION_CALIBRATION_NOT_APPLICABLE 2u
+#define COSMO_OBSERVATION_UNCERTAINTY_NONE 0u
+#define COSMO_OBSERVATION_UNCERTAINTY_COVARIANCE 1u
+#define COSMO_OBSERVATION_UNCERTAINTY_PRECISION 2u
+#define COSMO_OBSERVATION_UNCERTAINTY_UNIT_NONE 0u
+#define COSMO_OBSERVATION_UNCERTAINTY_UNIT_MAGNITUDE_SQUARED 1u
+#define COSMO_OBSERVATION_UNCERTAINTY_UNIT_INVERSE_MAGNITUDE_SQUARED 2u
+#define COSMO_OBSERVATION_UNCERTAINTY_UNIT_METRE_SQUARED 3u
+#define COSMO_OBSERVATION_UNCERTAINTY_UNIT_INVERSE_METRE_SQUARED 4u
+#define COSMO_OBSERVATION_COMPONENT_UNKNOWN 0u
+#define COSMO_OBSERVATION_COMPONENT_STATISTICAL 1u
+#define COSMO_OBSERVATION_COMPONENT_SYSTEMATIC 2u
+#define COSMO_OBSERVATION_COMPONENT_TOTAL 3u
+#define COSMO_OBSERVATION_SELECTION_ALL 0u
+#define COSMO_OBSERVATION_SELECTION_PANTHEON_ZHD_GT_001 1u
+#define COSMO_OBSERVATION_STATUS_OK 0u
+#define COSMO_OBSERVATION_STATUS_INVALID_SHAPE 1u
+#define COSMO_OBSERVATION_STATUS_INVALID_IDENTITY 2u
+#define COSMO_OBSERVATION_STATUS_INCOMPATIBLE_SEMANTICS 3u
+#define COSMO_OBSERVATION_STATUS_MISSING_REQUIRED_VALUE 4u
+#define COSMO_OBSERVATION_STATUS_NONFINITE_REQUIRED_VALUE 5u
+#define COSMO_OBSERVATION_STATUS_RESOURCE_LIMIT 6u
 typedef struct { uint32_t struct_size; uint32_t abi_version; uint32_t element_type; uint32_t reserved; const int64_t* data; uint64_t length; uint64_t byte_length; } cosmo_i64_buffer;
 typedef struct { uint32_t struct_size; uint32_t abi_version; uint32_t element_type; uint32_t reserved; const double* data; uint64_t length; uint64_t byte_length; } cosmo_f64_buffer;
 typedef struct { uint32_t struct_size; uint32_t abi_version; uint32_t unit; uint32_t role; uint32_t frame; uint32_t convention; uint32_t constant_set; uint32_t reserved; } cosmo_quantity_metadata;
+typedef struct { const uint8_t* data; uint64_t length; } cosmo_bytes;
+typedef struct { const cosmo_bytes* data; uint64_t length; uint64_t byte_length; } cosmo_strings;
+typedef struct { const uint8_t* data; uint64_t length; uint64_t byte_length; } cosmo_u8_buffer;
+typedef struct { const uint64_t* data; uint64_t length; uint64_t byte_length; } cosmo_u64_buffer;
+typedef struct { uint64_t maximum_rows; uint64_t maximum_matrix_elements; uint64_t maximum_string_bytes; } cosmo_observation_policy;
+typedef struct { uint32_t struct_size; uint32_t abi_version; uint32_t reserved; uint32_t profile; uint32_t role; uint32_t unit; uint32_t calibration; uint32_t uncertainty; uint32_t uncertainty_unit; uint32_t component; cosmo_bytes table_sha256; cosmo_bytes uncertainty_sha256; cosmo_bytes calibration_provenance; cosmo_bytes dependence_provenance; cosmo_bytes quality_dictionary; cosmo_bytes ordering_provenance; cosmo_strings measurement_ids; cosmo_strings event_ids; cosmo_strings uncertainty_axis_ids; cosmo_f64_buffer values; cosmo_f64_buffer zhd; cosmo_f64_buffer zcmb; cosmo_f64_buffer zhel; cosmo_f64_buffer uncertainty_matrix; cosmo_u8_buffer missing; cosmo_u8_buffer zhd_missing; cosmo_u8_buffer zcmb_missing; cosmo_u8_buffer zhel_missing; cosmo_u8_buffer source_selection; cosmo_u64_buffer quality; } cosmo_observation_descriptor;
 uint32_t cosmo_add(const cosmo_i64_buffer* a, const cosmo_i64_buffer* b, uint32_t fault, cosmo_result** out);
 uint32_t cosmo_result_view(const cosmo_result* r, const int64_t** data, uint64_t* n);
 uint32_t cosmo_result_destroy(cosmo_result* r);
@@ -74,6 +114,11 @@ uint32_t cosmo_convert_quantities(const cosmo_f64_buffer* values, const cosmo_qu
 uint32_t cosmo_result_f64_view(const cosmo_result* r, const double** data, const uint32_t** status, uint64_t* n);
 uint32_t cosmo_numerics_evaluate(uint32_t operation, const cosmo_f64_buffer* values, cosmo_result** out);
 uint32_t cosmo_result_numerics_view(const cosmo_result* r, const double** data, const uint32_t** status, const double** error_estimate, const uint64_t** evaluations, uint64_t* n);
+uint32_t cosmo_prepare_observations(const cosmo_observation_descriptor* descriptor, const cosmo_observation_policy* policy, cosmo_prepared** out, uint32_t* semantic_status);
+uint32_t cosmo_observation_source_view(const cosmo_prepared* prepared, cosmo_observation_descriptor* descriptor);
+uint32_t cosmo_observation_select(const cosmo_prepared* prepared, uint32_t selection, cosmo_result** out, uint32_t* semantic_status);
+uint32_t cosmo_result_selection_view(const cosmo_result* result, const uint8_t** mask, uint64_t* mask_length, const uint64_t** indices, uint64_t* index_length);
+uint32_t cosmo_observation_destroy(cosmo_prepared* prepared);
 static inline uint64_t cosmo_numerics_output_length(uint32_t operation,uint64_t input) {switch(operation) {
 case COSMO_NUMERICAL_OPERATION_COMPENSATED_SUM:return 1;
 case COSMO_NUMERICAL_OPERATION_LOG_SUM_EXP:return 1;

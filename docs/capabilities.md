@@ -9,6 +9,7 @@ This page describes the public command surface at this documentation revision. D
 | `quantity.convert.v1` | Tagged scale conversions with role/frame/convention metadata | No physical model or frame transformation; finite results currently unaccepted |
 | `numerics.scalar_batch.v1` | Compensated sum, log-sum-exp, log1p, expm1, positive log-gamma | Bounded interface; finite results currently unaccepted |
 | C++ numerical library | Integration and dense SPD/Gaussian building blocks with native tests | Specific sampled contracts, not unrestricted domain qualification |
+| `observations.prepare.v1` | Typed local ASCII observations, full uncertainty retention, immutable prepared selection | Two explicit profiles; no matrix repair, likelihood, independence claim or registered qualification |
 | Local run store | Objects, resolved specifications, attempt receipts, hashes | Replay/cache/resume service not implemented |
 
 The scientific qualification list in CLI discovery is currently empty. Native comparisons and regression tests are useful development evidence, but cannot be promoted into blanket acceptance of a scientific request. The integer fixture may be accepted as an engineering run while its discovery metadata still says `unqualified`.
@@ -22,3 +23,5 @@ GPU/distributed execution, broad cosmological analyses and a demonstrated perfor
 ## Known numerical limits
 
 Adaptive quadrature can miss a narrow unsampled feature. Small SPD examples do not qualify arbitrary large or ill-conditioned matrices. Agreement through a shared system library is not independent numerical evidence. Domain rejection, including supported quantity roles and underflow policy, is part of the contract. See [testing](testing.md) and [fixture provenance](../cpp/tests/fixtures/README.md).
+
+Observation profiles are `pantheon_plus_released_v1` and `gaussian_fixture_v1`. The former keeps released fitted summaries distinct from raw measurements and retains zHD, zCMB and zHEL separately. Compiled selection uses strictly zHD > 0.01. Repeated event IDs are preserved; unique measurement IDs and declared uncertainty axes determine row order. Unknown calibration/dependence remains unknown. A dedicated synthetic FITS codec test exists, but FITS is unavailable in the product build.

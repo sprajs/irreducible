@@ -38,3 +38,9 @@ Do not launch it through a nested Cargo test invocation. Ordinary Cargo testing 
 Full external-tool output and development receipts stay local. Once a comparison becomes a durable regression, routine tests should not require rerunning the external software. Do not delete original historical research or accepted records merely to make the public tree smaller.
 
 A passing test is scoped evidence. It does not qualify arbitrary inputs, every supported toolchain, cosmological inference or a performance claim. Quadrature missing a narrow unsampled feature is a known limitation; a finite estimate is not a proof of accuracy.
+
+## Observation and optional codec tests
+
+Ordinary native tests include immutable observation ownership, exact masks/row order, uncertainty asymmetry retention, hostile descriptors and scoped allocation-failure cleanup. Rust ingestion/CLI tests retain raw source bytes, challenge same-path mutations, semantic failures and nonfinite/missing distinctions. They use small synthetic inputs and require no acquired survey files.
+
+The product build deliberately reports FITS unavailable. A separate optional native codec profile requires installed CFITSIO and can be tested with `-DCOSMOLOGY_TEST_CFITSIO=ON` in a separate CMake build directory. It covers one handcrafted synthetic BINTABLE profile, not universal FITS support. The wrapper resets this test-only option to OFF for its supported product build. CFITSIO is file-format infrastructure; its installed version/library identity and NASA permissive notice must be reviewed for any enabled deployment.

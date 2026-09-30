@@ -10,6 +10,9 @@
     },
     {
       "$ref": "#/$defs/numerics"
+    },
+    {
+      "$ref": "#/$defs/observations"
     }
   ],
   "$defs": {
@@ -183,6 +186,173 @@
           "items": {
             "type": "number"
           }
+        }
+      }
+    },
+    "observations": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema_version",
+        "operation",
+        "table",
+        "metadata",
+        "selection",
+        "resources"
+      ],
+      "properties": {
+        "schema_version": {
+          "const": 1
+        },
+        "operation": {
+          "const": "observations.prepare.v1"
+        },
+        "table": {
+          "type": "string"
+        },
+        "uncertainty": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "metadata": {
+          "$ref": "#/$defs/observation_metadata"
+        },
+        "selection": {
+          "enum": [
+            "all",
+            "pantheon_zhd_gt_001"
+          ]
+        },
+        "resources": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "maximum_asset_bytes",
+            "maximum_rows",
+            "maximum_matrix_elements",
+            "maximum_string_bytes"
+          ],
+          "properties": {
+            "maximum_asset_bytes": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 268435456
+            },
+            "maximum_rows": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 10000
+            },
+            "maximum_matrix_elements": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 25000000
+            },
+            "maximum_string_bytes": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 16777216
+            }
+          }
+        },
+        "source_selection": {
+          "type": "array",
+          "maxItems": 10000,
+          "items": {
+            "type": "integer",
+            "enum": [
+              0,
+              1
+            ]
+          }
+        },
+        "calibration_provenance": {
+          "type": "string"
+        },
+        "dependence_provenance": {
+          "type": "string"
+        },
+        "quality_dictionary": {
+          "type": "string"
+        },
+        "ordering_provenance": {
+          "type": "string"
+        }
+      }
+    },
+    "observation_metadata": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "profile",
+        "role",
+        "unit",
+        "calibration",
+        "uncertainty",
+        "uncertainty_unit",
+        "component"
+      ],
+      "properties": {
+        "profile": {
+          "type": "string",
+          "enum": [
+            "pantheon_plus_released_v1",
+            "gaussian_fixture_v1",
+            "fits_length_fixture_v1"
+          ]
+        },
+        "role": {
+          "type": "string",
+          "enum": [
+            "observed_measurement",
+            "released_fitted_summary",
+            "synthetic_control",
+            "posterior_summary"
+          ]
+        },
+        "unit": {
+          "type": "string",
+          "enum": [
+            "magnitude",
+            "metre"
+          ]
+        },
+        "calibration": {
+          "type": "string",
+          "enum": [
+            "unknown",
+            "released_corrected",
+            "not_applicable"
+          ]
+        },
+        "uncertainty": {
+          "type": "string",
+          "enum": [
+            "none",
+            "covariance",
+            "precision"
+          ]
+        },
+        "uncertainty_unit": {
+          "type": "string",
+          "enum": [
+            "none",
+            "magnitude_squared",
+            "inverse_magnitude_squared",
+            "metre_squared",
+            "inverse_metre_squared"
+          ]
+        },
+        "component": {
+          "type": "string",
+          "enum": [
+            "unknown",
+            "statistical",
+            "systematic",
+            "total"
+          ]
         }
       }
     }

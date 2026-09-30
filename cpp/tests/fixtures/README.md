@@ -55,3 +55,9 @@ See [testing](../../../docs/testing.md) for actual commands and [scientific cont
 The ordinary suite runs `test_large_spd --size64`. Its default n=1590 execution is explicit and expensive, not an ordinary test workload. The fixed assembled log-density absolute budget is `1e-8`, intended for a synthetic consumer reporting roughly seven decimal places. Component checks allocate `2e-9` each to quadratic and log determinant, `4e-9` to normalization, and `1e-10` to maximum solution component error. Backward residual and forward sensitivity are diagnostics, not proved bounds. Reference logarithms share standard-library ancestry; differences below `1e-12` are not asserted as proven accuracy digits.
 
 This tests the named rank-one family only. It is not a survey covariance, a likelihood reproduction, or qualification of arbitrary large SPD matrices. The numerical ABI tests separately compare direct native and coarse batch values/statuses/diagnostics, and explicitly disclose their shared numerical-core ancestry.
+
+## Observation preservation fixtures
+
+The synthetic ASCII example retains two distinct measurement IDs for one repeated event, an explicitly ordered `[[4,1],[1,9]]` covariance, and magnitude-labelled synthetic values. Native adversaries separately preserve an asymmetric/singular full matrix at the preparation layer; that layer claims no SPD validation or likelihood. Selection is strictly zHD > 0.01, with exact masks and source indices; no event deduplication occurs.
+
+`handcrafted_fits.hpp` constructs independent big-endian BINTABLE bytes: signed integer LENGTH with TSCAL=0.5, TZERO=1, integer null sentinel, explicit metre unit, repeated event IDs and raw QUALITY bits. AUX is unsupported auxiliary content retained in original bytes, not scientific output. The narrow codec rejects scaled QUALITY to avoid silently changing bits. Disabled codecs return unavailable. These fixtures qualify neither a universal source reader nor a physical dataset.

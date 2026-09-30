@@ -1,5 +1,7 @@
 mod bridge;
 mod cli;
+mod ingestion;
+mod observation_run;
 mod records;
 fn main() {
     if let Err(e) = cli::execute() {

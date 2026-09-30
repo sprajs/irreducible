@@ -227,3 +227,7 @@ pub(crate) fn numerics_evaluate(
         })
         .collect()
 }
+
+#[path = "observation_bridge.rs"]
+mod observations;
+pub(crate) use observations::{prepare_observations, ObservationInput, ObservationMetadata};

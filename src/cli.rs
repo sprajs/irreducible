@@ -1,11 +1,11 @@
 use crate::{
     bridge::{
-        ABI_VERSION, MAX_BATCH_ELEMENTS, Metadata, add, convert_quantities, numerics_evaluate,
+        add, convert_quantities, numerics_evaluate, Metadata, ABI_VERSION, MAX_BATCH_ELEMENTS,
     },
     records::{hash, publish, runtime_libraries},
 };
 use serde::Deserialize;
-use serde_json::{Value, json};
+use serde_json::{json, Value};
 use std::{fs, path::PathBuf};
 #[derive(Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -46,7 +46,7 @@ pub(crate) fn execute() -> Result<(), String> {
         Some("describe") | Some("version") if args.len() == 3 && args[2] == "--json" => {
             println!(
                 "{}",
-                json!({"schema_version":1,"product":"Irreducible","executable":"irred","version":env!("CARGO_PKG_VERSION"),"abi_version":ABI_VERSION,"build":manifest,"capabilities":[{"id":"fixture.checked_i64_add.v1","implementation":"implemented","qualification":"unqualified","scientific":false},{"id":"quantity.convert.v1","implementation":"implemented","qualification":"unqualified","scientific":true},{"id":"numerics.scalar_batch.v1","implementation":"implemented","qualification":"unqualified","scientific":true}],"quantity_schema":serde_json::from_str::<Value>(include_str!("../schema/abi.json")).map_err(|e|e.to_string())?,"commands":["describe --json","version --json","run REQUEST STORE"],"scientific_qualifications":[]})
+                json!({"schema_version":1,"product":"Irreducible","executable":"irred","version":env!("CARGO_PKG_VERSION"),"abi_version":ABI_VERSION,"build":manifest,"capabilities":[{"id":"fixture.checked_i64_add.v1","implementation":"implemented","qualification":"unqualified","scientific":false},{"id":"quantity.convert.v1","implementation":"implemented","qualification":"unqualified","scientific":true},{"id":"numerics.scalar_batch.v1","implementation":"implemented","qualification":"unqualified","scientific":true},{"id":"observations.prepare.v1","implementation":"implemented","qualification":"unqualified","scientific":true,"profiles":["pantheon_plus_released_v1","gaussian_fixture_v1"],"fits_codec":"unavailable_in_product"}],"quantity_schema":serde_json::from_str::<Value>(include_str!("../schema/abi.json")).map_err(|e|e.to_string())?,"commands":["describe --json","version --json","run REQUEST STORE"],"scientific_qualifications":[]})
             );
             Ok(())
         }
@@ -135,6 +135,9 @@ pub(crate) fn execute() -> Result<(), String> {
                                 "error_id":if failed {Some("NUMERICAL_EVALUATION_FAILURE")}else{None},
                                 "method":request.method,"source_values":request.values,"evaluations":evaluations}))
                         },
+                        "observations.prepare.v1" => {
+                            let (spec,output)=crate::observation_run::execute(&input,&store)?;resolved=Some(spec);Ok(output)
+                        },
                         _ => Err("UNSUPPORTED_SPECIFICATION".into()),
                     }
                 },
@@ -156,20 +159,26 @@ pub(crate) fn execute() -> Result<(), String> {
             let is_quantity = resolved
                 .as_ref()
                 .is_some_and(|spec| spec["operation"] == "quantity.convert.v1");
+            let is_observation = resolved
+                .as_ref()
+                .is_some_and(|spec| spec["operation"] == "observations.prepare.v1");
             let mut final_record = initial;
-            final_record["precision"] = json!(if is_numerical {
+            final_record["precision"] = json!(if is_observation {
+                "binary64_source_parse_no_scientific_transformation"
+            } else if is_numerical {
                 "binary64_storage_method_declared_intermediate"
             } else if is_quantity {
                 "binary64_storage_host_long_double_intermediate"
             } else {
                 "exact_i64"
             });
-            final_record["accepted"] = json!(success && !is_quantity && !is_numerical);
+            final_record["accepted"] =
+                json!(success && !is_quantity && !is_numerical && !is_observation);
             if is_numerical {
                 final_record["resource_budget"]["max_batch_elements"] = json!(MAX_BATCH_ELEMENTS);
             }
-            if is_quantity || is_numerical {
-                final_record["outputs"] = json!([{"id":if is_numerical {"evaluations"} else {"converted"},"required":true,"numerical":"not_assessed","inference":"not_applicable","evidence":[]}]);
+            if is_quantity || is_numerical || is_observation {
+                final_record["outputs"] = json!([{"id":if is_observation {"prepared_observations"} else if is_numerical {"evaluations"} else {"converted"},"required":true,"numerical":"not_assessed","inference":"not_applicable","evidence":[]}]);
             }
             if let Some(spec) = resolved {
                 let spec_bytes = serde_json::to_vec(&spec).unwrap();
@@ -189,7 +198,7 @@ pub(crate) fn execute() -> Result<(), String> {
                 &serde_json::to_vec(&final_record).unwrap(),
             )?;
             println!("{}", json!({"receipt":final_record,"result":output}));
-            if success && (is_quantity || is_numerical) {
+            if success && (is_quantity || is_numerical || is_observation) {
                 Err("NUMERICAL_QUALIFICATION_REQUIRED".into())
             } else if success {
                 Ok(())

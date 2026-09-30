@@ -7,6 +7,39 @@ pub const OVERFLOW: u32 = 3;
 pub const ALLOCATION_FAILURE: u32 = 4;
 pub const EXCEPTION: u32 = 5;
 pub const MAX_BATCH_ELEMENTS: u64 = 1000000;
+pub const OBSERVATION_PROFILE_PANTHEON_PLUS_RELEASED_V1: u32 = 0;
+pub const OBSERVATION_PROFILE_GAUSSIAN_FIXTURE_V1: u32 = 1;
+pub const OBSERVATION_PROFILE_FITS_LENGTH_FIXTURE_V1: u32 = 2;
+pub const OBSERVATION_ROLE_OBSERVED_MEASUREMENT: u32 = 0;
+pub const OBSERVATION_ROLE_RELEASED_FITTED_SUMMARY: u32 = 1;
+pub const OBSERVATION_ROLE_SYNTHETIC_CONTROL: u32 = 2;
+pub const OBSERVATION_ROLE_POSTERIOR_SUMMARY: u32 = 3;
+pub const OBSERVATION_UNIT_MAGNITUDE: u32 = 0;
+pub const OBSERVATION_UNIT_METRE: u32 = 1;
+pub const OBSERVATION_CALIBRATION_UNKNOWN: u32 = 0;
+pub const OBSERVATION_CALIBRATION_RELEASED_CORRECTED: u32 = 1;
+pub const OBSERVATION_CALIBRATION_NOT_APPLICABLE: u32 = 2;
+pub const OBSERVATION_UNCERTAINTY_NONE: u32 = 0;
+pub const OBSERVATION_UNCERTAINTY_COVARIANCE: u32 = 1;
+pub const OBSERVATION_UNCERTAINTY_PRECISION: u32 = 2;
+pub const OBSERVATION_UNCERTAINTY_UNIT_NONE: u32 = 0;
+pub const OBSERVATION_UNCERTAINTY_UNIT_MAGNITUDE_SQUARED: u32 = 1;
+pub const OBSERVATION_UNCERTAINTY_UNIT_INVERSE_MAGNITUDE_SQUARED: u32 = 2;
+pub const OBSERVATION_UNCERTAINTY_UNIT_METRE_SQUARED: u32 = 3;
+pub const OBSERVATION_UNCERTAINTY_UNIT_INVERSE_METRE_SQUARED: u32 = 4;
+pub const OBSERVATION_COMPONENT_UNKNOWN: u32 = 0;
+pub const OBSERVATION_COMPONENT_STATISTICAL: u32 = 1;
+pub const OBSERVATION_COMPONENT_SYSTEMATIC: u32 = 2;
+pub const OBSERVATION_COMPONENT_TOTAL: u32 = 3;
+pub const OBSERVATION_SELECTION_ALL: u32 = 0;
+pub const OBSERVATION_SELECTION_PANTHEON_ZHD_GT_001: u32 = 1;
+pub const OBSERVATION_STATUS_OK: u32 = 0;
+pub const OBSERVATION_STATUS_INVALID_SHAPE: u32 = 1;
+pub const OBSERVATION_STATUS_INVALID_IDENTITY: u32 = 2;
+pub const OBSERVATION_STATUS_INCOMPATIBLE_SEMANTICS: u32 = 3;
+pub const OBSERVATION_STATUS_MISSING_REQUIRED_VALUE: u32 = 4;
+pub const OBSERVATION_STATUS_NONFINITE_REQUIRED_VALUE: u32 = 5;
+pub const OBSERVATION_STATUS_RESOURCE_LIMIT: u32 = 6;
 #[repr(C)]
 pub struct Buffer {
     pub struct_size: u32,
@@ -37,6 +70,68 @@ pub struct QuantityMetadata {
     pub convention: u32,
     pub constant_set: u32,
     pub reserved: u32,
+}
+#[repr(C)]
+pub struct Bytes {
+    pub data: *const u8,
+    pub length: u64,
+}
+#[repr(C)]
+pub struct Strings {
+    pub data: *const Bytes,
+    pub length: u64,
+    pub byte_length: u64,
+}
+#[repr(C)]
+pub struct U8Buffer {
+    pub data: *const u8,
+    pub length: u64,
+    pub byte_length: u64,
+}
+#[repr(C)]
+pub struct U64Buffer {
+    pub data: *const u64,
+    pub length: u64,
+    pub byte_length: u64,
+}
+#[repr(C)]
+pub struct ObservationPolicy {
+    pub maximum_rows: u64,
+    pub maximum_matrix_elements: u64,
+    pub maximum_string_bytes: u64,
+}
+#[repr(C)]
+pub struct ObservationDescriptor {
+    pub struct_size: u32,
+    pub abi_version: u32,
+    pub reserved: u32,
+    pub profile: u32,
+    pub role: u32,
+    pub unit: u32,
+    pub calibration: u32,
+    pub uncertainty: u32,
+    pub uncertainty_unit: u32,
+    pub component: u32,
+    pub table_sha256: Bytes,
+    pub uncertainty_sha256: Bytes,
+    pub calibration_provenance: Bytes,
+    pub dependence_provenance: Bytes,
+    pub quality_dictionary: Bytes,
+    pub ordering_provenance: Bytes,
+    pub measurement_ids: Strings,
+    pub event_ids: Strings,
+    pub uncertainty_axis_ids: Strings,
+    pub values: F64Buffer,
+    pub zhd: F64Buffer,
+    pub zcmb: F64Buffer,
+    pub zhel: F64Buffer,
+    pub uncertainty_matrix: F64Buffer,
+    pub missing: U8Buffer,
+    pub zhd_missing: U8Buffer,
+    pub zcmb_missing: U8Buffer,
+    pub zhel_missing: U8Buffer,
+    pub source_selection: U8Buffer,
+    pub quality: U64Buffer,
 }
 unsafe extern "C" {
     pub fn cosmo_add(
@@ -73,6 +168,30 @@ unsafe extern "C" {
         evaluations: *mut *const u64,
         n: *mut u64,
     ) -> u32;
+    pub fn cosmo_prepare_observations(
+        descriptor: *const ObservationDescriptor,
+        policy: *const ObservationPolicy,
+        out: *mut *mut std::ffi::c_void,
+        semantic_status: *mut u32,
+    ) -> u32;
+    pub fn cosmo_observation_source_view(
+        prepared: *const std::ffi::c_void,
+        descriptor: *mut ObservationDescriptor,
+    ) -> u32;
+    pub fn cosmo_observation_select(
+        prepared: *const std::ffi::c_void,
+        selection: u32,
+        out: *mut *mut std::ffi::c_void,
+        semantic_status: *mut u32,
+    ) -> u32;
+    pub fn cosmo_result_selection_view(
+        result: *const std::ffi::c_void,
+        mask: *mut *const u8,
+        mask_length: *mut u64,
+        indices: *mut *const u64,
+        index_length: *mut u64,
+    ) -> u32;
+    pub fn cosmo_observation_destroy(prepared: *mut std::ffi::c_void) -> u32;
 }
 #[derive(Clone, serde::Deserialize, serde::Serialize)]
 #[serde(deny_unknown_fields)]
@@ -139,6 +258,67 @@ pub fn quantity_status_name(value: u32) -> Option<&'static str> {
         9 => Some("constant_set_mismatch"),
         10 => Some("invalid_domain"),
         11 => Some("invalid_batch"),
+        _ => None,
+    }
+}
+#[derive(Clone, serde::Deserialize, serde::Serialize)]
+#[serde(deny_unknown_fields)]
+pub struct ObservationMetadataFields {
+    pub profile: String,
+    pub role: String,
+    pub unit: String,
+    pub calibration: String,
+    pub uncertainty: String,
+    pub uncertainty_unit: String,
+    pub component: String,
+}
+pub fn observation_tag_id(group: &str, label: &str) -> Option<u32> {
+    match (group, label) {
+        ("profile", "pantheon_plus_released_v1") => Some(0),
+        ("profile", "gaussian_fixture_v1") => Some(1),
+        ("profile", "fits_length_fixture_v1") => Some(2),
+        ("role", "observed_measurement") => Some(0),
+        ("role", "released_fitted_summary") => Some(1),
+        ("role", "synthetic_control") => Some(2),
+        ("role", "posterior_summary") => Some(3),
+        ("unit", "magnitude") => Some(0),
+        ("unit", "metre") => Some(1),
+        ("calibration", "unknown") => Some(0),
+        ("calibration", "released_corrected") => Some(1),
+        ("calibration", "not_applicable") => Some(2),
+        ("uncertainty", "none") => Some(0),
+        ("uncertainty", "covariance") => Some(1),
+        ("uncertainty", "precision") => Some(2),
+        ("uncertainty_unit", "none") => Some(0),
+        ("uncertainty_unit", "magnitude_squared") => Some(1),
+        ("uncertainty_unit", "inverse_magnitude_squared") => Some(2),
+        ("uncertainty_unit", "metre_squared") => Some(3),
+        ("uncertainty_unit", "inverse_metre_squared") => Some(4),
+        ("component", "unknown") => Some(0),
+        ("component", "statistical") => Some(1),
+        ("component", "systematic") => Some(2),
+        ("component", "total") => Some(3),
+        ("selection", "all") => Some(0),
+        ("selection", "pantheon_zhd_gt_001") => Some(1),
+        ("status", "ok") => Some(0),
+        ("status", "invalid_shape") => Some(1),
+        ("status", "invalid_identity") => Some(2),
+        ("status", "incompatible_semantics") => Some(3),
+        ("status", "missing_required_value") => Some(4),
+        ("status", "nonfinite_required_value") => Some(5),
+        ("status", "resource_limit") => Some(6),
+        _ => None,
+    }
+}
+pub fn observation_status_name(value: u32) -> Option<&'static str> {
+    match value {
+        0 => Some("ok"),
+        1 => Some("invalid_shape"),
+        2 => Some("invalid_identity"),
+        3 => Some("incompatible_semantics"),
+        4 => Some("missing_required_value"),
+        5 => Some("nonfinite_required_value"),
+        6 => Some("resource_limit"),
         _ => None,
     }
 }
