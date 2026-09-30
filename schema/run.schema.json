@@ -1,1 +1,154 @@
-{"$schema":"https://json-schema.org/draft/2020-12/schema","$id":"cosmology.fixture-run.v1","type":"object","additionalProperties":false,"required":["schema_version","operation","a","b"],"properties":{"schema_version":{"const":1},"operation":{"const":"fixture.checked_i64_add.v1"},"a":{"type":"array","items":{"type":"integer","minimum":-9223372036854775808,"maximum":9223372036854775807}},"b":{"type":"array","items":{"type":"integer","minimum":-9223372036854775808,"maximum":9223372036854775807}},"fault":{"enum":[0,1,2],"default":0}},"description":"Strict bounded-integer infrastructure fixture. Arrays equal length; checked sum domain validated by C++. No arbitrary expressions. JSON field ordering irrelevant; arrays ordered. Fault injection is test-only and changes execution specification."}
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "cosmology.run.v1",
+  "oneOf": [
+    {
+      "$ref": "#/$defs/fixture"
+    },
+    {
+      "$ref": "#/$defs/quantity"
+    }
+  ],
+  "$defs": {
+    "fixture": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$id": "cosmology.fixture-run.v1",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema_version",
+        "operation",
+        "a",
+        "b"
+      ],
+      "properties": {
+        "schema_version": {
+          "const": 1
+        },
+        "operation": {
+          "const": "fixture.checked_i64_add.v1"
+        },
+        "a": {
+          "type": "array",
+          "items": {
+            "type": "integer",
+            "minimum": -9223372036854775808,
+            "maximum": 9223372036854775807
+          }
+        },
+        "b": {
+          "type": "array",
+          "items": {
+            "type": "integer",
+            "minimum": -9223372036854775808,
+            "maximum": 9223372036854775807
+          }
+        },
+        "fault": {
+          "enum": [
+            0,
+            1,
+            2
+          ],
+          "default": 0
+        }
+      },
+      "description": "Strict bounded-integer infrastructure fixture. Arrays equal length; checked sum domain validated by C++. No arbitrary expressions. JSON field ordering irrelevant; arrays ordered. Fault injection is test-only and changes execution specification."
+    },
+    "quantity": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema_version",
+        "operation",
+        "values",
+        "source",
+        "target"
+      ],
+      "properties": {
+        "schema_version": {
+          "const": 1
+        },
+        "operation": {
+          "const": "quantity.convert.v1"
+        },
+        "values": {
+          "type": "array",
+          "items": {
+            "type": "number"
+          }
+        },
+        "source": {
+          "$ref": "#/$defs/quantity_metadata"
+        },
+        "target": {
+          "$ref": "#/$defs/quantity_metadata"
+        }
+      }
+    },
+    "quantity_metadata": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "unit",
+        "role",
+        "frame",
+        "convention",
+        "constant_set"
+      ],
+      "properties": {
+        "unit": {
+          "type": "string",
+          "enum": [
+            "one",
+            "metre",
+            "kilometre",
+            "second",
+            "day",
+            "inverse_second",
+            "parsec",
+            "megaparsec",
+            "km_per_s_per_mpc"
+          ]
+        },
+        "role": {
+          "type": "string",
+          "enum": [
+            "ratio",
+            "redshift",
+            "physical_length",
+            "comoving_distance",
+            "luminosity_distance",
+            "angular_diameter_distance",
+            "duration",
+            "expansion_rate"
+          ]
+        },
+        "frame": {
+          "type": "string",
+          "enum": [
+            "none",
+            "heliocentric",
+            "cmb",
+            "model"
+          ]
+        },
+        "convention": {
+          "type": "string",
+          "enum": [
+            "none",
+            "physical",
+            "comoving_a0_one"
+          ]
+        },
+        "constant_set": {
+          "type": "string",
+          "enum": [
+            "SI-IAU-definitions-v1"
+          ]
+        }
+      }
+    }
+  },
+  "description": "Structural generated view. C++ owns scientific admissibility, conversions and per-row statuses; successful execution without qualification remains unaccepted."
+}

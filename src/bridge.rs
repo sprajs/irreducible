@@ -56,3 +56,88 @@ mod tests {
         assert!(add(&[], &[], 2).is_err());
     }
 }
+
+pub(crate) use generated::MetadataFields as Metadata;
+impl Metadata {
+    fn descriptor(&self) -> Result<QuantityMetadata, String> {
+        let tag = |group: &str, label: &str| {
+            tag_id(group, label).ok_or_else(|| format!("UNKNOWN_METADATA_TAG_{group}:{label}"))
+        };
+        Ok(QuantityMetadata {
+            struct_size: std::mem::size_of::<QuantityMetadata>() as u32,
+            abi_version: ABI_VERSION,
+            unit: tag("unit", &self.unit)?,
+            role: tag("role", &self.role)?,
+            frame: tag("frame", &self.frame)?,
+            convention: tag("convention", &self.convention)?,
+            constant_set: tag("constant_set", &self.constant_set)?,
+            reserved: 0,
+        })
+    }
+}
+pub(crate) struct QuantitySlot {
+    pub status: &'static str,
+    pub value: Option<f64>,
+}
+pub(crate) fn convert_quantities(
+    values: &[f64],
+    source: &Metadata,
+    target: &Metadata,
+) -> Result<Vec<QuantitySlot>, String> {
+    let source = source.descriptor()?;
+    let target = target.descriptor()?;
+    let buffer = F64Buffer {
+        struct_size: std::mem::size_of::<F64Buffer>() as u32,
+        abi_version: ABI_VERSION,
+        element_type: 2,
+        reserved: 0,
+        data: values.as_ptr(),
+        length: values.len() as u64,
+        byte_length: std::mem::size_of_val(values) as u64,
+    };
+    let mut raw = ptr::null_mut();
+    // All descriptors/contiguous input remain borrowed and immobile until synchronous return.
+    let status = unsafe { cosmo_convert_quantities(&buffer, &source, &target, &mut raw) };
+    if status != OK {
+        return Err(format!("CORE_STATUS_{status}"));
+    }
+    if raw.is_null() {
+        return Err("NULL_RESULT".into());
+    }
+    let owned = Owned(raw);
+    let mut data = ptr::null();
+    let mut statuses = ptr::null();
+    let mut length = 0;
+    // The view is core owned, immutable, and only used while the matching owner lives.
+    let status = unsafe { cosmo_result_f64_view(owned.0, &mut data, &mut statuses, &mut length) };
+    if status != OK
+        || length != values.len() as u64
+        || (length > 0
+            && (data.is_null()
+                || statuses.is_null()
+                || (data as usize) % std::mem::align_of::<f64>() != 0
+                || (statuses as usize) % std::mem::align_of::<u32>() != 0))
+    {
+        return Err("INVALID_RESULT_VIEW".into());
+    }
+    if length == 0 {
+        return Ok(vec![]);
+    }
+    // Length equals the original Rust allocation's length; the ABI supplies same-size arrays.
+    let converted = unsafe { std::slice::from_raw_parts(data, length as usize) };
+    let statuses = unsafe { std::slice::from_raw_parts(statuses, length as usize) };
+    converted
+        .iter()
+        .zip(statuses)
+        .map(|(&value, &status)| {
+            let name = quantity_status_name(status).ok_or("UNKNOWN_QUANTITY_STATUS")?;
+            if status == 0 && !value.is_finite() {
+                return Err("INVALID_FINITE_RESULT".into());
+            }
+            Ok(QuantitySlot {
+                status: name,
+                value: (status == 0).then_some(value),
+            })
+        })
+        .collect()
+}

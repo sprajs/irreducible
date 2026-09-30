@@ -58,7 +58,7 @@ target/debug/cosmology describe --json
 target/debug/cosmology run tests/fixtures/exact-add.json runs/example
 ```
 
-The exclusive native source/flag mutation suite is compiled with `cargo test --locked --offline -j4 --test build_identity --no-run`, then its emitted binary is run directly with `--ignored --exact source_receipt_flags_and_cache_identity` while no other build is running. These commands verify infrastructure, not cosmological science. The build uses four jobs; coordinate shared builds before running it. Add further production commands only after actual implementation and verification.
+The exclusive native source/flag mutation suite is compiled with `cargo test --locked --offline -j4 --test build_identity --no-run`, then its emitted binary is run directly with `--ignored --exact source_receipt_flags_and_cache_identity` while no other build is running. These commands verify infrastructure and bounded native tests; they do not establish cosmological inference. The implemented `quantity.convert.v1` request in `tests/fixtures/quantity-length.json` also produces ordered tagged conversion results with preserved source metadata. Until matching numerical evidence is registered, its completed finite run returns exit 6 and `accepted=false`; no execution success implies numerical qualification. The build uses four jobs; coordinate shared builds before running it. Add further production commands only after actual implementation and verification.
 
 ## Handoff and completion
 

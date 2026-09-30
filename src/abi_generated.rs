@@ -16,6 +16,27 @@ pub struct Buffer {
     pub length: u64,
     pub byte_length: u64,
 }
+#[repr(C)]
+pub struct F64Buffer {
+    pub struct_size: u32,
+    pub abi_version: u32,
+    pub element_type: u32,
+    pub reserved: u32,
+    pub data: *const f64,
+    pub length: u64,
+    pub byte_length: u64,
+}
+#[repr(C)]
+pub struct QuantityMetadata {
+    pub struct_size: u32,
+    pub abi_version: u32,
+    pub unit: u32,
+    pub role: u32,
+    pub frame: u32,
+    pub convention: u32,
+    pub constant_set: u32,
+    pub reserved: u32,
+}
 unsafe extern "C" {
     pub fn cosmo_add(
         a: *const Buffer,
@@ -26,4 +47,84 @@ unsafe extern "C" {
     pub fn cosmo_result_view(r: *const std::ffi::c_void, data: *mut *const i64, n: *mut u64)
         -> u32;
     pub fn cosmo_result_destroy(r: *mut std::ffi::c_void) -> u32;
+    pub fn cosmo_convert_quantities(
+        values: *const F64Buffer,
+        source: *const QuantityMetadata,
+        target: *const QuantityMetadata,
+        out: *mut *mut std::ffi::c_void,
+    ) -> u32;
+    pub fn cosmo_result_f64_view(
+        r: *const std::ffi::c_void,
+        data: *mut *const f64,
+        status: *mut *const u32,
+        n: *mut u64,
+    ) -> u32;
+}
+#[derive(Clone, serde::Deserialize, serde::Serialize)]
+#[serde(deny_unknown_fields)]
+pub struct MetadataFields {
+    pub unit: String,
+    pub role: String,
+    pub frame: String,
+    pub convention: String,
+    pub constant_set: String,
+}
+pub fn tag_id(group: &str, label: &str) -> Option<u32> {
+    match (group, label) {
+        ("unit", "one") => Some(1),
+        ("unit", "metre") => Some(2),
+        ("unit", "kilometre") => Some(3),
+        ("unit", "second") => Some(4),
+        ("unit", "day") => Some(5),
+        ("unit", "inverse_second") => Some(6),
+        ("unit", "parsec") => Some(7),
+        ("unit", "megaparsec") => Some(8),
+        ("unit", "km_per_s_per_mpc") => Some(9),
+        ("role", "ratio") => Some(1),
+        ("role", "redshift") => Some(2),
+        ("role", "physical_length") => Some(3),
+        ("role", "comoving_distance") => Some(4),
+        ("role", "luminosity_distance") => Some(5),
+        ("role", "angular_diameter_distance") => Some(6),
+        ("role", "duration") => Some(7),
+        ("role", "expansion_rate") => Some(8),
+        ("frame", "none") => Some(0),
+        ("frame", "heliocentric") => Some(1),
+        ("frame", "cmb") => Some(2),
+        ("frame", "model") => Some(3),
+        ("convention", "none") => Some(0),
+        ("convention", "physical") => Some(1),
+        ("convention", "comoving_a0_one") => Some(2),
+        ("constant_set", "SI-IAU-definitions-v1") => Some(1),
+        ("quantity_status", "ok") => Some(0),
+        ("quantity_status", "unknown_unit") => Some(1),
+        ("quantity_status", "dimension_mismatch") => Some(2),
+        ("quantity_status", "role_mismatch") => Some(3),
+        ("quantity_status", "missing_convention") => Some(4),
+        ("quantity_status", "unsupported_transform") => Some(5),
+        ("quantity_status", "nonfinite_input") => Some(6),
+        ("quantity_status", "overflow") => Some(7),
+        ("quantity_status", "underflow") => Some(8),
+        ("quantity_status", "constant_set_mismatch") => Some(9),
+        ("quantity_status", "invalid_domain") => Some(10),
+        ("quantity_status", "invalid_batch") => Some(11),
+        _ => None,
+    }
+}
+pub fn quantity_status_name(value: u32) -> Option<&'static str> {
+    match value {
+        0 => Some("ok"),
+        1 => Some("unknown_unit"),
+        2 => Some("dimension_mismatch"),
+        3 => Some("role_mismatch"),
+        4 => Some("missing_convention"),
+        5 => Some("unsupported_transform"),
+        6 => Some("nonfinite_input"),
+        7 => Some("overflow"),
+        8 => Some("underflow"),
+        9 => Some("constant_set_mismatch"),
+        10 => Some("invalid_domain"),
+        11 => Some("invalid_batch"),
+        _ => None,
+    }
 }

@@ -1,1 +1,269 @@
-{"schema_version":1,"abi_version":1,"statuses":{"OK":0,"ABI_MISMATCH":1,"INVALID_INPUT":2,"OVERFLOW":3,"ALLOCATION_FAILURE":4,"EXCEPTION":5},"element_type":"signed_i64","ownership":"synchronous_borrowed_inputs_owned_result","evaluation_kinds":["finite","outside_support","failure"]}
+{
+  "schema_version": 1,
+  "abi_version": 1,
+  "statuses": {
+    "OK": 0,
+    "ABI_MISMATCH": 1,
+    "INVALID_INPUT": 2,
+    "OVERFLOW": 3,
+    "ALLOCATION_FAILURE": 4,
+    "EXCEPTION": 5
+  },
+  "element_type": "signed_i64",
+  "ownership": "synchronous_borrowed_inputs_owned_result",
+  "evaluation_kinds": [
+    "finite",
+    "outside_support",
+    "failure"
+  ],
+  "quantity_tags": {
+    "unit": {
+      "one": 1,
+      "metre": 2,
+      "kilometre": 3,
+      "second": 4,
+      "day": 5,
+      "inverse_second": 6,
+      "parsec": 7,
+      "megaparsec": 8,
+      "km_per_s_per_mpc": 9
+    },
+    "role": {
+      "ratio": 1,
+      "redshift": 2,
+      "physical_length": 3,
+      "comoving_distance": 4,
+      "luminosity_distance": 5,
+      "angular_diameter_distance": 6,
+      "duration": 7,
+      "expansion_rate": 8
+    },
+    "frame": {
+      "none": 0,
+      "heliocentric": 1,
+      "cmb": 2,
+      "model": 3
+    },
+    "convention": {
+      "none": 0,
+      "physical": 1,
+      "comoving_a0_one": 2
+    },
+    "constant_set": {
+      "SI-IAU-definitions-v1": 1
+    },
+    "quantity_status": {
+      "ok": 0,
+      "unknown_unit": 1,
+      "dimension_mismatch": 2,
+      "role_mismatch": 3,
+      "missing_convention": 4,
+      "unsupported_transform": 5,
+      "nonfinite_input": 6,
+      "overflow": 7,
+      "underflow": 8,
+      "constant_set_mismatch": 9,
+      "invalid_domain": 10,
+      "invalid_batch": 11
+    }
+  },
+  "structures": [
+    {
+      "c_name": "cosmo_i64_buffer",
+      "rust_name": "Buffer",
+      "fields": [
+        [
+          "struct_size",
+          "u32"
+        ],
+        [
+          "abi_version",
+          "u32"
+        ],
+        [
+          "element_type",
+          "u32"
+        ],
+        [
+          "reserved",
+          "u32"
+        ],
+        [
+          "data",
+          "const_i64_ptr"
+        ],
+        [
+          "length",
+          "u64"
+        ],
+        [
+          "byte_length",
+          "u64"
+        ]
+      ]
+    },
+    {
+      "c_name": "cosmo_f64_buffer",
+      "rust_name": "F64Buffer",
+      "fields": [
+        [
+          "struct_size",
+          "u32"
+        ],
+        [
+          "abi_version",
+          "u32"
+        ],
+        [
+          "element_type",
+          "u32"
+        ],
+        [
+          "reserved",
+          "u32"
+        ],
+        [
+          "data",
+          "const_f64_ptr"
+        ],
+        [
+          "length",
+          "u64"
+        ],
+        [
+          "byte_length",
+          "u64"
+        ]
+      ]
+    },
+    {
+      "c_name": "cosmo_quantity_metadata",
+      "rust_name": "QuantityMetadata",
+      "fields": [
+        [
+          "struct_size",
+          "u32"
+        ],
+        [
+          "abi_version",
+          "u32"
+        ],
+        [
+          "unit",
+          "u32"
+        ],
+        [
+          "role",
+          "u32"
+        ],
+        [
+          "frame",
+          "u32"
+        ],
+        [
+          "convention",
+          "u32"
+        ],
+        [
+          "constant_set",
+          "u32"
+        ],
+        [
+          "reserved",
+          "u32"
+        ]
+      ]
+    }
+  ],
+  "functions": [
+    {
+      "name": "cosmo_add",
+      "args": [
+        [
+          "a",
+          "const_Buffer_ptr"
+        ],
+        [
+          "b",
+          "const_Buffer_ptr"
+        ],
+        [
+          "fault",
+          "u32"
+        ],
+        [
+          "out",
+          "result_out"
+        ]
+      ]
+    },
+    {
+      "name": "cosmo_result_view",
+      "args": [
+        [
+          "r",
+          "const_result"
+        ],
+        [
+          "data",
+          "const_i64_out"
+        ],
+        [
+          "n",
+          "u64_ptr"
+        ]
+      ]
+    },
+    {
+      "name": "cosmo_result_destroy",
+      "args": [
+        [
+          "r",
+          "result"
+        ]
+      ]
+    },
+    {
+      "name": "cosmo_convert_quantities",
+      "args": [
+        [
+          "values",
+          "const_F64Buffer_ptr"
+        ],
+        [
+          "source",
+          "const_QuantityMetadata_ptr"
+        ],
+        [
+          "target",
+          "const_QuantityMetadata_ptr"
+        ],
+        [
+          "out",
+          "result_out"
+        ]
+      ]
+    },
+    {
+      "name": "cosmo_result_f64_view",
+      "args": [
+        [
+          "r",
+          "const_result"
+        ],
+        [
+          "data",
+          "const_f64_out"
+        ],
+        [
+          "status",
+          "const_u32_out"
+        ],
+        [
+          "n",
+          "u64_ptr"
+        ]
+      ]
+    }
+  ]
+}

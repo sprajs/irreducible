@@ -5,17 +5,58 @@
 extern "C" {
 #endif
 #define COSMO_ABI_VERSION 1u
+typedef struct cosmo_result cosmo_result;
 #define COSMO_OK 0u
 #define COSMO_ABI_MISMATCH 1u
 #define COSMO_INVALID_INPUT 2u
 #define COSMO_OVERFLOW 3u
 #define COSMO_ALLOCATION_FAILURE 4u
 #define COSMO_EXCEPTION 5u
-typedef struct cosmo_result cosmo_result;
-typedef struct { uint32_t struct_size, abi_version, element_type, reserved; const int64_t *data; uint64_t length, byte_length; } cosmo_i64_buffer;
-uint32_t cosmo_add(const cosmo_i64_buffer*, const cosmo_i64_buffer*, uint32_t fault, cosmo_result**);
-uint32_t cosmo_result_view(const cosmo_result*, const int64_t**, uint64_t*);
-uint32_t cosmo_result_destroy(cosmo_result*);
+#define COSMO_UNIT_ONE 1u
+#define COSMO_UNIT_METRE 2u
+#define COSMO_UNIT_KILOMETRE 3u
+#define COSMO_UNIT_SECOND 4u
+#define COSMO_UNIT_DAY 5u
+#define COSMO_UNIT_INVERSE_SECOND 6u
+#define COSMO_UNIT_PARSEC 7u
+#define COSMO_UNIT_MEGAPARSEC 8u
+#define COSMO_UNIT_KM_PER_S_PER_MPC 9u
+#define COSMO_ROLE_RATIO 1u
+#define COSMO_ROLE_REDSHIFT 2u
+#define COSMO_ROLE_PHYSICAL_LENGTH 3u
+#define COSMO_ROLE_COMOVING_DISTANCE 4u
+#define COSMO_ROLE_LUMINOSITY_DISTANCE 5u
+#define COSMO_ROLE_ANGULAR_DIAMETER_DISTANCE 6u
+#define COSMO_ROLE_DURATION 7u
+#define COSMO_ROLE_EXPANSION_RATE 8u
+#define COSMO_FRAME_NONE 0u
+#define COSMO_FRAME_HELIOCENTRIC 1u
+#define COSMO_FRAME_CMB 2u
+#define COSMO_FRAME_MODEL 3u
+#define COSMO_CONVENTION_NONE 0u
+#define COSMO_CONVENTION_PHYSICAL 1u
+#define COSMO_CONVENTION_COMOVING_A0_ONE 2u
+#define COSMO_CONSTANT_SET_SI_IAU_DEFINITIONS_V1 1u
+#define COSMO_QUANTITY_STATUS_OK 0u
+#define COSMO_QUANTITY_STATUS_UNKNOWN_UNIT 1u
+#define COSMO_QUANTITY_STATUS_DIMENSION_MISMATCH 2u
+#define COSMO_QUANTITY_STATUS_ROLE_MISMATCH 3u
+#define COSMO_QUANTITY_STATUS_MISSING_CONVENTION 4u
+#define COSMO_QUANTITY_STATUS_UNSUPPORTED_TRANSFORM 5u
+#define COSMO_QUANTITY_STATUS_NONFINITE_INPUT 6u
+#define COSMO_QUANTITY_STATUS_OVERFLOW 7u
+#define COSMO_QUANTITY_STATUS_UNDERFLOW 8u
+#define COSMO_QUANTITY_STATUS_CONSTANT_SET_MISMATCH 9u
+#define COSMO_QUANTITY_STATUS_INVALID_DOMAIN 10u
+#define COSMO_QUANTITY_STATUS_INVALID_BATCH 11u
+typedef struct { uint32_t struct_size; uint32_t abi_version; uint32_t element_type; uint32_t reserved; const int64_t* data; uint64_t length; uint64_t byte_length; } cosmo_i64_buffer;
+typedef struct { uint32_t struct_size; uint32_t abi_version; uint32_t element_type; uint32_t reserved; const double* data; uint64_t length; uint64_t byte_length; } cosmo_f64_buffer;
+typedef struct { uint32_t struct_size; uint32_t abi_version; uint32_t unit; uint32_t role; uint32_t frame; uint32_t convention; uint32_t constant_set; uint32_t reserved; } cosmo_quantity_metadata;
+uint32_t cosmo_add(const cosmo_i64_buffer* a, const cosmo_i64_buffer* b, uint32_t fault, cosmo_result** out);
+uint32_t cosmo_result_view(const cosmo_result* r, const int64_t** data, uint64_t* n);
+uint32_t cosmo_result_destroy(cosmo_result* r);
+uint32_t cosmo_convert_quantities(const cosmo_f64_buffer* values, const cosmo_quantity_metadata* source, const cosmo_quantity_metadata* target, cosmo_result** out);
+uint32_t cosmo_result_f64_view(const cosmo_result* r, const double** data, const uint32_t** status, uint64_t* n);
 #ifdef __cplusplus
 }
 #endif

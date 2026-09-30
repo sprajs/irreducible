@@ -1,5 +1,5 @@
 use crate::{
-    bridge::{ABI_VERSION, add},
+    bridge::{ABI_VERSION, Metadata, add, convert_quantities},
     records::{hash, publish, runtime_libraries},
 };
 use serde::Deserialize;
@@ -15,6 +15,19 @@ struct Request {
     #[serde(default)]
     fault: u32,
 }
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct QuantityRequest {
+    schema_version: u32,
+    operation: String,
+    values: Vec<f64>,
+    source: Metadata,
+    target: Metadata,
+}
+#[derive(Deserialize)]
+struct OperationHeader {
+    operation: String,
+}
 pub(crate) fn execute() -> Result<(), String> {
     let args: Vec<_> = std::env::args().collect();
     let manifest: Value = serde_json::from_str(include_str!("../build/build-manifest.json"))
@@ -23,7 +36,7 @@ pub(crate) fn execute() -> Result<(), String> {
         Some("describe") | Some("version") if args.len() == 3 && args[2] == "--json" => {
             println!(
                 "{}",
-                json!({"schema_version":1,"version":env!("CARGO_PKG_VERSION"),"abi_version":ABI_VERSION,"build":manifest,"capabilities":[{"id":"fixture.checked_i64_add.v1","implementation":"implemented","qualification":"unqualified","scientific":false}],"commands":["describe --json","version --json","run REQUEST STORE"],"scientific_qualifications":[]})
+                json!({"schema_version":1,"version":env!("CARGO_PKG_VERSION"),"abi_version":ABI_VERSION,"build":manifest,"capabilities":[{"id":"fixture.checked_i64_add.v1","implementation":"implemented","qualification":"unqualified","scientific":false},{"id":"quantity.convert.v1","implementation":"implemented","qualification":"unqualified","scientific":true}],"quantity_schema":serde_json::from_str::<Value>(include_str!("../schema/abi.json")).map_err(|e|e.to_string())?,"commands":["describe --json","version --json","run REQUEST STORE"],"scientific_qualifications":[]})
             );
             Ok(())
         }
@@ -45,7 +58,7 @@ pub(crate) fn execute() -> Result<(), String> {
                 .map_err(|e| e.to_string())?;
             let input_hash = hash(&input);
             publish(&store.join("objects").join(&input_hash), &input)?;
-            let initial = json!({"schema_version":1,"attempt_id":attempt,"execution":"incomplete","input_digest":input_hash,"build_id":manifest["build_id"],"executable_digest":hash(&executable),"numerical":"not_assessed","inference":"not_applicable","interpretation":"not_assessed","runtime_libraries":runtime_libraries()?,"resource_budget":{"compute_threads":1,"io_threads":1},"rng":"not_applicable","backend":"portable_cpu","precision":"exact_i64","fixture_fault_controls":{"abort":std::env::var_os("COSMOLOGY_TEST_ABORT").is_some(),"panic":std::env::var_os("COSMOLOGY_TEST_PANIC").is_some(),"abort_after_output":std::env::var_os("COSMOLOGY_TEST_ABORT_AFTER_OUTPUT").is_some()}});
+            let initial = json!({"schema_version":1,"attempt_id":attempt,"execution":"incomplete","input_digest":input_hash,"build_id":manifest["build_id"],"source_revision":manifest["git_head"],"source_status":manifest["git_status"],"executable_digest":hash(&executable),"numerical":"not_assessed","inference":"not_applicable","interpretation":"not_assessed","runtime_libraries":runtime_libraries()?,"resource_budget":{"compute_threads":1,"io_threads":1},"rng":"not_applicable","backend":"portable_cpu","precision":"unresolved","fixture_fault_controls":{"abort":std::env::var_os("COSMOLOGY_TEST_ABORT").is_some(),"panic":std::env::var_os("COSMOLOGY_TEST_PANIC").is_some(),"abort_after_output":std::env::var_os("COSMOLOGY_TEST_ABORT_AFTER_OUTPUT").is_some()}});
             publish(
                 &store
                     .join("attempts")
@@ -56,59 +69,78 @@ pub(crate) fn execute() -> Result<(), String> {
                 std::process::abort()
             }
             let mut resolved = None;
+            let mut fault = 0;
             let result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(
-                || -> Result<Vec<i64>, String> {
-                    let request: Request =
-                        serde_json::from_slice(&input).map_err(|e| e.to_string())?;
-                    if request.schema_version != 1
-                        || request.operation != "fixture.checked_i64_add.v1"
-                    {
-                        return Err("UNSUPPORTED_SPECIFICATION".into());
+                || -> Result<Value, String> {
+                    let header: OperationHeader = serde_json::from_slice(&input).map_err(|e|e.to_string())?;
+                    match header.operation.as_str() {
+                        "fixture.checked_i64_add.v1" => {
+                            let request: Request = serde_json::from_slice(&input).map_err(|e|e.to_string())?;
+                            if request.schema_version != 1 { return Err("UNSUPPORTED_SPECIFICATION".into()); }
+                            fault = request.fault;
+                            resolved = Some(json!({"schema_version":1,"operation":request.operation,
+                                "equation_id":"EQ-fixture.checked_i64_add.v1","a":request.a,"b":request.b,
+                                "requested_outputs":[{"id":"sum","required":true,"numerical_gate":"not_applicable","inference_gate":"not_applicable"}]}));
+                            if std::env::var_os("COSMOLOGY_TEST_PANIC").is_some() {panic!("injected Rust panic");}
+                            add(&request.a,&request.b,request.fault).map(|v|json!({"kind":"finite","values":v}))
+                        },
+                        "quantity.convert.v1" => {
+                            let request: QuantityRequest = serde_json::from_slice(&input).map_err(|e|e.to_string())?;
+                            if request.schema_version != 1 { return Err("UNSUPPORTED_SPECIFICATION".into()); }
+                            resolved = Some(json!({"schema_version":1,"operation":request.operation,
+                                "equation_id":"EQ-quantity-conversion-v1","values":request.values,
+                                "source":request.source,"target":request.target,
+                                "requested_outputs":[{"id":"converted","required":true,"numerical_gate":"required","inference_gate":"not_applicable"}]}));
+                            if std::env::var_os("COSMOLOGY_TEST_PANIC").is_some() {panic!("injected Rust panic");}
+                            let slots = convert_quantities(&request.values,&request.source,&request.target)?;
+                            let failed = slots.iter().any(|slot|slot.value.is_none());
+                            let evaluations: Vec<_> = slots.into_iter().map(|slot|match slot.value {
+                                Some(value)=>json!({"kind":"finite","value":value}),
+                                None=>json!({"kind":"failure","error_id":slot.status})
+                            }).collect();
+                            Ok(json!({"kind":if failed {"failure"} else {"finite"},
+                                "error_id":if failed {Some("QUANTITY_DOMAIN_FAILURE")} else {None},
+                                "source_values":request.values,"source":request.source,
+                                "target":request.target,"evaluations":evaluations}))
+                        },
+                        _ => Err("UNSUPPORTED_SPECIFICATION".into()),
                     }
-                    resolved = Some(json!({
-                        "schema_version": 1,
-                        "operation": request.operation,
-                        "equation_id": "EQ-fixture.checked_i64_add.v1",
-                        "a": request.a,
-                        "b": request.b,
-                        "requested_outputs": [{
-                            "id": "sum", "required": true,
-                            "numerical_gate": "not_applicable",
-                            "inference_gate": "not_applicable"
-                        }]
-                    }));
-                    if std::env::var_os("COSMOLOGY_TEST_PANIC").is_some() {
-                        panic!("injected Rust panic");
-                    }
-                    add(&request.a, &request.b, request.fault)
                 },
-            ))
-            .unwrap_or_else(|_| Err("RUST_PANIC".into()));
+            )).unwrap_or_else(|_| Err("RUST_PANIC".into()));
             let output = match &result {
-                Ok(v) => json!({"kind":"finite","values":v}),
-                Err(e) => json!({"kind":"failure","error_id":e}),
+                Ok(value) => value.clone(),
+                Err(error) => json!({"kind":"failure","error_id":error}),
             };
+            let success = result.is_ok() && output["kind"] != "failure";
             let bytes = serde_json::to_vec(&output).unwrap();
             let output_hash = hash(&bytes);
             publish(&store.join("objects").join(&output_hash), &bytes)?;
             if std::env::var_os("COSMOLOGY_TEST_ABORT_AFTER_OUTPUT").is_some() {
                 std::process::abort()
             }
+            let is_quantity = resolved
+                .as_ref()
+                .is_some_and(|spec| spec["operation"] == "quantity.convert.v1");
             let mut final_record = initial;
+            final_record["precision"] = json!(if is_quantity {
+                "binary64_storage_host_long_double_intermediate"
+            } else {
+                "exact_i64"
+            });
+            final_record["accepted"] = json!(success && !is_quantity);
+            if is_quantity {
+                final_record["outputs"] = json!([{"id":"converted","required":true,"numerical":"not_assessed","inference":"not_applicable","evidence":[]}]);
+            }
             if let Some(spec) = resolved {
                 let spec_bytes = serde_json::to_vec(&spec).unwrap();
                 let spec_digest = hash(&spec_bytes);
                 publish(&store.join("objects").join(&spec_digest), &spec_bytes)?;
-                let execution_spec = json!({"scientific_specification_digest":spec_digest,"input_digest":input_hash,"build_id":manifest["build_id"],"executable_digest":hash(&executable),"resource_budget":final_record["resource_budget"],"rng":final_record["rng"],"runtime_libraries":final_record["runtime_libraries"],"fixture_fault_controls":final_record["fixture_fault_controls"],"fault":serde_json::from_slice::<Request>(&input).unwrap().fault,"backend":"portable_cpu","precision":"exact_i64"});
+                let execution_spec = json!({"scientific_specification_digest":spec_digest,"input_digest":input_hash,"build_id":manifest["build_id"],"executable_digest":hash(&executable),"resource_budget":final_record["resource_budget"],"rng":final_record["rng"],"runtime_libraries":final_record["runtime_libraries"],"fixture_fault_controls":final_record["fixture_fault_controls"],"fault":fault,"backend":"portable_cpu","precision":final_record["precision"]});
                 final_record["scientific_specification_digest"] = json!(spec_digest);
                 final_record["execution_identity"] =
                     json!(hash(&serde_json::to_vec(&execution_spec).unwrap()));
             }
-            final_record["execution"] = json!(if result.is_ok() {
-                "completed"
-            } else {
-                "failed"
-            });
+            final_record["execution"] = json!(if success { "completed" } else { "failed" });
             final_record["output_digest"] = json!(output_hash);
             publish(
                 &store
@@ -117,7 +149,16 @@ pub(crate) fn execute() -> Result<(), String> {
                 &serde_json::to_vec(&final_record).unwrap(),
             )?;
             println!("{}", json!({"receipt":final_record,"result":output}));
-            result.map(|_| ())
+            if success && is_quantity {
+                Err("NUMERICAL_QUALIFICATION_REQUIRED".into())
+            } else if success {
+                Ok(())
+            } else {
+                Err(output["error_id"]
+                    .as_str()
+                    .unwrap_or("EVALUATION_FAILURE")
+                    .to_string())
+            }
         }
         _ => Err("usage: cosmology describe --json | version --json | run REQUEST STORE".into()),
     }
