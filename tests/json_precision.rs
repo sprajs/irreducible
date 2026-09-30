@@ -54,7 +54,7 @@ fn actual_scalar_request_spec_source_and_native_sum_preserve_decimal() {
     for (i, expected) in values().into_iter().enumerate() {
         let text = expected.to_string();
         let raw = format!(
-            "{{\"schema_version\":2,\"operation\":\"numerics.scalar_batch.v1\",\"method\":\"compensated_sum\",\"values\":[{text}]}}"
+            "{{\"schema_version\":2,\"operation\":\"numerics.scalar_batch\",\"method\":\"compensated_sum\",\"values\":[{text}]}}"
         );
         let request = path.0.join("request.json");
         fs::write(&request, &raw).unwrap();

@@ -69,7 +69,7 @@
   },
   "structures": [
     {
-      "c_name": "cosmo_i64_buffer",
+      "c_name": "irred_i64_buffer",
       "rust_name": "Buffer",
       "fields": [
         [
@@ -103,7 +103,7 @@
       ]
     },
     {
-      "c_name": "cosmo_f64_buffer",
+      "c_name": "irred_f64_buffer",
       "rust_name": "F64Buffer",
       "fields": [
         [
@@ -137,7 +137,7 @@
       ]
     },
     {
-      "c_name": "cosmo_quantity_metadata",
+      "c_name": "irred_quantity_metadata",
       "rust_name": "QuantityMetadata",
       "fields": [
         [
@@ -175,7 +175,7 @@
       ]
     },
     {
-      "c_name": "cosmo_bytes",
+      "c_name": "irred_bytes",
       "rust_name": "Bytes",
       "fields": [
         [
@@ -189,7 +189,7 @@
       ]
     },
     {
-      "c_name": "cosmo_strings",
+      "c_name": "irred_strings",
       "rust_name": "Strings",
       "fields": [
         [
@@ -207,7 +207,7 @@
       ]
     },
     {
-      "c_name": "cosmo_u8_buffer",
+      "c_name": "irred_u8_buffer",
       "rust_name": "U8Buffer",
       "fields": [
         [
@@ -225,7 +225,7 @@
       ]
     },
     {
-      "c_name": "cosmo_u64_buffer",
+      "c_name": "irred_u64_buffer",
       "rust_name": "U64Buffer",
       "fields": [
         [
@@ -243,7 +243,7 @@
       ]
     },
     {
-      "c_name": "cosmo_observation_policy",
+      "c_name": "irred_observation_policy",
       "rust_name": "ObservationPolicy",
       "fields": [
         [
@@ -261,7 +261,7 @@
       ]
     },
     {
-      "c_name": "cosmo_observation_descriptor",
+      "c_name": "irred_observation_descriptor",
       "rust_name": "ObservationDescriptor",
       "fields": [
         [
@@ -387,7 +387,7 @@
       ]
     },
     {
-      "c_name": "cosmo_gaussian_policy",
+      "c_name": "irred_gaussian_policy",
       "rust_name": "GaussianPolicy",
       "fields": [
         [
@@ -429,7 +429,7 @@
       ]
     },
     {
-      "c_name": "cosmo_gaussian_batch",
+      "c_name": "irred_gaussian_batch",
       "rust_name": "GaussianBatch",
       "fields": [
         [
@@ -467,7 +467,7 @@
       ]
     },
     {
-      "c_name": "cosmo_gaussian_row",
+      "c_name": "irred_gaussian_row",
       "rust_name": "GaussianRow",
       "fields": [
         [
@@ -509,7 +509,7 @@
       ]
     },
     {
-      "c_name": "cosmo_gaussian_view",
+      "c_name": "irred_gaussian_view",
       "rust_name": "GaussianView",
       "fields": [
         [
@@ -579,7 +579,7 @@
       ]
     },
     {
-      "c_name": "cosmo_gaussian_prior",
+      "c_name": "irred_gaussian_prior",
       "rust_name": "GaussianPrior",
       "fields": [
         [
@@ -621,7 +621,7 @@
       ]
     },
     {
-      "c_name": "cosmo_gaussian_selection",
+      "c_name": "irred_gaussian_selection",
       "rust_name": "GaussianSelection",
       "fields": [
         [
@@ -648,7 +648,7 @@
     },
     {
       "rust_name": "BaoQuery",
-      "c_name": "cosmo_bao_query",
+      "c_name": "irred_bao_query",
       "fields": [
         [
           "z",
@@ -666,7 +666,7 @@
     },
     {
       "rust_name": "ExpansionSpec",
-      "c_name": "cosmo_expansion_spec",
+      "c_name": "irred_expansion_spec",
       "fields": [
         [
           "struct_size",
@@ -692,7 +692,7 @@
     },
     {
       "rust_name": "ExpansionRequest",
-      "c_name": "cosmo_expansion_request",
+      "c_name": "irred_expansion_request",
       "fields": [
         [
           "struct_size",
@@ -734,7 +734,7 @@
     },
     {
       "rust_name": "ExpansionPolicy",
-      "c_name": "cosmo_expansion_policy",
+      "c_name": "irred_expansion_policy",
       "fields": [
         [
           "struct_size",
@@ -792,7 +792,7 @@
     },
     {
       "rust_name": "ExpansionBatch",
-      "c_name": "cosmo_expansion_batch",
+      "c_name": "irred_expansion_batch",
       "fields": [
         [
           "struct_size",
@@ -838,7 +838,7 @@
     },
     {
       "rust_name": "OutputState",
-      "c_name": "cosmo_output_state",
+      "c_name": "irred_output_state",
       "fields": [
         [
           "availability",
@@ -860,7 +860,7 @@
     },
     {
       "rust_name": "ScalarOutcome",
-      "c_name": "cosmo_scalar_outcome",
+      "c_name": "irred_scalar_outcome",
       "fields": [
         [
           "state",
@@ -874,7 +874,7 @@
     },
     {
       "rust_name": "ExpansionOutcome",
-      "c_name": "cosmo_expansion_outcome",
+      "c_name": "irred_expansion_outcome",
       "fields": [
         [
           "state",
@@ -892,7 +892,7 @@
     },
     {
       "rust_name": "RadialOutcome",
-      "c_name": "cosmo_radial_outcome",
+      "c_name": "irred_radial_outcome",
       "fields": [
         [
           "state",
@@ -914,7 +914,7 @@
     },
     {
       "rust_name": "ClockOutcome",
-      "c_name": "cosmo_clock_outcome",
+      "c_name": "irred_clock_outcome",
       "fields": [
         [
           "state",
@@ -936,7 +936,7 @@
     },
     {
       "rust_name": "PhysicalOutcome",
-      "c_name": "cosmo_physical_outcome",
+      "c_name": "irred_physical_outcome",
       "fields": [
         [
           "state",
@@ -966,7 +966,7 @@
     },
     {
       "rust_name": "KinematicOutcome",
-      "c_name": "cosmo_kinematic_outcome",
+      "c_name": "irred_kinematic_outcome",
       "fields": [
         [
           "state",
@@ -1008,7 +1008,7 @@
     },
     {
       "rust_name": "ExpansionRow",
-      "c_name": "cosmo_expansion_row",
+      "c_name": "irred_expansion_row",
       "fields": [
         [
           "struct_size",
@@ -1066,7 +1066,7 @@
     },
     {
       "rust_name": "ExpansionNode",
-      "c_name": "cosmo_expansion_node",
+      "c_name": "irred_expansion_node",
       "fields": [
         [
           "struct_size",
@@ -1096,7 +1096,7 @@
     },
     {
       "rust_name": "ExpansionModelView",
-      "c_name": "cosmo_expansion_model_view",
+      "c_name": "irred_expansion_model_view",
       "fields": [
         [
           "struct_size",
@@ -1154,7 +1154,7 @@
     },
     {
       "rust_name": "ProjectionPolicy",
-      "c_name": "cosmo_projection_policy",
+      "c_name": "irred_projection_policy",
       "fields": [
         [
           "struct_size",
@@ -1200,7 +1200,7 @@
     },
     {
       "rust_name": "SourceEffectSpec",
-      "c_name": "cosmo_source_effect_spec",
+      "c_name": "irred_source_effect_spec",
       "fields": [
         [
           "struct_size",
@@ -1225,8 +1225,8 @@
       ]
     },
     {
-      "rust_name": "CurrentSupernovaModel",
-      "c_name": "cosmo_current_supernova_model",
+      "rust_name": "SupernovaModel",
+      "c_name": "irred_supernova_model",
       "fields": [
         [
           "struct_size",
@@ -1256,7 +1256,7 @@
     },
     {
       "rust_name": "MagnitudeCoordinate",
-      "c_name": "cosmo_magnitude_coordinate",
+      "c_name": "irred_magnitude_coordinate",
       "fields": [
         [
           "struct_size",
@@ -1286,7 +1286,7 @@
     },
     {
       "rust_name": "MagnitudeSelection",
-      "c_name": "cosmo_magnitude_selection",
+      "c_name": "irred_magnitude_selection",
       "fields": [
         [
           "struct_size",
@@ -1323,8 +1323,8 @@
       ]
     },
     {
-      "rust_name": "CurrentSupernovaPreparationPolicy",
-      "c_name": "cosmo_current_supernova_preparation_policy",
+      "rust_name": "SupernovaPreparationPolicy",
+      "c_name": "irred_supernova_preparation_policy",
       "fields": [
         [
           "struct_size",
@@ -1365,8 +1365,8 @@
       ]
     },
     {
-      "rust_name": "CurrentSupernovaEvaluationPolicy",
-      "c_name": "cosmo_current_supernova_evaluation_policy",
+      "rust_name": "SupernovaEvaluationPolicy",
+      "c_name": "irred_supernova_evaluation_policy",
       "fields": [
         [
           "struct_size",
@@ -1407,8 +1407,8 @@
       ]
     },
     {
-      "rust_name": "CurrentSupernovaBatch",
-      "c_name": "cosmo_current_supernova_batch",
+      "rust_name": "SupernovaBatch",
+      "c_name": "irred_supernova_batch",
       "fields": [
         [
           "struct_size",
@@ -1420,7 +1420,7 @@
         ],
         [
           "models",
-          "const_CurrentSupernovaModel_ptr"
+          "const_SupernovaModel_ptr"
         ],
         [
           "model_count",
@@ -1433,8 +1433,8 @@
       ]
     },
     {
-      "rust_name": "CurrentSupernovaView",
-      "c_name": "cosmo_current_supernova_view",
+      "rust_name": "SupernovaView",
+      "c_name": "irred_supernova_view",
       "fields": [
         [
           "struct_size",
@@ -1508,7 +1508,7 @@
     },
     {
       "rust_name": "ProfilePayload",
-      "c_name": "cosmo_profile_payload",
+      "c_name": "irred_profile_payload",
       "fields": [
         [
           "state",
@@ -1530,7 +1530,7 @@
     },
     {
       "rust_name": "ProfileDiagnostics",
-      "c_name": "cosmo_profile_diagnostics",
+      "c_name": "irred_profile_diagnostics",
       "fields": [
         [
           "state",
@@ -1571,8 +1571,8 @@
       ]
     },
     {
-      "rust_name": "CurrentSupernovaRow",
-      "c_name": "cosmo_current_supernova_row",
+      "rust_name": "SupernovaRow",
+      "c_name": "irred_supernova_row",
       "fields": [
         [
           "struct_size",
@@ -1588,7 +1588,7 @@
         ],
         [
           "source",
-          "CurrentSupernovaModel"
+          "SupernovaModel"
         ],
         [
           "status",
@@ -1673,8 +1673,8 @@
       ]
     },
     {
-      "rust_name": "CurrentBaoModel",
-      "c_name": "cosmo_current_bao_model",
+      "rust_name": "BaoModel",
+      "c_name": "irred_bao_model",
       "fields": [
         [
           "struct_size",
@@ -1703,8 +1703,8 @@
       ]
     },
     {
-      "rust_name": "CurrentBaoPreparationPolicy",
-      "c_name": "cosmo_current_bao_preparation_policy",
+      "rust_name": "BaoPreparationPolicy",
+      "c_name": "irred_bao_preparation_policy",
       "fields": [
         [
           "struct_size",
@@ -1745,8 +1745,8 @@
       ]
     },
     {
-      "rust_name": "CurrentBaoEvaluationPolicy",
-      "c_name": "cosmo_current_bao_evaluation_policy",
+      "rust_name": "BaoEvaluationPolicy",
+      "c_name": "irred_bao_evaluation_policy",
       "fields": [
         [
           "struct_size",
@@ -1787,8 +1787,8 @@
       ]
     },
     {
-      "rust_name": "CurrentBaoBatch",
-      "c_name": "cosmo_current_bao_batch",
+      "rust_name": "BaoBatch",
+      "c_name": "irred_bao_batch",
       "fields": [
         [
           "struct_size",
@@ -1800,7 +1800,7 @@
         ],
         [
           "models",
-          "const_CurrentBaoModel_ptr"
+          "const_BaoModel_ptr"
         ],
         [
           "model_count",
@@ -1814,7 +1814,7 @@
     },
     {
       "rust_name": "BaoSource",
-      "c_name": "cosmo_bao_source",
+      "c_name": "irred_bao_source",
       "fields": [
         [
           "struct_size",
@@ -1891,8 +1891,8 @@
       ]
     },
     {
-      "rust_name": "CurrentBaoView",
-      "c_name": "cosmo_current_bao_view",
+      "rust_name": "BaoView",
+      "c_name": "irred_bao_view",
       "fields": [
         [
           "struct_size",
@@ -1946,7 +1946,7 @@
     },
     {
       "rust_name": "DensityPayload",
-      "c_name": "cosmo_density_payload",
+      "c_name": "irred_density_payload",
       "fields": [
         [
           "state",
@@ -1979,8 +1979,8 @@
       ]
     },
     {
-      "rust_name": "CurrentBaoRow",
-      "c_name": "cosmo_current_bao_row",
+      "rust_name": "BaoRow",
+      "c_name": "irred_bao_row",
       "fields": [
         [
           "struct_size",
@@ -1996,7 +1996,7 @@
         ],
         [
           "source",
-          "CurrentBaoModel"
+          "BaoModel"
         ],
         [
           "background_status",
@@ -2051,7 +2051,7 @@
   ],
   "functions": [
     {
-      "name": "cosmo_add",
+      "name": "irred_add",
       "args": [
         [
           "a",
@@ -2072,7 +2072,7 @@
       ]
     },
     {
-      "name": "cosmo_result_view",
+      "name": "irred_result_view",
       "args": [
         [
           "r",
@@ -2089,7 +2089,7 @@
       ]
     },
     {
-      "name": "cosmo_result_destroy",
+      "name": "irred_result_destroy",
       "args": [
         [
           "r",
@@ -2098,7 +2098,7 @@
       ]
     },
     {
-      "name": "cosmo_convert_quantities",
+      "name": "irred_convert_quantities",
       "args": [
         [
           "values",
@@ -2119,7 +2119,7 @@
       ]
     },
     {
-      "name": "cosmo_result_f64_view",
+      "name": "irred_result_f64_view",
       "args": [
         [
           "r",
@@ -2140,7 +2140,7 @@
       ]
     },
     {
-      "name": "cosmo_numerics_evaluate",
+      "name": "irred_numerics_evaluate",
       "args": [
         [
           "operation",
@@ -2157,7 +2157,7 @@
       ]
     },
     {
-      "name": "cosmo_result_numerics_view",
+      "name": "irred_result_numerics_view",
       "args": [
         [
           "r",
@@ -2186,7 +2186,7 @@
       ]
     },
     {
-      "name": "cosmo_prepare_observations",
+      "name": "irred_prepare_observations",
       "args": [
         [
           "descriptor",
@@ -2207,7 +2207,7 @@
       ]
     },
     {
-      "name": "cosmo_observation_source_view",
+      "name": "irred_observation_source_view",
       "args": [
         [
           "prepared",
@@ -2220,7 +2220,7 @@
       ]
     },
     {
-      "name": "cosmo_observation_select",
+      "name": "irred_observation_select",
       "args": [
         [
           "prepared",
@@ -2241,7 +2241,7 @@
       ]
     },
     {
-      "name": "cosmo_result_selection_view",
+      "name": "irred_result_selection_view",
       "args": [
         [
           "result",
@@ -2266,7 +2266,7 @@
       ]
     },
     {
-      "name": "cosmo_observation_destroy",
+      "name": "irred_observation_destroy",
       "args": [
         [
           "prepared",
@@ -2275,7 +2275,7 @@
       ]
     },
     {
-      "name": "cosmo_gaussian_prepare",
+      "name": "irred_gaussian_prepare",
       "args": [
         [
           "observations",
@@ -2304,7 +2304,7 @@
       ]
     },
     {
-      "name": "cosmo_gaussian_proper_offset",
+      "name": "irred_gaussian_proper_offset",
       "args": [
         [
           "gaussian",
@@ -2333,7 +2333,7 @@
       ]
     },
     {
-      "name": "cosmo_gaussian_source_view",
+      "name": "irred_gaussian_source_view",
       "args": [
         [
           "gaussian",
@@ -2346,7 +2346,7 @@
       ]
     },
     {
-      "name": "cosmo_gaussian_prior_view",
+      "name": "irred_gaussian_prior_view",
       "args": [
         [
           "gaussian",
@@ -2363,7 +2363,7 @@
       ]
     },
     {
-      "name": "cosmo_gaussian_evaluate",
+      "name": "irred_gaussian_evaluate",
       "args": [
         [
           "gaussian",
@@ -2384,7 +2384,7 @@
       ]
     },
     {
-      "name": "cosmo_gaussian_result_view",
+      "name": "irred_gaussian_result_view",
       "args": [
         [
           "result",
@@ -2401,7 +2401,7 @@
       ]
     },
     {
-      "name": "cosmo_gaussian_destroy",
+      "name": "irred_gaussian_destroy",
       "args": [
         [
           "gaussian",
@@ -2410,7 +2410,7 @@
       ]
     },
     {
-      "name": "cosmo_gaussian_result_destroy",
+      "name": "irred_gaussian_result_destroy",
       "args": [
         [
           "result",
@@ -2419,7 +2419,7 @@
       ]
     },
     {
-      "name": "cosmo_gaussian_selection_view",
+      "name": "irred_gaussian_selection_view",
       "args": [
         [
           "gaussian",
@@ -2436,7 +2436,7 @@
       ]
     },
     {
-      "name": "cosmo_expansion_evaluate",
+      "name": "irred_expansion_evaluate",
       "args": [
         [
           "batch",
@@ -2453,7 +2453,7 @@
       ]
     },
     {
-      "name": "cosmo_expansion_result_view",
+      "name": "irred_expansion_result_view",
       "args": [
         [
           "result",
@@ -2486,7 +2486,7 @@
       ]
     },
     {
-      "name": "cosmo_expansion_result_models",
+      "name": "irred_expansion_result_models",
       "args": [
         [
           "result",
@@ -2507,7 +2507,7 @@
       ]
     },
     {
-      "name": "cosmo_expansion_result_queries",
+      "name": "irred_expansion_result_queries",
       "args": [
         [
           "result",
@@ -2528,7 +2528,7 @@
       ]
     },
     {
-      "name": "cosmo_expansion_result_nodes",
+      "name": "irred_expansion_result_nodes",
       "args": [
         [
           "result",
@@ -2545,7 +2545,7 @@
       ]
     },
     {
-      "name": "cosmo_expansion_result_destroy",
+      "name": "irred_expansion_result_destroy",
       "args": [
         [
           "result",
@@ -2554,7 +2554,7 @@
       ]
     },
     {
-      "name": "cosmo_observation_retained_bytes",
+      "name": "irred_observation_retained_bytes",
       "args": [
         [
           "source",
@@ -2567,7 +2567,7 @@
       ]
     },
     {
-      "name": "cosmo_current_supernova_prepare",
+      "name": "irred_supernova_prepare",
       "args": [
         [
           "source",
@@ -2579,58 +2579,58 @@
         ],
         [
           "policy",
-          "const_CurrentSupernovaPreparationPolicy_ptr"
+          "const_SupernovaPreparationPolicy_ptr"
         ],
         [
           "out",
-          "current_supernova_out"
+          "supernova_out"
         ]
       ]
     },
     {
-      "name": "cosmo_current_supernova_source_view",
+      "name": "irred_supernova_source_view",
       "args": [
         [
           "source",
-          "const_current_supernova"
+          "const_supernova"
         ],
         [
           "view",
-          "CurrentSupernovaView_ptr"
+          "SupernovaView_ptr"
         ]
       ]
     },
     {
-      "name": "cosmo_current_supernova_evaluate",
+      "name": "irred_supernova_evaluate",
       "args": [
         [
           "source",
-          "const_current_supernova"
+          "const_supernova"
         ],
         [
           "batch",
-          "const_CurrentSupernovaBatch_ptr"
+          "const_SupernovaBatch_ptr"
         ],
         [
           "policy",
-          "const_CurrentSupernovaEvaluationPolicy_ptr"
+          "const_SupernovaEvaluationPolicy_ptr"
         ],
         [
           "out",
-          "current_supernova_result_out"
+          "supernova_result_out"
         ]
       ]
     },
     {
-      "name": "cosmo_current_supernova_result_view",
+      "name": "irred_supernova_result_view",
       "args": [
         [
           "result",
-          "const_current_supernova_result"
+          "const_supernova_result"
         ],
         [
           "rows",
-          "const_CurrentSupernovaRow_out"
+          "const_SupernovaRow_out"
         ],
         [
           "count",
@@ -2655,15 +2655,15 @@
       ]
     },
     {
-      "name": "cosmo_current_supernova_result_source_view",
+      "name": "irred_supernova_result_source_view",
       "args": [
         [
           "result",
-          "const_current_supernova_result"
+          "const_supernova_result"
         ],
         [
           "view",
-          "CurrentSupernovaView_ptr"
+          "SupernovaView_ptr"
         ],
         [
           "available",
@@ -2672,25 +2672,25 @@
       ]
     },
     {
-      "name": "cosmo_current_supernova_destroy",
+      "name": "irred_supernova_destroy",
       "args": [
         [
           "source",
-          "current_supernova"
+          "supernova"
         ]
       ]
     },
     {
-      "name": "cosmo_current_supernova_result_destroy",
+      "name": "irred_supernova_result_destroy",
       "args": [
         [
           "result",
-          "current_supernova_result"
+          "supernova_result"
         ]
       ]
     },
     {
-      "name": "cosmo_current_bao_prepare",
+      "name": "irred_bao_prepare",
       "args": [
         [
           "source",
@@ -2698,58 +2698,58 @@
         ],
         [
           "policy",
-          "const_CurrentBaoPreparationPolicy_ptr"
+          "const_BaoPreparationPolicy_ptr"
         ],
         [
           "out",
-          "current_bao_out"
+          "bao_out"
         ]
       ]
     },
     {
-      "name": "cosmo_current_bao_source_view",
+      "name": "irred_bao_source_view",
       "args": [
         [
           "source",
-          "const_current_bao"
+          "const_bao"
         ],
         [
           "view",
-          "CurrentBaoView_ptr"
+          "BaoView_ptr"
         ]
       ]
     },
     {
-      "name": "cosmo_current_bao_evaluate",
+      "name": "irred_bao_evaluate",
       "args": [
         [
           "source",
-          "const_current_bao"
+          "const_bao"
         ],
         [
           "batch",
-          "const_CurrentBaoBatch_ptr"
+          "const_BaoBatch_ptr"
         ],
         [
           "policy",
-          "const_CurrentBaoEvaluationPolicy_ptr"
+          "const_BaoEvaluationPolicy_ptr"
         ],
         [
           "out",
-          "current_bao_result_out"
+          "bao_result_out"
         ]
       ]
     },
     {
-      "name": "cosmo_current_bao_result_view",
+      "name": "irred_bao_result_view",
       "args": [
         [
           "result",
-          "const_current_bao_result"
+          "const_bao_result"
         ],
         [
           "rows",
-          "const_CurrentBaoRow_out"
+          "const_BaoRow_out"
         ],
         [
           "count",
@@ -2774,15 +2774,15 @@
       ]
     },
     {
-      "name": "cosmo_current_bao_result_source_view",
+      "name": "irred_bao_result_source_view",
       "args": [
         [
           "result",
-          "const_current_bao_result"
+          "const_bao_result"
         ],
         [
           "view",
-          "CurrentBaoView_ptr"
+          "BaoView_ptr"
         ],
         [
           "available",
@@ -2791,25 +2791,25 @@
       ]
     },
     {
-      "name": "cosmo_current_bao_destroy",
+      "name": "irred_bao_destroy",
       "args": [
         [
           "source",
-          "current_bao"
+          "bao"
         ]
       ]
     },
     {
-      "name": "cosmo_current_bao_result_destroy",
+      "name": "irred_bao_result_destroy",
       "args": [
         [
           "result",
-          "current_bao_result"
+          "bao_result"
         ]
       ]
     },
     {
-      "name": "cosmo_observation_preparation_bytes",
+      "name": "irred_observation_preparation_bytes",
       "args": [
         [
           "descriptor",
@@ -3016,13 +3016,13 @@
     }
   },
   "opaque_types": {
-    "expansion_result": "cosmo_expansion_result",
-    "current_supernova": "cosmo_current_supernova",
-    "current_supernova_result": "cosmo_current_supernova_result",
-    "current_bao": "cosmo_current_bao",
-    "current_bao_result": "cosmo_current_bao_result"
+    "expansion_result": "irred_expansion_result",
+    "supernova": "irred_supernova",
+    "supernova_result": "irred_supernova_result",
+    "bao": "irred_bao",
+    "bao_result": "irred_bao_result"
   },
-  "current_expansion_contract": {
+  "expansion_contract": {
     "operation": "background.evaluate",
     "state": "current ABI2 compiled expansion interface with independent requested outcomes",
     "active_counts": {
@@ -3044,7 +3044,7 @@
     "model_failure": "Valid supported tag with invalid active domain retains model source and preparation status; native empty evaluation is preserved, not synthesized query rows. Model failure makes required outputs unsatisfied.",
     "model_accounting": "Each attempted model owns active bits/status and row_offset/row_count; all original queries retained. Rejected nonempty model has zero rows but fails every dependent requested group. Mixed valid model rows retained. Zero models/queries are explicit empty requests, never confused with model rejection."
   },
-  "current_consumer_contract": {
+  "consumer_contract": {
     "state": "published current ABI2; one coherent compiled-model interface with retained consumers",
     "supernova_operation": "supernova.profile",
     "bao_operation": "bao.density",

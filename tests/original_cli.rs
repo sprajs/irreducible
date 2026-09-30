@@ -25,7 +25,7 @@ fn object(store: &PathBuf, d: &Value) -> Value {
 }
 fn run(request: &Value) -> (Value, PathBuf) {
     let p = std::env::temp_dir().join(format!(
-        "irred-current-original-{}-{}",
+        "irred-original-{}-{}",
         std::process::id(),
         SystemTime::now()
             .duration_since(UNIX_EPOCH)
@@ -78,10 +78,10 @@ fn evaluation(rows: usize) -> Value {
 }
 #[test]
 #[ignore = "requires exact original assets and matching recorded production-native stdout"]
-fn original_pantheon_current_reader_one_lcdm_point() {
+fn original_pantheon_reader_one_lcdm_point() {
     let table = path("IRRED_W01_TABLE");
     let covariance = path("IRRED_W01_COVARIANCE");
-    let native_log = path("IRRED_CURRENT_SN_NATIVE_OUTPUT");
+    let native_log = path("IRRED_SN_NATIVE_OUTPUT");
     let native_harness = path("IRRED_W01_NATIVE_HARNESS");
     let tb = fs::read(&table).unwrap();
     let cb = fs::read(&covariance).unwrap();
@@ -205,7 +205,7 @@ fn original_pantheon_current_reader_one_lcdm_point() {
 }
 #[test]
 #[ignore = "requires exact original assets and matching recorded production-native stdout"]
-fn original_desi_current_reader_one_normalized_point() {
+fn original_desi_reader_one_normalized_point() {
     let mean = path("IRRED_BAO_MEAN");
     let covariance = path("IRRED_BAO_COVARIANCE");
     let mb = fs::read(&mean).unwrap();
@@ -220,7 +220,7 @@ fn original_desi_current_reader_one_normalized_point() {
         ch,
         "252a143274c8a07c78694c119617d36594f6d7965d00319ca611c6ffb886e509"
     );
-    let log = fs::read_to_string(path("IRRED_CURRENT_BAO_NATIVE_OUTPUT")).unwrap();
+    let log = fs::read_to_string(path("IRRED_BAO_NATIVE_OUTPUT")).unwrap();
     assert!(log.contains(&format!(
         "native_harness_sha256={}",
         digest(&fs::read(path("IRRED_BAO_NATIVE_HARNESS")).unwrap())

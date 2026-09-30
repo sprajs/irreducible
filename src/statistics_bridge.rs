@@ -9,7 +9,7 @@ struct Gaussian(*mut c_void);
 impl Drop for Gaussian {
     fn drop(&mut self) {
         unsafe {
-            cosmo_gaussian_destroy(self.0);
+            irred_gaussian_destroy(self.0);
         }
     }
 }
@@ -17,7 +17,7 @@ struct Batch(*mut c_void);
 impl Drop for Batch {
     fn drop(&mut self) {
         unsafe {
-            cosmo_gaussian_result_destroy(self.0);
+            irred_gaussian_result_destroy(self.0);
         }
     }
 }
@@ -88,7 +88,7 @@ pub(crate) fn gaussian_batch(
     let mut numerical_status = u32::MAX;
     let tag = observation_tag_id("selection", selection).ok_or("UNKNOWN_SELECTION")?;
     let transport = unsafe {
-        cosmo_gaussian_prepare(
+        irred_gaussian_prepare(
             source.0,
             tag,
             &policy,
@@ -120,7 +120,7 @@ pub(crate) fn gaussian_batch(
         raw = ptr::null_mut();
         status = u32::MAX;
         let transport = unsafe {
-            cosmo_gaussian_proper_offset(
+            irred_gaussian_proper_offset(
                 owner.0,
                 &descriptor,
                 &policy,
@@ -155,7 +155,7 @@ pub(crate) fn gaussian_batch(
         response: doubles(response.unwrap_or(&[])),
     };
     raw = ptr::null_mut();
-    let transport = unsafe { cosmo_gaussian_evaluate(owner.0, &descriptor, &policy, &mut raw) };
+    let transport = unsafe { irred_gaussian_evaluate(owner.0, &descriptor, &policy, &mut raw) };
     let batch = Batch(raw);
     if transport != OK {
         return Err(format!("CORE_STATUS_{transport}"));
@@ -165,7 +165,7 @@ pub(crate) fn gaussian_batch(
     }
     let mut rows = ptr::null();
     let mut length = 0;
-    if unsafe { cosmo_gaussian_result_view(batch.0, &mut rows, &mut length) } != OK
+    if unsafe { irred_gaussian_result_view(batch.0, &mut rows, &mut length) } != OK
         || length != residuals.len() as u64
     {
         return Err("INVALID_RESULT_VIEW".into());
@@ -197,7 +197,7 @@ pub(crate) fn gaussian_batch(
     let output = output?;
     let failed = output.iter().any(|row| row["kind"] == "failure");
     let mut view = std::mem::MaybeUninit::<GaussianView>::uninit();
-    if unsafe { cosmo_gaussian_source_view(owner.0, view.as_mut_ptr()) } != OK {
+    if unsafe { irred_gaussian_source_view(owner.0, view.as_mut_ptr()) } != OK {
         return Err("INVALID_SOURCE_VIEW".into());
     }
     let view = unsafe { view.assume_init() };
@@ -244,7 +244,7 @@ pub(crate) fn gaussian_batch(
     let mut priors = Vec::new();
     for index in 0..view.prior_count {
         let mut prior = std::mem::MaybeUninit::<GaussianPrior>::uninit();
-        if unsafe { cosmo_gaussian_prior_view(owner.0, index, prior.as_mut_ptr()) } != OK {
+        if unsafe { irred_gaussian_prior_view(owner.0, index, prior.as_mut_ptr()) } != OK {
             return Err("INVALID_PRIOR_VIEW".into());
         }
         let prior = unsafe { prior.assume_init() };
@@ -265,7 +265,7 @@ pub(crate) fn gaussian_batch(
     let mut selection_history = Vec::new();
     for index in 0..view.selection_count {
         let mut record = std::mem::MaybeUninit::<GaussianSelection>::uninit();
-        if unsafe { cosmo_gaussian_selection_view(owner.0, index, record.as_mut_ptr()) } != OK {
+        if unsafe { irred_gaussian_selection_view(owner.0, index, record.as_mut_ptr()) } != OK {
             return Err("INVALID_SELECTION_HISTORY".into());
         }
         let record = unsafe { record.assume_init() };
@@ -289,7 +289,7 @@ fn selected_indices(
 ) -> Result<Vec<u64>, String> {
     let tag = observation_tag_id("selection", selection).ok_or("UNKNOWN_SELECTION")?;
     let (mut raw, mut status) = (ptr::null_mut(), 0);
-    let code = unsafe { cosmo_observation_select(source.0, tag, &mut raw, &mut status) };
+    let code = unsafe { irred_observation_select(source.0, tag, &mut raw, &mut status) };
     let owner = super::Owned(raw);
     if code != OK {
         return Err(format!("CORE_STATUS_{code}"));
@@ -299,7 +299,7 @@ fn selected_indices(
     }
     let (mut mask, mut n, mut indices, mut k) = (ptr::null(), 0, ptr::null(), 0);
     let code =
-        unsafe { cosmo_result_selection_view(owner.0, &mut mask, &mut n, &mut indices, &mut k) };
+        unsafe { irred_result_selection_view(owner.0, &mut mask, &mut n, &mut indices, &mut k) };
     if code != OK || n != source_rows as u64 {
         return Err("INVALID_SELECTION_VIEW".into());
     }

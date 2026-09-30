@@ -1,6 +1,6 @@
 //! One retained normalized-density owner; no projection or Gaussian Rust math.
 use super::{
-    current_supernova::{Projection, arithmetic},
+    supernova::{Projection, arithmetic},
     generated::*,
     observations::{bytes, doubles, strings},
 };
@@ -65,7 +65,7 @@ pub(crate) struct Prepared(pub(crate) *mut c_void);
 impl Drop for Prepared {
     fn drop(&mut self) {
         unsafe {
-            cosmo_current_bao_destroy(self.0);
+            irred_bao_destroy(self.0);
         }
     }
 }
@@ -136,8 +136,8 @@ pub(crate) fn prepare(source: &Decoded, policy: &PreparationPolicy) -> Result<Pr
         redshift_convention: bytes(&source.redshift_convention),
         ruler_convention: bytes(&source.ruler_convention),
     };
-    let p = CurrentBaoPreparationPolicy {
-        struct_size: size_of::<CurrentBaoPreparationPolicy>() as u32,
+    let p = BaoPreparationPolicy {
+        struct_size: size_of::<BaoPreparationPolicy>() as u32,
         abi_version: ABI_VERSION,
         arithmetic: arithmetic(&policy.arithmetic)?,
         reserved: 0,
@@ -148,11 +148,11 @@ pub(crate) fn prepare(source: &Decoded, policy: &PreparationPolicy) -> Result<Pr
         maximum_forward_sensitivity: policy.maximum_forward_sensitivity,
     };
     let mut raw = ptr::null_mut();
-    let code = unsafe { cosmo_current_bao_prepare(&descriptor, &p, &mut raw) };
+    let code = unsafe { irred_bao_prepare(&descriptor, &p, &mut raw) };
     if code != OK {
         if !raw.is_null() {
             unsafe {
-                cosmo_current_bao_destroy(raw);
+                irred_bao_destroy(raw);
             }
         }
         return Err(format!("CORE_STATUS_{code}"));
@@ -161,10 +161,10 @@ pub(crate) fn prepare(source: &Decoded, policy: &PreparationPolicy) -> Result<Pr
         return Err("NULL_NATIVE_OWNER".into());
     }
     let owner = Prepared(raw);
-    let mut view: CurrentBaoView = unsafe { std::mem::zeroed() };
-    let code = unsafe { cosmo_current_bao_source_view(owner.0, &mut view) };
+    let mut view: BaoView = unsafe { std::mem::zeroed() };
+    let code = unsafe { irred_bao_source_view(owner.0, &mut view) };
     if code != OK
-        || view.struct_size as usize != size_of::<CurrentBaoView>()
+        || view.struct_size as usize != size_of::<BaoView>()
         || view.abi_version != ABI_VERSION
     {
         return Err("INVALID_NATIVE_VIEW".into());
@@ -181,7 +181,7 @@ struct ResultOwner(*mut c_void);
 impl Drop for ResultOwner {
     fn drop(&mut self) {
         unsafe {
-            cosmo_current_bao_result_destroy(self.0);
+            irred_bao_result_destroy(self.0);
         }
     }
 }
@@ -229,8 +229,8 @@ pub(crate) fn evaluate(
     let wire: Vec<_> = models
         .iter()
         .enumerate()
-        .map(|(i, m)| CurrentBaoModel {
-            struct_size: size_of::<CurrentBaoModel>() as u32,
+        .map(|(i, m)| BaoModel {
+            struct_size: size_of::<BaoModel>() as u32,
             abi_version: ABI_VERSION,
             geometry: 0,
             reserved: 0,
@@ -238,15 +238,15 @@ pub(crate) fn evaluate(
             h0_rd_km_s: m.h0_rd_km_s,
         })
         .collect();
-    let batch = CurrentBaoBatch {
-        struct_size: size_of::<CurrentBaoBatch>() as u32,
+    let batch = BaoBatch {
+        struct_size: size_of::<BaoBatch>() as u32,
         abi_version: ABI_VERSION,
         models: wire.as_ptr(),
         model_count: wire.len() as u64,
         model_byte_length: std::mem::size_of_val(&*wire) as u64,
     };
-    let p = CurrentBaoEvaluationPolicy {
-        struct_size: size_of::<CurrentBaoEvaluationPolicy>() as u32,
+    let p = BaoEvaluationPolicy {
+        struct_size: size_of::<BaoEvaluationPolicy>() as u32,
         abi_version: ABI_VERSION,
         arithmetic: arithmetic(&policy.arithmetic)?,
         requested: mask,
@@ -257,11 +257,11 @@ pub(crate) fn evaluate(
         maximum_forward_sensitivity: policy.maximum_forward_sensitivity,
     };
     let mut raw = ptr::null_mut();
-    let code = unsafe { cosmo_current_bao_evaluate(owner.0, &batch, &p, &mut raw) };
+    let code = unsafe { irred_bao_evaluate(owner.0, &batch, &p, &mut raw) };
     if code != OK {
         if !raw.is_null() {
             unsafe {
-                cosmo_current_bao_result_destroy(raw);
+                irred_bao_result_destroy(raw);
             }
         }
         return Err(format!("CORE_STATUS_{code}"));
@@ -273,7 +273,7 @@ pub(crate) fn evaluate(
     let (mut data, mut count, mut status, mut numerical, mut callbacks, mut segments) =
         (ptr::null(), 0, 0, 0, 0, 0);
     let code = unsafe {
-        cosmo_current_bao_result_view(
+        irred_bao_result_view(
             result.0,
             &mut data,
             &mut count,
@@ -295,7 +295,7 @@ pub(crate) fn evaluate(
     let mut checks: Vec<_> = requested.iter().map(|x| (x.id(), complete)).collect();
     let mut evaluations = vec![];
     for (i, row) in rows.iter().enumerate() {
-        if row.struct_size as usize != size_of::<CurrentBaoRow>()
+        if row.struct_size as usize != size_of::<BaoRow>()
             || row.abi_version != ABI_VERSION
             || row.model_index != i as u64
             || row.source.expansion.model != models[i].expansion.tag()

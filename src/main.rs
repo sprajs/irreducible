@@ -1,10 +1,10 @@
 mod bao_ingestion;
 mod bridge;
 mod cli;
-mod current_background_run;
-mod current_bao_run;
-mod current_observation_run;
-mod current_session;
+mod background_run;
+mod bao_run;
+mod observation_run;
+mod session;
 mod ingestion;
 mod model_spec;
 mod outcome;

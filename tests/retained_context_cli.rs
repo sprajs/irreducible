@@ -68,7 +68,7 @@ struct Session {
 impl Session {
     fn new(commands: u64, cap: usize) -> Self {
         let store = root();
-        let executable = std::env::var("IRRED_CURRENT_PUBLIC_EXECUTABLE")
+        let executable = std::env::var("IRRED_PUBLIC_EXECUTABLE")
             .unwrap_or_else(|_| env!("CARGO_BIN_EXE_irred").into());
         let mut command = Command::new(executable);
         let limits = store.join("limits.json");
@@ -181,7 +181,7 @@ fn actual_retained_identity_lifetime_and_no_reacquisition() {
         let path = one_shot.join("request.json");
         fs::write(&path, serde_json::to_vec(&request).unwrap()).unwrap();
         let executed = Command::new(
-            std::env::var("IRRED_CURRENT_PUBLIC_EXECUTABLE")
+            std::env::var("IRRED_PUBLIC_EXECUTABLE")
                 .unwrap_or_else(|_| env!("CARGO_BIN_EXE_irred").into()),
         )
         .arg("run")

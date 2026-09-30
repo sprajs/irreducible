@@ -23,30 +23,30 @@ bool add(size_t &bytes, size_t count, size_t width) {
   bytes += count * width;
   return true;
 }
-cosmo_bytes text(std::string_view s) {
+irred_bytes text(std::string_view s) {
   return {reinterpret_cast<const uint8_t *>(s.data()), s.size()};
 }
-cosmo_strings strings(const std::vector<cosmo_bytes> &v) {
-  return {v.data(), v.size(), v.size() * sizeof(cosmo_bytes)};
+irred_strings strings(const std::vector<irred_bytes> &v) {
+  return {v.data(), v.size(), v.size() * sizeof(irred_bytes)};
 }
-cosmo_f64_buffer doubles(const std::vector<double> &v) {
-  return {sizeof(cosmo_f64_buffer), COSMO_ABI_VERSION, 2, 0, v.data(), v.size(),
+irred_f64_buffer doubles(const std::vector<double> &v) {
+  return {sizeof(irred_f64_buffer), IRRED_ABI_VERSION, 2, 0, v.data(), v.size(),
           v.size() * sizeof(double)};
 }
-cosmo_u64_buffer indices(const std::vector<size_t> &v) {
+irred_u64_buffer indices(const std::vector<size_t> &v) {
   static_assert(sizeof(size_t) == sizeof(uint64_t));
   return {reinterpret_cast<const uint64_t *>(v.data()), v.size(),
           v.size() * sizeof(uint64_t)};
 }
-cosmo_output_state state(const bao::OutputState &s) {
+irred_output_state state(const bao::OutputState &s) {
   return {(uint32_t)s.availability, (uint32_t)s.status,
           (uint32_t)s.numerical_status, 0};
 }
 bool precision(uint32_t a, double b) {
   return a <= 1 && std::isfinite(b) && b > 0;
 }
-bool projection(const cosmo_projection_policy &p) {
-  if (p.struct_size != sizeof(p) || p.abi_version != COSMO_ABI_VERSION ||
+bool projection(const irred_projection_policy &p) {
+  if (p.struct_size != sizeof(p) || p.abi_version != IRRED_ABI_VERSION ||
       p.has_integration > 1 || p.maximum_depth > 60 ||
       p.maximum_queries > 4096 || p.maximum_callbacks > SIZE_MAX ||
       p.maximum_segment_visits > SIZE_MAX ||
@@ -60,7 +60,7 @@ bool projection(const cosmo_projection_policy &p) {
          p.relative_tolerance >= 0 &&
          (p.absolute_tolerance > 0 || p.relative_tolerance > 0);
 }
-c::EvaluationPolicy native_projection(const cosmo_projection_policy &p,
+c::EvaluationPolicy native_projection(const irred_projection_policy &p,
                                       size_t bytes) {
   c::EvaluationPolicy q;
   q.maximum_queries = p.maximum_queries;
@@ -73,14 +73,14 @@ c::EvaluationPolicy native_projection(const cosmo_projection_policy &p,
         (size_t)p.maximum_evaluations_per_integral, p.maximum_depth};
   return q;
 }
-bool model_descriptor(const cosmo_current_bao_model &m) {
+bool model_descriptor(const irred_bao_model &m) {
   const auto &e = m.expansion;
   const auto &b = e.parameters;
   const size_t n = e.model == 2 ? 3 : e.model == 3 ? 5 : 1;
-  return m.struct_size == sizeof(m) && m.abi_version == COSMO_ABI_VERSION &&
+  return m.struct_size == sizeof(m) && m.abi_version == IRRED_ABI_VERSION &&
          !m.geometry && !m.reserved && e.struct_size == sizeof(e) &&
-         e.abi_version == COSMO_ABI_VERSION && !e.reserved && e.model <= 3 &&
-         b.struct_size == sizeof(b) && b.abi_version == COSMO_ABI_VERSION &&
+         e.abi_version == IRRED_ABI_VERSION && !e.reserved && e.model <= 3 &&
+         b.struct_size == sizeof(b) && b.abi_version == IRRED_ABI_VERSION &&
          b.element_type == 2 && !b.reserved && b.length == n &&
          descriptor(b.data, b.length, b.byte_length);
 }
@@ -96,22 +96,22 @@ c::ExpansionSpec expansion(uint32_t model, const double *p) {
     return c::FixedFiveBinQ({p[0], p[1], p[2], p[3], p[4]});
   }
 }
-bool buffer(const cosmo_f64_buffer &b) {
-  return b.struct_size == sizeof(b) && b.abi_version == COSMO_ABI_VERSION &&
+bool buffer(const irred_f64_buffer &b) {
+  return b.struct_size == sizeof(b) && b.abi_version == IRRED_ABI_VERSION &&
          b.element_type == 2 && !b.reserved &&
          descriptor(b.data, b.length, b.byte_length);
 }
-bool bytes(const cosmo_bytes &b) { return !b.length || b.data; }
-std::string_view value(const cosmo_bytes &b) {
+bool bytes(const irred_bytes &b) { return !b.length || b.data; }
+std::string_view value(const irred_bytes &b) {
   return {reinterpret_cast<const char *>(b.data), b.length};
 }
 struct Core {
   bao::PreparedDensity native;
   uint32_t arithmetic = 0;
   std::string redshift, ruler;
-  std::vector<cosmo_bytes> ids;
-  std::vector<cosmo_bao_query> queries;
-  cosmo_current_bao_view view{};
+  std::vector<irred_bytes> ids;
+  std::vector<irred_bao_query> queries;
+  irred_bao_view view{};
   void initialize() {
     const auto &s = native.source();
     ids.reserve(s.ordered_ids.size());
@@ -121,18 +121,18 @@ struct Core {
     for (const auto &q : s.queries)
       queries.push_back({q.z, (uint32_t)q.observable, 0});
     view.struct_size = sizeof(view);
-    view.abi_version = COSMO_ABI_VERSION;
+    view.abi_version = IRRED_ABI_VERSION;
     view.status = (uint32_t)native.status();
     view.numerical_status = (uint32_t)native.numerical_status();
     view.arithmetic = arithmetic;
     auto &v = view.source;
     v.struct_size = sizeof(v);
-    v.abi_version = COSMO_ABI_VERSION;
+    v.abi_version = IRRED_ABI_VERSION;
     v.role = (uint32_t)s.role;
     v.covariance_unit = (uint32_t)s.covariance_unit;
     v.queries = queries.data();
     v.query_count = queries.size();
-    v.query_byte_length = queries.size() * sizeof(cosmo_bao_query);
+    v.query_byte_length = queries.size() * sizeof(irred_bao_query);
     v.observed = doubles(s.observed);
     v.covariance = doubles(s.covariance);
     v.ordered_ids = strings(ids);
@@ -162,26 +162,26 @@ struct Core {
   }
 };
 } // namespace
-struct cosmo_current_bao {
+struct irred_bao {
   std::shared_ptr<Core> core;
 };
-struct cosmo_current_bao_result {
+struct irred_bao_result {
   std::shared_ptr<Core> core;
   bao::DensityBatch native;
   std::vector<std::vector<double>> parameters;
-  std::vector<cosmo_current_bao_row> rows;
+  std::vector<irred_bao_row> rows;
 };
 extern "C" uint32_t
-cosmo_current_bao_prepare(const cosmo_bao_source *s,
-                          const cosmo_current_bao_preparation_policy *p,
-                          cosmo_current_bao **out) {
+irred_bao_prepare(const irred_bao_source *s,
+                          const irred_bao_preparation_policy *p,
+                          irred_bao **out) {
   if (aligned(out))
     *out = nullptr;
   if (!aligned(out) || !aligned(s) || !aligned(p))
-    return COSMO_INVALID_INPUT;
-  if (s->abi_version != COSMO_ABI_VERSION ||
-      p->abi_version != COSMO_ABI_VERSION)
-    return COSMO_ABI_MISMATCH;
+    return IRRED_INVALID_INPUT;
+  if (s->abi_version != IRRED_ABI_VERSION ||
+      p->abi_version != IRRED_ABI_VERSION)
+    return IRRED_ABI_MISMATCH;
   if (s->struct_size != sizeof(*s) || p->struct_size != sizeof(*p) ||
       p->reserved ||
       !precision(p->arithmetic, p->maximum_forward_sensitivity) ||
@@ -194,21 +194,21 @@ cosmo_current_bao_prepare(const cosmo_bao_source *s,
                   s->ordered_ids.byte_length) ||
       !descriptor(s->covariance_axis_ids.data, s->covariance_axis_ids.length,
                   s->covariance_axis_ids.byte_length))
-    return COSMO_INVALID_INPUT;
+    return IRRED_INVALID_INPUT;
   const size_t n = s->query_count;
   if (!n || n > p->maximum_queries || n > p->maximum_matrix_elements / n ||
       s->observed.length != n || s->covariance.length != n * n ||
       s->ordered_ids.length != n || s->covariance_axis_ids.length != n ||
       (s->role > 1) || s->covariance_unit)
-    return COSMO_INVALID_INPUT;
+    return IRRED_INVALID_INPUT;
   try {
     irred::detail::PayloadAccounting source(0), identity(0),
-        wrapper(sizeof(Core) + sizeof(cosmo_current_bao));
+        wrapper(sizeof(Core) + sizeof(irred_bao));
     source.add(n, sizeof(bao::Query) + sizeof(double) + sizeof(std::string));
     source.add(n * n, sizeof(double));
-    wrapper.add(n, sizeof(cosmo_bytes) + sizeof(cosmo_bao_query));
+    wrapper.add(n, sizeof(irred_bytes) + sizeof(irred_bao_query));
     size_t chars = 0;
-    auto string_payload = [](const cosmo_bytes &b) -> std::optional<size_t> {
+    auto string_payload = [](const irred_bytes &b) -> std::optional<size_t> {
       if (!bytes(b) || b.length == SIZE_MAX)
         return {};
       return std::max<size_t>(b.length, std::string{}.capacity()) + 1;
@@ -219,14 +219,14 @@ cosmo_current_bao_prepare(const cosmo_bao_source *s,
       auto size = string_payload(id);
       if (!size || !bytes(axis) || !id.length || axis.length != id.length ||
           !add(chars, id.length, 1) || chars > p->maximum_string_bytes)
-        return COSMO_INVALID_INPUT;
+        return IRRED_INVALID_INPUT;
       // Bound logical text before inspecting declared ID/axis contents.
       if (value(id) != value(axis))
-        return COSMO_INVALID_INPUT;
+        return IRRED_INVALID_INPUT;
       source.add(*size, 1);
       identity.add(*size, 1);
       if (s->queries[i].reserved || s->queries[i].observable > 2)
-        return COSMO_INVALID_INPUT;
+        return IRRED_INVALID_INPUT;
     }
     for (const auto *v :
          {&s->table_identity, &s->covariance_identity, &s->ordering_provenance,
@@ -234,7 +234,7 @@ cosmo_current_bao_prepare(const cosmo_bao_source *s,
       auto size = string_payload(*v);
       if (!size || !v->length || !add(chars, v->length, 1) ||
           chars > p->maximum_string_bytes)
-        return COSMO_INVALID_INPUT;
+        return IRRED_INVALID_INPUT;
       source.add(*size, 1);
       identity.add(*size, 1);
     }
@@ -242,7 +242,7 @@ cosmo_current_bao_prepare(const cosmo_bao_source *s,
       auto size = string_payload(*v);
       if (!size || !v->length || !add(chars, v->length, 1) ||
           chars > p->maximum_string_bytes)
-        return COSMO_INVALID_INPUT;
+        return IRRED_INVALID_INPUT;
       wrapper.add(*size, 1);
     }
     auto sb = source.result(), ib = identity.result(), wb = wrapper.result();
@@ -250,7 +250,7 @@ cosmo_current_bao_prepare(const cosmo_bao_source *s,
         sb && ib ? bao::preparation_payload_bound(n, *sb, *ib) : std::nullopt;
     if (chars > p->maximum_string_bytes || !peak || !wb ||
         *wb > p->maximum_native_bytes || *peak > p->maximum_native_bytes - *wb)
-      return COSMO_INVALID_INPUT;
+      return IRRED_INVALID_INPUT;
     bao::DensityInput input;
     input.queries.reserve(n);
     input.ordered_ids.reserve(n);
@@ -281,86 +281,86 @@ cosmo_current_bao_prepare(const cosmo_bao_source *s,
     core->native = bao::prepare_density(std::move(input), policy);
     if (core->native.numerical_status() == num::Status::work_limit ||
         core->native.source().queries.empty())
-      return COSMO_INVALID_INPUT;
+      return IRRED_INVALID_INPUT;
     core->initialize();
-    auto owner = std::make_unique<cosmo_current_bao>();
+    auto owner = std::make_unique<irred_bao>();
     owner->core = std::move(core);
     *out = owner.release();
-    return COSMO_OK;
+    return IRRED_OK;
   } catch (const std::bad_alloc &) {
-    return COSMO_ALLOCATION_FAILURE;
+    return IRRED_ALLOCATION_FAILURE;
   } catch (...) {
-    return COSMO_EXCEPTION;
+    return IRRED_EXCEPTION;
   }
 }
-extern "C" uint32_t cosmo_current_bao_source_view(const cosmo_current_bao *s,
-                                                  cosmo_current_bao_view *v) {
+extern "C" uint32_t irred_bao_source_view(const irred_bao *s,
+                                                  irred_bao_view *v) {
   if (aligned(v))
     *v = {};
   if (!aligned(s) || !aligned(v))
-    return COSMO_INVALID_INPUT;
+    return IRRED_INVALID_INPUT;
   *v = s->core->view;
-  return COSMO_OK;
+  return IRRED_OK;
 }
-extern "C" uint32_t cosmo_current_bao_destroy(cosmo_current_bao *s) {
+extern "C" uint32_t irred_bao_destroy(irred_bao *s) {
   if (!s)
-    return COSMO_OK;
+    return IRRED_OK;
   if (!aligned(s))
-    return COSMO_INVALID_INPUT;
+    return IRRED_INVALID_INPUT;
   delete s;
-  return COSMO_OK;
+  return IRRED_OK;
 }
 extern "C" uint32_t
-cosmo_current_bao_evaluate(const cosmo_current_bao *s,
-                           const cosmo_current_bao_batch *b,
-                           const cosmo_current_bao_evaluation_policy *p,
-                           cosmo_current_bao_result **out) {
+irred_bao_evaluate(const irred_bao *s,
+                           const irred_bao_batch *b,
+                           const irred_bao_evaluation_policy *p,
+                           irred_bao_result **out) {
   if (aligned(out))
     *out = nullptr;
   if (!aligned(out) || !aligned(s) || !aligned(b) || !aligned(p))
-    return COSMO_INVALID_INPUT;
-  if (b->abi_version != COSMO_ABI_VERSION ||
-      p->abi_version != COSMO_ABI_VERSION)
-    return COSMO_ABI_MISMATCH;
+    return IRRED_INVALID_INPUT;
+  if (b->abi_version != IRRED_ABI_VERSION ||
+      p->abi_version != IRRED_ABI_VERSION)
+    return IRRED_ABI_MISMATCH;
   if (b->struct_size != sizeof(*b) || p->struct_size != sizeof(*p) ||
       !precision(p->arithmetic, p->maximum_forward_sensitivity) ||
       !p->requested || (p->requested & ~7u) || !projection(p->projection) ||
       p->maximum_models > 65536 || p->maximum_array_elements > 1048576 ||
       p->maximum_native_bytes > SIZE_MAX || b->model_count > 65536 ||
       !descriptor(b->models, b->model_count, b->model_byte_length))
-    return COSMO_INVALID_INPUT;
+    return IRRED_INVALID_INPUT;
   const auto selected_rows = s->core->native.source().queries.size();
   if (selected_rows && b->model_count > 1048576 / selected_rows)
-    return COSMO_INVALID_INPUT;
+    return IRRED_INVALID_INPUT;
   try {
-    auto result = std::make_unique<cosmo_current_bao_result>();
+    auto result = std::make_unique<irred_bao_result>();
     if (s->core->native.status() != irred::statistics::DensityStatus::finite) {
       result->native.status = s->core->native.status();
       result->native.numerical_status = s->core->native.numerical_status();
       result->core = s->core;
       *out = result.release();
-      return COSMO_OK;
+      return IRRED_OK;
     }
     if (p->arithmetic != s->core->arithmetic) {
       result->native.status =
           irred::statistics::DensityStatus::incompatible_metadata;
       result->core = s->core;
       *out = result.release();
-      return COSMO_OK;
+      return IRRED_OK;
     }
     const size_t count = b->model_count,
                  n = s->core->native.source().queries.size();
     const unsigned arrays = bool(p->requested & 2u) + bool(p->requested & 4u);
     if (n && count > SIZE_MAX / n)
-      return COSMO_INVALID_INPUT;
+      return IRRED_INVALID_INPUT;
     const size_t elements = n * count;
     if (arrays && elements > SIZE_MAX / arrays)
-      return COSMO_INVALID_INPUT;
-    size_t used = sizeof(cosmo_current_bao_result);
+      return IRRED_INVALID_INPUT;
+    size_t used = sizeof(irred_bao_result);
     if (!add(used, count,
-             sizeof(cosmo_current_bao_row) + sizeof(bao::ModelPoint) +
+             sizeof(irred_bao_row) + sizeof(bao::ModelPoint) +
                  sizeof(std::vector<double>) + 5 * sizeof(double)))
-      return COSMO_INVALID_INPUT;
+      return IRRED_INVALID_INPUT;
     if (count > p->maximum_models ||
         arrays * elements > p->maximum_array_elements ||
         used > p->maximum_native_bytes) {
@@ -368,11 +368,11 @@ cosmo_current_bao_evaluate(const cosmo_current_bao *s,
           irred::statistics::DensityStatus::numerical_failure;
       result->native.numerical_status = num::Status::work_limit;
       *out = result.release();
-      return COSMO_OK;
+      return IRRED_OK;
     }
     for (size_t i = 0; i < count; ++i)
       if (!model_descriptor(b->models[i]))
-        return COSMO_INVALID_INPUT;
+        return IRRED_INVALID_INPUT;
     std::vector<bao::ModelPoint> models;
     models.reserve(count);
     result->parameters.reserve(count);
@@ -400,9 +400,9 @@ cosmo_current_bao_evaluate(const cosmo_current_bao *s,
     result->core = s->core;
     for (size_t i = 0; i < result->native.slots.size(); ++i) {
       const auto &v = result->native.slots[i];
-      cosmo_current_bao_row r{};
+      irred_bao_row r{};
       r.struct_size = sizeof(r);
-      r.abi_version = COSMO_ABI_VERSION;
+      r.abi_version = IRRED_ABI_VERSION;
       r.model_index = i;
       r.source = b->models[i];
       r.source.expansion.parameters.data = result->parameters[i].data();
@@ -432,15 +432,15 @@ cosmo_current_bao_evaluate(const cosmo_current_bao *s,
       result->rows.push_back(r);
     }
     *out = result.release();
-    return COSMO_OK;
+    return IRRED_OK;
   } catch (const std::bad_alloc &) {
-    return COSMO_ALLOCATION_FAILURE;
+    return IRRED_ALLOCATION_FAILURE;
   } catch (...) {
-    return COSMO_EXCEPTION;
+    return IRRED_EXCEPTION;
   }
 }
-extern "C" uint32_t cosmo_current_bao_result_view(
-    const cosmo_current_bao_result *r, const cosmo_current_bao_row **rows,
+extern "C" uint32_t irred_bao_result_view(
+    const irred_bao_result *r, const irred_bao_row **rows,
     uint64_t *count, uint32_t *status, uint32_t *numerical, uint64_t *callbacks,
     uint64_t *segments) {
   if (aligned(rows))
@@ -457,37 +457,37 @@ extern "C" uint32_t cosmo_current_bao_result_view(
     *segments = 0;
   if (!aligned(r) || !aligned(rows) || !aligned(count) || !aligned(status) ||
       !aligned(numerical) || !aligned(callbacks) || !aligned(segments))
-    return COSMO_INVALID_INPUT;
+    return IRRED_INVALID_INPUT;
   *rows = r->rows.data();
   *count = r->rows.size();
   *status = (uint32_t)r->native.status;
   *numerical = (uint32_t)r->native.numerical_status;
   *callbacks = r->native.work.callbacks;
   *segments = r->native.work.segment_visits;
-  return COSMO_OK;
+  return IRRED_OK;
 }
 extern "C" uint32_t
-cosmo_current_bao_result_source_view(const cosmo_current_bao_result *r,
-                                     cosmo_current_bao_view *v,
+irred_bao_result_source_view(const irred_bao_result *r,
+                                     irred_bao_view *v,
                                      uint32_t *available) {
   if (aligned(v))
     *v = {};
   if (aligned(available))
     *available = 0;
   if (!aligned(r) || !aligned(v) || !aligned(available))
-    return COSMO_INVALID_INPUT;
+    return IRRED_INVALID_INPUT;
   if (r->core) {
     *v = r->core->view;
     *available = 1;
   }
-  return COSMO_OK;
+  return IRRED_OK;
 }
 extern "C" uint32_t
-cosmo_current_bao_result_destroy(cosmo_current_bao_result *r) {
+irred_bao_result_destroy(irred_bao_result *r) {
   if (!r)
-    return COSMO_OK;
+    return IRRED_OK;
   if (!aligned(r))
-    return COSMO_INVALID_INPUT;
+    return IRRED_INVALID_INPUT;
   delete r;
-  return COSMO_OK;
+  return IRRED_OK;
 }

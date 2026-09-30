@@ -15,7 +15,7 @@ impl Drop for Scratch {
 }
 fn scratch() -> Scratch {
     let p = std::env::temp_dir().join(format!(
-        "irred-current-bg-{}-{}",
+        "irred-bg-{}-{}",
         std::process::id(),
         SystemTime::now()
             .duration_since(UNIX_EPOCH)

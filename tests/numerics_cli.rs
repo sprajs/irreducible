@@ -43,7 +43,7 @@ fn run_bytes(bytes: &[u8]) -> (Value, i32, Option<Value>) {
     (response, out.status.code().unwrap(), resolved)
 }
 fn run(method: &str, values: Value) -> (Value, i32, Value) {
-    let spec = json!({"schema_version":2,"operation":"numerics.scalar_batch.v1","method":method,"values":values});
+    let spec = json!({"schema_version":2,"operation":"numerics.scalar_batch","method":method,"values":values});
     let (response, exit, resolved) = run_bytes(&serde_json::to_vec(&spec).unwrap());
     let resolved = resolved.unwrap();
     assert_eq!(resolved["method"], method);
@@ -136,17 +136,17 @@ fn empty_shapes_and_failed_reduction() {
 #[test]
 fn malformed_scalar_specifications_fail_closed() {
     for spec in [
-        json!({"schema_version":1,"operation":"numerics.scalar_batch.v1","method":"log1p","values":[0.]}),
-        json!({"schema_version":2,"operation":"numerics.scalar_batch.v1","method":"invented","values":[0.]}),
-        json!({"schema_version":2,"operation":"numerics.scalar_batch.v1","method":"log1p","values":[0.],"ignored":true}),
-        json!({"schema_version":2,"operation":"numerics.scalar_batch.v1","method":"log1p","values":["0"]}),
+        json!({"schema_version":1,"operation":"numerics.scalar_batch","method":"log1p","values":[0.]}),
+        json!({"schema_version":2,"operation":"numerics.scalar_batch","method":"invented","values":[0.]}),
+        json!({"schema_version":2,"operation":"numerics.scalar_batch","method":"log1p","values":[0.],"ignored":true}),
+        json!({"schema_version":2,"operation":"numerics.scalar_batch","method":"log1p","values":["0"]}),
     ] {
         let (r, exit, _) = run_bytes(&serde_json::to_vec(&spec).unwrap());
         assert_ne!(exit, 0);
         assert_eq!(r["result"]["kind"], "failure");
         assert_eq!(r["receipt"]["execution"], "failed");
     }
-    for bytes in [br#"{"schema_version":2,"operation":"numerics.scalar_batch.v1","method":"log1p","method":"expm1","values":[0]}"#.as_slice(),br#"{"schema_version":2,"operation":"numerics.scalar_batch.v1","method":"log1p","values":[NaN]}"#.as_slice(),br#"{"schema_version":2,"operation":"numerics.scalar_batch.v1","method":"log1p","values":[1e999]}"#.as_slice()] {
+    for bytes in [br#"{"schema_version":2,"operation":"numerics.scalar_batch","method":"log1p","method":"expm1","values":[0]}"#.as_slice(),br#"{"schema_version":2,"operation":"numerics.scalar_batch","method":"log1p","values":[NaN]}"#.as_slice(),br#"{"schema_version":2,"operation":"numerics.scalar_batch","method":"log1p","values":[1e999]}"#.as_slice()] {
   let(r,exit,_)=run_bytes(bytes);assert_ne!(exit,0);assert_eq!(r["result"]["kind"],"failure");
  }
 }

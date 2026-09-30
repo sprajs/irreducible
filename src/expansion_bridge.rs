@@ -139,7 +139,7 @@ struct Owner(*mut c_void);
 impl Drop for Owner {
     fn drop(&mut self) {
         unsafe {
-            cosmo_expansion_result_destroy(self.0);
+            irred_expansion_result_destroy(self.0);
         }
     }
 }
@@ -206,7 +206,7 @@ pub(crate) fn evaluate(
         query_byte_length: std::mem::size_of_val(requests.as_slice()) as u64,
     };
     let mut raw = ptr::null_mut();
-    let transport = unsafe { cosmo_expansion_evaluate(&batch, &policy.descriptor(), &mut raw) };
+    let transport = unsafe { irred_expansion_evaluate(&batch, &policy.descriptor(), &mut raw) };
     let owner = Owner(raw);
     if transport != OK {
         return Err(format!("CORE_STATUS_{transport}"));
@@ -217,7 +217,7 @@ pub(crate) fn evaluate(
     let (mut rows, mut count, mut status, mut numerical, mut callbacks, mut segments) =
         (ptr::null(), 0, 0, 0, 0, 0);
     if unsafe {
-        cosmo_expansion_result_view(
+        irred_expansion_result_view(
             owner.0,
             &mut rows,
             &mut count,
@@ -237,7 +237,7 @@ pub(crate) fn evaluate(
     let rows = unsafe_view(rows, count, max)?;
     let (mut model_views, mut model_count, mut available) = (ptr::null(), 0, 0);
     if unsafe {
-        cosmo_expansion_result_models(owner.0, &mut model_views, &mut model_count, &mut available)
+        irred_expansion_result_models(owner.0, &mut model_views, &mut model_count, &mut available)
     } != OK
     {
         return Err("INVALID_MODEL_VIEW".into());
@@ -251,7 +251,7 @@ pub(crate) fn evaluate(
     }
     let (mut source_queries, mut source_query_count, mut query_available) = (ptr::null(), 0, 0);
     if unsafe {
-        cosmo_expansion_result_queries(
+        irred_expansion_result_queries(
             owner.0,
             &mut source_queries,
             &mut source_query_count,
@@ -409,7 +409,7 @@ pub(crate) fn evaluate(
         evaluations.push(json!({"model_index":row.model_index,"query_index":row.query_index,"source":request,"admission_status":expansion_tag_name("status",row.admission_status).ok_or("INVALID_ADMISSION_STATUS")?,"node_index":if row.has_node==1{Some(row.node_index)}else{None},"groups":groups}));
     }
     let (mut nodes, mut node_count) = (ptr::null(), 0);
-    if unsafe { cosmo_expansion_result_nodes(owner.0, &mut nodes, &mut node_count) } != OK {
+    if unsafe { irred_expansion_result_nodes(owner.0, &mut nodes, &mut node_count) } != OK {
         return Err("INVALID_NODE_VIEW".into());
     }
     let nodes=unsafe_view(nodes,node_count,max)?.iter().map(|node|json!({"model_index":node.model_index,"z_expansion":node.z_expansion,"callbacks":node.callbacks,"segment_visits":node.segment_visits})).collect::<Vec<_>>();

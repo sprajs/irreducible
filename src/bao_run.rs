@@ -1,7 +1,7 @@
 //! Retained BAO acquisition. The structural reader is shared with one-shot use.
 use crate::{
     bao_ingestion::Source,
-    bridge::current_bao::{self, PreparationPolicy, Prepared},
+    bridge::bao::{self, PreparationPolicy, Prepared},
     records::{hash, publish},
 };
 use serde_json::{Value, json};
@@ -111,7 +111,7 @@ pub(crate) fn acquire(
             .join(decoded.covariance_asset.sha256()),
         decoded.covariance_asset.bytes(),
     )?;
-    let prepared = current_bao::prepare(&decoded, &effective_policy)?;
+    let prepared = bao::prepare(&decoded, &effective_policy)?;
     let specification = json!({"operation":"bao.density","source":{"role":decoded.role,"unit":"one","covariance_unit":"ratio_squared",
         "original_fields":decoded.original_fields,"rows":decoded.rows,"covariance_axis_ids":decoded.covariance_axis_ids,"table_identity":decoded.table_asset.sha256(),"covariance_identity":decoded.covariance_asset.sha256(),
         "ordering_provenance":decoded.ordering_provenance,"ordering_assessment":"supplied declaration; not independently verified",

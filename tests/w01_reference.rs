@@ -96,6 +96,6 @@ fn released_assets_and_native_historical_comparison() {
 }
 #[test]
 #[ignore = "requires explicit original assets and prebuilt optional native harness"]
-fn released_assets_and_native_current_twenty_nine_points() {
+fn released_assets_and_native_twenty_nine_points() {
     check_native(true);
 }

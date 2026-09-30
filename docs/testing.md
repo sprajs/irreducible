@@ -58,7 +58,7 @@ A passing test is scoped evidence. It does not qualify arbitrary inputs, every s
 
 Ordinary native tests include immutable observation ownership, exact masks/row order, uncertainty asymmetry retention, hostile descriptors and scoped allocation-failure cleanup. Rust ingestion/CLI tests retain raw source bytes, challenge same-path mutations, semantic failures and nonfinite/missing distinctions. They use small synthetic inputs and require no acquired survey files.
 
-The product build deliberately reports FITS unavailable. A separate optional native codec profile requires installed CFITSIO and can be tested with `-DCOSMOLOGY_TEST_CFITSIO=ON` in a separate CMake build directory. It covers one handcrafted synthetic BINTABLE profile, not universal FITS support. The wrapper resets this test-only option to OFF for its supported product build. CFITSIO is file-format infrastructure; its installed version/library identity and NASA permissive notice must be reviewed for any enabled deployment.
+The product build deliberately reports FITS unavailable. A separate optional native codec profile requires installed CFITSIO and can be tested with `-DIRRED_TEST_CFITSIO=ON` in a separate CMake build directory. It covers one handcrafted synthetic BINTABLE profile, not universal FITS support. The wrapper resets this test-only option to OFF for its supported product build. CFITSIO is file-format infrastructure; its installed version/library identity and NASA permissive notice must be reviewed for any enabled deployment.
 
 `check_install.py` installs to a fresh temporary prefix, rejects the old generic include root, and compiles/runs the durable `test_installed_consumer.cpp` against the installed `libirred_core.a`. It checks independent library usability and cleans its temporary installation.
 
@@ -83,9 +83,9 @@ cargo test --locked --offline -j4 --test profile_identity -- --ignored
 
 This checks each executable's describe/version manifest, identical source digests with distinct profile/build/native-archive identities, and a deliberately wrong native fixture compiled with NDEBUG. That fixture must fail, proving its required checks were executed. It compiles one temporary native test, cleans it after success, and never mutates production source.
 
-## Current native and public regression suites
+## Native and public regression suites
 
-Ordinary CTest includes the current expansion, retained supernova, BAO and Gaussian boundary suites, independent analytic/quadrature/cofactor controls, ownership/allocation failures and payload accounting. Ordinary Cargo tests include current one-shot and retained-stream requests, source identities, quota failures and immutable run records. Request schema is 2; physical operation identifiers can retain their `.v1` suffix. Scientific qualification remains bounded to named tested cases.
+Ordinary CTest includes the current expansion, retained supernova, BAO and Gaussian boundary suites, independent analytic/quadrature/cofactor controls, ownership/allocation failures and payload accounting. Ordinary Cargo tests include current one-shot and retained-stream requests, source identities, quota failures and immutable run records. Request schema and C ABI revision are 2; operation names are canonical, while scientific method and source identifiers retain their declared identities. Scientific qualification remains bounded to named tested cases.
 
 `test_w01_reference` is an optional independent LDLT condition/reconstruction control, not a retired consumer interface. Existing native fixtures retain historical direct/stable and compressed-route discrepancies separately. No expected values are regenerated during builds.
 
@@ -93,21 +93,21 @@ Ordinary CTest includes the current expansion, retained supernova, BAO and Gauss
 
 Original datasets are not bundled and are unnecessary for ordinary CI. Explicit ignored Rust guards hash each original file before and after executing a prebuilt native harness, print its executable hash, and verify its named suite and case count. No Rust physical equations are used.
 
-Build the optional current harnesses in the selected profile:
+Build the optional native harnesses in the selected profile:
 
 ```sh
-.build-tools/bin/cmake --build build/native-release --target test_current_supernova_reference test_current_bao_reference test_w01_reference --parallel 2
+.build-tools/bin/cmake --build build/native-release --target test_supernova_reference test_bao_reference test_w01_reference --parallel 2
 ```
 
-For supernova, set `IRRED_W01_TABLE`, `IRRED_W01_COVARIANCE` to the exact assets pinned in `cpp/tests/fixtures/w01_historical.hpp`, and `IRRED_W01_NATIVE_HARNESS` to `build/native-release/test_current_supernova_reference`. Then run the explicit named29 guard:
+For supernova, set `IRRED_W01_TABLE`, `IRRED_W01_COVARIANCE` to the exact assets pinned in `cpp/tests/fixtures/w01_historical.hpp`, and `IRRED_W01_NATIVE_HARNESS` to `build/native-release/test_supernova_reference`. Then run the explicit named29 guard:
 
 ```sh
-cargo test --release --locked --offline -j2 --test w01_reference released_assets_and_native_current_twenty_nine_points -- --ignored --nocapture
+cargo test --release --locked --offline -j2 --test w01_reference released_assets_and_native_twenty_nine_points -- --ignored --nocapture
 ```
 
 This explicitly enables `IRRED_SN_ALL_NAMED=1` inside the guard: historical seven controls, CPL four, fixed-five-bin six and grey twelve. All use the current 1590 selected source. Grey12 is a conditional application to these inputs, not a replay of the historical 1820-source workflow. The default historical-comparison guard deliberately selects only grey12 and cannot stand in for all29.
 
-For BAO, set `IRRED_BAO_MEAN`, `IRRED_BAO_COVARIANCE` to the exact assets pinned in `cpp/tests/fixtures/bao_reference.hpp`, and `IRRED_BAO_NATIVE_HARNESS` to `build/native-release/test_current_bao_reference`:
+For BAO, set `IRRED_BAO_MEAN`, `IRRED_BAO_COVARIANCE` to the exact assets pinned in `cpp/tests/fixtures/bao_reference.hpp`, and `IRRED_BAO_NATIVE_HARNESS` to `build/native-release/test_bao_reference`:
 
 ```sh
 cargo test --release --locked --offline -j2 --test bao_reference released_assets_and_native_eleven_point_comparison -- --ignored --nocapture
@@ -129,28 +129,38 @@ Use `python3 tools/check_install.py --profile release` for a fresh installed con
 | --- | --- |
 | Smooth/CPL analytic limits and independent fixed-panel quadrature | Background owner and independent hostile tests |
 | Fixed-five-bin historical expansion facts, independent split quadrature, boundary conventions | Piecewise owner and hostile tests; requested groups retain separate outcomes |
-| Historical selected covariance, direct/stable profile targets, approximate compressed discrepancy | Frozen W01 headers, independent LDLT controls and current named29 harness |
-| CPL4, fixed-q6 and current1590 grey12 fixed-point allocations | Current named29 harness; fixtures retain their separate source/model lineage |
+| Historical selected covariance, direct/stable profile targets, approximate compressed discrepancy | Frozen W01 headers, independent LDLT controls and named29 harness |
+| CPL4, fixed-q6 and Pantheon1590 grey12 fixed-point allocations | Named29 harness; fixtures retain their separate source/model lineage |
 | Extracted original-class fixed-coefficient basis/profile comparison | Grey native fixture assertions; native geometry ancestry remains explicit |
-| Released BAO11 independent quadrature/LDLT and fixed-q24 directed reference | Current BAO11 harness and optional GMP/MPFR directed24 oracle |
+| Released BAO11 independent quadrature/LDLT and fixed-q24 directed reference | BAO11 harness and optional GMP/MPFR directed24 oracle |
 | Correlated tiny Gaussian/profile controls and input permutations | Ordinary statistics/SN/BAO independent native peers |
 
 Optional original-data hash guards test acquired source identity as well as native fixture agreement. Ordinary native tests retain small accepted numerical facts and provenance without requiring Python, historical environments, original datasets, Cobaya or GMP/MPFR. Test-only external algorithms remain explicitly distinct from production kernels. An approximate historical route that failed a precise budget is retained as a discrepancy, rather than promoted to a new expected value.
 
-Removed packet-family tests exercised retired layouts/admission rules. Their still-relevant mathematics, selected-source scope, normalization, permutation, failure causes, lifetime and quota controls have current active replacements. Historical performance receipts describe their recorded builds; they are not current speed claims.
+Ordinary consumer controls include diagonal weighted common-intercept elimination and a correlated 3×3 BAO cofactor density, with source order and failure checks. Historical performance receipts describe their recorded builds; they are not current speed claims.
 
-The separate ignored `current_original_cli` suite checks representative current CLI ingestion against native transcripts on the original sources: one LCDM supernova point and one BAO point, including raw identities, selection/order and stored records. The SN native reference reader uses CID/survey/row labels while current acquisition uses raw-table-SHA/row IDs; exact numerical parity and independently audited current source ordering are distinct from full metadata-object equality. The BAO reference reader likewise uses its historical labels while current acquisition binds raw-mean-SHA/row/observable IDs; both namespace differences are disclosed rather than normalized. This is transport parity for those cases, not a rerun of the retired CLI parameter campaign. Performance benchmarking and additional scientific modules are deferred to the review checkpoint.
+The separate ignored `original_cli` suite checks representative current CLI ingestion against native transcripts on the original sources: one LCDM supernova point and one BAO point, including raw identities, selection/order and stored records. The SN native reference reader uses CID/survey/row labels while current acquisition uses raw-table-SHA/row IDs; exact numerical parity and independently audited current source ordering are distinct from full metadata-object equality. The BAO reference reader likewise uses its historical labels while current acquisition binds raw-mean-SHA/row/observable IDs; both namespace differences are disclosed rather than normalized. This is transport parity for those cases; it does not establish a full parameter campaign. Work priorities and remaining capabilities are listed in [the roadmap](roadmap.md) and [the gaps](gaps.md).
 
 To repeat the representative public check, first capture stdout from the matching native guards above. The executable and native harnesses must use the same selected Release archive and numerical settings; the test checks the recorded harness digest. Supply all eight path variables explicitly:
 
 ```sh
 IRRED_W01_TABLE=/path/to/Pantheon+SH0ES.dat \
 IRRED_W01_COVARIANCE=/path/to/Pantheon+SH0ES_STAT+SYS.cov \
-IRRED_CURRENT_SN_NATIVE_OUTPUT=/path/to/guarded-native-grey12-stdout.log \
-IRRED_W01_NATIVE_HARNESS="$PWD/build/native-release/test_current_supernova_reference" \
+IRRED_SN_NATIVE_OUTPUT=/path/to/guarded-native-grey12-stdout.log \
+IRRED_W01_NATIVE_HARNESS="$PWD/build/native-release/test_supernova_reference" \
 IRRED_BAO_MEAN=/path/to/desi_gaussian_bao_ALL_GCcomb_mean.txt \
 IRRED_BAO_COVARIANCE=/path/to/desi_gaussian_bao_ALL_GCcomb_cov.txt \
-IRRED_CURRENT_BAO_NATIVE_OUTPUT=/path/to/guarded-native-bao11-stdout.log \
-IRRED_BAO_NATIVE_HARNESS="$PWD/build/native-release/test_current_bao_reference" \
-cargo test --release --locked --offline -j2 --test current_original_cli -- --ignored --nocapture
+IRRED_BAO_NATIVE_OUTPUT=/path/to/guarded-native-bao11-stdout.log \
+IRRED_BAO_NATIVE_HARNESS="$PWD/build/native-release/test_bao_reference" \
+cargo test --release --locked --offline -j2 --test original_cli -- --ignored --nocapture
 ```
+
+## Extending numerical and inference coverage
+
+Preserve a first divergence before changing a model, convention, input or expectation. Required outputs cannot be relabelled optional after failure. Deterministic dependency biases are not independent random errors to combine in quadrature; observable and log-density sensitivity must justify their allocations. Refinement agreement is empirical evidence, not an automatic certified bound or proof of asymptotic convergence.
+
+When adding differential equations or interpolation, test event location, dense output, stiffness/inner solves and derivative accuracy separately. An iterative solver's true residual need not equal its recurrence residual. Tail range and resolution both require checks. Optimization KKT conditions do not calibrate statistical tails; nominal sampling diagnostics do not prove support or identifiability.
+
+Fixed-truth recovery differs from prior-predictive simulation-based calibration. Shared simulator/reference ancestry can conceal the same physics defect. Reweighting weight-tail collapse, absent support and unresolved posterior-predictive tails are failures to report rather than repaired results. These requirements guide future implemented consumers; they do not imply an inference engine currently exists.
+
+Wide long-double reference suites assert at least 64 mantissa bits. The tested Linux/GCC platform meets this requirement; a target where long double equals double is a known unsupported qualification profile, not an observed run failure and not a reason to weaken budgets. Portable CPU refers to the baseline implementation, not proof that every host/compiler arithmetic profile is validated. Ubuntu CI adds engineering evidence only for its actual run.

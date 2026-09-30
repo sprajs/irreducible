@@ -1,16 +1,14 @@
 # Irreducible
 
-I want to set my agents to work on cosmology. I'm writing Irreducible to give them a fast, shared implementation of the physics and physical models they need.
+Irreducible is a simulation-first physics engine for agents investigating cosmology and astronomical observations. The goal is one shared implementation of theories and physical models that predicts across supernovae, Cepheids and H₀, lensing, large-scale structure, BAO, CMB and other modalities.
 
-I think of it as something an agent can reach for in the way it reaches for a computer algebra system when doing mathematics. Here the job is to read observations, evaluate physical models and work out what follows from different assumptions. The agent decides what to investigate; Irreducible provides the calculations.
+Theory and initial conditions determine a physical state. Source populations, propagation, instruments and selection turn that state into predicted observations. Images, spectra, light curves and catalogues should reuse shared physics where their assumptions agree. Integrated joint fitting is a later consumer of those forward models; external fitters and samplers are also valid.
 
-It's built for non-interactive use through **`irred`**, a CLI with explicit requests and machine-readable results. Long commands and detailed request files are fine. The interface should let an agent say exactly what it wants to calculate, with which data, model and configuration.
+The interface is non-interactive: **`irred`** accepts explicit requests and returns machine-readable results. Agents add alternative theories or readers in compiled source, test, rebuild and use the same engine. Rust owns acquisition and control; C++ owns the equations and numerical work. Portable CPU execution is implemented; CUDA and distributed execution require concrete workloads, ownership contracts and measured benefit. Visualization is a low priority and can remain external.
 
-I want one shared implementation of each equation and convention, with different physical models built on top. When an agent needs a new data reader or wants to try different physics, it should be able to add it, test it, rebuild and use it in the same way. Rust handles the interface and data; C++ handles the physics and numerical work. Repeated calculations should stay in compiled code and run in batches.
+It's early. The current implementation has numerical foundations, quantity conversions, retained observation preparation, flat-FLRW expansion, conditional SN profiles, free-ruler BAO densities and run records. A complete physical forward model, observational simulation and integrated joint fitting remain planned. See [what exists today](docs/capabilities.md).
 
-This doesn't need to contain every part of an analysis. An agent can use an external fitter or sampler and call Irreducible for model predictions. Some calculations may need fitting internally, and that's fine when there's a reason for it. The aim is to build the parts that make the science possible and make them fast.
-
-It's early. The current implementation has numerical foundations, quantity conversions, observation preparation and run records; the physical models are still being built. See [what exists today](docs/capabilities.md).
+The [roadmap](docs/roadmap.md) is the active development plan; [gaps](docs/gaps.md) separates present capabilities and data from proposals.
 
 ## Using it
 

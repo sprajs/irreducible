@@ -29,7 +29,7 @@ fn run(values: Value, source: Value, target: Value) -> (Value, i32) {
     fs::create_dir(&scratch.0).unwrap();
     let request = scratch.0.join("request.json");
     let store = scratch.0.join("store");
-    let spec = json!({"schema_version":2,"operation":"quantity.convert.v1","values":values,"source":source,"target":target});
+    let spec = json!({"schema_version":2,"operation":"quantity.convert","values":values,"source":source,"target":target});
     fs::write(&request, serde_json::to_vec(&spec).unwrap()).unwrap();
     let out = Command::new(env!("CARGO_BIN_EXE_irred"))
         .arg("run")

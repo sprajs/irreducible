@@ -8,7 +8,7 @@ struct Owned(*mut std::ffi::c_void);
 impl Drop for Owned {
     fn drop(&mut self) {
         unsafe {
-            cosmo_result_destroy(self.0);
+            irred_result_destroy(self.0);
         }
     }
 }
@@ -23,7 +23,7 @@ pub(crate) fn add(a: &[i64], b: &[i64], fault: u32) -> Result<Vec<i64>, String> 
         byte_length: std::mem::size_of_val(v) as u64,
     };
     let mut raw = ptr::null_mut();
-    let status = unsafe { cosmo_add(&desc(a), &desc(b), fault, &mut raw) };
+    let status = unsafe { irred_add(&desc(a), &desc(b), fault, &mut raw) };
     if status != OK {
         return Err(format!("CORE_STATUS_{status}"));
     }
@@ -33,7 +33,7 @@ pub(crate) fn add(a: &[i64], b: &[i64], fault: u32) -> Result<Vec<i64>, String> 
     let owned = Owned(raw);
     let mut p = ptr::null();
     let mut n = 0;
-    let status = unsafe { cosmo_result_view(owned.0, &mut p, &mut n) };
+    let status = unsafe { irred_result_view(owned.0, &mut p, &mut n) };
     if status != OK || n != a.len() as u64 || (n > 0 && (p.is_null() || (p as usize) % 8 != 0)) {
         return Err("INVALID_RESULT_VIEW".into());
     }
@@ -97,7 +97,7 @@ pub(crate) fn convert_quantities(
     };
     let mut raw = ptr::null_mut();
     // All descriptors/contiguous input remain borrowed and immobile until synchronous return.
-    let status = unsafe { cosmo_convert_quantities(&buffer, &source, &target, &mut raw) };
+    let status = unsafe { irred_convert_quantities(&buffer, &source, &target, &mut raw) };
     if status != OK {
         return Err(format!("CORE_STATUS_{status}"));
     }
@@ -109,7 +109,7 @@ pub(crate) fn convert_quantities(
     let mut statuses = ptr::null();
     let mut length = 0;
     // The view is core owned, immutable, and only used while the matching owner lives.
-    let status = unsafe { cosmo_result_f64_view(owned.0, &mut data, &mut statuses, &mut length) };
+    let status = unsafe { irred_result_f64_view(owned.0, &mut data, &mut statuses, &mut length) };
     if status != OK
         || length != values.len() as u64
         || (length > 0
@@ -164,7 +164,7 @@ pub(crate) fn numerics_evaluate(
     };
     let mut raw = ptr::null_mut();
     // One synchronous compiled batch; no Rust numerical inner loop.
-    let status = unsafe { cosmo_numerics_evaluate(operation, &buffer, &mut raw) };
+    let status = unsafe { irred_numerics_evaluate(operation, &buffer, &mut raw) };
     if status != OK {
         return Err(format!("CORE_STATUS_{status}"));
     }
@@ -178,7 +178,7 @@ pub(crate) fn numerics_evaluate(
     let mut evaluations = ptr::null();
     let mut length = 0;
     let status = unsafe {
-        cosmo_result_numerics_view(
+        irred_result_numerics_view(
             owner.0,
             &mut data,
             &mut statuses,
@@ -237,9 +237,9 @@ mod statistics;
 
 pub(crate) use statistics::{ProperPrior, gaussian_batch};
 
-#[path = "current_bao_bridge.rs"]
-pub(crate) mod current_bao;
-#[path = "current_supernova_bridge.rs"]
-pub(crate) mod current_supernova;
+#[path = "bao_bridge.rs"]
+pub(crate) mod bao;
+#[path = "supernova_bridge.rs"]
+pub(crate) mod supernova;
 #[path = "expansion_bridge.rs"]
 pub(crate) mod expansion;

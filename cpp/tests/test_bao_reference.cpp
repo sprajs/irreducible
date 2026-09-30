@@ -384,7 +384,7 @@ int original(const char *mean_path, const char *covariance_path) {
       fine = std::move(batch);
   }
   original_reference(input, models, fine, previous_scores);
-  std::printf("{\"suite\":\"current_BAO_original11\",\"models\":11,\"n\":13,"
+  std::printf("{\"suite\":\"BAO_original11\",\"models\":11,\"n\":13,"
               "\"passed\":true}\n");
   return 0;
 }

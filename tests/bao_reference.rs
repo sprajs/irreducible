@@ -87,7 +87,7 @@ fn check_native(directed: bool) {
     } else {
         let marker = markers
             .iter()
-            .find(|v| v["suite"] == "current_BAO_original11")
+            .find(|v| v["suite"] == "BAO_original11")
             .expect("original11 marker");
         assert_eq!(marker["models"], 11);
         assert_eq!(marker["n"], 13);

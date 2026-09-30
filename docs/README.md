@@ -6,6 +6,7 @@ Read [AGENTS.md](../AGENTS.md) first, then choose a guide:
 
 | Task | Guide |
 | --- | --- |
+| Development direction and missing prerequisites | [Roadmap](roadmap.md) and [gaps](gaps.md) |
 | Build and run | [Getting started](getting-started.md) |
 | See what is implemented | [Capabilities](capabilities.md), then `irred describe --json` |
 | Make a request | [CLI contract](cli.md) |

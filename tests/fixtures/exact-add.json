@@ -1,6 +1,6 @@
 {
   "schema_version": 2,
-  "operation": "fixture.checked_i64_add.v1",
+  "operation": "fixture.checked_i64_add",
   "a": [
     0,
     4,

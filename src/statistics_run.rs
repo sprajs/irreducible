@@ -1,7 +1,7 @@
 //! Request resolution only; C++ owns the retained Gaussian and batch equations.
 use crate::{
     bridge::{ProperPrior, gaussian_batch},
-    current_observation_run,
+    observation_run,
 };
 use serde::{Deserialize, Serialize};
 use serde_json::{Value, json};
@@ -55,7 +55,7 @@ fn calculation(input: &[u8], store: &Path) -> Result<(Value, Value, Value), Stri
         return Err("INVALID_NUMERICAL_BUDGET".into());
     }
     let nested = serde_json::to_vec(&r.observations).map_err(|e| e.to_string())?;
-    let acquired = current_observation_run::acquire(&nested, store, 1 << 30)?;
+    let acquired = observation_run::acquire(&nested, store, 1 << 30)?;
     let prior = r.proper_prior.as_ref().map(|p| ProperPrior {
         response: &p.response,
         ordered_ids: &p.ordered_ids,

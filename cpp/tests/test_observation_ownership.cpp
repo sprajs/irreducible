@@ -30,11 +30,11 @@ Input source() {
   s.quality = {0, 0};
   return s;
 }
-cosmo_bytes bytes(const std::string &x) {
+irred_bytes bytes(const std::string &x) {
   return {reinterpret_cast<const uint8_t *>(x.data()), x.size()};
 }
-cosmo_f64_buffer doubles(const std::vector<double> &x) {
-  return {sizeof(cosmo_f64_buffer), COSMO_ABI_VERSION, 2, 0, x.data(), x.size(),
+irred_f64_buffer doubles(const std::vector<double> &x) {
+  return {sizeof(irred_f64_buffer), IRRED_ABI_VERSION, 2, 0, x.data(), x.size(),
           x.size() * sizeof(double)};
 }
 } // namespace
@@ -86,9 +86,9 @@ int main() {
     x.uncertainty_unit = UncertaintyUnit::inverse_magnitude_squared;
     check(prepare(std::move(x), {8, 64, 4096}).status() ==
           Status::incompatible_semantics);
-    cosmo_observation_descriptor d{};
+    irred_observation_descriptor d{};
     d.struct_size = sizeof(d);
-    d.abi_version = COSMO_ABI_VERSION;
+    d.abi_version = IRRED_ABI_VERSION;
     d.profile = static_cast<uint32_t>(s.profile);
     d.role = static_cast<uint32_t>(s.role);
     d.unit = static_cast<uint32_t>(s.unit);
@@ -98,15 +98,15 @@ int main() {
     d.table_sha256 = bytes(s.table_sha256);
     d.uncertainty_sha256 = bytes(s.uncertainty_sha256);
     d.ordering_provenance = bytes(s.ordering_provenance);
-    std::vector<cosmo_bytes> ids, events;
+    std::vector<irred_bytes> ids, events;
     for (const auto &id : s.measurement_ids)
       ids.push_back(bytes(id));
     for (const auto &id : s.event_ids)
       events.push_back(bytes(id));
     d.measurement_ids = {ids.data(), ids.size(),
-                         ids.size() * sizeof(cosmo_bytes)};
+                         ids.size() * sizeof(irred_bytes)};
     d.event_ids = {events.data(), events.size(),
-                   events.size() * sizeof(cosmo_bytes)};
+                   events.size() * sizeof(irred_bytes)};
     d.uncertainty_axis_ids = d.measurement_ids;
     d.values = doubles(s.values);
     d.zhd = doubles(s.zhd);
@@ -114,7 +114,7 @@ int main() {
     d.zhel = doubles(s.zhel);
     d.uncertainty_matrix = doubles(s.uncertainty_matrix);
     auto mask = [](const auto &v) {
-      return cosmo_u8_buffer{v.data(), v.size(), v.size()};
+      return irred_u8_buffer{v.data(), v.size(), v.size()};
     };
     d.missing = mask(s.missing);
     d.zhd_missing = mask(s.zhd_missing);
@@ -123,19 +123,19 @@ int main() {
     d.source_selection = mask(s.source_selection);
     d.quality = {s.quality.data(), s.quality.size(),
                  s.quality.size() * sizeof(uint64_t)};
-    cosmo_observation_policy policy{8, 64, 4096};
-    cosmo_prepared *raw = nullptr;
+    irred_observation_policy policy{8, 64, 4096};
+    irred_prepared *raw = nullptr;
     uint32_t status = UINT32_MAX;
-    check(cosmo_prepare_observations(&d, &policy, &raw, &status) == COSMO_OK &&
+    check(irred_prepare_observations(&d, &policy, &raw, &status) == IRRED_OK &&
           status == 0 && raw);
     auto retained = shared_native_observations(raw);
     uint64_t retained_bytes=0;
-    check(cosmo_observation_retained_bytes(raw,&retained_bytes)==COSMO_OK);
+    check(irred_observation_retained_bytes(raw,&retained_bytes)==IRRED_OK);
     check(retained_bytes>=*retained_source_payload_bound(*retained));
     check(retained.get() == native_observations(raw));
     check(retained.use_count() == 2);
     const auto *address = retained.get();
-    check(cosmo_observation_destroy(raw) == COSMO_OK);
+    check(irred_observation_destroy(raw) == IRRED_OK);
     s.values[0] = 999;
     s.uncertainty_matrix.clear();
     check(retained.get() == address && retained.use_count() == 1);

@@ -18,7 +18,7 @@
           "const": 2
         },
         "operation": {
-          "const": "fixture.checked_i64_add.v1"
+          "const": "fixture.checked_i64_add"
         },
         "a": {
           "type": "array",
@@ -1786,7 +1786,7 @@
           "const": 2
         },
         "operation": {
-          "const": "quantity.convert.v1"
+          "const": "quantity.convert"
         },
         "values": {
           "type": "array",
@@ -1817,7 +1817,7 @@
           "const": 2
         },
         "operation": {
-          "const": "numerics.scalar_batch.v1"
+          "const": "numerics.scalar_batch"
         },
         "method": {
           "enum": [

@@ -66,7 +66,7 @@ fn independent_records_adversarial() {
     fs::create_dir(&dir.0).unwrap();
     let request = dir.0.join("request.json");
     let store = dir.0.join("store");
-    let mut payload = json!({"schema_version":2,"operation":"fixture.checked_i64_add.v1","a":[0,1,-2,1048576,-1048576],"b":[0,-1,3,-1048576,1048576],"fault":0});
+    let mut payload = json!({"schema_version":2,"operation":"fixture.checked_i64_add","a":[0,1,-2,1048576,-1048576],"b":[0,-1,3,-1048576,1048576],"fault":0});
     fs::write(&request, serde_json::to_vec(&payload).unwrap()).unwrap();
     let first = run(&request, &store, None);
     assert!(first.status.success());
@@ -116,11 +116,11 @@ fn independent_records_adversarial() {
     }
     payload["fault"] = json!(0);
     fs::write(&request, serde_json::to_vec(&payload).unwrap()).unwrap();
-    let out = run(&request, &store, Some("COSMOLOGY_TEST_PANIC"));
+    let out = run(&request, &store, Some("IRRED_TEST_PANIC"));
     assert!(!out.status.success());
     assert_eq!(decode(&out)["receipt"]["execution"], "failed");
     let before = files(&store);
-    let out = run(&request, &store, Some("COSMOLOGY_TEST_ABORT"));
+    let out = run(&request, &store, Some("IRRED_TEST_ABORT"));
     assert!(!out.status.success());
     let after = files(&store);
     let added: Vec<_> = after
@@ -195,7 +195,7 @@ fn scientific_identity_strict_parse_and_late_abort() {
     fs::create_dir(&dir.0).unwrap();
     let request = dir.0.join("request.json");
     let store = dir.0.join("store");
-    let bytes=b"{\"schema_version\":2,\"operation\":\"fixture.checked_i64_add.v1\",\"a\":[2],\"b\":[3],\"fault\":0}";
+    let bytes=b"{\"schema_version\":2,\"operation\":\"fixture.checked_i64_add\",\"a\":[2],\"b\":[3],\"fault\":0}";
     fs::write(&request, bytes).unwrap();
     let first = decode(&run(&request, &store, None));
     let receipt = &first["receipt"];
@@ -207,7 +207,7 @@ fn scientific_identity_strict_parse_and_late_abort() {
     for (path, hash) in receipt["runtime_libraries"].as_object().unwrap() {
         assert_eq!(digest(&fs::read(path).unwrap()), hash.as_str().unwrap());
     }
-    fs::write(&request,b"{ \"b\": [3], \"a\": [2], \"operation\": \"fixture.checked_i64_add.v1\", \"schema_version\": 2 }").unwrap();
+    fs::write(&request,b"{ \"b\": [3], \"a\": [2], \"operation\": \"fixture.checked_i64_add\", \"schema_version\": 2 }").unwrap();
     let reordered = decode(&run(&request, &store, None));
     assert_eq!(
         reordered["receipt"]["scientific_specification_digest"],
@@ -221,14 +221,14 @@ fn scientific_identity_strict_parse_and_late_abort() {
         reordered["receipt"]["execution_identity"],
         receipt["execution_identity"]
     );
-    fs::write(&request,b"{\"schema_version\":2,\"operation\":\"fixture.checked_i64_add.v1\",\"a\":[2],\"b\":[3],\"fault\":1}").unwrap();
+    fs::write(&request,b"{\"schema_version\":2,\"operation\":\"fixture.checked_i64_add\",\"a\":[2],\"b\":[3],\"fault\":1}").unwrap();
     let fault = decode(&run(&request, &store, None));
     assert_eq!(fault["receipt"]["scientific_specification_digest"], spec);
     assert_ne!(
         fault["receipt"]["execution_identity"],
         receipt["execution_identity"]
     );
-    for invalid in [b"{\"schema_version\":2,\"schema_version\":2,\"operation\":\"fixture.checked_i64_add.v1\",\"a\":[2],\"b\":[3]}".as_slice(),b"{\"schema_version\":2,\"operation\":\"fixture.checked_i64_add.v1\",\"a\":[2],\"b\":[3],\"ignored\":1}".as_slice()] {
+    for invalid in [b"{\"schema_version\":2,\"schema_version\":2,\"operation\":\"fixture.checked_i64_add\",\"a\":[2],\"b\":[3]}".as_slice(),b"{\"schema_version\":2,\"operation\":\"fixture.checked_i64_add\",\"a\":[2],\"b\":[3],\"ignored\":1}".as_slice()] {
   fs::write(&request,invalid).unwrap();let out=run(&request,&store,None);assert!(!out.status.success());let v=decode(&out);assert_eq!(v["receipt"]["execution"],"failed");assert_eq!(v["result"]["kind"],"failure");
  }
     for args in [
@@ -249,7 +249,7 @@ fn scientific_identity_strict_parse_and_late_abort() {
     let out = run(
         &request,
         &late_store,
-        Some("COSMOLOGY_TEST_ABORT_AFTER_OUTPUT"),
+        Some("IRRED_TEST_ABORT_AFTER_OUTPUT"),
     );
     assert!(!out.status.success());
     let records = files(&late_store);

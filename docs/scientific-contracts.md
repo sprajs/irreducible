@@ -27,3 +27,13 @@ Keep the regression and concise derivation in public tests. Large oracle dumps, 
 Use **exact** when required original inputs and procedures are reproduced, **approximate** for stated substitutions, **conditional** for unresolved conditions, or **blocked** when a necessary asset/capability is missing. Explain the label; never silently substitute author inputs.
 
 For posterior claims, check support, error, diagnostics and sensitivity for the actual estimand. Weak reweighting or an unresolved numerical screen is not a corrected cosmological result. Historical results from another research tree are not automatically results of Irreducible.
+
+## Data and probability semantics
+
+A quantity's role, frame, observer, calibration and measure matter beyond its dimensions. Signed measured flux is valid even where a logarithmic magnitude is undefined. Preserve missing/nonfinite masks; zero is not a replacement for missing data. Source and covariance axes must stay ordered through selection. A covariance principal block represents selected marginal uncertainty; slicing a precision matrix does not. Unknown cross-survey dependence is not a zero block.
+
+Profile scores, relative targets, proper-prior marginal densities and evidence are different statistical objects. A free-offset SN shape profile carries no absolute calibration or H₀ information. An improper flat nuisance measure does not provide normalized evidence. Include coordinate-transform Jacobians where the measure requires them; MAP changes with coordinates. Diagnose rank, identifiability, missing support, consequential tails and nonexistent moments before reporting an estimand. Mathematical zero density is a support result, never a replacement for numerical failure.
+
+Future spectral and detector operators must declare Fλ/Fν and redshift/time Jacobians, source/rest versus foreground/observer attenuation, and photon or energy weighting. Detector area and photon-energy conversion enter exactly once. Preserve absolute flux/conservation checks before introducing a free amplitude. Censoring, retained truncation and population count/intensity likelihoods need their own normalization; selection is not a residual weight.
+
+Decoded format size needs its own allocation bound; compressed file size is insufficient. A supported FITS/HDF/image profile must state scaling, nulls, units, time/frame conventions and decoding scope. Operator uncertainty is separate from fixed linear propagation C′ = W C Wᵀ. These are contracts for future consumers, not claims that all formats/operators are implemented.

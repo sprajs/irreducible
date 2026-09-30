@@ -1,13 +1,13 @@
 #include "irred/fits_reader.hpp"
 #include <limits>
 #include <cstdio>
-#ifdef COSMOLOGY_WITH_CFITSIO
+#ifdef IRRED_WITH_CFITSIO
 #include <fitsio.h>
 #endif
 namespace irred::observations {
 Decoded decode_fits_length(std::span<const std::byte> bytes,const std::string& hash,std::size_t maximum_rows){
  Decoded out;
-#ifndef COSMOLOGY_WITH_CFITSIO
+#ifndef IRRED_WITH_CFITSIO
  (void)bytes;(void)hash;(void)maximum_rows;out.status=DecodeStatus::codec_unavailable;return out;
 #else
  if(bytes.empty()||bytes.size()%2880!=0)return out;

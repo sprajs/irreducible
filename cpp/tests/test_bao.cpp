@@ -35,7 +35,7 @@ int main(int argc, char **argv) {
   try {
     if (argc != 1)
       throw std::runtime_error(
-          "original11 moved to test_current_bao_reference optional guard");
+          "original11 moved to test_bao_reference optional guard");
     (void)argv;
     bao::Policy p;
     p.background.integration =

@@ -29,14 +29,14 @@ pub(crate) struct Prepared(pub(crate) *mut c_void);
 impl Drop for Prepared {
     fn drop(&mut self) {
         unsafe {
-            cosmo_observation_destroy(self.0);
+            irred_observation_destroy(self.0);
         }
     }
 }
 impl Prepared {
     pub(crate) fn retained_bytes(&self) -> Result<usize, String> {
         let mut bytes = 0;
-        let transport = unsafe { cosmo_observation_retained_bytes(self.0, &mut bytes) };
+        let transport = unsafe { irred_observation_retained_bytes(self.0, &mut bytes) };
         if transport != OK {
             return Err(format!("CORE_STATUS_{transport}"));
         }
@@ -44,7 +44,7 @@ impl Prepared {
     }
     pub(crate) fn source_view(&self) -> Result<SourceView<'_>, String> {
         let mut raw = std::mem::MaybeUninit::<ObservationDescriptor>::uninit();
-        if unsafe { cosmo_observation_source_view(self.0, raw.as_mut_ptr()) } != OK {
+        if unsafe { irred_observation_source_view(self.0, raw.as_mut_ptr()) } != OK {
             return Err("INVALID_SOURCE_VIEW".into());
         }
         let descriptor = unsafe { raw.assume_init() };
@@ -202,7 +202,7 @@ pub(crate) fn prepare_shared_bounded(
         maximum_string_bytes: policy[2],
     };
     let mut preparation_bytes = 0;
-    let preflight = unsafe { cosmo_observation_preparation_bytes(&d, &mut preparation_bytes) };
+    let preflight = unsafe { irred_observation_preparation_bytes(&d, &mut preparation_bytes) };
     if preflight != OK {
         return Err(format!("CORE_STATUS_{preflight}"));
     }
@@ -211,7 +211,7 @@ pub(crate) fn prepare_shared_bounded(
     }
     let mut raw = ptr::null_mut();
     let mut status = u32::MAX;
-    let transport = unsafe { cosmo_prepare_observations(&d, &p, &mut raw, &mut status) };
+    let transport = unsafe { irred_prepare_observations(&d, &p, &mut raw, &mut status) };
     // Defensive adoption even if a faulty native implementation returns an owner on failure.
     let owned = Prepared(raw);
     if transport != OK {

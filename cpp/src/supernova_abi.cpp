@@ -23,30 +23,30 @@ bool add(size_t &bytes, size_t count, size_t width) {
   bytes += count * width;
   return true;
 }
-cosmo_bytes text(std::string_view s) {
+irred_bytes text(std::string_view s) {
   return {reinterpret_cast<const uint8_t *>(s.data()), s.size()};
 }
-cosmo_strings strings(const std::vector<cosmo_bytes> &v) {
-  return {v.data(), v.size(), v.size() * sizeof(cosmo_bytes)};
+irred_strings strings(const std::vector<irred_bytes> &v) {
+  return {v.data(), v.size(), v.size() * sizeof(irred_bytes)};
 }
-cosmo_f64_buffer doubles(const std::vector<double> &v) {
-  return {sizeof(cosmo_f64_buffer), COSMO_ABI_VERSION, 2, 0, v.data(), v.size(),
+irred_f64_buffer doubles(const std::vector<double> &v) {
+  return {sizeof(irred_f64_buffer), IRRED_ABI_VERSION, 2, 0, v.data(), v.size(),
           v.size() * sizeof(double)};
 }
-cosmo_u64_buffer indices(const std::vector<size_t> &v) {
+irred_u64_buffer indices(const std::vector<size_t> &v) {
   static_assert(sizeof(size_t) == sizeof(uint64_t));
   return {reinterpret_cast<const uint64_t *>(v.data()), v.size(),
           v.size() * sizeof(uint64_t)};
 }
-cosmo_output_state state(const sn::OutputState &s) {
+irred_output_state state(const sn::OutputState &s) {
   return {(uint32_t)s.availability, (uint32_t)s.status,
           (uint32_t)s.numerical_status, 0};
 }
 bool precision(uint32_t a, double b) {
   return a <= 1 && std::isfinite(b) && b > 0;
 }
-bool projection(const cosmo_projection_policy &p) {
-  if (p.struct_size != sizeof(p) || p.abi_version != COSMO_ABI_VERSION ||
+bool projection(const irred_projection_policy &p) {
+  if (p.struct_size != sizeof(p) || p.abi_version != IRRED_ABI_VERSION ||
       p.has_integration > 1 || p.maximum_depth > 60 ||
       p.maximum_queries > 4096 || p.maximum_callbacks > SIZE_MAX ||
       p.maximum_segment_visits > SIZE_MAX ||
@@ -60,7 +60,7 @@ bool projection(const cosmo_projection_policy &p) {
          p.relative_tolerance >= 0 &&
          (p.absolute_tolerance > 0 || p.relative_tolerance > 0);
 }
-c::EvaluationPolicy native_projection(const cosmo_projection_policy &p,
+c::EvaluationPolicy native_projection(const irred_projection_policy &p,
                                       size_t bytes) {
   c::EvaluationPolicy q;
   q.maximum_queries = p.maximum_queries;
@@ -73,21 +73,21 @@ c::EvaluationPolicy native_projection(const cosmo_projection_policy &p,
         (size_t)p.maximum_evaluations_per_integral, p.maximum_depth};
   return q;
 }
-bool model_descriptor(const cosmo_current_supernova_model &m) {
+bool model_descriptor(const irred_supernova_model &m) {
   const auto &e = m.expansion;
   const auto &b = e.parameters;
   const auto &f = m.source_effect;
   const auto &a = f.parameters;
   const size_t expected = e.model == 2 ? 3 : e.model == 3 ? 5 : 1;
-  return m.struct_size == sizeof(m) && m.abi_version == COSMO_ABI_VERSION &&
+  return m.struct_size == sizeof(m) && m.abi_version == IRRED_ABI_VERSION &&
          !m.geometry && !m.reserved && e.struct_size == sizeof(e) &&
-         e.abi_version == COSMO_ABI_VERSION && !e.reserved && e.model <= 3 &&
-         b.struct_size == sizeof(b) && b.abi_version == COSMO_ABI_VERSION &&
+         e.abi_version == IRRED_ABI_VERSION && !e.reserved && e.model <= 3 &&
+         b.struct_size == sizeof(b) && b.abi_version == IRRED_ABI_VERSION &&
          b.element_type == 2 && !b.reserved && b.length == expected &&
          descriptor(b.data, b.length, b.byte_length) &&
-         f.struct_size == sizeof(f) && f.abi_version == COSMO_ABI_VERSION &&
+         f.struct_size == sizeof(f) && f.abi_version == IRRED_ABI_VERSION &&
          !f.reserved && f.effect <= 1 && a.struct_size == sizeof(a) &&
-         a.abi_version == COSMO_ABI_VERSION && a.element_type == 2 &&
+         a.abi_version == IRRED_ABI_VERSION && a.element_type == 2 &&
          !a.reserved && a.length == f.effect &&
          descriptor(a.data, a.length, a.byte_length);
 }
@@ -107,10 +107,10 @@ struct Core {
   std::shared_ptr<const irred::observations::Prepared> source;
   sn::Consumer native;
   uint32_t arithmetic = 0;
-  std::vector<cosmo_bytes> measurements, events, axes, selected_ids;
-  std::vector<cosmo_magnitude_coordinate> coordinates;
-  cosmo_current_supernova_view view{};
-  void initialize(cosmo_observation_descriptor raw) {
+  std::vector<irred_bytes> measurements, events, axes, selected_ids;
+  std::vector<irred_magnitude_coordinate> coordinates;
+  irred_supernova_view view{};
+  void initialize(irred_observation_descriptor raw) {
     auto fill = [](const auto &input, auto &output) {
       output.reserve(input.size());
       for (const auto &s : input)
@@ -121,7 +121,7 @@ struct Core {
     fill(s.event_ids, events);
     fill(s.uncertainty_axis_ids, axes);
     view.struct_size = sizeof(view);
-    view.abi_version = COSMO_ABI_VERSION;
+    view.abi_version = IRRED_ABI_VERSION;
     view.status = (uint32_t)native.status();
     view.preparation_status = (uint32_t)native.preparation_status();
     view.preparation_numerical_status =
@@ -136,14 +136,14 @@ struct Core {
     coordinates.reserve(sel.coordinates.size());
     for (const auto &q : sel.coordinates)
       coordinates.push_back(
-          {sizeof(cosmo_magnitude_coordinate), COSMO_ABI_VERSION, q.z_expansion,
+          {sizeof(irred_magnitude_coordinate), IRRED_ABI_VERSION, q.z_expansion,
            q.observer.redshift, (uint32_t)q.observer.convention, 0});
     view.ordered_ids = strings(selected_ids);
     view.selected_source_indices = indices(sel.source_indices);
     view.coordinates = coordinates.data();
     view.coordinate_count = coordinates.size();
     view.coordinate_byte_length =
-        coordinates.size() * sizeof(cosmo_magnitude_coordinate);
+        coordinates.size() * sizeof(irred_magnitude_coordinate);
     view.arithmetic_id =
         text(arithmetic ? "F02/longdouble-cpu/v1" : "F02/binary64-legacy/v1");
     view.score_id = text(sn::Consumer::score_id);
@@ -155,36 +155,36 @@ struct Core {
         !add(bytes,
              measurements.capacity() + events.capacity() + axes.capacity() +
                  selected_ids.capacity(),
-             sizeof(cosmo_bytes)) ||
-        !add(bytes, coordinates.capacity(), sizeof(cosmo_magnitude_coordinate)))
+             sizeof(irred_bytes)) ||
+        !add(bytes, coordinates.capacity(), sizeof(irred_magnitude_coordinate)))
       throw std::bad_alloc();
     view.retained_bytes = bytes;
   }
 };
 } // namespace
-struct cosmo_current_supernova {
+struct irred_supernova {
   std::shared_ptr<Core> core;
 };
-struct cosmo_current_supernova_result {
+struct irred_supernova_result {
   std::shared_ptr<Core> core;
   sn::BatchResult native;
   std::vector<std::vector<double>> expansion_parameters, effect_parameters;
-  std::vector<cosmo_current_supernova_row> rows;
+  std::vector<irred_supernova_row> rows;
   uint32_t numerical_status = (uint32_t)num::Status::ok;
 };
-extern "C" uint32_t cosmo_current_supernova_prepare(
-    const cosmo_prepared *source, const cosmo_magnitude_selection *s,
-    const cosmo_current_supernova_preparation_policy *p,
-    cosmo_current_supernova **out) {
+extern "C" uint32_t irred_supernova_prepare(
+    const irred_prepared *source, const irred_magnitude_selection *s,
+    const irred_supernova_preparation_policy *p,
+    irred_supernova **out) {
   if (aligned(out))
     *out = nullptr;
   if (!aligned(out) ||
       (!source || reinterpret_cast<uintptr_t>(source) % alignof(void *) != 0) ||
       !aligned(s) || !aligned(p))
-    return COSMO_INVALID_INPUT;
-  if (s->abi_version != COSMO_ABI_VERSION ||
-      p->abi_version != COSMO_ABI_VERSION)
-    return COSMO_ABI_MISMATCH;
+    return IRRED_INVALID_INPUT;
+  if (s->abi_version != IRRED_ABI_VERSION ||
+      p->abi_version != IRRED_ABI_VERSION)
+    return IRRED_ABI_MISMATCH;
   if (s->struct_size != sizeof(*s) || p->struct_size != sizeof(*p) ||
       s->reserved || p->reserved || s->kind > 1 ||
       !precision(p->arithmetic, p->maximum_forward_sensitivity) ||
@@ -195,41 +195,41 @@ extern "C" uint32_t cosmo_current_supernova_prepare(
                   s->source_indices.byte_length) ||
       !descriptor(s->coordinates, s->coordinate_count,
                   s->coordinate_byte_length))
-    return COSMO_INVALID_INPUT;
+    return IRRED_INVALID_INPUT;
   if ((s->kind == 1 && (s->source_indices.length || s->coordinate_count)) ||
       (s->kind == 0 && s->source_indices.length != s->coordinate_count))
-    return COSMO_INVALID_INPUT;
+    return IRRED_INVALID_INPUT;
   try {
     auto shared = shared_native_observations(source);
     if (!shared)
-      return COSMO_INVALID_INPUT;
+      return IRRED_INVALID_INPUT;
     const auto &raw = shared->source();
     const size_t count = s->kind == 1 ? raw.values.size() : s->coordinate_count;
     if (count > 4096 ||
         (s->kind == 0 &&
          (count > p->maximum_selected_rows ||
           (count && count > p->maximum_matrix_elements / count))))
-      return COSMO_INVALID_INPUT;
+      return IRRED_INVALID_INPUT;
     auto peak = sn::preparation_payload_bound(*shared, count,
                                               (num::Arithmetic)p->arithmetic);
-    size_t wrapper = sizeof(Core) + sizeof(cosmo_current_supernova);
-    if (!peak || !add(wrapper, raw.values.size(), 3 * sizeof(cosmo_bytes)) ||
+    size_t wrapper = sizeof(Core) + sizeof(irred_supernova);
+    if (!peak || !add(wrapper, raw.values.size(), 3 * sizeof(irred_bytes)) ||
         !add(wrapper, count,
-             sizeof(cosmo_bytes) + sizeof(cosmo_magnitude_coordinate)) ||
+             sizeof(irred_bytes) + sizeof(irred_magnitude_coordinate)) ||
         wrapper > p->maximum_native_bytes ||
         *peak > p->maximum_native_bytes - wrapper)
-      return COSMO_INVALID_INPUT;
+      return IRRED_INVALID_INPUT;
     size_t chars = 0;
     for (const auto &id : raw.measurement_ids)
       if (!add(chars, id.size(), 1))
-        return COSMO_INVALID_INPUT;
+        return IRRED_INVALID_INPUT;
     for (const auto *t :
          {&raw.table_sha256, &raw.uncertainty_sha256, &raw.ordering_provenance,
           &raw.calibration_provenance, &raw.dependence_provenance})
       if (!add(chars, t->size(), 1))
-        return COSMO_INVALID_INPUT;
+        return IRRED_INVALID_INPUT;
     if (chars > p->maximum_string_bytes)
-      return COSMO_INVALID_INPUT;
+      return IRRED_INVALID_INPUT;
     sn::SelectedMagnitudeSource selected;
     if (s->kind == 1)
       selected = sn::pantheon_zhd_gt_001(shared);
@@ -243,9 +243,9 @@ extern "C" uint32_t cosmo_current_supernova_prepare(
         const auto &q = s->coordinates[i];
         if (index >= raw.values.size() ||
             (i && index <= s->source_indices.data[i - 1]) ||
-            q.struct_size != sizeof(q) || q.abi_version != COSMO_ABI_VERSION ||
+            q.struct_size != sizeof(q) || q.abi_version != IRRED_ABI_VERSION ||
             q.reserved || q.observer_convention > 1)
-          return COSMO_INVALID_INPUT;
+          return IRRED_INVALID_INPUT;
         selected.source_indices.push_back(index);
         selected.ordered_ids.push_back(raw.measurement_ids[index]);
         selected.coordinates.push_back(
@@ -261,108 +261,108 @@ extern "C" uint32_t cosmo_current_supernova_prepare(
     policy.maximum_native_bytes = p->maximum_native_bytes - wrapper;
     auto native = sn::prepare(std::move(selected), policy);
     if (native.status() == sn::Status::work_limit)
-      return COSMO_INVALID_INPUT;
-    cosmo_observation_descriptor raw_view{};
-    if (cosmo_observation_source_view(source, &raw_view) != COSMO_OK)
-      return COSMO_INVALID_INPUT;
+      return IRRED_INVALID_INPUT;
+    irred_observation_descriptor raw_view{};
+    if (irred_observation_source_view(source, &raw_view) != IRRED_OK)
+      return IRRED_INVALID_INPUT;
     auto core = std::make_shared<Core>();
     core->source = std::move(shared);
     core->native = std::move(native);
     core->arithmetic = p->arithmetic;
     core->initialize(raw_view);
-    auto owner = std::make_unique<cosmo_current_supernova>();
+    auto owner = std::make_unique<irred_supernova>();
     owner->core = std::move(core);
     *out = owner.release();
-    return COSMO_OK;
+    return IRRED_OK;
   } catch (const std::bad_alloc &) {
-    return COSMO_ALLOCATION_FAILURE;
+    return IRRED_ALLOCATION_FAILURE;
   } catch (...) {
-    return COSMO_EXCEPTION;
+    return IRRED_EXCEPTION;
   }
 }
 extern "C" uint32_t
-cosmo_current_supernova_source_view(const cosmo_current_supernova *s,
-                                    cosmo_current_supernova_view *v) {
+irred_supernova_source_view(const irred_supernova *s,
+                                    irred_supernova_view *v) {
   if (aligned(v))
     *v = {};
   if (!aligned(s) || !aligned(v))
-    return COSMO_INVALID_INPUT;
+    return IRRED_INVALID_INPUT;
   *v = s->core->view;
-  return COSMO_OK;
+  return IRRED_OK;
 }
 extern "C" uint32_t
-cosmo_current_supernova_destroy(cosmo_current_supernova *s) {
+irred_supernova_destroy(irred_supernova *s) {
   if (!s)
-    return COSMO_OK;
+    return IRRED_OK;
   if (!aligned(s))
-    return COSMO_INVALID_INPUT;
+    return IRRED_INVALID_INPUT;
   delete s;
-  return COSMO_OK;
+  return IRRED_OK;
 }
-extern "C" uint32_t cosmo_current_supernova_evaluate(
-    const cosmo_current_supernova *source,
-    const cosmo_current_supernova_batch *b,
-    const cosmo_current_supernova_evaluation_policy *p,
-    cosmo_current_supernova_result **out) {
+extern "C" uint32_t irred_supernova_evaluate(
+    const irred_supernova *source,
+    const irred_supernova_batch *b,
+    const irred_supernova_evaluation_policy *p,
+    irred_supernova_result **out) {
   if (aligned(out))
     *out = nullptr;
   if (!aligned(out) || !aligned(source) || !aligned(b) || !aligned(p))
-    return COSMO_INVALID_INPUT;
-  if (b->abi_version != COSMO_ABI_VERSION ||
-      p->abi_version != COSMO_ABI_VERSION)
-    return COSMO_ABI_MISMATCH;
+    return IRRED_INVALID_INPUT;
+  if (b->abi_version != IRRED_ABI_VERSION ||
+      p->abi_version != IRRED_ABI_VERSION)
+    return IRRED_ABI_MISMATCH;
   if (b->struct_size != sizeof(*b) || p->struct_size != sizeof(*p) ||
       !precision(p->arithmetic, p->maximum_forward_sensitivity) ||
       !p->requested || (p->requested & ~63u) || !projection(p->projection) ||
       p->maximum_models > 65536 || p->maximum_array_elements > 1048576 ||
       p->maximum_native_bytes > SIZE_MAX || b->model_count > 65536 ||
       !descriptor(b->models, b->model_count, b->model_byte_length))
-    return COSMO_INVALID_INPUT;
+    return IRRED_INVALID_INPUT;
   const auto selected_rows = source->core->native.selected_source().coordinates.size();
   if (selected_rows && b->model_count > 1048576 / selected_rows)
-    return COSMO_INVALID_INPUT;
+    return IRRED_INVALID_INPUT;
   try {
-    auto result = std::make_unique<cosmo_current_supernova_result>();
+    auto result = std::make_unique<irred_supernova_result>();
     if (source->core->native.status() != sn::Status::ok) {
       result->native.status = source->core->native.status();
       result->numerical_status =
           (uint32_t)source->core->native.preparation_numerical_status();
       result->core = source->core;
       *out = result.release();
-      return COSMO_OK;
+      return IRRED_OK;
     }
     if (p->arithmetic != source->core->arithmetic) {
       result->native.status = sn::Status::incompatible_metadata;
       result->numerical_status = (uint32_t)num::Status::invalid_input;
       result->core = source->core;
       *out = result.release();
-      return COSMO_OK;
+      return IRRED_OK;
     }
     const size_t count = b->model_count,
                  n = source->core->native.selected_source().coordinates.size();
     const unsigned arrays = bool(p->requested & 2u) + bool(p->requested & 4u) +
                             bool(p->requested & 8u) + bool(p->requested & 16u);
     if (n && count > SIZE_MAX / n)
-      return COSMO_INVALID_INPUT;
+      return IRRED_INVALID_INPUT;
     const auto elements = count * n;
     if (arrays && elements > SIZE_MAX / arrays)
-      return COSMO_INVALID_INPUT;
-    size_t bytes = sizeof(cosmo_current_supernova_result);
+      return IRRED_INVALID_INPUT;
+    size_t bytes = sizeof(irred_supernova_result);
     if (!add(bytes, count,
-             sizeof(cosmo_current_supernova_row) + sizeof(sn::ModelPoint) +
+             sizeof(irred_supernova_row) + sizeof(sn::ModelPoint) +
                  2 * sizeof(std::vector<double>) + 6 * sizeof(double)))
-      return COSMO_INVALID_INPUT;
+      return IRRED_INVALID_INPUT;
     if (count > p->maximum_models ||
         arrays * elements > p->maximum_array_elements ||
         bytes > p->maximum_native_bytes) {
       result->native.status = sn::Status::work_limit;
       result->numerical_status = (uint32_t)num::Status::work_limit;
       *out = result.release();
-      return COSMO_OK;
+      return IRRED_OK;
     }
     for (size_t i = 0; i < count; ++i)
       if (!model_descriptor(b->models[i]))
-        return COSMO_INVALID_INPUT;
+        return IRRED_INVALID_INPUT;
     std::vector<sn::ModelPoint> models;
     models.reserve(count);
     result->expansion_parameters.reserve(count);
@@ -400,9 +400,9 @@ extern "C" uint32_t cosmo_current_supernova_evaluate(
       result->numerical_status = (uint32_t)num::Status::invalid_input;
     for (size_t i = 0; i < result->native.slots.size(); ++i) {
       const auto &s = result->native.slots[i];
-      cosmo_current_supernova_row r{};
+      irred_supernova_row r{};
       r.struct_size = sizeof(r);
-      r.abi_version = COSMO_ABI_VERSION;
+      r.abi_version = IRRED_ABI_VERSION;
       r.model_index = i;
       r.source = b->models[i];
       r.source.expansion.parameters.data =
@@ -460,16 +460,16 @@ extern "C" uint32_t cosmo_current_supernova_evaluate(
       result->rows.push_back(r);
     }
     *out = result.release();
-    return COSMO_OK;
+    return IRRED_OK;
   } catch (const std::bad_alloc &) {
-    return COSMO_ALLOCATION_FAILURE;
+    return IRRED_ALLOCATION_FAILURE;
   } catch (...) {
-    return COSMO_EXCEPTION;
+    return IRRED_EXCEPTION;
   }
 }
-extern "C" uint32_t cosmo_current_supernova_result_view(
-    const cosmo_current_supernova_result *r,
-    const cosmo_current_supernova_row **rows, uint64_t *count, uint32_t *status,
+extern "C" uint32_t irred_supernova_result_view(
+    const irred_supernova_result *r,
+    const irred_supernova_row **rows, uint64_t *count, uint32_t *status,
     uint32_t *numerical, uint64_t *callbacks, uint64_t *segments) {
   if (aligned(rows))
     *rows = nullptr;
@@ -485,36 +485,36 @@ extern "C" uint32_t cosmo_current_supernova_result_view(
     *segments = 0;
   if (!aligned(r) || !aligned(rows) || !aligned(count) || !aligned(status) ||
       !aligned(numerical) || !aligned(callbacks) || !aligned(segments))
-    return COSMO_INVALID_INPUT;
+    return IRRED_INVALID_INPUT;
   *rows = r->rows.data();
   *count = r->rows.size();
   *status = (uint32_t)r->native.status;
   *numerical = r->numerical_status;
   *callbacks = r->native.work.callbacks;
   *segments = r->native.work.segment_visits;
-  return COSMO_OK;
+  return IRRED_OK;
 }
-extern "C" uint32_t cosmo_current_supernova_result_source_view(
-    const cosmo_current_supernova_result *r, cosmo_current_supernova_view *v,
+extern "C" uint32_t irred_supernova_result_source_view(
+    const irred_supernova_result *r, irred_supernova_view *v,
     uint32_t *available) {
   if (aligned(v))
     *v = {};
   if (aligned(available))
     *available = 0;
   if (!aligned(r) || !aligned(v) || !aligned(available))
-    return COSMO_INVALID_INPUT;
+    return IRRED_INVALID_INPUT;
   if (r->core) {
     *v = r->core->view;
     *available = 1;
   }
-  return COSMO_OK;
+  return IRRED_OK;
 }
 extern "C" uint32_t
-cosmo_current_supernova_result_destroy(cosmo_current_supernova_result *r) {
+irred_supernova_result_destroy(irred_supernova_result *r) {
   if (!r)
-    return COSMO_OK;
+    return IRRED_OK;
   if (!aligned(r))
-    return COSMO_INVALID_INPUT;
+    return IRRED_INVALID_INPUT;
   delete r;
-  return COSMO_OK;
+  return IRRED_OK;
 }

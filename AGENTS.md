@@ -1,8 +1,8 @@
 # Working in Irreducible
 
-Irreducible is a personal, agent-first physics provider. Rust owns non-interactive configuration, acquisition, structural parsing and records; C++20 owns shared equations, physical models, numerical kernels and concrete statistical consumers. External fitting and orchestration are valid consumers. A complete inference ecosystem is not required. Reusable supernova calculations are the first substantial target; visualization belongs in external tools.
+Irreducible is a simulation-first, agent-operated physics engine in development. Rust owns non-interactive configuration, acquisition, structural parsing and records; C++20 owns shared equations, physical models, numerical kernels and concrete statistical consumers. External fitting and orchestration are valid consumers. A complete inference ecosystem is not required. Shared theory, physical state, source populations, propagation and observational operators should serve simulations and later joint fitting. External fitters remain valid; visualization belongs in external tools.
 
-Use [docs/README.md](docs/README.md), [capabilities](docs/capabilities.md) and the relevant guide when their context helps; inspect actual built discovery/code before claiming implementation. Local planning/history is context, not a feature checklist. Preserve unrelated work and original inputs.
+Use the single active [roadmap](docs/roadmap.md), [gaps](docs/gaps.md), [docs/README.md](docs/README.md), [capabilities](docs/capabilities.md) and the relevant guide when their context helps; inspect actual built discovery/code before claiming implementation. Local planning/history is context, not a feature checklist. Preserve unrelated work and original inputs.
 
 ## Lasting design rules
 

@@ -92,11 +92,6 @@ pub fn supernova_status_name(value: u32) -> Option<&'static str> {
         _ => None,
     }
 }
-pub fn piecewise_tag_name(group: &str, value: u32) -> Option<&'static str> {
-    match (group, value) {
-        _ => None,
-    }
-}
 pub const BAO_OBSERVABLE_DM_OVER_RS: u32 = 0;
 pub const BAO_OBSERVABLE_DH_OVER_RS: u32 = 1;
 pub const BAO_OBSERVABLE_DV_OVER_RS: u32 = 2;
@@ -111,11 +106,6 @@ pub fn bao_tag_id(group: &str, label: &str) -> Option<u32> {
         ("role", "released_fitted_distance_summary") => Some(0),
         ("role", "synthetic_control") => Some(1),
         ("covariance_unit", "ratio_squared") => Some(0),
-        _ => None,
-    }
-}
-pub fn background_v2_tag_id(group: &str, label: &str) -> Option<u32> {
-    match (group, label) {
         _ => None,
     }
 }
@@ -593,7 +583,7 @@ pub struct SourceEffectSpec {
 }
 #[allow(non_snake_case)]
 #[repr(C)]
-pub struct CurrentSupernovaModel {
+pub struct SupernovaModel {
     pub struct_size: u32,
     pub abi_version: u32,
     pub geometry: u32,
@@ -625,7 +615,7 @@ pub struct MagnitudeSelection {
 }
 #[allow(non_snake_case)]
 #[repr(C)]
-pub struct CurrentSupernovaPreparationPolicy {
+pub struct SupernovaPreparationPolicy {
     pub struct_size: u32,
     pub abi_version: u32,
     pub arithmetic: u32,
@@ -638,7 +628,7 @@ pub struct CurrentSupernovaPreparationPolicy {
 }
 #[allow(non_snake_case)]
 #[repr(C)]
-pub struct CurrentSupernovaEvaluationPolicy {
+pub struct SupernovaEvaluationPolicy {
     pub struct_size: u32,
     pub abi_version: u32,
     pub arithmetic: u32,
@@ -651,16 +641,16 @@ pub struct CurrentSupernovaEvaluationPolicy {
 }
 #[allow(non_snake_case)]
 #[repr(C)]
-pub struct CurrentSupernovaBatch {
+pub struct SupernovaBatch {
     pub struct_size: u32,
     pub abi_version: u32,
-    pub models: *const CurrentSupernovaModel,
+    pub models: *const SupernovaModel,
     pub model_count: u64,
     pub model_byte_length: u64,
 }
 #[allow(non_snake_case)]
 #[repr(C)]
-pub struct CurrentSupernovaView {
+pub struct SupernovaView {
     pub struct_size: u32,
     pub abi_version: u32,
     pub status: u32,
@@ -702,11 +692,11 @@ pub struct ProfileDiagnostics {
 }
 #[allow(non_snake_case)]
 #[repr(C)]
-pub struct CurrentSupernovaRow {
+pub struct SupernovaRow {
     pub struct_size: u32,
     pub abi_version: u32,
     pub model_index: u64,
-    pub source: CurrentSupernovaModel,
+    pub source: SupernovaModel,
     pub status: u32,
     pub background_status: u32,
     pub numerical_status: u32,
@@ -730,7 +720,7 @@ pub struct CurrentSupernovaRow {
 }
 #[allow(non_snake_case)]
 #[repr(C)]
-pub struct CurrentBaoModel {
+pub struct BaoModel {
     pub struct_size: u32,
     pub abi_version: u32,
     pub geometry: u32,
@@ -740,7 +730,7 @@ pub struct CurrentBaoModel {
 }
 #[allow(non_snake_case)]
 #[repr(C)]
-pub struct CurrentBaoPreparationPolicy {
+pub struct BaoPreparationPolicy {
     pub struct_size: u32,
     pub abi_version: u32,
     pub arithmetic: u32,
@@ -753,7 +743,7 @@ pub struct CurrentBaoPreparationPolicy {
 }
 #[allow(non_snake_case)]
 #[repr(C)]
-pub struct CurrentBaoEvaluationPolicy {
+pub struct BaoEvaluationPolicy {
     pub struct_size: u32,
     pub abi_version: u32,
     pub arithmetic: u32,
@@ -766,10 +756,10 @@ pub struct CurrentBaoEvaluationPolicy {
 }
 #[allow(non_snake_case)]
 #[repr(C)]
-pub struct CurrentBaoBatch {
+pub struct BaoBatch {
     pub struct_size: u32,
     pub abi_version: u32,
-    pub models: *const CurrentBaoModel,
+    pub models: *const BaoModel,
     pub model_count: u64,
     pub model_byte_length: u64,
 }
@@ -797,7 +787,7 @@ pub struct BaoSource {
 }
 #[allow(non_snake_case)]
 #[repr(C)]
-pub struct CurrentBaoView {
+pub struct BaoView {
     pub struct_size: u32,
     pub abi_version: u32,
     pub status: u32,
@@ -824,11 +814,11 @@ pub struct DensityPayload {
 }
 #[allow(non_snake_case)]
 #[repr(C)]
-pub struct CurrentBaoRow {
+pub struct BaoRow {
     pub struct_size: u32,
     pub abi_version: u32,
     pub model_index: u64,
-    pub source: CurrentBaoModel,
+    pub source: BaoModel,
     pub background_status: u32,
     pub numerical_status: u32,
     pub predictions_state: OutputState,
@@ -843,33 +833,33 @@ pub struct CurrentBaoRow {
     pub arithmetic_id: Bytes,
 }
 unsafe extern "C" {
-    pub fn cosmo_add(
+    pub fn irred_add(
         a: *const Buffer,
         b: *const Buffer,
         fault: u32,
         out: *mut *mut std::ffi::c_void,
     ) -> u32;
-    pub fn cosmo_result_view(r: *const std::ffi::c_void, data: *mut *const i64, n: *mut u64)
+    pub fn irred_result_view(r: *const std::ffi::c_void, data: *mut *const i64, n: *mut u64)
         -> u32;
-    pub fn cosmo_result_destroy(r: *mut std::ffi::c_void) -> u32;
-    pub fn cosmo_convert_quantities(
+    pub fn irred_result_destroy(r: *mut std::ffi::c_void) -> u32;
+    pub fn irred_convert_quantities(
         values: *const F64Buffer,
         source: *const QuantityMetadata,
         target: *const QuantityMetadata,
         out: *mut *mut std::ffi::c_void,
     ) -> u32;
-    pub fn cosmo_result_f64_view(
+    pub fn irred_result_f64_view(
         r: *const std::ffi::c_void,
         data: *mut *const f64,
         status: *mut *const u32,
         n: *mut u64,
     ) -> u32;
-    pub fn cosmo_numerics_evaluate(
+    pub fn irred_numerics_evaluate(
         operation: u32,
         values: *const F64Buffer,
         out: *mut *mut std::ffi::c_void,
     ) -> u32;
-    pub fn cosmo_result_numerics_view(
+    pub fn irred_result_numerics_view(
         r: *const std::ffi::c_void,
         data: *mut *const f64,
         status: *mut *const u32,
@@ -877,31 +867,31 @@ unsafe extern "C" {
         evaluations: *mut *const u64,
         n: *mut u64,
     ) -> u32;
-    pub fn cosmo_prepare_observations(
+    pub fn irred_prepare_observations(
         descriptor: *const ObservationDescriptor,
         policy: *const ObservationPolicy,
         out: *mut *mut std::ffi::c_void,
         semantic_status: *mut u32,
     ) -> u32;
-    pub fn cosmo_observation_source_view(
+    pub fn irred_observation_source_view(
         prepared: *const std::ffi::c_void,
         descriptor: *mut ObservationDescriptor,
     ) -> u32;
-    pub fn cosmo_observation_select(
+    pub fn irred_observation_select(
         prepared: *const std::ffi::c_void,
         selection: u32,
         out: *mut *mut std::ffi::c_void,
         semantic_status: *mut u32,
     ) -> u32;
-    pub fn cosmo_result_selection_view(
+    pub fn irred_result_selection_view(
         result: *const std::ffi::c_void,
         mask: *mut *const u8,
         mask_length: *mut u64,
         indices: *mut *const u64,
         index_length: *mut u64,
     ) -> u32;
-    pub fn cosmo_observation_destroy(prepared: *mut std::ffi::c_void) -> u32;
-    pub fn cosmo_gaussian_prepare(
+    pub fn irred_observation_destroy(prepared: *mut std::ffi::c_void) -> u32;
+    pub fn irred_gaussian_prepare(
         observations: *const std::ffi::c_void,
         selection: u32,
         policy: *const GaussianPolicy,
@@ -909,7 +899,7 @@ unsafe extern "C" {
         semantic: *mut u32,
         numerical_status: *mut u32,
     ) -> u32;
-    pub fn cosmo_gaussian_proper_offset(
+    pub fn irred_gaussian_proper_offset(
         gaussian: *const std::ffi::c_void,
         prior: *const GaussianPrior,
         policy: *const GaussianPolicy,
@@ -917,39 +907,39 @@ unsafe extern "C" {
         semantic: *mut u32,
         numerical_status: *mut u32,
     ) -> u32;
-    pub fn cosmo_gaussian_source_view(
+    pub fn irred_gaussian_source_view(
         gaussian: *const std::ffi::c_void,
         out: *mut GaussianView,
     ) -> u32;
-    pub fn cosmo_gaussian_prior_view(
+    pub fn irred_gaussian_prior_view(
         gaussian: *const std::ffi::c_void,
         index: u64,
         out: *mut GaussianPrior,
     ) -> u32;
-    pub fn cosmo_gaussian_evaluate(
+    pub fn irred_gaussian_evaluate(
         gaussian: *const std::ffi::c_void,
         batch: *const GaussianBatch,
         policy: *const GaussianPolicy,
         out: *mut *mut std::ffi::c_void,
     ) -> u32;
-    pub fn cosmo_gaussian_result_view(
+    pub fn irred_gaussian_result_view(
         result: *const std::ffi::c_void,
         rows: *mut *const GaussianRow,
         length: *mut u64,
     ) -> u32;
-    pub fn cosmo_gaussian_destroy(gaussian: *mut std::ffi::c_void) -> u32;
-    pub fn cosmo_gaussian_result_destroy(result: *mut std::ffi::c_void) -> u32;
-    pub fn cosmo_gaussian_selection_view(
+    pub fn irred_gaussian_destroy(gaussian: *mut std::ffi::c_void) -> u32;
+    pub fn irred_gaussian_result_destroy(result: *mut std::ffi::c_void) -> u32;
+    pub fn irred_gaussian_selection_view(
         gaussian: *const std::ffi::c_void,
         index: u64,
         out: *mut GaussianSelection,
     ) -> u32;
-    pub fn cosmo_expansion_evaluate(
+    pub fn irred_expansion_evaluate(
         batch: *const ExpansionBatch,
         policy: *const ExpansionPolicy,
         out: *mut *mut std::ffi::c_void,
     ) -> u32;
-    pub fn cosmo_expansion_result_view(
+    pub fn irred_expansion_result_view(
         result: *const std::ffi::c_void,
         rows: *mut *const ExpansionRow,
         count: *mut u64,
@@ -958,92 +948,89 @@ unsafe extern "C" {
         callbacks: *mut u64,
         segment_visits: *mut u64,
     ) -> u32;
-    pub fn cosmo_expansion_result_models(
+    pub fn irred_expansion_result_models(
         result: *const std::ffi::c_void,
         models: *mut *const ExpansionModelView,
         count: *mut u64,
         available: *mut u32,
     ) -> u32;
-    pub fn cosmo_expansion_result_queries(
+    pub fn irred_expansion_result_queries(
         result: *const std::ffi::c_void,
         queries: *mut *const ExpansionRequest,
         count: *mut u64,
         available: *mut u32,
     ) -> u32;
-    pub fn cosmo_expansion_result_nodes(
+    pub fn irred_expansion_result_nodes(
         result: *const std::ffi::c_void,
         nodes: *mut *const ExpansionNode,
         count: *mut u64,
     ) -> u32;
-    pub fn cosmo_expansion_result_destroy(result: *mut std::ffi::c_void) -> u32;
-    pub fn cosmo_observation_retained_bytes(
+    pub fn irred_expansion_result_destroy(result: *mut std::ffi::c_void) -> u32;
+    pub fn irred_observation_retained_bytes(
         source: *const std::ffi::c_void,
         bytes: *mut u64,
     ) -> u32;
-    pub fn cosmo_current_supernova_prepare(
+    pub fn irred_supernova_prepare(
         source: *const std::ffi::c_void,
         selection: *const MagnitudeSelection,
-        policy: *const CurrentSupernovaPreparationPolicy,
+        policy: *const SupernovaPreparationPolicy,
         out: *mut *mut std::ffi::c_void,
     ) -> u32;
-    pub fn cosmo_current_supernova_source_view(
+    pub fn irred_supernova_source_view(
         source: *const std::ffi::c_void,
-        view: *mut CurrentSupernovaView,
+        view: *mut SupernovaView,
     ) -> u32;
-    pub fn cosmo_current_supernova_evaluate(
+    pub fn irred_supernova_evaluate(
         source: *const std::ffi::c_void,
-        batch: *const CurrentSupernovaBatch,
-        policy: *const CurrentSupernovaEvaluationPolicy,
+        batch: *const SupernovaBatch,
+        policy: *const SupernovaEvaluationPolicy,
         out: *mut *mut std::ffi::c_void,
     ) -> u32;
-    pub fn cosmo_current_supernova_result_view(
+    pub fn irred_supernova_result_view(
         result: *const std::ffi::c_void,
-        rows: *mut *const CurrentSupernovaRow,
+        rows: *mut *const SupernovaRow,
         count: *mut u64,
         status: *mut u32,
         numerical_status: *mut u32,
         callbacks: *mut u64,
         segments: *mut u64,
     ) -> u32;
-    pub fn cosmo_current_supernova_result_source_view(
+    pub fn irred_supernova_result_source_view(
         result: *const std::ffi::c_void,
-        view: *mut CurrentSupernovaView,
+        view: *mut SupernovaView,
         available: *mut u32,
     ) -> u32;
-    pub fn cosmo_current_supernova_destroy(source: *mut std::ffi::c_void) -> u32;
-    pub fn cosmo_current_supernova_result_destroy(result: *mut std::ffi::c_void) -> u32;
-    pub fn cosmo_current_bao_prepare(
+    pub fn irred_supernova_destroy(source: *mut std::ffi::c_void) -> u32;
+    pub fn irred_supernova_result_destroy(result: *mut std::ffi::c_void) -> u32;
+    pub fn irred_bao_prepare(
         source: *const BaoSource,
-        policy: *const CurrentBaoPreparationPolicy,
+        policy: *const BaoPreparationPolicy,
         out: *mut *mut std::ffi::c_void,
     ) -> u32;
-    pub fn cosmo_current_bao_source_view(
+    pub fn irred_bao_source_view(source: *const std::ffi::c_void, view: *mut BaoView) -> u32;
+    pub fn irred_bao_evaluate(
         source: *const std::ffi::c_void,
-        view: *mut CurrentBaoView,
-    ) -> u32;
-    pub fn cosmo_current_bao_evaluate(
-        source: *const std::ffi::c_void,
-        batch: *const CurrentBaoBatch,
-        policy: *const CurrentBaoEvaluationPolicy,
+        batch: *const BaoBatch,
+        policy: *const BaoEvaluationPolicy,
         out: *mut *mut std::ffi::c_void,
     ) -> u32;
-    pub fn cosmo_current_bao_result_view(
+    pub fn irred_bao_result_view(
         result: *const std::ffi::c_void,
-        rows: *mut *const CurrentBaoRow,
+        rows: *mut *const BaoRow,
         count: *mut u64,
         status: *mut u32,
         numerical_status: *mut u32,
         callbacks: *mut u64,
         segments: *mut u64,
     ) -> u32;
-    pub fn cosmo_current_bao_result_source_view(
+    pub fn irred_bao_result_source_view(
         result: *const std::ffi::c_void,
-        view: *mut CurrentBaoView,
+        view: *mut BaoView,
         available: *mut u32,
     ) -> u32;
-    pub fn cosmo_current_bao_destroy(source: *mut std::ffi::c_void) -> u32;
-    pub fn cosmo_current_bao_result_destroy(result: *mut std::ffi::c_void) -> u32;
-    pub fn cosmo_observation_preparation_bytes(
+    pub fn irred_bao_destroy(source: *mut std::ffi::c_void) -> u32;
+    pub fn irred_bao_result_destroy(result: *mut std::ffi::c_void) -> u32;
+    pub fn irred_observation_preparation_bytes(
         descriptor: *const ObservationDescriptor,
         bytes: *mut u64,
     ) -> u32;

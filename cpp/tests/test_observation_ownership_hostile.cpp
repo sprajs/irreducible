@@ -17,11 +17,11 @@ void check(bool x, const char *why) {
   if (!x)
     throw std::runtime_error(why);
 }
-cosmo_bytes bytes(const std::string &x) {
+irred_bytes bytes(const std::string &x) {
   return {reinterpret_cast<const uint8_t *>(x.data()), x.size()};
 }
-cosmo_f64_buffer f64(const double *x, size_t n) {
-  return {sizeof(cosmo_f64_buffer), COSMO_ABI_VERSION, 2, 0, x, n,
+irred_f64_buffer f64(const double *x, size_t n) {
+  return {sizeof(irred_f64_buffer), IRRED_ABI_VERSION, 2, 0, x, n,
           n * sizeof(double)};
 }
 struct Fixture {
@@ -31,15 +31,15 @@ struct Fixture {
       covhash = std::string(64, 'c'),
       order =
           "caller declares original covariance axes; not release verification";
-  cosmo_bytes ids[2]{bytes(a), bytes(b)}, events[2]{bytes(a), bytes(b)};
+  irred_bytes ids[2]{bytes(a), bytes(b)}, events[2]{bytes(a), bytes(b)};
   double y[2]{20, 21}, cov[4]{2, .5, .5, 3}, z[2]{.001, .3};
   uint8_t mask[2]{0, 0}, zm[2]{0, 1};
   uint64_t quality[2]{0, 0};
-  cosmo_observation_policy policy{2, 4, 4096};
-  cosmo_observation_descriptor d{};
+  irred_observation_policy policy{2, 4, 4096};
+  irred_observation_descriptor d{};
   Fixture() {
     d.struct_size = sizeof(d);
-    d.abi_version = COSMO_ABI_VERSION;
+    d.abi_version = IRRED_ABI_VERSION;
     d.profile = static_cast<uint32_t>(Profile::typed_magnitude_covariance);
     d.role = static_cast<uint32_t>(Role::observed_measurement);
     d.unit = static_cast<uint32_t>(Unit::magnitude);
@@ -92,33 +92,33 @@ void operator delete[](void *p, size_t) noexcept { ::operator delete(p); }
 int main() {
   try {
     Fixture f;
-    cosmo_prepared *raw = nullptr;
+    irred_prepared *raw = nullptr;
     uint32_t semantic = 99;
     uint64_t compact_bound = 0, reserved_bound = 0;
-    check(cosmo_observation_preparation_bytes(&f.d, &compact_bound) == COSMO_OK,
+    check(irred_observation_preparation_bytes(&f.d, &compact_bound) == IRRED_OK,
           "compact borrowed descriptor bound");
     f.b.reserve(2048);
     f.ids[1] = f.events[1] = bytes(f.b);
-    check(cosmo_observation_preparation_bytes(&f.d, &reserved_bound) == COSMO_OK &&
+    check(irred_observation_preparation_bytes(&f.d, &reserved_bound) == IRRED_OK &&
               compact_bound == reserved_bound,
           "borrowed caller reserve does not become transferred source storage");
     for (auto role : {Role::observed_measurement, Role::released_fitted_summary,
                       Role::synthetic_control}) {
       f.d.role = static_cast<uint32_t>(role);
       uint64_t preparation_bound = 0, retained_bound = 0;
-      check(cosmo_observation_preparation_bytes(&f.d, &preparation_bound) ==
-                COSMO_OK && preparation_bound > 0,
+      check(irred_observation_preparation_bytes(&f.d, &preparation_bound) ==
+                IRRED_OK && preparation_bound > 0,
             "descriptor preparation capacity bound");
       const auto baseline_bytes = live_bytes;
       peak_bytes = live_bytes;
-      check(cosmo_prepare_observations(&f.d, &f.policy, &raw, &semantic) ==
-                    COSMO_OK &&
+      check(irred_prepare_observations(&f.d, &f.policy, &raw, &semantic) ==
+                    IRRED_OK &&
                 raw && semantic == 0,
             "explicit role admission");
       const auto observed_peak = peak_bytes - baseline_bytes;
       check(observed_peak <= preparation_bound,
             "actual COSMO preparation allocation peak within envelope");
-      check(cosmo_observation_retained_bytes(raw, &retained_bound) == COSMO_OK &&
+      check(irred_observation_retained_bytes(raw, &retained_bound) == IRRED_OK &&
                 live_bytes - baseline_bytes <= retained_bound,
             "actual retained allocations within authoritative source charge");
       std::cout << "role " << (unsigned)role << " preparation observed "
@@ -137,7 +137,7 @@ int main() {
       check(owner->source().zhd[0] == .001 &&
                 owner->source().zhd_missing[1] == 1,
             "no implicit cut or mask erasure");
-      check(cosmo_observation_destroy(raw) == COSMO_OK, "release acquisition");
+      check(irred_observation_destroy(raw) == IRRED_OK, "release acquisition");
       raw = nullptr;
       owner.reset();
       check(second.get() == address &&
@@ -147,8 +147,8 @@ int main() {
     auto reject = [&](uint32_t expected) {
       raw = nullptr;
       semantic = 99;
-      check(cosmo_prepare_observations(&f.d, &f.policy, &raw, &semantic) ==
-                    COSMO_OK &&
+      check(irred_prepare_observations(&f.d, &f.policy, &raw, &semantic) ==
+                    IRRED_OK &&
                 !raw && semantic == expected,
             "semantic rejection without owner");
     };
@@ -162,7 +162,7 @@ int main() {
     f.d.uncertainty = static_cast<uint32_t>(Uncertainty::covariance);
     f.d.uncertainty_unit =
         static_cast<uint32_t>(UncertaintyUnit::magnitude_squared);
-    cosmo_bytes reversed[2]{f.ids[1], f.ids[0]};
+    irred_bytes reversed[2]{f.ids[1], f.ids[0]};
     f.d.uncertainty_axis_ids = {reversed, 2, sizeof(reversed)};
     reject(static_cast<uint32_t>(Status::invalid_shape));
     f.d.uncertainty_axis_ids = f.d.measurement_ids;
@@ -174,12 +174,12 @@ int main() {
     for (long i = 0; i < 100; ++i) {
       auto before = live;
       countdown = i;
-      auto code = cosmo_prepare_observations(&f.d, &f.policy, &raw, &semantic);
+      auto code = irred_prepare_observations(&f.d, &f.policy, &raw, &semantic);
       countdown = -1;
-      if (code == COSMO_OK) {
+      if (code == IRRED_OK) {
         check(raw && semantic == 0, "successful sweep terminal");
         auto keep = shared_native_observations(raw);
-        check(cosmo_observation_destroy(raw) == COSMO_OK,
+        check(irred_observation_destroy(raw) == IRRED_OK,
               "sweep release acquisition");
         raw = nullptr;
         f.y[0] = 999;
@@ -194,7 +194,7 @@ int main() {
         success = true;
         break;
       }
-      check(code == COSMO_ALLOCATION_FAILURE && !raw,
+      check(code == IRRED_ALLOCATION_FAILURE && !raw,
             "allocation failure reset");
       check(live == before, "allocation failure cleanup");
       ++failures;

@@ -4,9 +4,9 @@ Use the executable's `describe --json` output for its exact build, ABI revision 
 
 | Operation | Calculation | Scope |
 | --- | --- | --- |
-| `fixture.checked_i64_add.v1` | Overflow-checked integer addition | Exact integer contract |
-| `quantity.convert.v1` | Typed physical conversions | Explicit units, roles, frames and conventions |
-| `numerics.scalar_batch.v1` | Compiled scalar numerical methods | Method-specific arithmetic and domain |
+| `fixture.checked_i64_add` | Overflow-checked integer addition | Exact integer contract |
+| `quantity.convert` | Typed physical conversions | Explicit units, roles, frames and conventions |
+| `numerics.scalar_batch` | Compiled scalar numerical methods | Method-specific arithmetic and domain |
 | `background.evaluate` | Requested flat-FLRW expansion and projections | LCDM, constant q, CPL or fixed five-bin q |
 | `observations.prepare` | Immutable typed source preparation | Structural checks; no probability or lineage upgrade |
 | `statistics.gaussian` | Normalized Gaussian density, offset profile or proper latent prior | Explicit ordered residuals and nuisance assumptions |

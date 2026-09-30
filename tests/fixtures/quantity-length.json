@@ -1,6 +1,6 @@
 {
   "schema_version": 2,
-  "operation": "quantity.convert.v1",
+  "operation": "quantity.convert",
   "values": [
     0,
     1,

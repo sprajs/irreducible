@@ -43,7 +43,7 @@ pub(crate) struct Prepared(pub(crate) *mut c_void);
 impl Drop for Prepared {
     fn drop(&mut self) {
         unsafe {
-            cosmo_current_supernova_destroy(self.0);
+            irred_supernova_destroy(self.0);
         }
     }
 }
@@ -67,14 +67,14 @@ fn text(value: &Bytes) -> Result<String, String> {
     String::from_utf8(bytes.to_vec()).map_err(|_| "INVALID_NATIVE_STRING".into())
 }
 impl Prepared {
-    fn view(&self) -> Result<CurrentSupernovaView, String> {
-        let mut view: CurrentSupernovaView = unsafe { std::mem::zeroed() };
-        let code = unsafe { cosmo_current_supernova_source_view(self.0, &mut view) };
+    fn view(&self) -> Result<SupernovaView, String> {
+        let mut view: SupernovaView = unsafe { std::mem::zeroed() };
+        let code = unsafe { irred_supernova_source_view(self.0, &mut view) };
         if code != OK {
             return Err(format!("CORE_STATUS_{code}"));
         }
         if view.abi_version != ABI_VERSION
-            || view.struct_size as usize != size_of::<CurrentSupernovaView>()
+            || view.struct_size as usize != size_of::<SupernovaView>()
         {
             return Err("INVALID_NATIVE_VIEW".into());
         }
@@ -125,8 +125,8 @@ pub(crate) fn prepare(
         coordinate_count: coordinates.len() as u64,
         coordinate_byte_length: std::mem::size_of_val(&*coordinates) as u64,
     };
-    let p = CurrentSupernovaPreparationPolicy {
-        struct_size: size_of::<CurrentSupernovaPreparationPolicy>() as u32,
+    let p = SupernovaPreparationPolicy {
+        struct_size: size_of::<SupernovaPreparationPolicy>() as u32,
         abi_version: ABI_VERSION,
         arithmetic: arithmetic(&policy.arithmetic)?,
         reserved: 0,
@@ -137,11 +137,11 @@ pub(crate) fn prepare(
         maximum_forward_sensitivity: policy.maximum_forward_sensitivity,
     };
     let mut raw = ptr::null_mut();
-    let code = unsafe { cosmo_current_supernova_prepare(source.0, &descriptor, &p, &mut raw) };
+    let code = unsafe { irred_supernova_prepare(source.0, &descriptor, &p, &mut raw) };
     if code != OK {
         if !raw.is_null() {
             unsafe {
-                cosmo_current_supernova_destroy(raw);
+                irred_supernova_destroy(raw);
             }
         }
         return Err(format!("CORE_STATUS_{code}"));
@@ -309,7 +309,7 @@ struct ResultOwner(*mut c_void);
 impl Drop for ResultOwner {
     fn drop(&mut self) {
         unsafe {
-            cosmo_current_supernova_result_destroy(self.0);
+            irred_supernova_result_destroy(self.0);
         }
     }
 }
@@ -366,8 +366,8 @@ pub(crate) fn evaluate(
     let wire: Vec<_> = models
         .iter()
         .enumerate()
-        .map(|(i, m)| CurrentSupernovaModel {
-            struct_size: size_of::<CurrentSupernovaModel>() as u32,
+        .map(|(i, m)| SupernovaModel {
+            struct_size: size_of::<SupernovaModel>() as u32,
             abi_version: ABI_VERSION,
             geometry: 0,
             reserved: 0,
@@ -381,15 +381,15 @@ pub(crate) fn evaluate(
             },
         })
         .collect();
-    let batch = CurrentSupernovaBatch {
-        struct_size: size_of::<CurrentSupernovaBatch>() as u32,
+    let batch = SupernovaBatch {
+        struct_size: size_of::<SupernovaBatch>() as u32,
         abi_version: ABI_VERSION,
         models: wire.as_ptr(),
         model_count: wire.len() as u64,
         model_byte_length: std::mem::size_of_val(&*wire) as u64,
     };
-    let policy = CurrentSupernovaEvaluationPolicy {
-        struct_size: size_of::<CurrentSupernovaEvaluationPolicy>() as u32,
+    let policy = SupernovaEvaluationPolicy {
+        struct_size: size_of::<SupernovaEvaluationPolicy>() as u32,
         abi_version: ABI_VERSION,
         arithmetic: arithmetic(&policy.arithmetic)?,
         requested: mask,
@@ -400,11 +400,11 @@ pub(crate) fn evaluate(
         maximum_forward_sensitivity: policy.maximum_forward_sensitivity,
     };
     let mut raw = ptr::null_mut();
-    let code = unsafe { cosmo_current_supernova_evaluate(owner.0, &batch, &policy, &mut raw) };
+    let code = unsafe { irred_supernova_evaluate(owner.0, &batch, &policy, &mut raw) };
     if code != OK {
         if !raw.is_null() {
             unsafe {
-                cosmo_current_supernova_result_destroy(raw);
+                irred_supernova_result_destroy(raw);
             }
         }
         return Err(format!("CORE_STATUS_{code}"));
@@ -416,7 +416,7 @@ pub(crate) fn evaluate(
     let (mut rows, mut count, mut status, mut numerical, mut callbacks, mut segments) =
         (ptr::null(), 0, 0, 0, 0, 0);
     let code = unsafe {
-        cosmo_current_supernova_result_view(
+        irred_supernova_result_view(
             result.0,
             &mut rows,
             &mut count,
@@ -438,7 +438,7 @@ pub(crate) fn evaluate(
     let mut checks: Vec<_> = requested.iter().map(|x| (x.id(), complete)).collect();
     let mut outputs = vec![];
     for (i, row) in rows.iter().enumerate() {
-        if row.struct_size as usize != size_of::<CurrentSupernovaRow>()
+        if row.struct_size as usize != size_of::<SupernovaRow>()
             || row.abi_version != ABI_VERSION
             || row.model_index != i as u64
             || row.source.expansion.model != models[i].expansion.tag()

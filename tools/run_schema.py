@@ -124,9 +124,9 @@ def build_schema(abi, fixture):
         "maximum_forward_sensitivity": {**number, "exclusiveMinimum": 0}}, ("response", "proper_prior"))
     defs["quantity_metadata"] = obj({key: enum(values) for key, values in abi["quantity_tags"].items()
                                      if key != "quantity_status"})
-    defs["quantity"] = operation("quantity.convert.v1", {"values": array(number),
+    defs["quantity"] = operation("quantity.convert", {"values": array(number),
         "source": ref("quantity_metadata"), "target": ref("quantity_metadata")})
-    defs["numerics"] = operation("numerics.scalar_batch.v1", {
+    defs["numerics"] = operation("numerics.scalar_batch", {
         "method": enum(abi["numerical_tags"]["operation"]),
         "values": array(number, abi["max_batch_elements"])})
     return {"$schema": "https://json-schema.org/draft/2020-12/schema",

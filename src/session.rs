@@ -1,6 +1,6 @@
 //! Current process-local session. Complete replies precede handle publication.
 use crate::{
-    current_observation_run::{self, Acquired},
+    observation_run::{self, Acquired},
     retained_context::{Context, Error, Limits},
     stream_io::{self, Line},
 };
@@ -18,18 +18,18 @@ enum Command {
     },
     PrepareSupernova {
         source_handle: u64,
-        selection: crate::bridge::current_supernova::Selection,
-        preparation_policy: crate::bridge::current_supernova::PreparationPolicy,
+        selection: crate::bridge::supernova::Selection,
+        preparation_policy: crate::bridge::supernova::PreparationPolicy,
     },
     PrepareBao {
         source: crate::bao_ingestion::Source,
-        preparation_policy: crate::bridge::current_bao::PreparationPolicy,
+        preparation_policy: crate::bridge::bao::PreparationPolicy,
     },
     BaoDensity {
         handle: u64,
-        models: Vec<crate::bridge::current_bao::Model>,
-        requested_outputs: Vec<crate::bridge::current_bao::Output>,
-        numerical_policy: crate::bridge::current_bao::EvaluationPolicy,
+        models: Vec<crate::bridge::bao::Model>,
+        requested_outputs: Vec<crate::bridge::bao::Output>,
+        numerical_policy: crate::bridge::bao::EvaluationPolicy,
     },
     BackgroundEvaluate {
         request: Value,
@@ -37,8 +37,8 @@ enum Command {
     SupernovaProfile {
         handle: u64,
         models: Vec<crate::model_spec::SupernovaModel>,
-        requested_outputs: Vec<crate::bridge::current_supernova::Output>,
-        numerical_policy: crate::bridge::current_supernova::EvaluationPolicy,
+        requested_outputs: Vec<crate::bridge::supernova::Output>,
+        numerical_policy: crate::bridge::supernova::EvaluationPolicy,
     },
     Release {
         handle: u64,
@@ -47,11 +47,11 @@ enum Command {
 // Consumer variants are added when their native retained bridges freeze.
 pub(crate) enum Consumer {
     Supernova {
-        owner: crate::bridge::current_supernova::Prepared,
+        owner: crate::bridge::supernova::Prepared,
         specification: Value,
     },
     Bao {
-        owner: crate::bridge::current_bao::Prepared,
+        owner: crate::bridge::bao::Prepared,
         specification: Value,
     },
 }
@@ -185,7 +185,7 @@ fn dispatch(
                         .map_err(|_| "RESOURCE_LIMIT")?,
                 )
                 .map_err(|_| "RETAINED_BYTE_LIMIT")?;
-            let acquired = crate::current_bao_run::acquire(
+            let acquired = crate::bao_run::acquire(
                 source,
                 &preparation_policy,
                 effective.clone(),
@@ -234,7 +234,7 @@ fn dispatch(
             else {
                 return Err("WRONG_HANDLE_KIND".into());
             };
-            let (output, checks) = crate::bridge::current_bao::evaluate(
+            let (output, checks) = crate::bridge::bao::evaluate(
                 owner,
                 &models,
                 &requested_outputs,
@@ -275,7 +275,7 @@ fn dispatch(
             else {
                 return Err("WRONG_HANDLE_KIND".into());
             };
-            let (output, checks) = crate::bridge::current_supernova::evaluate(
+            let (output, checks) = crate::bridge::supernova::evaluate(
                 owner,
                 &models,
                 &requested_outputs,
@@ -341,7 +341,7 @@ fn dispatch(
                 .ok_or("PREPARATION_BYTE_LIMIT")?;
             preparation_policy.maximum_native_bytes =
                 u64::try_from(native_bytes).map_err(|_| "RESOURCE_LIMIT")?;
-            let prepared = crate::bridge::current_supernova::prepare(
+            let prepared = crate::bridge::supernova::prepare(
                 &source.value.owner,
                 &selection,
                 &preparation_policy,
@@ -383,11 +383,11 @@ fn dispatch(
         }
         Command::PrepareObservations { request } => {
             let input = serde_json::to_vec(&request).map_err(|_| "INVALID_REQUEST")?;
-            let peak_bytes = current_observation_run::peak_bound(&input)?;
+            let peak_bytes = observation_run::peak_bound(&input)?;
             let peak = context
                 .reserve_peak(peak_bytes)
                 .map_err(|_| "RETAINED_BYTE_LIMIT")?;
-            let acquired = current_observation_run::acquire(&input, store, peak.bytes())?;
+            let acquired = observation_run::acquire(&input, store, peak.bytes())?;
             let spec_bytes =
                 serde_json::to_vec(&acquired.specification).map_err(|_| "RECORD_ENCODING")?;
             crate::records::publish(
@@ -426,7 +426,7 @@ fn dispatch(
             request["numerical_policy"]["maximum_native_bytes"] = json!(requested.min(remaining));
             let input = serde_json::to_vec(&request).map_err(|_| "INVALID_REQUEST")?;
             let effective_policy = request["numerical_policy"].clone();
-            let mut outcome = crate::current_background_run::execute(&input)?;
+            let mut outcome = crate::background_run::execute(&input)?;
             outcome.specification["numerical_policy"] = requested_policy;
             let mut reply = outcome_reply(outcome);
             reply["effective_runtime_policy"] = effective_policy;

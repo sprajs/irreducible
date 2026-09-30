@@ -57,7 +57,7 @@ fn run(s: &Scratch, v: &Value, assurance: Option<&str>, panic: bool) -> (Value, 
         c.args(["--assurance", a]);
     }
     if panic {
-        c.env("COSMOLOGY_TEST_PANIC", "1");
+        c.env("IRRED_TEST_PANIC", "1");
     }
     let o = c.output().unwrap();
     let r: Value = serde_json::from_slice(&o.stdout)
@@ -252,7 +252,7 @@ fn well_formed_json_with_native_descriptor_rejection_is_transport_failure() {
 }
 
 #[test]
-fn current_request_schema_two_accepts_primitives_and_rejects_retired_one() {
+fn request_schema_two_accepts_primitives_and_rejects_retired_one() {
     let s = scratch();
     for name in ["exact-add", "quantity-length", "numerical-sum"] {
         let current = fixture(name);

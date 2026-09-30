@@ -48,16 +48,16 @@ pub(crate) fn execute() -> Result<(), String> {
             let limits = if let Some(path) = args.get(3) {
                 serde_json::from_slice(&fs::read(path).map_err(|_| "LIMITS_IO")?).map_err(|_| "INVALID_SESSION_LIMITS")?
             } else { crate::retained_context::Limits::default() };
-            crate::current_session::run(&mut std::io::stdin().lock(), &mut std::io::stdout().lock(), &store, limits)
+            crate::session::run(&mut std::io::stdin().lock(), &mut std::io::stdout().lock(), &store, limits)
         }
         Some("describe") | Some("version") if args.len() == 3 && args[2] == "--json" => {
             println!(
                 "{}",
                 json!({"schema_version":2,"product":"Irreducible","executable":"irred","version":env!("CARGO_PKG_VERSION"),"abi_version":ABI_VERSION,"build":manifest,
                     "capabilities":[
-                        {"id":"fixture.checked_i64_add.v1","implementation":"implemented","scientific":false,"qualification":"unqualified"},
-                        {"id":"quantity.convert.v1","implementation":"implemented","scientific":true,"qualification":"unqualified"},
-                        {"id":"numerics.scalar_batch.v1","implementation":"implemented","scientific":true,"qualification":"unqualified"},
+                        {"id":"fixture.checked_i64_add","implementation":"implemented","scientific":false,"qualification":"unqualified"},
+                        {"id":"quantity.convert","implementation":"implemented","scientific":true,"qualification":"unqualified"},
+                        {"id":"numerics.scalar_batch","implementation":"implemented","scientific":true,"qualification":"unqualified"},
                         {"id":"background.evaluate","implementation":"implemented","scientific":true,"qualification":"unqualified","requested_groups":["radial","luminosity_shape","clock","physical","kinematics","expansion"],"models":["lcdm","constant_q","cpl","fixed_q5"],"node_reuse":"exact z bits within each model batch; no cross-model cache"},
                         {"id":"observations.prepare","implementation":"implemented","scientific":true,"qualification":"unqualified","profiles":["pantheon_plus_released_v1","gaussian_fixture_v1","typed_magnitude_covariance"],"ownership":"immutable shared native source"},
                         {"id":"statistics.gaussian","implementation":"implemented","scientific":true,"qualification":"unqualified","modes":["normalized_density","profile_offset_score"]},
@@ -91,14 +91,14 @@ pub(crate) fn execute() -> Result<(), String> {
                 .map_err(|e| e.to_string())?;
             let input_hash = hash(&input);
             publish(&store.join("objects").join(&input_hash), &input)?;
-            let initial = json!({"schema_version":1,"attempt_id":attempt,"execution":"incomplete","input_digest":input_hash,"build_id":manifest["build_id"],"source_revision":manifest["git_head"],"source_status":manifest["git_status"],"executable_digest":hash(&executable),"numerical":"not_assessed","inference":"not_applicable","interpretation":"not_assessed","runtime_libraries":runtime_libraries()?,"resource_budget":{"compute_threads":1,"io_threads":1},"rng":"not_applicable","backend":"portable_cpu","precision":"unresolved","fixture_fault_controls":{"abort":std::env::var_os("COSMOLOGY_TEST_ABORT").is_some(),"panic":std::env::var_os("COSMOLOGY_TEST_PANIC").is_some(),"abort_after_output":std::env::var_os("COSMOLOGY_TEST_ABORT_AFTER_OUTPUT").is_some()}});
+            let initial = json!({"schema_version":1,"attempt_id":attempt,"execution":"incomplete","input_digest":input_hash,"build_id":manifest["build_id"],"source_revision":manifest["git_head"],"source_status":manifest["git_status"],"executable_digest":hash(&executable),"numerical":"not_assessed","inference":"not_applicable","interpretation":"not_assessed","runtime_libraries":runtime_libraries()?,"resource_budget":{"compute_threads":1,"io_threads":1},"rng":"not_applicable","backend":"portable_cpu","precision":"unresolved","fixture_fault_controls":{"abort":std::env::var_os("IRRED_TEST_ABORT").is_some(),"panic":std::env::var_os("IRRED_TEST_PANIC").is_some(),"abort_after_output":std::env::var_os("IRRED_TEST_ABORT_AFTER_OUTPUT").is_some()}});
             publish(
                 &store
                     .join("attempts")
                     .join(format!("{attempt}.incomplete.json")),
                 &serde_json::to_vec(&initial).unwrap(),
             )?;
-            if std::env::var_os("COSMOLOGY_TEST_ABORT").is_some() {
+            if std::env::var_os("IRRED_TEST_ABORT").is_some() {
                 std::process::abort()
             }
             let mut resolved = None;
@@ -108,24 +108,24 @@ pub(crate) fn execute() -> Result<(), String> {
                     crate::strict_json::validate(&input).map_err(|e| e.to_string())?;
                     let header: OperationHeader = serde_json::from_slice(&input).map_err(|e|e.to_string())?;
                     match header.operation.as_str() {
-                        "fixture.checked_i64_add.v1" => {
+                        "fixture.checked_i64_add" => {
                             let request: Request = serde_json::from_slice(&input).map_err(|e|e.to_string())?;
                             if request.schema_version != 2 { return Err("UNSUPPORTED_SPECIFICATION".into()); }
                             fault = request.fault;
                             resolved = Some(json!({"schema_version":2,"operation":request.operation,
                                 "equation_id":"EQ-fixture.checked_i64_add.v1","a":request.a,"b":request.b,
                                 "requested_outputs":[{"id":"sum","required":true,"numerical_gate":"required","inference_gate":"not_applicable"}]}));
-                            if std::env::var_os("COSMOLOGY_TEST_PANIC").is_some() {panic!("injected Rust panic");}
+                            if std::env::var_os("IRRED_TEST_PANIC").is_some() {panic!("injected Rust panic");}
                             add(&request.a,&request.b,request.fault).map(|v|crate::outcome::Outcome::exact(resolved.clone().unwrap(),json!({"kind":"finite","values":v})))
                         },
-                        "quantity.convert.v1" => {
+                        "quantity.convert" => {
                             let request: QuantityRequest = serde_json::from_slice(&input).map_err(|e|e.to_string())?;
                             if request.schema_version != 2 { return Err("UNSUPPORTED_SPECIFICATION".into()); }
                             resolved = Some(json!({"schema_version":2,"operation":request.operation,
                                 "equation_id":"EQ-quantity-conversion-v1","values":request.values,
                                 "source":request.source,"target":request.target,
                                 "requested_outputs":[{"id":"converted","required":true,"numerical_gate":"required","inference_gate":"not_applicable"}]}));
-                            if std::env::var_os("COSMOLOGY_TEST_PANIC").is_some() {panic!("injected Rust panic");}
+                            if std::env::var_os("IRRED_TEST_PANIC").is_some() {panic!("injected Rust panic");}
                             let slots = convert_quantities(&request.values,&request.source,&request.target)?;
                             let failed = slots.iter().any(|slot|slot.value.is_none());
                             let evaluations: Vec<_> = slots.into_iter().map(|slot|match slot.value {
@@ -138,13 +138,13 @@ pub(crate) fn execute() -> Result<(), String> {
                                 "target":request.target,"evaluations":evaluations});
                             Ok(crate::outcome::Outcome::scientific(resolved.clone().unwrap(),output,"converted",json!("typed_physical_conversion"),json!("binary64_storage_longdouble_intermediate"),json!({"max_batch_elements":MAX_BATCH_ELEMENTS}),"bounded native/interface checks; request applicability not established"))
                         },
-                        "numerics.scalar_batch.v1" => {
+                        "numerics.scalar_batch" => {
                             let request: NumericalRequest = serde_json::from_slice(&input).map_err(|e|e.to_string())?;
                             if request.schema_version!=2 {return Err("UNSUPPORTED_SPECIFICATION".into());}
                             resolved=Some(json!({"schema_version":2,"operation":request.operation,"method":request.method,
                                 "equation_id":format!("F02/scalar/{}/v1",request.method),"values":request.values,
                                 "requested_outputs":[{"id":"evaluations","required":true,"numerical_gate":"required","inference_gate":"not_applicable"}]}));
-                            if std::env::var_os("COSMOLOGY_TEST_PANIC").is_some(){panic!("injected Rust panic");}
+                            if std::env::var_os("IRRED_TEST_PANIC").is_some(){panic!("injected Rust panic");}
                             let slots=numerics_evaluate(&request.method,&request.values)?;
                             let failed=slots.iter().any(|slot|slot.value.is_none());
                             let evaluations:Vec<_>=slots.into_iter().map(|slot| {
@@ -161,10 +161,10 @@ pub(crate) fn execute() -> Result<(), String> {
                                 "method":request.method,"source_values":request.values,"evaluations":evaluations});
                             Ok(crate::outcome::Outcome::scientific(resolved.clone().unwrap(),output,"evaluations",json!(request.method),json!("binary64_storage_method_declared_intermediate"),json!({"max_batch_elements":MAX_BATCH_ELEMENTS}),"bounded native/interface checks; request applicability not established"))
                         },
-                        "background.evaluate" => crate::current_background_run::execute(&input),
-                        "supernova.profile" | "bao.density" => crate::current_session::execute_once(&input,&store),
+                        "background.evaluate" => crate::background_run::execute(&input),
+                        "supernova.profile" | "bao.density" => crate::session::execute_once(&input,&store),
                         "statistics.gaussian" => crate::statistics_run::execute(&input,&store),
-                        "observations.prepare" => crate::current_observation_run::execute(&input,&store),
+                        "observations.prepare" => crate::observation_run::execute(&input,&store),
                         _ => Err("UNSUPPORTED_SPECIFICATION".into()),
                     }
                 },
@@ -175,7 +175,7 @@ pub(crate) fn execute() -> Result<(), String> {
             let output=match &result {Ok(o)=>o.output.clone(),Err(error)=>json!({"kind":"failure","error_id":error,"failure_class":if error=="RUST_PANIC" {"internal"}else{"request_or_transport"}})};
             let bytes=serde_json::to_vec(&output).map_err(|e|e.to_string())?;
             let output_hash=hash(&bytes);publish(&store.join("objects").join(&output_hash),&bytes)?;
-            if std::env::var_os("COSMOLOGY_TEST_ABORT_AFTER_OUTPUT").is_some(){std::process::abort()}
+            if std::env::var_os("IRRED_TEST_ABORT_AFTER_OUTPUT").is_some(){std::process::abort()}
             let mut final_record=initial;
             final_record["assurance"]=json!({"requested":assurance,"satisfied":assurance_satisfied,"numerical_contract":success,"qualification":if qualified {"not_applicable"}else{"unqualified"}});
             final_record["accepted"]=json!(assurance_satisfied);
