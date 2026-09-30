@@ -1,8 +1,11 @@
 **Irreducible**
 
-- [Wiki home](https://github.com/sprajs/irreducible/wiki)
-- [Agent documentation](https://github.com/sprajs/irreducible/blob/main/docs/README.md)
-- [Getting started](https://github.com/sprajs/irreducible/blob/main/docs/getting-started.md)
-- [Capabilities](https://github.com/sprajs/irreducible/blob/main/docs/capabilities.md)
-- [CLI reference](https://github.com/sprajs/irreducible/blob/main/docs/cli.md)
+- [Start here](https://github.com/sprajs/irreducible/wiki)
+- [Build and try it](https://github.com/sprajs/irreducible/blob/main/docs/getting-started.md)
+- [What works today](https://github.com/sprajs/irreducible/blob/main/docs/capabilities.md)
+- [Where it is going](https://github.com/sprajs/irreducible/blob/main/docs/roadmap.md)
+- [Physics and data gaps](https://github.com/sprajs/irreducible/blob/main/docs/gaps.md)
+- [CLI guide](https://github.com/sprajs/irreducible/blob/main/docs/cli.md)
+- [Develop a model](https://github.com/sprajs/irreducible/blob/main/docs/development.md)
+- [Documentation index](https://github.com/sprajs/irreducible/blob/main/docs/README.md)
 - [Contribute](https://github.com/sprajs/irreducible/blob/main/CONTRIBUTING.md)

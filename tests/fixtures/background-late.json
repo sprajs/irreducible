@@ -1,46 +1,43 @@
 {
   "schema_version": 2,
-  "operation": "background.parameter_query_batch.v1",
-  "parameters": [
+  "operation": "background.evaluate",
+  "geometry": {
+    "kind": "flat_flrw"
+  },
+  "models": [
     {
-      "model": "flat_lcdm_late_v1",
-      "h0_km_s_mpc": 70,
-      "omega_m": 0.3,
-      "constant_q": 0
-    },
-    {
-      "model": "constant_q_flat_v1",
-      "h0_km_s_mpc": 70,
-      "omega_m": 0,
-      "constant_q": 0
+      "kind": "lcdm",
+      "omega_m": 0.3
     }
   ],
   "queries": [
     {
-      "z_expansion": 0,
-      "z_observer": 0,
-      "convention": "geometric_same_redshift"
-    },
-    {
-      "z_expansion": 1,
-      "z_observer": 1,
-      "convention": "geometric_same_redshift"
-    },
-    {
-      "z_expansion": 0.1,
-      "z_observer": 0.11,
-      "convention": "released_zhd_zhel"
+      "z_expansion": 1.0,
+      "requested_outputs": [
+        "expansion",
+        "physical"
+      ],
+      "observer": {
+        "redshift": 1.0,
+        "convention": "geometric_same_redshift"
+      },
+      "physical_scale": {
+        "h0_km_s_mpc": 70.0
+      }
     }
   ],
-  "policy": {
-    "maximum_parameters": 16,
-    "maximum_queries": 64,
-    "maximum_slots": 1024,
-    "maximum_native_output_bytes": 1048576,
-    "maximum_total_evaluations": 1000000,
-    "maximum_evaluations_per_integral": 100000,
-    "maximum_depth": 30,
-    "absolute_tolerance": 1e-13,
-    "relative_tolerance": 1e-12
+  "numerical_policy": {
+    "maximum_models": 1,
+    "maximum_queries": 1,
+    "maximum_slots": 1,
+    "maximum_callbacks": 100000,
+    "maximum_segment_visits": 0,
+    "maximum_native_bytes": 1048576,
+    "integration": {
+      "absolute_tolerance": 1e-13,
+      "relative_tolerance": 1e-12,
+      "maximum_evaluations": 100000,
+      "maximum_depth": 30
+    }
   }
 }
