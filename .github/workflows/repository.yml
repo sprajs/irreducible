@@ -1,8 +1,18 @@
 name: Portable CPU checks
 
 on:
-  push:
   pull_request:
+    branches: [main]
+    types: [opened, reopened, synchronize]
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+# Only a newer revision of the same PR supersedes a run. Every main/manual
+# run gets its own group, so queued post-merge checks cannot replace each other.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event_name == 'pull_request' && format('pr-{0}', github.event.pull_request.number) || format('run-{0}', github.run_id) }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 permissions:
   contents: read

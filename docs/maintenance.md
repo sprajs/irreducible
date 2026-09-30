@@ -11,3 +11,9 @@ Make documentation changes on a branch and review them in a pull request; agents
 Before syncing, compare the live wiki with the mirror and preserve unrelated edits. Verify the pushed wiki commit and read back the pages. Links to new documentation must resolve: use merged pages, or an immutable commit link clearly labelled as a proposed design. Never imply that an open PR is already on `main`.
 
 Keep citation information at the bottom of the README; add a release or paper citation when one actually exists.
+
+## Repository checks
+
+[The workflow](../.github/workflows/repository.yml) checks PRs targeting `main` when they open, reopen or receive commits, and checks `main` again after a push. Ordinary feature-branch pushes do not start a duplicate run. Manual dispatch is available once this workflow is on the default branch. Only a newer run for the same PR cancels its predecessor; main and manual runs stay independent.
+
+Keep the required `public-tree` check aligned with the workflow job and its GitHub Actions app. Main protection requires an up-to-date checked PR and resolved conversations, including for administrators. No path filters or draft skips omit the required check. Repository settings keep merge commits, automatic deletion of merged remote branches and branch-update support enabled; auto-merge stays disabled. These settings do not authorize a merge.
