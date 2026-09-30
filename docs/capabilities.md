@@ -13,6 +13,7 @@ Use the executable's `describe --json` output for its exact build, ABI revision 
 | `statistics.gaussian` | Normalized Gaussian density, offset profile or proper latent prior | Explicit ordered residuals and nuisance assumptions |
 | `supernova.profile` | Conditional single-offset magnitude profile | Same expansion types, with no source effect or an explicit grey magnitude effect |
 | `bao.density` | Conditional normalized free-ruler Gaussian density | Same expansion types and explicit H0rd |
+| `photometry.predict` | Deterministic flat-spectrum rectangular-passband prediction | Supplied distance/redshift; incident flux, collected energy and transmitted photon expectation |
 
 Background requests select expansion, radial, luminosity_shape, clock, physical or kinematics groups. Dimensionless E and clock integrals remain usable when a requested dimensional H or lookback-time projection fails. Observer and physical-scale failures do not erase independent outputs. E-only and DH-only calculations avoid radial integration. Exact redshift bits share nodes within a model batch; repeated model specifications across model rows currently recompute their geometry under the same global work budget.
 
@@ -29,3 +30,5 @@ Required numerical checks that pass satisfy default `numerical_contract` assuran
 Measured mirrored dense preparation improved one pinned fixture on one compiler/machine; that historical measurement does not establish performance of the consolidated interface. Optimization follows matched-quality measurements, not the presence of a wider type or more threads. Samplers, priors over cosmological parameters, smoothing campaigns and whole-domain certificates remain outside these capabilities.
 
 The [conditional sound horizon](sound-horizon.md) uses an exact compact scale-factor interval, with explicitly supplied photon/baryon fractions and drag-redshift provenance. It predicts neither thermal history nor drag epoch; no existing BAO likelihood qualification is inherited.
+
+See [photometry](photometry.md) for the bounded deterministic projection.

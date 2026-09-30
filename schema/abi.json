@@ -2257,6 +2257,218 @@
           "Bytes"
         ]
       ]
+    },
+    {
+      "c_name": "irred_photometry_input",
+      "rust_name": "PhotometryInput",
+      "fields": [
+        [
+          "struct_size",
+          "u32"
+        ],
+        [
+          "abi_version",
+          "u32"
+        ],
+        [
+          "luminosity_watt_per_metre",
+          "f64"
+        ],
+        [
+          "rest_lower_metre",
+          "f64"
+        ],
+        [
+          "rest_upper_metre",
+          "f64"
+        ],
+        [
+          "observed_lower_metre",
+          "f64"
+        ],
+        [
+          "observed_upper_metre",
+          "f64"
+        ],
+        [
+          "luminosity_distance_metre",
+          "f64"
+        ],
+        [
+          "redshift",
+          "f64"
+        ],
+        [
+          "collecting_area_square_metre",
+          "f64"
+        ],
+        [
+          "optical_transmission",
+          "f64"
+        ],
+        [
+          "observer_exposure_second",
+          "f64"
+        ]
+      ]
+    },
+    {
+      "c_name": "irred_photometry_batch",
+      "rust_name": "PhotometryBatch",
+      "fields": [
+        [
+          "struct_size",
+          "u32"
+        ],
+        [
+          "abi_version",
+          "u32"
+        ],
+        [
+          "data",
+          "const_PhotometryInput_ptr"
+        ],
+        [
+          "length",
+          "u64"
+        ],
+        [
+          "byte_length",
+          "u64"
+        ]
+      ]
+    },
+    {
+      "c_name": "irred_photometry_policy",
+      "rust_name": "PhotometryPolicy",
+      "fields": [
+        [
+          "struct_size",
+          "u32"
+        ],
+        [
+          "abi_version",
+          "u32"
+        ],
+        [
+          "requested_outputs",
+          "u32"
+        ],
+        [
+          "reserved",
+          "u32"
+        ],
+        [
+          "maximum_rows",
+          "u64"
+        ],
+        [
+          "maximum_native_bytes",
+          "u64"
+        ]
+      ]
+    },
+    {
+      "c_name": "irred_photometry_scalar",
+      "rust_name": "PhotometryScalar",
+      "fields": [
+        [
+          "availability",
+          "u32"
+        ],
+        [
+          "numerical_status",
+          "u32"
+        ],
+        [
+          "value",
+          "f64"
+        ]
+      ]
+    },
+    {
+      "c_name": "irred_photometry_row",
+      "rust_name": "PhotometryRow",
+      "fields": [
+        [
+          "struct_size",
+          "u32"
+        ],
+        [
+          "abi_version",
+          "u32"
+        ],
+        [
+          "source",
+          "PhotometryInput"
+        ],
+        [
+          "admission_status",
+          "u32"
+        ],
+        [
+          "reserved",
+          "u32"
+        ],
+        [
+          "incident_band_flux",
+          "PhotometryScalar"
+        ],
+        [
+          "collected_energy",
+          "PhotometryScalar"
+        ],
+        [
+          "expected_transmitted_photons",
+          "PhotometryScalar"
+        ]
+      ]
+    },
+    {
+      "c_name": "irred_photometry_view",
+      "rust_name": "PhotometryView",
+      "fields": [
+        [
+          "struct_size",
+          "u32"
+        ],
+        [
+          "abi_version",
+          "u32"
+        ],
+        [
+          "numerical_status",
+          "u32"
+        ],
+        [
+          "reserved",
+          "u32"
+        ],
+        [
+          "rows",
+          "const_PhotometryRow_ptr"
+        ],
+        [
+          "row_count",
+          "u64"
+        ],
+        [
+          "model_id",
+          "Bytes"
+        ],
+        [
+          "constants_id",
+          "Bytes"
+        ],
+        [
+          "arithmetic_id",
+          "Bytes"
+        ],
+        [
+          "propagation_id",
+          "Bytes"
+        ]
+      ]
     }
   ],
   "functions": [
@@ -3069,6 +3281,45 @@
           "sound_horizon_result"
         ]
       ]
+    },
+    {
+      "name": "irred_photometry_evaluate",
+      "args": [
+        [
+          "batch",
+          "const_PhotometryBatch_ptr"
+        ],
+        [
+          "policy",
+          "const_PhotometryPolicy_ptr"
+        ],
+        [
+          "output",
+          "photometry_result_out"
+        ]
+      ]
+    },
+    {
+      "name": "irred_photometry_result_view",
+      "args": [
+        [
+          "result",
+          "const_photometry_result"
+        ],
+        [
+          "output",
+          "PhotometryView_ptr"
+        ]
+      ]
+    },
+    {
+      "name": "irred_photometry_result_destroy",
+      "args": [
+        [
+          "result",
+          "photometry_result"
+        ]
+      ]
     }
   ],
   "max_batch_elements": 1000000,
@@ -3270,7 +3521,8 @@
     "supernova_result": "irred_supernova_result",
     "bao": "irred_bao",
     "bao_result": "irred_bao_result",
-    "sound_horizon_result": "irred_sound_horizon_result"
+    "sound_horizon_result": "irred_sound_horizon_result",
+    "photometry_result": "irred_photometry_result"
   },
   "expansion_contract": {
     "operation": "background.evaluate",
@@ -3321,5 +3573,26 @@
     "arithmetic": "FE_TONEAREST; long double digits>=64/max_exponent>=16384; empirical quadrature estimate and declared arithmetic admission allowance",
     "failure": "malformed descriptors/overflow/hardcount null transport; configured combined byte/point quota owned empty work_limit; scientific row failures owned precise numerical cause without usable scalar",
     "resource": "combined wrapper/input copies/wire rows/native output; preexisting borrowed input, stack, allocator bookkeeping and RSS excluded; allocated wrapper owner charged even empty"
+  },
+  "photometry_tags": {
+    "output": {
+      "incident_band_flux": 1,
+      "collected_energy": 2,
+      "expected_transmitted_photons": 4
+    },
+    "availability": {
+      "omitted": 0,
+      "available": 1,
+      "failed": 2
+    }
+  },
+  "photometry_contract": {
+    "operation": "photometry.predict",
+    "constants_id": "si_2019_radiometric_definitions",
+    "source": "steady isotropic finite-support constant rest L_lambda in W per metre; supplied luminosity distance and standard wavelength/time redshift mapping",
+    "outputs": "independent requested incident band flux W/m2, collected energy J, expected optically transmitted photons (not electrons/ADU)",
+    "limits": "hard count65536/nativebytes1GiB; combined wrapper copied inputs, native owned rows and wire rows before allocation; borrowed caller buffers, scalar call frames, allocator overhead and RSS excluded",
+    "failures": "malformed/version/alignment/count/overflow/hard cap null transport error; configured count/byte caps owned empty work_limit; scientific invalid/edge-conditioning/representability failures owned rows; no fabricated zero for unresolved positive overlap",
+    "qualification": "named numerical cases only; no runtime scientific qualification, stochastic noise, selection or inference"
   }
 }

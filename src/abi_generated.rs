@@ -212,6 +212,12 @@ pub fn expansion_tag_name(group: &str, value: u32) -> Option<&'static str> {
         _ => None,
     }
 }
+pub const PHOTOMETRY_OUTPUT_INCIDENT_BAND_FLUX: u32 = 1;
+pub const PHOTOMETRY_OUTPUT_COLLECTED_ENERGY: u32 = 2;
+pub const PHOTOMETRY_OUTPUT_EXPECTED_TRANSMITTED_PHOTONS: u32 = 4;
+pub const PHOTOMETRY_AVAILABILITY_OMITTED: u32 = 0;
+pub const PHOTOMETRY_AVAILABILITY_AVAILABLE: u32 = 1;
+pub const PHOTOMETRY_AVAILABILITY_FAILED: u32 = 2;
 #[allow(non_snake_case)]
 #[repr(C)]
 pub struct Buffer {
@@ -897,6 +903,74 @@ pub struct SoundHorizonResultView {
     pub coordinate_id: Bytes,
     pub arithmetic_id: Bytes,
 }
+#[allow(non_snake_case)]
+#[repr(C)]
+pub struct PhotometryInput {
+    pub struct_size: u32,
+    pub abi_version: u32,
+    pub luminosity_watt_per_metre: f64,
+    pub rest_lower_metre: f64,
+    pub rest_upper_metre: f64,
+    pub observed_lower_metre: f64,
+    pub observed_upper_metre: f64,
+    pub luminosity_distance_metre: f64,
+    pub redshift: f64,
+    pub collecting_area_square_metre: f64,
+    pub optical_transmission: f64,
+    pub observer_exposure_second: f64,
+}
+#[allow(non_snake_case)]
+#[repr(C)]
+pub struct PhotometryBatch {
+    pub struct_size: u32,
+    pub abi_version: u32,
+    pub data: *const PhotometryInput,
+    pub length: u64,
+    pub byte_length: u64,
+}
+#[allow(non_snake_case)]
+#[repr(C)]
+pub struct PhotometryPolicy {
+    pub struct_size: u32,
+    pub abi_version: u32,
+    pub requested_outputs: u32,
+    pub reserved: u32,
+    pub maximum_rows: u64,
+    pub maximum_native_bytes: u64,
+}
+#[allow(non_snake_case)]
+#[repr(C)]
+pub struct PhotometryScalar {
+    pub availability: u32,
+    pub numerical_status: u32,
+    pub value: f64,
+}
+#[allow(non_snake_case)]
+#[repr(C)]
+pub struct PhotometryRow {
+    pub struct_size: u32,
+    pub abi_version: u32,
+    pub source: PhotometryInput,
+    pub admission_status: u32,
+    pub reserved: u32,
+    pub incident_band_flux: PhotometryScalar,
+    pub collected_energy: PhotometryScalar,
+    pub expected_transmitted_photons: PhotometryScalar,
+}
+#[allow(non_snake_case)]
+#[repr(C)]
+pub struct PhotometryView {
+    pub struct_size: u32,
+    pub abi_version: u32,
+    pub numerical_status: u32,
+    pub reserved: u32,
+    pub rows: *const PhotometryRow,
+    pub row_count: u64,
+    pub model_id: Bytes,
+    pub constants_id: Bytes,
+    pub arithmetic_id: Bytes,
+    pub propagation_id: Bytes,
+}
 unsafe extern "C" {
     pub fn irred_add(
         a: *const Buffer,
@@ -1109,6 +1183,16 @@ unsafe extern "C" {
         out: *mut SoundHorizonResultView,
     ) -> u32;
     pub fn irred_sound_horizon_result_destroy(result: *mut std::ffi::c_void) -> u32;
+    pub fn irred_photometry_evaluate(
+        batch: *const PhotometryBatch,
+        policy: *const PhotometryPolicy,
+        output: *mut *mut std::ffi::c_void,
+    ) -> u32;
+    pub fn irred_photometry_result_view(
+        result: *const std::ffi::c_void,
+        output: *mut PhotometryView,
+    ) -> u32;
+    pub fn irred_photometry_result_destroy(result: *mut std::ffi::c_void) -> u32;
 }
 #[derive(Clone, serde::Deserialize, serde::Serialize)]
 #[serde(deny_unknown_fields)]
