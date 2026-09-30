@@ -1,0 +1,27 @@
+name: Bug or numerical discrepancy
+description: Report a wrong result, failure, or broken contract.
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: What happened?
+      description: Include expected versus actual behavior and the scientific domain if relevant.
+    validations:
+      required: true
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: Minimal reproduction
+      description: Exact commands and a small shareable input. Do not include private data or credentials.
+    validations:
+      required: true
+  - type: textarea
+    id: environment
+    attributes:
+      label: Build and environment
+      description: Commit, platform/compiler and relevant describe output, exit code or receipt fields. Review local paths before sharing.
+  - type: textarea
+    id: comparison
+    attributes:
+      label: Reference or explanation
+      description: For numerical discrepancies, include equations, conventions, tolerances and reference ancestry where known.

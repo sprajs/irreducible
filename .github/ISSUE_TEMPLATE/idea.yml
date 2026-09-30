@@ -1,0 +1,15 @@
+name: Idea or capability request
+description: Propose a use case, scientific capability, or improvement.
+body:
+  - type: textarea
+    id: use_case
+    attributes:
+      label: What would you like to do?
+      description: Explain the question or workflow and why it matters.
+    validations:
+      required: true
+  - type: textarea
+    id: approach
+    attributes:
+      label: Possible approach and constraints
+      description: Equations, data semantics, dependencies, error budgets, or a smaller first step, if known.

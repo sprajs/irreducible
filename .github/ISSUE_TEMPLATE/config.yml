@@ -1,0 +1,8 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Agent-first documentation
+    url: https://github.com/sprajs/irreducible/blob/main/docs/README.md
+    about: Start with the canonical guides and current capabilities.
+  - name: Private security report
+    url: https://github.com/sprajs/irreducible/security/advisories/new
+    about: Report sensitive vulnerabilities privately.

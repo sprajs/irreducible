@@ -1,0 +1,16 @@
+cff-version: 1.2.0
+message: "If Irreducible contributes to your research, please cite this software and the exact commit or release used."
+type: software
+title: Irreducible
+authors:
+  - family-names: Prajs
+    given-names: Szymon
+repository-code: "https://github.com/sprajs/irreducible"
+url: "https://github.com/sprajs/irreducible"
+license: BSD-3-Clause
+abstract: "An agent-operated scientific engine with a Rust control layer, C++20 numerical core, explicit scientific contracts and reproducible run identities."
+keywords:
+  - cosmology
+  - scientific-computing
+  - reproducibility
+  - agents
