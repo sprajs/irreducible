@@ -26,7 +26,7 @@ This example calculates the expansion rate and physical distances at redshift 1 
 
 ## Contributing
 
-PRs are welcome, including agent-written ones. Thanks for helping. [Contributing](CONTRIBUTING.md).
+PRs are welcome, including agent-written ones. Bring a coherent change with the checks and explanation it needs; useful contributions do not have to fit a fixed size. See [contributing](CONTRIBUTING.md).
 
 ## License and citation
 
