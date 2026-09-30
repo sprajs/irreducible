@@ -77,6 +77,17 @@ fn normalized_profile_and_proper_prior_modes() {
     assert!(row.get("log_density").is_none());
     assert!((row["profile_coefficient"].as_f64().unwrap() - 7. / 11.).abs() < 1e-10);
     assert!((row["quadratic"].as_f64().unwrap() - 25. / 11.).abs() < 1e-10);
+    assert_eq!(row["numerical_status"], "ok");
+    assert!(row["estimated_forward_sensitivity"].as_f64().unwrap() > 0.);
+    let mut tighter = spec.clone();
+    tighter["maximum_forward_sensitivity"] = json!(1e-30);
+    let (failed, code, _) = run(&tighter);
+    assert_ne!(code, 0);
+    assert_eq!(
+        calc(&failed)["rows"][0]["numerical_status"],
+        "conditioning_budget_exceeded"
+    );
+    assert!(calc(&failed)["rows"][0].get("quadratic").is_none());
     spec["mode"] = json!("normalized_density");
     spec["response"] = Value::Null;
     spec["proper_prior"] = json!({"response":[1.,1.],"ordered_ids":["r0","r1"],"mean":1./3.,"variance":2.,"latent_identity":"proper-offset","independence_declared":true});

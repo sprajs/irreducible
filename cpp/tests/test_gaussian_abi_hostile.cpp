@@ -186,6 +186,19 @@ int main() {
     CHECK(rows[0].status == COSMO_GAUSSIAN_STATUS_FINITE &&
           std::abs(rows[0].coefficient - 7. / 11) < 1e-10 &&
           std::abs(rows[0].quadratic - 25. / 11) < 1e-10);
+    CHECK(rows[0].numerical_status == COSMO_NUMERICAL_STATUS_OK &&
+          rows[0].backward_residual >= 0 &&
+          rows[0].estimated_forward_sensitivity > 0);
+    CHECK(cosmo_gaussian_result_destroy(out) == COSMO_OK);
+    out = nullptr;
+    auto tight_policy = policy;
+    tight_policy.maximum_forward_sensitivity = 1e-30;
+    CHECK(cosmo_gaussian_evaluate(g, &batch, &tight_policy, &out) == COSMO_OK &&
+          out);
+    CHECK(cosmo_gaussian_result_view(out, &rows, &n) == COSMO_OK && n == 1 &&
+          rows[0].status == COSMO_GAUSSIAN_STATUS_NUMERICAL_FAILURE &&
+          rows[0].numerical_status ==
+              COSMO_NUMERICAL_STATUS_CONDITIONING_BUDGET_EXCEEDED);
     CHECK(cosmo_gaussian_result_destroy(out) == COSMO_OK);
     out = nullptr;
     cosmo_bytes reversed[2] = {f.ids[1], f.ids[0]};

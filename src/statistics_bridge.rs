@@ -1,9 +1,9 @@
 //! Coarse retained Gaussian calculation; all probability algebra lives in C++.
 use super::{
     generated::*,
-    observations::{bytes, copied, doubles, prepare_retained, strings, ObservationInput},
+    observations::{ObservationInput, bytes, copied, doubles, prepare_retained, strings},
 };
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 use std::{ffi::c_void, ptr};
 struct Gaussian(*mut c_void);
 impl Drop for Gaussian {
@@ -152,8 +152,8 @@ pub(crate) fn gaussian_batch(
             return Ok(json!({"kind":if row.status==GAUSSIAN_STATUS_OUTSIDE_SUPPORT {"outside_support"} else {"failure"}, "status":label,"numerical_status":numerical_label}));
         }
         if response.is_some() {
-            if !row.coefficient.is_finite() || !row.quadratic.is_finite() {return Err("INVALID_FINITE_PAYLOAD".into());}
-            return Ok(json!({"kind":"finite","profile_coefficient":row.coefficient,"quadratic":row.quadratic,"density":null,"normalization":"not_applicable","meaning":"optimized offset score; not normalized density"}));
+            if row.numerical_status != 0 || [row.coefficient,row.quadratic,row.backward_residual,row.estimated_forward_sensitivity].iter().any(|x|!x.is_finite()) {return Err("INVALID_FINITE_PAYLOAD".into());}
+            return Ok(json!({"kind":"finite","profile_coefficient":row.coefficient,"quadratic":row.quadratic,"numerical_status":numerical_label,"backward_residual":row.backward_residual,"estimated_forward_sensitivity":row.estimated_forward_sensitivity,"diagnostic_scope":"adjusted-residual solve; empirical sensitivity, not certified score error","density":null,"normalization":"not_applicable","meaning":"optimized offset score; not normalized density"}));
         }
         if row.numerical_status!=0 || [row.log_density,row.quadratic,row.log_determinant,row.normalization,row.backward_residual,row.estimated_forward_sensitivity].iter().any(|x|!x.is_finite()) {
             return Err("INVALID_FINITE_PAYLOAD".into());

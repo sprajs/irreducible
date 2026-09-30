@@ -104,6 +104,30 @@ int main() {
     std::array<double, 4> c{4, 1, 1, 9};
     std::array<double, 2> r{2, -3};
     auto g = prepare_gaussian(c, MatrixKind::covariance, meta(), 4, budget);
+    check(g.numerical_status() == numerics::Status::ok,
+          "Gaussian preparation exact success cause");
+    auto rejected_budget = prepare_gaussian(
+        std::span<const double>(static_cast<const double *>(nullptr), 4),
+        MatrixKind::covariance, meta(), 4, 0);
+    check(rejected_budget.status() == DensityStatus::invalid_input &&
+              rejected_budget.numerical_status() ==
+                  numerics::Status::invalid_input,
+          "invalid budget rejected before matrix access");
+    check(g.evaluate(
+               std::span<const double>(static_cast<const double *>(nullptr),
+                                       std::numeric_limits<std::size_t>::max()),
+               meta().ordered_ids, budget)
+                  .density.status == DensityStatus::invalid_input,
+          "residual impossible size rejected before copy");
+    std::array<double, 4> indefinite{1, 2, 2, 1};
+    check(
+        prepare_gaussian(indefinite, MatrixKind::covariance, meta(), 4, budget)
+                .numerical_status() == numerics::Status::not_positive_definite,
+        "factor failure cause retained");
+    check(prepare_gaussian(c, MatrixKind::precision, meta(), 4, 1e-30)
+                  .numerical_status() ==
+              numerics::Status::conditioning_budget_exceeded,
+          "precision solve cause retained");
     check(g.status() == DensityStatus::finite, "Gaussian preparation");
     auto v = g.evaluate(r, g.metadata().ordered_ids, budget);
     check(v.density.status == DensityStatus::finite, "Gaussian evaluated");
@@ -317,6 +341,128 @@ int main() {
                                observations::Selection::all, 9, budget)
                   .status() == DensityStatus::numerical_failure,
           "discarded precision coupling still requires valid full operator");
+    auto cache_source =
+        prepare_gaussian(c, MatrixKind::covariance, meta(), 4, budget);
+    auto cache = std::move(cache_source)
+                     .prepare_offset_profile(x, meta().ordered_ids, budget);
+    check(cache.status() == DensityStatus::finite &&
+              cache_source.status() == DensityStatus::invalid_input,
+          "owned factor move leaves source invalid");
+    auto cached = cache.evaluate(r, meta().ordered_ids, budget);
+    near(cached.coefficient, profile.coefficient, budget,
+         "cached coefficient parity");
+    check(cached.numerical_status == numerics::Status::ok,
+          "finite profile numerical status");
+    near(cached.quadratic, profile.quadratic, budget,
+         "cached stable adjusted score parity");
+    near(cache.gram(), 11.L / 35, budget, "cached Gram exact reference");
+    check(cache.cached_response_solution().size() == 2 &&
+              cache.cached_response_backward_residual() < 1e-12 &&
+              cache.cached_response_forward_sensitivity() < budget,
+          "cached response diagnostics");
+    check(cached.backward_residual < 1e-12 &&
+              cached.estimated_forward_sensitivity < budget &&
+              cached.adjusted_residual_l1 > 0 &&
+              cached.adjusted_solution_norm_inf > 0,
+          "adjusted solve diagnostics");
+    check(cache.evaluate(r, wrong, budget).status ==
+              DensityStatus::incompatible_metadata,
+          "cached wrong IDs");
+    std::array<double, 2> fit{1e8, 1e8};
+    auto perfect = cache.evaluate(fit, meta().ordered_ids, budget);
+    check(perfect.status == DensityStatus::finite && perfect.quadratic >= 0 &&
+              perfect.quadratic < 1e-10,
+          "perfect fit no subtract large squares");
+    fit[1] = std::nextafter(fit[1], INFINITY);
+    auto nearly = cache.evaluate(fit, meta().ordered_ids, budget);
+    check(nearly.status == DensityStatus::finite && nearly.quadratic >= 0 &&
+              nearly.quadratic < 1e-10,
+          "near perfect adjusted residual stable");
+    std::array<double, 2> zero{0, 0};
+    auto zero_source =
+        prepare_gaussian(c, MatrixKind::covariance, meta(), 4, budget);
+    check(std::move(zero_source)
+                  .prepare_offset_profile(zero, meta().ordered_ids, budget)
+                  .status() == DensityStatus::invalid_input,
+          "zero response rejected without jitter");
+    auto prior_source =
+        prepare_gaussian(c, MatrixKind::covariance, meta(), 4, budget)
+            .proper_offset(x, meta().ordered_ids, 0, 1, "latent", true, 4,
+                           budget);
+    check(std::move(prior_source)
+                  .prepare_offset_profile(x, meta().ordered_ids, budget)
+                  .status() == DensityStatus::incompatible_metadata,
+          "proper prior cannot become profile");
+    std::array<double, 2> extreme{std::numeric_limits<double>::max(),
+                                  -std::numeric_limits<double>::max()};
+    check(cache.evaluate(extreme, meta().ordered_ids, budget).status ==
+              DensityStatus::numerical_failure,
+          "cached overflow failure");
+    std::array<std::size_t, 2> explicit_keep{0, 1};
+    auto explicit_selected =
+        prepare_selected_observations(retained, explicit_keep, 4, budget);
+    check(explicit_selected.status() == DensityStatus::finite &&
+              explicit_selected.selection_history()[0].operation.find(
+                  "caller-declared") != std::string::npos,
+          "caller selection recorded without role upgrade");
+    auto explicit_cache =
+        std::move(explicit_selected)
+            .prepare_offset_profile(x, meta().ordered_ids, budget);
+    check(explicit_cache.selection_history()[0].complement_row_ids ==
+              std::vector<std::string>({"discarded"}),
+          "cached selection history retained");
+    for (auto invalid : std::array<std::array<std::size_t, 2>, 3>{
+             {{{0, 0}}, {{1, 0}}, {{0, 3}}}})
+      check(prepare_selected_observations(retained, invalid, 4, budget)
+                    .status() != DensityStatus::finite,
+            "duplicate reversed out-of-range selection rejected");
+    std::array<std::size_t, 1> masked{2};
+    check(prepare_selected_observations(retained, masked, 4, budget).status() !=
+              DensityStatus::finite,
+          "source-masked row cannot be reselected");
+    auto missing_source = retained.source();
+    missing_source.missing[0] = 1;
+    auto missing_prepared =
+        observations::prepare(std::move(missing_source), {3, 9});
+    check(prepare_selected_observations(missing_prepared, explicit_keep, 4,
+                                        budget)
+                  .status() != DensityStatus::finite,
+          "selected missing row rejected");
+    check(prepare_selected_observations(retained, {}, 4, budget).status() !=
+              DensityStatus::finite,
+          "empty caller selection rejected");
+    auto zero_probe = cache.evaluate(zero, meta().ordered_ids, budget);
+    check(zero_probe.status == DensityStatus::finite,
+          "zero residual profile diagnostic probe");
+    const auto tighter = (zero_probe.coefficient_solve_forward_sensitivity +
+                          cache.cached_response_forward_sensitivity()) /
+                         2;
+    check(cache.cached_response_forward_sensitivity() >
+              zero_probe.coefficient_solve_forward_sensitivity,
+          "cached response sensitivity adversary distinct from zero residual");
+    check(cache.evaluate(zero, meta().ordered_ids, tighter).numerical_status ==
+              numerics::Status::conditioning_budget_exceeded,
+          "cached conditioning cause retained");
+    check(cache.evaluate(zero, meta().ordered_ids, tighter).status ==
+              DensityStatus::numerical_failure,
+          "tighter evaluation budget must cover cached response");
+    check(cache.evaluate(r, meta().ordered_ids, 0).status ==
+              DensityStatus::invalid_input,
+          "cached invalid evaluation policy");
+    std::array<std::size_t, 4> too_many{0, 1, 2, 3};
+    check(
+        prepare_selected_observations(retained, too_many, 4, budget).status() !=
+            DensityStatus::finite,
+        "overlong selection rejected before copying");
+    check(prepare_selected_observations(retained, explicit_keep, 3, budget)
+                  .status() != DensityStatus::finite,
+          "selected matrix resource rejected early");
+    check(cached.adjusted_residuals.size() == r.size(),
+          "canonical adjusted residuals retained");
+    auto canonical_check =
+        g.evaluate(cached.adjusted_residuals, meta().ordered_ids, budget);
+    near(canonical_check.quadratic, cached.quadratic, 4e-11,
+         "reported score uses returned canonical adjusted residuals");
     std::printf("{\"suite\":\"statistics_contract\",\"checks\":%d,\"max_"
                 "absolute_error\":%.17g,\"passed\":true}\n",
                 checks, maximum);

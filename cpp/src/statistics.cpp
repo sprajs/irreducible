@@ -48,15 +48,19 @@ long double dot(std::span<const double> a, std::span<const double> b) {
     v += static_cast<long double>(a[i]) * b[i];
   return v;
 }
-std::vector<double> inverse(const numerics::Factorization &f, double budget) {
+std::vector<double> inverse(const numerics::Factorization &f, double budget,
+                            numerics::Status *cause = nullptr) {
   const auto n = f.size();
   std::vector<double> out(n * n), e(n);
   for (std::size_t j = 0; j < n; ++j) {
     std::fill(e.begin(), e.end(), 0);
     e[j] = 1;
     auto s = numerics::solve(f, e, budget);
-    if (s.status != numerics::Status::ok)
+    if (s.status != numerics::Status::ok) {
+      if (cause)
+        *cause = s.status;
       return {};
+    }
     for (std::size_t i = 0; i < n; ++i)
       out[i * n + j] = s.value[i];
   } // independent column roundoff can break exact symmetry; use one triangle,
@@ -129,15 +133,16 @@ Gaussian prepare_gaussian(std::span<const double> matrix, MatrixKind kind,
   }
   if (kind != MatrixKind::covariance && kind != MatrixKind::precision)
     return g;
+  if (!std::isfinite(budget) || budget <= 0)
+    return g;
   auto f = numerics::cholesky(matrix, n, cap);
   if (f.status() != numerics::Status::ok) {
     g.status_ = DensityStatus::numerical_failure;
+    g.numerical_status_ = f.status();
     return g;
   }
-  if (!std::isfinite(budget) || budget <= 0)
-    return g;
   if (kind == MatrixKind::precision) {
-    g.covariance_ = inverse(f, budget);
+    g.covariance_ = inverse(f, budget, &g.numerical_status_);
     if (g.covariance_.empty()) {
       g.status_ = DensityStatus::numerical_failure;
       return g;
@@ -147,6 +152,7 @@ Gaussian prepare_gaussian(std::span<const double> matrix, MatrixKind kind,
     g.covariance_.assign(matrix.begin(), matrix.end());
     g.factor_ = std::move(f);
   }
+  g.numerical_status_ = g.factor_.status();
   g.status_ = g.factor_.status() == numerics::Status::ok
                   ? DensityStatus::finite
                   : DensityStatus::numerical_failure;
@@ -157,6 +163,7 @@ GaussianResult Gaussian::evaluate(std::span<const double> r,
                                   double budget) const {
   GaussianResult out;
   out.density.status = status_;
+  out.density.numerical_status = numerical_status_;
   if (status_ != DensityStatus::finite)
     return out;
   if (ids.size() != metadata_.ordered_ids.size() ||
@@ -164,11 +171,11 @@ GaussianResult Gaussian::evaluate(std::span<const double> r,
     out.density.status = DensityStatus::incompatible_metadata;
     return out;
   }
-  std::vector<double> centered(r.begin(), r.end());
-  if (centered.size() != factor_.size()) {
+  if (r.size() != factor_.size()) {
     out.density.status = DensityStatus::invalid_input;
     return out;
   }
+  std::vector<double> centered(r.begin(), r.end());
   if (!mean_shift_.empty())
     for (std::size_t i = 0; i < centered.size(); ++i) {
       const auto v = static_cast<long double>(centered[i]) - mean_shift_[i];
@@ -236,10 +243,12 @@ Gaussian::conditional_zero_complement(std::span<const std::size_t> keep,
                                       std::size_t cap, double budget) const {
   if (status_ != DensityStatus::finite || !indices(keep, factor_.size()))
     return {};
-  auto precision = inverse(factor_, budget);
+  numerics::Status cause = numerics::Status::invalid_input;
+  auto precision = inverse(factor_, budget, &cause);
   if (precision.empty()) {
     Gaussian failed;
     failed.status_ = DensityStatus::numerical_failure;
+    failed.numerical_status_ = cause;
     return failed;
   }
   Metadata m = metadata_;
@@ -270,67 +279,173 @@ Gaussian::conditional_zero_complement(std::span<const std::size_t> keep,
       out.mean_shift_.push_back(mean_shift_[i]);
   return out;
 }
+namespace {
+ProfileResult evaluate_profile(const numerics::Factorization &factor,
+                               const Metadata &metadata,
+                               std::span<const double> r,
+                               std::span<const double> x, long double gram,
+                               std::span<const std::string> ids,
+                               double budget) {
+  ProfileResult out;
+  if (ids.size() != metadata.ordered_ids.size() ||
+      !std::equal(ids.begin(), ids.end(), metadata.ordered_ids.begin())) {
+    out.status = DensityStatus::incompatible_metadata;
+    return out;
+  }
+  if (r.size() != factor.size() || x.size() != r.size() || !finite_span(r) ||
+      !finite_span(x) || !(gram > 0) || !std::isfinite(gram))
+    return out;
+  auto wr = numerics::solve(factor, r, budget);
+  if (wr.status != numerics::Status::ok) {
+    out.status = DensityStatus::numerical_failure;
+    out.numerical_status = wr.status;
+    return out;
+  }
+  const auto a = dot(x, wr.value) / gram;
+  if (!std::isfinite(a) || std::abs(a) > std::numeric_limits<double>::max()) {
+    out.status = DensityStatus::numerical_failure;
+    out.numerical_status = numerics::Status::overflow;
+    return out;
+  }
+  std::vector<double> adjusted(r.size());
+  for (std::size_t i = 0; i < r.size(); ++i) {
+    const auto v = static_cast<long double>(r[i]) - a * x[i];
+    if (!std::isfinite(v) || std::abs(v) > std::numeric_limits<double>::max()) {
+      out.status = DensityStatus::numerical_failure;
+      out.numerical_status = numerics::Status::overflow;
+      return out;
+    }
+    adjusted[i] = static_cast<double>(v);
+  }
+  auto wa = numerics::solve(factor, adjusted, budget);
+  if (wa.status != numerics::Status::ok) {
+    out.status = DensityStatus::numerical_failure;
+    out.numerical_status = wa.status;
+    return out;
+  }
+  const auto q = dot(adjusted, wa.value);
+  if (q < 0 || !std::isfinite(q) || q > std::numeric_limits<double>::max()) {
+    out.status = DensityStatus::numerical_failure;
+    out.numerical_status = numerics::Status::overflow;
+    return out;
+  }
+  long double residual_l1 = 0, adjusted_l1 = 0;
+  for (std::size_t i = 0; i < r.size(); ++i) {
+    residual_l1 += std::abs(static_cast<long double>(r[i]));
+    adjusted_l1 += std::abs(static_cast<long double>(adjusted[i]));
+    out.solution_norm_inf =
+        std::max(out.solution_norm_inf, std::abs(wr.value[i]));
+    out.adjusted_solution_norm_inf =
+        std::max(out.adjusted_solution_norm_inf, std::abs(wa.value[i]));
+  }
+  if (residual_l1 > std::numeric_limits<double>::max() ||
+      adjusted_l1 > std::numeric_limits<double>::max()) {
+    out.status = DensityStatus::numerical_failure;
+    out.numerical_status = numerics::Status::overflow;
+    return out;
+  }
+  out.status = DensityStatus::finite;
+  out.numerical_status = numerics::Status::ok;
+  out.coefficient = static_cast<double>(a);
+  out.quadratic = static_cast<double>(q);
+  out.backward_residual = wa.backward_residual;
+  out.estimated_forward_sensitivity = wa.estimated_forward_sensitivity;
+  out.coefficient_solve_backward_residual = wr.backward_residual;
+  out.coefficient_solve_forward_sensitivity = wr.estimated_forward_sensitivity;
+  out.residual_l1 = static_cast<double>(residual_l1);
+  out.adjusted_residual_l1 = static_cast<double>(adjusted_l1);
+  out.adjusted_residuals = std::move(adjusted);
+  return out;
+}
+} // namespace
 ProfileResult Gaussian::profile_offset(std::span<const double> r,
                                        std::span<const double> x,
                                        std::span<const std::string> ids,
                                        double budget) const {
   ProfileResult out;
-  if (ids.size() != metadata_.ordered_ids.size() ||
+  if (status_ != DensityStatus::finite) {
+    out.status = status_;
+    return out;
+  }
+  if (!priors_.empty() || ids.size() != metadata_.ordered_ids.size() ||
       !std::equal(ids.begin(), ids.end(), metadata_.ordered_ids.begin())) {
     out.status = DensityStatus::incompatible_metadata;
     return out;
   }
-  if (status_ != DensityStatus::finite || r.size() != factor_.size() ||
-      x.size() != r.size() || !finite_span(r) || !finite_span(x))
+  if (x.size() != factor_.size() || !finite_span(x))
     return out;
-  std::vector<double> centered(r.begin(), r.end());
-  if (!mean_shift_.empty())
-    for (std::size_t i = 0; i < centered.size(); ++i) {
-      auto v = static_cast<long double>(centered[i]) - mean_shift_[i];
-      if (!std::isfinite(v) ||
-          std::abs(v) > std::numeric_limits<double>::max()) {
-        out.status = DensityStatus::numerical_failure;
-        return out;
-      }
-      centered[i] = static_cast<double>(v);
-    }
-  auto wr = numerics::solve(factor_, centered, budget),
-       wx = numerics::solve(factor_, x, budget);
-  if (wr.status != numerics::Status::ok || wx.status != numerics::Status::ok) {
+  auto wx = numerics::solve(factor_, x, budget);
+  if (wx.status != numerics::Status::ok) {
     out.status = DensityStatus::numerical_failure;
+    out.numerical_status = wx.status;
+    return out;
+  }
+  return evaluate_profile(factor_, metadata_, r, x, dot(x, wx.value), ids,
+                          budget);
+}
+ProfileOperator
+Gaussian::prepare_offset_profile(std::span<const double> x,
+                                 std::span<const std::string> ids,
+                                 double budget) && {
+  ProfileOperator out;
+  if (status_ != DensityStatus::finite) {
+    out.status_ = status_;
+    out.numerical_status_ = numerical_status_;
+    return out;
+  }
+  if (!priors_.empty() || ids.size() != metadata_.ordered_ids.size() ||
+      !std::equal(ids.begin(), ids.end(), metadata_.ordered_ids.begin())) {
+    out.status_ = DensityStatus::incompatible_metadata;
+    return out;
+  }
+  if (x.size() != factor_.size() || !finite_span(x))
+    return out;
+  auto wx = numerics::solve(factor_, x, budget);
+  if (wx.status != numerics::Status::ok) {
+    out.status_ = DensityStatus::numerical_failure;
+    out.numerical_status_ = wx.status;
     return out;
   }
   const auto gram = dot(x, wx.value);
-  if (!(gram > 0))
+  if (!(gram > 0) || !std::isfinite(gram))
     return out;
-  const auto a = dot(x, wr.value) / gram;
-  if (!std::isfinite(a) || std::abs(a) > std::numeric_limits<double>::max()) {
-    out.status = DensityStatus::numerical_failure;
-    return out;
-  }
-  std::vector<double> adjusted(r.size());
-  for (std::size_t i = 0; i < r.size(); ++i) {
-    auto v = static_cast<long double>(centered[i]) - a * x[i];
-    if (!std::isfinite(v) || std::abs(v) > std::numeric_limits<double>::max()) {
-      out.status = DensityStatus::numerical_failure;
-      return out;
-    }
-    adjusted[i] = static_cast<double>(v);
-  }
-  auto wa = numerics::solve(factor_, adjusted, budget);
-  if (wa.status != numerics::Status::ok) {
-    out.status = DensityStatus::numerical_failure;
-    return out;
-  }
-  auto q = dot(adjusted, wa.value);
-  if (q < 0 || !std::isfinite(q) || q > std::numeric_limits<double>::max()) {
-    out.status = DensityStatus::numerical_failure;
-    return out;
-  }
-  out.status = DensityStatus::finite;
-  out.coefficient = static_cast<double>(a);
-  out.quadratic = static_cast<double>(q);
+  out.response_.assign(x.begin(), x.end());
+  out.wx_ = std::move(wx.value);
+  out.gram_ = gram;
+  out.backward_ = wx.backward_residual;
+  out.sensitivity_ = wx.estimated_forward_sensitivity;
+  status_ = DensityStatus::invalid_input; // consumed even if later metadata
+                                          // allocation throws
+  out.factor_ = std::move(factor_);
+  out.metadata_ = std::move(metadata_);
+  out.history_ = std::move(history_);
+  out.metadata_.treatment +=
+      "; retained fixed offset profile score (not density)";
+  out.status_ = DensityStatus::finite;
+  out.numerical_status_ = numerics::Status::ok;
+  status_ = DensityStatus::invalid_input;
+  covariance_.clear();
   return out;
+}
+ProfileResult ProfileOperator::evaluate(std::span<const double> r,
+                                        std::span<const std::string> ids,
+                                        double budget) const {
+  if (status_ != DensityStatus::finite) {
+    ProfileResult out;
+    out.status = status_;
+    out.numerical_status = numerical_status_;
+    return out;
+  }
+  if (!std::isfinite(budget) || budget <= 0) {
+    return {};
+  }
+  if (sensitivity_ > budget) {
+    ProfileResult out;
+    out.status = DensityStatus::numerical_failure;
+    out.numerical_status = numerics::Status::conditioning_budget_exceeded;
+    return out;
+  }
+  return evaluate_profile(factor_, metadata_, r, response_, gram_, ids, budget);
 }
 Gaussian Gaussian::proper_offset(std::span<const double> x,
                                  std::span<const std::string> ids, double mean,
@@ -388,16 +503,43 @@ Gaussian Gaussian::proper_offset(std::span<const double> x,
   }
   return out;
 }
-Gaussian prepare_observations(const observations::Prepared &p,
-                              observations::Selection choice, std::size_t cap,
-                              double budget) {
+Gaussian
+prepare_selected_observations(const observations::Prepared &p,
+                              std::span<const std::size_t> selected_indices,
+                              std::size_t cap, double budget) {
   if (p.status() != observations::Status::ok)
     return {};
-  auto selected = p.select(choice);
-  if (selected.status != observations::Status::ok ||
-      selected.source_indices.empty())
-    return {};
   const auto &s = p.source();
+  const auto n = s.values.size();
+  if (selected_indices.empty() || selected_indices.size() > n)
+    return {};
+  const auto k_limit = selected_indices.size();
+  if (s.uncertainty == observations::Uncertainty::covariance &&
+      k_limit > cap / k_limit)
+    return {};
+  if (s.uncertainty == observations::Uncertainty::precision && n > cap / n)
+    return {};
+
+  observations::SelectionResult selected;
+  selected.status = observations::Status::ok;
+  selected.mask.assign(n, 0);
+  selected.source_indices.assign(selected_indices.begin(),
+                                 selected_indices.end());
+  std::size_t previous = 0;
+  bool first = true;
+  for (auto i : selected_indices) {
+    if (i >= n || (!first && i <= previous) ||
+        (!s.source_selection.empty() && !s.source_selection[i]) ||
+        s.missing[i] || !std::isfinite(s.values[i]))
+      return {};
+    if (s.profile == observations::Profile::pantheon_plus_released_v1 &&
+        (s.zhd_missing[i] || s.zhel_missing[i] || !std::isfinite(s.zhd[i]) ||
+         !std::isfinite(s.zhel[i])))
+      return {};
+    selected.mask[i] = 1;
+    previous = i;
+    first = false;
+  }
   if (s.uncertainty == observations::Uncertainty::none)
     return {};
   Metadata m{};
@@ -435,8 +577,8 @@ Gaussian prepare_observations(const observations::Prepared &p,
     auto out = prepare_gaussian(block, MatrixKind::covariance, std::move(m),
                                 cap, budget);
     SelectionRecord history;
-    history.operation = "selected principal covariance block; full source probability "
-                        "validity not assessed";
+    history.operation = "caller-declared selected principal covariance block; "
+                        "full source probability validity not assessed";
     history.kept_row_ids = out.metadata_.ordered_ids;
     for (std::size_t i = 0; i < n; ++i)
       if (!selected.mask[i])
@@ -450,6 +592,25 @@ Gaussian prepare_observations(const observations::Prepared &p,
                                std::move(m), cap, budget);
   if (full.status() != DensityStatus::finite)
     return full;
-  return full.marginal(selected.source_indices, cap, budget);
+  auto out = full.marginal(selected.source_indices, cap, budget);
+  if (!out.history_.empty())
+    out.history_.back().operation = "caller-declared source-order selection "
+                                    "after validated full precision marginal";
+  return out;
+}
+Gaussian prepare_observations(const observations::Prepared &p,
+                              observations::Selection choice, std::size_t cap,
+                              double budget) {
+  if (p.status() != observations::Status::ok)
+    return {};
+  auto selected = p.select(choice);
+  if (selected.status != observations::Status::ok)
+    return {};
+  auto out =
+      prepare_selected_observations(p, selected.source_indices, cap, budget);
+  if (!out.history_.empty())
+    out.history_.back().operation +=
+        "; compiled selection=" + std::to_string(static_cast<unsigned>(choice));
+  return out;
 }
 } // namespace irred::statistics

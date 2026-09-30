@@ -302,9 +302,12 @@ extern "C" uint32_t cosmo_gaussian_evaluate(const cosmo_gaussian *g,
         auto r = g->native.profile_offset(residual, {b->response.data, n}, ids,
                                           p->maximum_forward_sensitivity);
         row.status = static_cast<uint32_t>(r.status);
+        row.numerical_status = static_cast<uint32_t>(r.numerical_status);
         if (r.status == DensityStatus::finite) {
           row.coefficient = r.coefficient;
           row.quadratic = r.quadratic;
+          row.backward_residual = r.backward_residual;
+          row.estimated_forward_sensitivity = r.estimated_forward_sensitivity;
         }
       }
     }

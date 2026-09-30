@@ -90,3 +90,7 @@ add_test(NAME background_hostile_contract COMMAND test_background_hostile)
 add_executable(test_gaussian_abi_hostile tests/test_gaussian_abi_hostile.cpp)
 target_link_libraries(test_gaussian_abi_hostile PRIVATE irred_core)
 add_test(NAME gaussian_abi_hostile_contract COMMAND test_gaussian_abi_hostile)
+
+add_executable(test_profile_operator_hostile tests/test_profile_operator_hostile.cpp)
+target_link_libraries(test_profile_operator_hostile PRIVATE irred_core)
+add_test(NAME profile_operator_hostile_contract COMMAND test_profile_operator_hostile)
