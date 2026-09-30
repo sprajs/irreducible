@@ -54,24 +54,30 @@ Batch evaluate(const cosmology::Background &, Ruler, std::span<const Query>,
 
 enum class RowRole : std::uint32_t {
   released_fitted_distance_summary = 0,
-  synthetic_control = 1
+  synthetic_control = 1,
+  unknown = UINT32_MAX
 };
-enum class CovarianceUnit : std::uint32_t { dimensionless_ratio_squared = 0 };
+enum class CovarianceUnit : std::uint32_t {
+  dimensionless_ratio_squared = 0,
+  unknown = UINT32_MAX
+};
 struct DensityInput {
   std::vector<Query> queries;
   std::vector<double> observed, covariance;
   std::vector<std::string> ordered_ids;
-  RowRole role;
-  CovarianceUnit covariance_unit;
+  RowRole role = RowRole::unknown;
+  CovarianceUnit covariance_unit = CovarianceUnit::unknown;
   std::string table_identity, covariance_identity, ordering_provenance,
       calibration_provenance, dependence_provenance;
 };
 struct DensityPolicy {
   Policy observables;
-  std::size_t maximum_models, maximum_matrix_elements, maximum_string_bytes,
-      maximum_native_bytes;
-  double maximum_forward_sensitivity;
-  numerics::Arithmetic arithmetic;
+  // Required density policy is unset until the caller supplies every field.
+  std::size_t maximum_models = 0, maximum_matrix_elements = 0,
+              maximum_string_bytes = 0, maximum_native_bytes = 0;
+  double maximum_forward_sensitivity = 0;
+  numerics::Arithmetic arithmetic =
+      static_cast<numerics::Arithmetic>(UINT32_MAX);
 };
 struct ModelQuery {
   cosmology::Background background;

@@ -384,6 +384,72 @@ int main(int argc, char **argv) {
                           100000,
                           1e-10,
                           numerics::Arithmetic::longdouble_cpu_v1};
+    // Deliberately no braces: public default initialization must be safe.
+    bao::DensityInput unset_input;
+    bao::DensityPolicy unset_policy;
+    bao::PreparedDensity unset_prepared;
+    check(unset_input.role == bao::RowRole::unknown &&
+              unset_input.covariance_unit == bao::CovarianceUnit::unknown,
+          "unset source metadata is unknown");
+    check(unset_policy.maximum_models == 0 &&
+              unset_policy.maximum_matrix_elements == 0 &&
+              unset_policy.maximum_string_bytes == 0 &&
+              unset_policy.maximum_native_bytes == 0 &&
+              unset_policy.maximum_forward_sensitivity == 0 &&
+              unset_policy.arithmetic !=
+                  numerics::Arithmetic::binary64_legacy_v1 &&
+              unset_policy.arithmetic !=
+                  numerics::Arithmetic::longdouble_cpu_v1,
+          "unset policy cannot silently choose arithmetic or resources");
+    check(unset_prepared.source().role == bao::RowRole::unknown &&
+              unset_prepared.source().covariance_unit ==
+                  bao::CovarianceUnit::unknown,
+          "default prepared source safely inspectable");
+    auto unset_failure = bao::prepare_density(input, unset_policy);
+    check(unset_failure.status() != statistics::DensityStatus::finite &&
+              unset_failure.source().role == bao::RowRole::unknown,
+          "unset required policy rejects without fabricated released source");
+    for (int field = 0; field < 6; ++field) {
+      auto incomplete = dp;
+      switch (field) {
+      case 0:
+        incomplete.maximum_models = 0;
+        break;
+      case 1:
+        incomplete.maximum_matrix_elements = 0;
+        break;
+      case 2:
+        incomplete.maximum_string_bytes = 0;
+        break;
+      case 3:
+        incomplete.maximum_native_bytes = 0;
+        break;
+      case 4:
+        incomplete.maximum_forward_sensitivity = 0;
+        break;
+      case 5:
+        incomplete.arithmetic = unset_policy.arithmetic;
+        break;
+      }
+      auto rejected = bao::prepare_density(input, incomplete);
+      if (field == 0)
+        check(rejected.status() == statistics::DensityStatus::finite,
+              "zero model cap remains valid preparation budget");
+      else
+        check(rejected.status() != statistics::DensityStatus::finite &&
+                  rejected.source().role == bao::RowRole::unknown,
+              "unusable source budget or scientific policy rejects");
+    }
+    auto partial = input;
+    partial.role = unset_input.role;
+    check(bao::prepare_density(partial, dp).status() !=
+              statistics::DensityStatus::finite,
+          "unset role rejects despite otherwise explicit valid input");
+    partial = input;
+    partial.covariance_unit = unset_input.covariance_unit;
+    check(bao::prepare_density(partial, dp).status() !=
+              statistics::DensityStatus::finite,
+          "unset covariance unit rejects");
     auto prepared = bao::prepare_density(input, dp);
     check(prepared.status() == statistics::DensityStatus::finite,
           "density prepares");
