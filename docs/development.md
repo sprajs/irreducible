@@ -20,14 +20,15 @@ Start with a calculation an agent needs. Add a physical model, reader or numeric
 
 Do not mutate source while another build is reading it. Coordinate shared CPU/memory budgets. The exclusive build-identity test belongs in an isolated checkout and must run directly as described in [testing](testing.md).
 
-Use `irred` for generic C++ namespaces and `irred_core` for the native library. Public headers live under `cpp/include/irred/`. Current cosmological models use `irred::cosmology`; this is not the root for generic numerical or observation infrastructure. Keep one current public interface; coherent changes may replace obsolete C ABI names and callers together. Preserve immutable scientific/method/source identities rather than iteration plumbing.
+Use `irred` for generic C++ namespaces and `irred_core` for the native library. Public headers live under `cpp/include/irred/`. Expansion models use `irred::cosmology`; supernova and BAO consumers use `irred::supernova` and `irred::bao`. Cosmology is not the root for generic numerical or observation infrastructure. Keep one current public interface; coherent changes may replace obsolete C ABI names and callers together. Preserve immutable scientific/method/source identities rather than iteration plumbing.
 
 ## Publishing
 
 Use small commits with explicit paths, respect `.gitignore`, and review `git diff --cached`. Keep the docs current with changes to public behavior.
 
-The integration owner coordinates shared workers and publishes validated milestones under the repository's standing authorization. Other contributors submit PRs. Do not force-push without explicit authorization.
+Create a `codex/` branch, commit coherent changes and push that branch for a pull request. Include the checks actually run, scientific or engineering limits, and any unresolved discrepancy. Inspect CI for the PR commit. Coordinate one integration owner for shared agent work; this does not grant permission to push `main` or merge. Those actions, and force pushes, require an explicit user request.
 
+Review documentation and wiki mirror changes in the same PR when they explain the capability. [Maintenance](maintenance.md) describes the separate wiki publication step.
 
 `python3 tools/build.py --profile release --jobs 3` selects three build jobs while preserving the Release compiler settings. `--jobs` accepts 1 through 4 and defaults to 4; the selected value is recorded in the build manifest. Installation checks use the explicit matching profile: `python3 tools/check_install.py --profile release` (default debug).
 

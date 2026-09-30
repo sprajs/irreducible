@@ -1,12 +1,14 @@
 # Working in Irreducible
 
-Irreducible is a simulation-first, agent-operated physics engine in development. Rust owns non-interactive configuration, acquisition, structural parsing and records; C++20 owns shared equations, physical models, numerical kernels and concrete statistical consumers. External fitting and orchestration are valid consumers. A complete inference ecosystem is not required. Shared theory, physical state, source populations, propagation and observational operators should serve simulations and later joint fitting. External fitters remain valid; visualization belongs in external tools.
+Irreducible is building a shared physics engine that takes a scientific idea through to predicted observations. Start with the question and the equations it needs. Keep available calculations distinct from the larger simulation and joint-fitting goals.
+
+Rust handles non-interactive configuration, data acquisition, structural parsing and records. C++20 handles physical models, shared equations, numerical kernels and statistical calculations. The library remains useful independently of the CLI. External fitting, orchestration and plotting tools are welcome consumers.
 
 Use the single active [roadmap](docs/roadmap.md), [gaps](docs/gaps.md), [docs/README.md](docs/README.md), [capabilities](docs/capabilities.md) and the relevant guide when their context helps; inspect actual built discovery/code before claiming implementation. Local planning/history is context, not a feature checklist. Preserve unrelated work and original inputs.
 
 ## Lasting design rules
 
-Keep one implementation of each shared equation/convention. Add models in compiled source, not expressions from data or a runtime plugin framework. Physical models, geometry, observed data and source effects are distinct. Build the smallest useful consumer of qualified prerequisites.
+Keep each shared equation and convention in one place. Add models in compiled source, not expressions from data or a runtime plugin framework. Physical models, geometry, observed data and source effects are distinct. Build the smallest useful consumer of qualified prerequisites.
 
 Maintain one coherent current interface. Do not create compatibility branches for hypothetical users. Breaking changes may remove obsolete routes, layouts, admission rules and redundant parameters together with their callers/tests/docs. Preserve scientific identities, immutable historical records and meaningful mathematical tests; do not preserve obsolete live plumbing without an actual consumer need.
 
@@ -28,4 +30,6 @@ Coordinate shared files/builds; total compiler/compute budget is four jobs. Run 
 
 Stage explicit coherent source/test/docs paths, respecting `.gitignore`. Never force-add local planning/evidence or delete originals/immutable receipts as cleanup. Snapshot unfinished work before a migration; remove only inventoried disposable artifacts released by their owners.
 
-The integration owner has standing authorization to commit validated milestones, push `origin main` and verify the remote SHA. Workers do not publish independently. Force pushes require specific user authorization. Report actual commands/results, limits, failures and the next useful dependency.
+Work on a `codex/` branch and open a small, coherent pull request. Commits, branch pushes and PR creation are part of the normal workflow; direct pushes to `main` and merges require an explicit user request. Coordinate one integration owner when agents share files. Review staged paths and the PR diff, report actual checks and limitations, and inspect CI for the pushed commit. Do not force-push without specific authorization.
+
+Treat wiki pages as reviewed documentation: edit their repository mirror in `docs/wiki/` with the PR, then sync the approved pages after merge. Publishing the separate wiki before merge requires an explicit user request. Never present a proposed recipe or command as an implemented capability.
