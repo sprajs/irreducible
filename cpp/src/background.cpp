@@ -4,11 +4,24 @@
 #include <limits>
 namespace irred::cosmology {
 namespace {
+long double cpl_density(const Parameters &p, long double z) {
+  return std::exp(3 * (1 + static_cast<long double>(p.w0) + p.wa) *
+                      std::log1p(z) -
+                  3 * static_cast<long double>(p.wa) * z / (1 + z));
+}
 long double expansion(const Parameters &p, long double z) {
   const auto u = 1 + z;
   if (p.model == Model::flat_lcdm_late_v1)
     return std::sqrt(p.omega_m * u * u * u +
                      (1 - static_cast<long double>(p.omega_m)));
+  if (p.model == Model::flat_cpl_late_v1) {
+    const auto matter = static_cast<long double>(p.omega_m) * u * u * u;
+    const auto dark =
+        p.omega_m == 1
+            ? 0.L
+            : (1 - static_cast<long double>(p.omega_m)) * cpl_density(p, z);
+    return std::sqrt(matter + dark);
+  }
   return std::exp((1 + static_cast<long double>(p.constant_q)) * std::log1p(z));
 }
 struct Context {
@@ -36,6 +49,8 @@ Background prepare(Parameters p) {
   out.parameters_ = p;
   if (p.model != Model::flat_lcdm_late_v1 &&
       p.model != Model::constant_q_flat_v1)
+    return out;
+  if (p.w0 != -1 || p.wa != 0)
     return out;
   if (!std::isfinite(p.h0_km_s_mpc) || p.h0_km_s_mpc <= 0 ||
       !std::isfinite(p.omega_m) || !std::isfinite(p.constant_q))
@@ -82,11 +97,31 @@ Background prepare(Parameters p) {
   out.status_ = Status::ok;
   return out;
 }
+Background prepare_cpl(CplParameters p) {
+  const Parameters attempted{
+      Model::flat_cpl_late_v1, p.h0_km_s_mpc, p.omega_m, 0, p.w0, p.wa};
+  Background out;
+  out.parameters_ = attempted;
+  if (!std::isfinite(p.w0) || !std::isfinite(p.wa))
+    return out;
+  if (p.w0 < -2 || p.w0 > 0 || p.wa < -2 || p.wa > 2) {
+    out.status_ = Status::unsupported_domain;
+    return out;
+  }
+  // Reuse the existing owned H0/unit/flat matter-domain preparation, then
+  // retain the attempted CPL identity even when that preparation reports
+  // failure.
+  out = prepare({Model::flat_lcdm_late_v1, p.h0_km_s_mpc, p.omega_m, 0});
+  out.parameters_ = attempted;
+  return out;
+}
 std::string_view Background::model_id() const noexcept {
   if (parameters_.model == Model::flat_lcdm_late_v1)
     return "P01/flat-lcdm-radiation-free/v1";
   if (parameters_.model == Model::constant_q_flat_v1)
     return "P01/constant-q-flat-kinematic/v1";
+  if (parameters_.model == Model::flat_cpl_late_v1)
+    return "P01/flat-cpl-radiation-free/v1";
   return {};
 }
 BatchResult Background::evaluate_batch(std::span<const Query> queries,
@@ -148,11 +183,24 @@ BatchResult Background::evaluate_batch(std::span<const Query> queries,
       continue;
     }
     const auto u = 1 + static_cast<long double>(query.z_expansion);
-    const auto q = parameters_.model == Model::flat_lcdm_late_v1
-                       ? 1.5L * parameters_.omega_m * u * u * u / (e * e) - 1
-                       : static_cast<long double>(parameters_.constant_q);
-    const auto j =
+    auto q = parameters_.model == Model::flat_lcdm_late_v1
+                 ? 1.5L * parameters_.omega_m * u * u * u / (e * e) - 1
+                 : static_cast<long double>(parameters_.constant_q);
+    auto j =
         parameters_.model == Model::flat_lcdm_late_v1 ? 1.L : q * (2 * q + 1);
+    if (parameters_.model == Model::flat_cpl_late_v1) {
+      const auto dark =
+          parameters_.omega_m == 1
+              ? 0.L
+              : (1 - static_cast<long double>(parameters_.omega_m)) *
+                    cpl_density(parameters_, query.z_expansion);
+      const auto f = dark / (e * e);
+      const auto w =
+          static_cast<long double>(parameters_.w0) +
+          parameters_.wa * static_cast<long double>(query.z_expansion) / u;
+      q = .5L + 1.5L * w * f;
+      j = 1 + 4.5L * f * w * (1 + w) + 1.5L * f * parameters_.wa / u;
+    }
     numerics::ScalarResult radial{}, clock{};
     radial.status = clock.status = numerics::Status::ok;
     if (query.z_expansion != 0) {

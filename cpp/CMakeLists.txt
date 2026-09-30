@@ -135,3 +135,11 @@ target_compile_options(test_w01_scores PRIVATE -Wall -Wextra -Wpedantic -fno-fas
 add_executable(test_supernova_abi_hostile tests/test_supernova_abi_hostile.cpp)
 target_link_libraries(test_supernova_abi_hostile PRIVATE irred_core)
 add_test(NAME supernova_abi_hostile_contract COMMAND test_supernova_abi_hostile)
+
+add_executable(test_background_cpl tests/test_background_cpl.cpp)
+target_link_libraries(test_background_cpl PRIVATE irred_core)
+add_test(NAME background_cpl_contract COMMAND test_background_cpl)
+
+add_executable(test_background_cpl_hostile tests/test_background_cpl_hostile.cpp)
+target_link_libraries(test_background_cpl_hostile PRIVATE irred_core)
+add_test(NAME background_cpl_hostile_contract COMMAND test_background_cpl_hostile)
