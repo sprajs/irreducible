@@ -485,6 +485,25 @@ int main() {
                 normalized_overflow.density.numerical_status ==
                     numerics::Status::overflow,
             "normalized quadratic overflow retains numerical cause");
+      auto shifted = tiny_g.proper_offset(response, meta().ordered_ids,
+                                          std::numeric_limits<double>::max(), 1,
+                                          "extreme-centering", true, 4, budget);
+      std::array<double, 2> opposite{-std::numeric_limits<double>::max(),
+                                     -std::numeric_limits<double>::max()};
+      auto centering_overflow =
+          shifted.evaluate(opposite, meta().ordered_ids, budget);
+      check(centering_overflow.density.status ==
+                    DensityStatus::numerical_failure &&
+                centering_overflow.density.numerical_status ==
+                    numerics::Status::overflow,
+            "finite residual centering overflow retains cause");
+      opposite[0] = std::numeric_limits<double>::infinity();
+      auto invalid_residual =
+          shifted.evaluate(opposite, meta().ordered_ids, budget);
+      check(invalid_residual.density.status == DensityStatus::numerical_failure &&
+                invalid_residual.density.numerical_status ==
+                    numerics::Status::nonfinite_input,
+            "nonfinite residual rejected before centering");
       std::array<double, 2> exact_zero{};
       check(tiny_g.evaluate(exact_zero, meta().ordered_ids, budget)
                     .density.status == DensityStatus::finite,

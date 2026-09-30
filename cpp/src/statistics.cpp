@@ -188,10 +188,17 @@ GaussianResult Gaussian::evaluate(std::span<const double> r,
   if (ids.size() != metadata_.ordered_ids.size() ||
       !std::equal(ids.begin(), ids.end(), metadata_.ordered_ids.begin())) {
     out.density.status = DensityStatus::incompatible_metadata;
+    out.density.numerical_status = numerics::Status::invalid_input;
     return out;
   }
   if (r.size() != factor_.size()) {
     out.density.status = DensityStatus::invalid_input;
+    out.density.numerical_status = numerics::Status::invalid_input;
+    return out;
+  }
+  if (!std::all_of(r.begin(), r.end(), [](double v) { return std::isfinite(v); })) {
+    out.density.status = DensityStatus::numerical_failure;
+    out.density.numerical_status = numerics::Status::nonfinite_input;
     return out;
   }
   std::vector<double> centered(r.begin(), r.end());
@@ -201,6 +208,7 @@ GaussianResult Gaussian::evaluate(std::span<const double> r,
       if (!std::isfinite(v) ||
           std::abs(v) > std::numeric_limits<double>::max()) {
         out.density.status = DensityStatus::numerical_failure;
+        out.density.numerical_status = numerics::Status::overflow;
         return out;
       }
       centered[i] = static_cast<double>(v);
