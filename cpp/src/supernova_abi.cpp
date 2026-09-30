@@ -1,6 +1,7 @@
 #include "irred/abi.h"
 #include "irred/supernova.hpp"
 #include "observation_internal.hpp"
+#include <algorithm>
 #include <cmath>
 #include <limits>
 #include <memory>
@@ -64,6 +65,28 @@ sn::Policy policy(const cosmo_supernova_policy &p) {
       static_cast<size_t>(p.maximum_evaluations_per_integral), p.maximum_depth};
   return result;
 }
+bool valid(const cosmo_supernova_piecewise_policy &p) {
+  return p.struct_size == sizeof(p) && p.abi_version == COSMO_ABI_VERSION &&
+         p.arithmetic <= 1 && p.include_residual_arrays <= 1 &&
+         p.maximum_models <= 64 && p.maximum_source_rows <= 4096 &&
+         p.maximum_matrix_elements <= 16777216 && p.maximum_queries <= 4096 &&
+         p.maximum_array_elements <= COSMO_MAX_BATCH_ELEMENTS &&
+         p.maximum_native_output_bytes <= 512u * 1024u * 1024u &&
+         p.maximum_total_segment_visits <= std::numeric_limits<size_t>::max() &&
+         std::isfinite(p.maximum_forward_sensitivity) &&
+         p.maximum_forward_sensitivity > 0;
+}
+sn::Policy policy(const cosmo_supernova_piecewise_policy &p) {
+  // Preparation uses only matrix/query size, arithmetic and solve quality.
+  // Its unused quadrature defaults are not part of this analytic wire contract.
+  sn::Policy result;
+  result.arithmetic = static_cast<irred::numerics::Arithmetic>(p.arithmetic);
+  result.maximum_models = p.maximum_models;
+  result.maximum_matrix_elements = p.maximum_matrix_elements;
+  result.maximum_forward_sensitivity = p.maximum_forward_sensitivity;
+  result.background.maximum_queries = p.maximum_source_rows;
+  return result;
+}
 bool product(size_t a, size_t b, size_t &out) {
   if (b && a > std::numeric_limits<size_t>::max() / b)
     return false;
@@ -88,9 +111,9 @@ struct cosmo_supernova_result {
   std::vector<cosmo_supernova_slot> rows;
   std::string arithmetic_id;
 };
-extern "C" uint32_t cosmo_supernova_prepare(const cosmo_prepared *source,
-                                            const cosmo_supernova_policy *p,
-                                            cosmo_supernova **out) {
+template <class WirePolicy>
+uint32_t prepare_supernova(const cosmo_prepared *source, const WirePolicy *p,
+                           cosmo_supernova **out) {
   if (aligned(out))
     *out = nullptr;
   if (!aligned(out) || !source || !aligned(p))
@@ -128,6 +151,17 @@ extern "C" uint32_t cosmo_supernova_prepare(const cosmo_prepared *source,
   } catch (...) {
     return COSMO_EXCEPTION;
   }
+}
+extern "C" uint32_t cosmo_supernova_prepare(const cosmo_prepared *source,
+                                            const cosmo_supernova_policy *p,
+                                            cosmo_supernova **out) {
+  return prepare_supernova(source, p, out);
+}
+extern "C" uint32_t
+cosmo_supernova_piecewise_prepare(const cosmo_prepared *source,
+                                  const cosmo_supernova_piecewise_policy *p,
+                                  cosmo_supernova **out) {
+  return prepare_supernova(source, p, out);
 }
 extern "C" uint32_t cosmo_supernova_source_view(const cosmo_supernova *owner,
                                                 cosmo_supernova_view *out) {
@@ -370,6 +404,205 @@ cosmo_supernova_result_v2_view(const cosmo_supernova_result_v2 *owner,
 }
 extern "C" uint32_t
 cosmo_supernova_result_v2_destroy(cosmo_supernova_result_v2 *owner) {
+  delete owner;
+  return COSMO_OK;
+}
+
+struct cosmo_supernova_piecewise_result {
+  sn::PiecewiseBatchResult native;
+  std::vector<cosmo_supernova_piecewise_slot> rows;
+  std::string arithmetic_id;
+  std::vector<std::string> id_storage;
+  std::vector<cosmo_bytes> ids;
+  std::vector<uint64_t> indices;
+  std::vector<double> expansion_z, observer_z;
+};
+
+extern "C" uint32_t
+cosmo_supernova_piecewise_evaluate(const cosmo_supernova *owner,
+                                   const cosmo_supernova_piecewise_batch *b,
+                                   const cosmo_supernova_piecewise_policy *p,
+                                   cosmo_supernova_piecewise_result **out) {
+  if (aligned(out))
+    *out = nullptr;
+  if (!aligned(out) || !aligned(owner) || !aligned(b) || !aligned(p))
+    return COSMO_INVALID_INPUT;
+  if (b->abi_version != COSMO_ABI_VERSION ||
+      p->abi_version != COSMO_ABI_VERSION)
+    return COSMO_ABI_MISMATCH;
+  if (b->struct_size != sizeof(*b) || !valid(*p) || b->model_count > 64 ||
+      b->model_count > std::numeric_limits<size_t>::max() /
+                           sizeof(cosmo_supernova_piecewise_model) ||
+      b->model_bytes !=
+          b->model_count * sizeof(cosmo_supernova_piecewise_model) ||
+      (b->model_count && !aligned(b->models)))
+    return COSMO_INVALID_INPUT;
+  auto exhausted = [&]() -> uint32_t {
+    try {
+      auto result = std::make_unique<cosmo_supernova_piecewise_result>();
+      result->native.status = sn::Status::work_limit;
+      *out = result.release();
+      return COSMO_OK;
+    } catch (const std::bad_alloc &) {
+      return COSMO_ALLOCATION_FAILURE;
+    } catch (...) {
+      return COSMO_EXCEPTION;
+    }
+  };
+  if (b->model_count > p->maximum_models)
+    return exhausted();
+  const auto n = owner->indices.size();
+  size_t total = sizeof(cosmo_supernova_piecewise_result);
+  auto add = [&](size_t count, size_t width) {
+    size_t value;
+    if (!product(count, width, value) ||
+        value > std::numeric_limits<size_t>::max() - total)
+      return false;
+    total += value;
+    return true;
+  };
+  size_t elements, arrays;
+  // Retained native arrays exist even when their borrowed export is disabled.
+  // Include metadata copies, point/row storage and peak linear native
+  // workspace. Caller buffers and allocator bookkeeping are outside this
+  // aggregate cap.
+  if (!product(b->model_count, n, elements) || !product(elements, 4, arrays) ||
+      !add(arrays, sizeof(double)) ||
+      !add(b->model_count, sizeof(cosmo_supernova_piecewise_slot) +
+                               sizeof(sn::PiecewiseSlot) +
+                               sizeof(sn::PiecewiseModelPoint)) ||
+      !add(n, sizeof(std::string) + sizeof(cosmo_bytes) + sizeof(uint64_t) +
+                  2 * sizeof(double)) ||
+      !add(n, sizeof(physics::PiecewiseSlot) + sizeof(physics::Query) +
+                  12 * sizeof(double) + 4 * sizeof(long double)))
+    return COSMO_INVALID_INPUT;
+  for (const auto &id : owner->ids)
+    if (!add(id.length, 1) || !add(1, 1))
+      return COSMO_INVALID_INPUT;
+  if (!add(owner->native.probability_metadata().arithmetic_id.size(), 1) ||
+      !add(1, 1))
+    return COSMO_INVALID_INPUT;
+  if (arrays > p->maximum_array_elements ||
+      total > p->maximum_native_output_bytes)
+    return exhausted();
+  try {
+    std::vector<sn::PiecewiseModelPoint> points;
+    points.reserve(b->model_count);
+    for (size_t i = 0; i < b->model_count; ++i) {
+      std::array<double, 5> q;
+      std::copy_n(b->models[i].q, 5, q.begin());
+      points.emplace_back(q);
+    }
+    auto result = std::make_unique<cosmo_supernova_piecewise_result>();
+    result->indices = owner->indices;
+    result->expansion_z = owner->expansion_z;
+    result->observer_z = owner->observer_z;
+    result->id_storage.reserve(n);
+    for (const auto &id : owner->ids)
+      result->id_storage.emplace_back(reinterpret_cast<const char *>(id.data),
+                                      id.length);
+    result->ids.reserve(n);
+    for (const auto &id : result->id_storage)
+      result->ids.push_back(bytes(id));
+    if (owner->native.status() == sn::Status::ok)
+      result->arithmetic_id =
+          owner->native.probability_metadata().arithmetic_id;
+    sn::PiecewiseEvaluationPolicy native_policy;
+    native_policy.arithmetic =
+        static_cast<irred::numerics::Arithmetic>(p->arithmetic);
+    native_policy.maximum_models = p->maximum_models;
+    native_policy.maximum_forward_sensitivity = p->maximum_forward_sensitivity;
+    native_policy.background.maximum_queries = p->maximum_queries;
+    native_policy.background.maximum_segment_visits =
+        p->maximum_total_segment_visits;
+    result->native =
+        owner->native.evaluate_piecewise_batch(points, native_policy);
+    if (result->native.slots.size() > b->model_count)
+      return COSMO_EXCEPTION;
+    result->rows.reserve(result->native.slots.size());
+    size_t used = 0;
+    for (size_t i = 0; i < result->native.slots.size(); ++i) {
+      const auto &s = result->native.slots[i];
+      const auto &d = s.solve_diagnostics;
+      if (s.segment_visits > p->maximum_total_segment_visits - used)
+        return COSMO_EXCEPTION;
+      used += s.segment_visits;
+      cosmo_supernova_piecewise_slot row{};
+      row.struct_size = sizeof(row);
+      row.abi_version = COSMO_ABI_VERSION;
+      row.model_index = i;
+      row.source_parameters = b->models[i];
+      row.status = static_cast<uint32_t>(s.status);
+      row.background_status = static_cast<uint32_t>(s.background_status);
+      row.numerical_status = static_cast<uint32_t>(s.numerical_status);
+      row.profile_status = static_cast<uint32_t>(s.profile_status);
+      row.segment_visits = s.segment_visits;
+      row.model_id = bytes(physics::PiecewiseBackground::model_id);
+      row.radial_equation_id = bytes(physics::Background::radial_equation_id);
+      row.score_id = bytes(sn::Consumer::score_id);
+      row.arithmetic_id = bytes(result->arithmetic_id);
+      row.ordered_ids = {result->ids.data(), n, n * sizeof(cosmo_bytes)};
+      row.selected_source_indices = result->indices.data();
+      row.selected_count = n;
+      row.selected_index_bytes = n * sizeof(uint64_t);
+      row.expansion_z = doubles(result->expansion_z);
+      row.observer_z = doubles(result->observer_z);
+      if (s.status == sn::Status::ok) {
+        row.has_profile_payload = 1;
+        row.offset_coefficient = s.offset_coefficient;
+        row.quadratic = s.quadratic;
+        row.relative_profile_score = s.relative_profile_score;
+        row.backward_residual = d.backward_residual;
+        row.estimated_forward_sensitivity = d.estimated_forward_sensitivity;
+        row.coefficient_solve_backward_residual =
+            d.coefficient_solve_backward_residual;
+        row.coefficient_solve_forward_sensitivity =
+            d.coefficient_solve_forward_sensitivity;
+        row.residual_l1 = d.residual_l1;
+        row.solution_norm_inf = d.solution_norm_inf;
+        row.adjusted_residual_l1 = d.adjusted_residual_l1;
+        row.adjusted_solution_norm_inf = d.adjusted_solution_norm_inf;
+        if (p->include_residual_arrays) {
+          row.shape_magnitudes = doubles(s.shape_magnitudes);
+          row.base_residuals = doubles(s.base_residuals);
+          row.profiled_residuals = doubles(s.profiled_residuals);
+        }
+      }
+      result->rows.push_back(row);
+    }
+    if (used != result->native.segment_visits)
+      return COSMO_EXCEPTION;
+    *out = result.release();
+    return COSMO_OK;
+  } catch (const std::bad_alloc &) {
+    return COSMO_ALLOCATION_FAILURE;
+  } catch (...) {
+    return COSMO_EXCEPTION;
+  }
+}
+extern "C" uint32_t cosmo_supernova_piecewise_result_view(
+    const cosmo_supernova_piecewise_result *owner,
+    const cosmo_supernova_piecewise_slot **rows, uint64_t *count,
+    uint32_t *status, uint64_t *segments) {
+  if (aligned(rows))
+    *rows = nullptr;
+  if (aligned(count))
+    *count = 0;
+  if (aligned(status))
+    *status = COSMO_SUPERNOVA_STATUS_INVALID_INPUT;
+  if (aligned(segments))
+    *segments = 0;
+  if (!aligned(owner) || !aligned(rows) || !aligned(count) ||
+      !aligned(status) || !aligned(segments))
+    return COSMO_INVALID_INPUT;
+  *rows = owner->rows.data();
+  *count = owner->rows.size();
+  *status = static_cast<uint32_t>(owner->native.status);
+  *segments = owner->native.segment_visits;
+  return COSMO_OK;
+}
+extern "C" uint32_t cosmo_supernova_piecewise_result_destroy(
+    cosmo_supernova_piecewise_result *owner) {
   delete owner;
   return COSMO_OK;
 }

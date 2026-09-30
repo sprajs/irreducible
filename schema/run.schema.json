@@ -34,6 +34,9 @@
     },
     {
       "$ref": "#/$defs/piecewise"
+    },
+    {
+      "$ref": "#/$defs/supernova_piecewise"
     }
   ],
   "$defs": {
@@ -1723,6 +1726,116 @@
         }
       },
       "description": "Separate fixed-five-bin compiled analytic provider; no model-tag admission or quadrature epsilon. Explicit optional derivative availability and global analytic segment budget."
+    },
+    "supernova_piecewise": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema_version",
+        "operation",
+        "observations",
+        "models",
+        "policy"
+      ],
+      "properties": {
+        "schema_version": {
+          "const": 1
+        },
+        "operation": {
+          "const": "supernova.piecewise_profile_batch.v1"
+        },
+        "observations": {
+          "$ref": "#/$defs/observations"
+        },
+        "models": {
+          "type": "array",
+          "maxItems": 64,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "q"
+            ],
+            "properties": {
+              "q": {
+                "type": "array",
+                "minItems": 5,
+                "maxItems": 5,
+                "items": {
+                  "type": "number"
+                }
+              }
+            }
+          }
+        },
+        "policy": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "arithmetic",
+            "include_residual_arrays",
+            "maximum_models",
+            "maximum_source_rows",
+            "maximum_matrix_elements",
+            "maximum_queries",
+            "maximum_array_elements",
+            "maximum_native_output_bytes",
+            "maximum_total_segment_visits",
+            "maximum_forward_sensitivity"
+          ],
+          "properties": {
+            "maximum_models": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 64
+            },
+            "maximum_source_rows": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 4096
+            },
+            "maximum_matrix_elements": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 16777216
+            },
+            "maximum_queries": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 4096
+            },
+            "maximum_array_elements": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 1000000
+            },
+            "maximum_native_output_bytes": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 536870912
+            },
+            "maximum_total_segment_visits": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 18446744073709551615
+            },
+            "arithmetic": {
+              "enum": [
+                "binary64_legacy_v1",
+                "longdouble_cpu_v1"
+              ]
+            },
+            "include_residual_arrays": {
+              "type": "boolean"
+            },
+            "maximum_forward_sensitivity": {
+              "type": "number",
+              "exclusiveMinimum": 0
+            }
+          }
+        }
+      },
+      "description": "Separate retained analytic five-bin q relative-offset profile; explicit precision and segment policy, no quadrature fields or normalized density/evidence."
     }
   },
   "description": "Structural generated view. C++ owns scientific admissibility, conversions and per-row statuses; successful execution without qualification remains unaccepted."

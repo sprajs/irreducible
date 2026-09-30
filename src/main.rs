@@ -11,6 +11,7 @@ mod piecewise_run;
 mod statistics_run;
 mod supernova_run;
 mod supernova_v2_run;
+mod supernova_piecewise_run;
 fn main() {
     if let Err(e) = cli::execute() {
         eprintln!("{}", serde_json::json!({"kind":"failure","error_id":e}));

@@ -804,6 +804,75 @@ pub struct PiecewiseSlot {
     pub shape_equation_id: Bytes,
     pub constant_set_id: Bytes,
 }
+#[allow(non_snake_case)]
+#[repr(C)]
+pub struct SupernovaPiecewiseModel {
+    pub q: [f64; 5],
+}
+#[allow(non_snake_case)]
+#[repr(C)]
+pub struct SupernovaPiecewiseBatch {
+    pub struct_size: u32,
+    pub abi_version: u32,
+    pub models: *const SupernovaPiecewiseModel,
+    pub model_count: u64,
+    pub model_bytes: u64,
+}
+#[allow(non_snake_case)]
+#[repr(C)]
+pub struct SupernovaPiecewisePolicy {
+    pub struct_size: u32,
+    pub abi_version: u32,
+    pub arithmetic: u32,
+    pub include_residual_arrays: u32,
+    pub maximum_models: u64,
+    pub maximum_source_rows: u64,
+    pub maximum_matrix_elements: u64,
+    pub maximum_queries: u64,
+    pub maximum_array_elements: u64,
+    pub maximum_native_output_bytes: u64,
+    pub maximum_total_segment_visits: u64,
+    pub maximum_forward_sensitivity: f64,
+}
+#[allow(non_snake_case)]
+#[repr(C)]
+pub struct SupernovaPiecewiseSlot {
+    pub struct_size: u32,
+    pub abi_version: u32,
+    pub model_index: u64,
+    pub source_parameters: SupernovaPiecewiseModel,
+    pub status: u32,
+    pub background_status: u32,
+    pub numerical_status: u32,
+    pub profile_status: u32,
+    pub model_id: Bytes,
+    pub arithmetic_id: Bytes,
+    pub score_id: Bytes,
+    pub radial_equation_id: Bytes,
+    pub offset_coefficient: f64,
+    pub quadratic: f64,
+    pub relative_profile_score: f64,
+    pub backward_residual: f64,
+    pub estimated_forward_sensitivity: f64,
+    pub coefficient_solve_backward_residual: f64,
+    pub coefficient_solve_forward_sensitivity: f64,
+    pub residual_l1: f64,
+    pub solution_norm_inf: f64,
+    pub adjusted_residual_l1: f64,
+    pub adjusted_solution_norm_inf: f64,
+    pub segment_visits: u64,
+    pub shape_magnitudes: F64Buffer,
+    pub base_residuals: F64Buffer,
+    pub profiled_residuals: F64Buffer,
+    pub has_profile_payload: u32,
+    pub reserved: u32,
+    pub ordered_ids: Strings,
+    pub selected_source_indices: *const u64,
+    pub selected_count: u64,
+    pub selected_index_bytes: u64,
+    pub expansion_z: F64Buffer,
+    pub observer_z: F64Buffer,
+}
 unsafe extern "C" {
     pub fn cosmo_add(
         a: *const Buffer,
@@ -998,6 +1067,25 @@ unsafe extern "C" {
         segments_processed: *mut u64,
     ) -> u32;
     pub fn cosmo_piecewise_result_destroy(result: *mut std::ffi::c_void) -> u32;
+    pub fn cosmo_supernova_piecewise_prepare(
+        source: *const std::ffi::c_void,
+        policy: *const SupernovaPiecewisePolicy,
+        out: *mut *mut std::ffi::c_void,
+    ) -> u32;
+    pub fn cosmo_supernova_piecewise_evaluate(
+        owner: *const std::ffi::c_void,
+        batch: *const SupernovaPiecewiseBatch,
+        policy: *const SupernovaPiecewisePolicy,
+        out: *mut *mut std::ffi::c_void,
+    ) -> u32;
+    pub fn cosmo_supernova_piecewise_result_view(
+        owner: *const std::ffi::c_void,
+        rows: *mut *const SupernovaPiecewiseSlot,
+        count: *mut u64,
+        status: *mut u32,
+        segment_visits: *mut u64,
+    ) -> u32;
+    pub fn cosmo_supernova_piecewise_result_destroy(owner: *mut std::ffi::c_void) -> u32;
 }
 #[derive(Clone, serde::Deserialize, serde::Serialize)]
 #[serde(deny_unknown_fields)]

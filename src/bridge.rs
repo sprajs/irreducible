@@ -280,3 +280,7 @@ pub(crate) use bao::{
 
 #[path = "piecewise_bridge.rs"]
 pub(crate) mod piecewise;
+
+#[path = "supernova_piecewise_bridge.rs"]
+mod supernova_piecewise;
+pub(crate) use supernova_piecewise::{Model as SupernovaPiecewiseModelRequest,Policy as SupernovaPiecewisePolicyRequest,evaluate as supernova_piecewise_evaluate};

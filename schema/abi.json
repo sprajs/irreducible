@@ -2151,6 +2151,242 @@
           "Bytes"
         ]
       ]
+    },
+    {
+      "c_name": "cosmo_supernova_piecewise_model",
+      "rust_name": "SupernovaPiecewiseModel",
+      "fields": [
+        [
+          "q",
+          "FiveCoefficients"
+        ]
+      ]
+    },
+    {
+      "c_name": "cosmo_supernova_piecewise_batch",
+      "rust_name": "SupernovaPiecewiseBatch",
+      "fields": [
+        [
+          "struct_size",
+          "u32"
+        ],
+        [
+          "abi_version",
+          "u32"
+        ],
+        [
+          "models",
+          "const_SupernovaPiecewiseModel_ptr"
+        ],
+        [
+          "model_count",
+          "u64"
+        ],
+        [
+          "model_bytes",
+          "u64"
+        ]
+      ]
+    },
+    {
+      "c_name": "cosmo_supernova_piecewise_policy",
+      "rust_name": "SupernovaPiecewisePolicy",
+      "fields": [
+        [
+          "struct_size",
+          "u32"
+        ],
+        [
+          "abi_version",
+          "u32"
+        ],
+        [
+          "arithmetic",
+          "u32"
+        ],
+        [
+          "include_residual_arrays",
+          "u32"
+        ],
+        [
+          "maximum_models",
+          "u64"
+        ],
+        [
+          "maximum_source_rows",
+          "u64"
+        ],
+        [
+          "maximum_matrix_elements",
+          "u64"
+        ],
+        [
+          "maximum_queries",
+          "u64"
+        ],
+        [
+          "maximum_array_elements",
+          "u64"
+        ],
+        [
+          "maximum_native_output_bytes",
+          "u64"
+        ],
+        [
+          "maximum_total_segment_visits",
+          "u64"
+        ],
+        [
+          "maximum_forward_sensitivity",
+          "f64"
+        ]
+      ]
+    },
+    {
+      "c_name": "cosmo_supernova_piecewise_slot",
+      "rust_name": "SupernovaPiecewiseSlot",
+      "fields": [
+        [
+          "struct_size",
+          "u32"
+        ],
+        [
+          "abi_version",
+          "u32"
+        ],
+        [
+          "model_index",
+          "u64"
+        ],
+        [
+          "source_parameters",
+          "SupernovaPiecewiseModel"
+        ],
+        [
+          "status",
+          "u32"
+        ],
+        [
+          "background_status",
+          "u32"
+        ],
+        [
+          "numerical_status",
+          "u32"
+        ],
+        [
+          "profile_status",
+          "u32"
+        ],
+        [
+          "model_id",
+          "Bytes"
+        ],
+        [
+          "arithmetic_id",
+          "Bytes"
+        ],
+        [
+          "score_id",
+          "Bytes"
+        ],
+        [
+          "radial_equation_id",
+          "Bytes"
+        ],
+        [
+          "offset_coefficient",
+          "f64"
+        ],
+        [
+          "quadratic",
+          "f64"
+        ],
+        [
+          "relative_profile_score",
+          "f64"
+        ],
+        [
+          "backward_residual",
+          "f64"
+        ],
+        [
+          "estimated_forward_sensitivity",
+          "f64"
+        ],
+        [
+          "coefficient_solve_backward_residual",
+          "f64"
+        ],
+        [
+          "coefficient_solve_forward_sensitivity",
+          "f64"
+        ],
+        [
+          "residual_l1",
+          "f64"
+        ],
+        [
+          "solution_norm_inf",
+          "f64"
+        ],
+        [
+          "adjusted_residual_l1",
+          "f64"
+        ],
+        [
+          "adjusted_solution_norm_inf",
+          "f64"
+        ],
+        [
+          "segment_visits",
+          "u64"
+        ],
+        [
+          "shape_magnitudes",
+          "F64Buffer"
+        ],
+        [
+          "base_residuals",
+          "F64Buffer"
+        ],
+        [
+          "profiled_residuals",
+          "F64Buffer"
+        ],
+        [
+          "has_profile_payload",
+          "u32"
+        ],
+        [
+          "reserved",
+          "u32"
+        ],
+        [
+          "ordered_ids",
+          "Strings"
+        ],
+        [
+          "selected_source_indices",
+          "const_u64_ptr"
+        ],
+        [
+          "selected_count",
+          "u64"
+        ],
+        [
+          "selected_index_bytes",
+          "u64"
+        ],
+        [
+          "expansion_z",
+          "F64Buffer"
+        ],
+        [
+          "observer_z",
+          "F64Buffer"
+        ]
+      ]
     }
   ],
   "functions": [
@@ -2910,6 +3146,78 @@
           "piecewise_result"
         ]
       ]
+    },
+    {
+      "name": "cosmo_supernova_piecewise_prepare",
+      "args": [
+        [
+          "source",
+          "const_prepared"
+        ],
+        [
+          "policy",
+          "const_SupernovaPiecewisePolicy_ptr"
+        ],
+        [
+          "out",
+          "supernova_out"
+        ]
+      ]
+    },
+    {
+      "name": "cosmo_supernova_piecewise_evaluate",
+      "args": [
+        [
+          "owner",
+          "const_supernova"
+        ],
+        [
+          "batch",
+          "const_SupernovaPiecewiseBatch_ptr"
+        ],
+        [
+          "policy",
+          "const_SupernovaPiecewisePolicy_ptr"
+        ],
+        [
+          "out",
+          "supernova_piecewise_result_out"
+        ]
+      ]
+    },
+    {
+      "name": "cosmo_supernova_piecewise_result_view",
+      "args": [
+        [
+          "owner",
+          "const_supernova_piecewise_result"
+        ],
+        [
+          "rows",
+          "const_supernova_piecewise_slot_out"
+        ],
+        [
+          "count",
+          "u64_ptr"
+        ],
+        [
+          "status",
+          "u32_ptr"
+        ],
+        [
+          "segment_visits",
+          "u64_ptr"
+        ]
+      ]
+    },
+    {
+      "name": "cosmo_supernova_piecewise_result_destroy",
+      "args": [
+        [
+          "owner",
+          "supernova_piecewise_result"
+        ]
+      ]
     }
   ],
   "max_batch_elements": 1000000,
@@ -3155,5 +3463,27 @@
     "failure_payload": "has_geometry/has_q/has_jerk/has_q0 explicit; absent optional values zero-initialized storage never interpreted as values; derivative assessment not_assessed on failure",
     "count_cap_failure": "owned empty result with background and numerical work_limit, structural malformed descriptors return ABI failure and null out",
     "interface_gate": "bounded_native_and_cli_passed"
+  },
+  "supernova_piecewise_contract": {
+    "operation": "supernova.piecewise_profile_batch.v1",
+    "implementation_state": "implemented",
+    "cli_available": true,
+    "qualification": "unqualified",
+    "parameters": "required five ordered q values; no model-tag widening or inferred H0",
+    "ownership": "same retained supernova owner/source view/destroy; independently owned result with copied selected IDs/indices/z and native arrays, borrowed views valid until result destruction",
+    "policy": "source rows/matrix caps separately bound preparation; evaluation native-output-byte cap conservatively includes retained result, copied IDs/model rows/native slots and native query scratch, plus fourPn f64 arrays even when export suppressed; excludes caller input/allocator overhead",
+    "work": "maximum_queries limits selected queries; one global analytic segment-visits budget across attempted model rows, including admitted failed work; no quadrature eps/callback fields",
+    "semantics": "explicit arithmetic/sensitivity; valid evaluation arithmetic mismatch delegates to native owned empty incompatible_metadata with zero work; requested q retained in resolved specification; tighter cached-solve failure cause retained; relative offset-profile score, normalized density/evidence not applicable",
+    "failure": "has_profile_payload false and empty arrays on failed rows; full q attempts retained; optional outputs flags interpreted before scalar storage",
+    "hard_caps": {
+      "models": 64,
+      "source_rows": 4096,
+      "matrix_elements": 16777216,
+      "queries": 4096,
+      "array_elements": 1000000,
+      "native_output_bytes": 536870912
+    },
+    "matrix_cap": "maximum_matrix_elements checks full source N*N before preparation copying; selected factor validation scope remains explicit and separate",
+    "resource_failure_ownership": "Existing prepare/source/full-N*N rejection remains transport INVALID_INPUT/null. Source/matrix caps apply only to preparation. New well-formed evaluation exceeding configured models/array/aggregate native-byte caps yields owned empty status work_limit, zero segments; bounded diagnostic owner allocation allowed even bytecap0. Malformed policy/hardcaps/storage/alignment/overflow => INVALID_INPUT/null; version mismatch => ABI_MISMATCH/null. Native selected-query/segment failures retain row causes."
   }
 }

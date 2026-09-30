@@ -11,6 +11,7 @@
 #include <array>
 #include <cmath>
 #include <cstdio>
+#include <cstdlib>
 #include <fstream>
 #include <limits>
 #include <sstream>
@@ -321,6 +322,62 @@ void actual(const char *cov, const char *table) {
       n, Cnorm * inverse_norm);
 }
 
+// This mode is transport parity only. The external Rust guard validates raw
+// hashes before/after; this C++ process does not independently hash inputs.
+void direct_native_transcript(const char *cov, const char *table) {
+  supernova::Policy prep;
+  prep.arithmetic = numerics::Arithmetic::longdouble_cpu_v1;
+  prep.maximum_forward_sensitivity = 1e-10;
+  auto consumer = supernova::prepare(original(cov, table), prep);
+  check(consumer.status() == supernova::Status::ok, "transcript preparation");
+  std::vector<supernova::PiecewiseModelPoint> grid;
+  for (auto q : test_reference::w01_piecewise_q)
+    grid.emplace_back(q);
+  supernova::PiecewiseEvaluationPolicy evaluation;
+  evaluation.arithmetic = prep.arithmetic;
+  evaluation.maximum_forward_sensitivity = 1e-10;
+  evaluation.maximum_models = 6;
+  evaluation.background.maximum_segment_visits = 50000;
+  auto batch = consumer.evaluate_piecewise_batch(grid, evaluation);
+  check(batch.status == supernova::Status::ok && batch.slots.size() == 6,
+        "transcript six rows");
+  std::printf(
+      "{\"suite\":\"piecewise_sn_direct_native_transcript\","
+      "\"asset_identity_provenance\":\"external Rust SHA guard assertion; C++ "
+      "does not hash\","
+      "\"table_sha256\":\"%s\",\"covariance_sha256\":\"%s\","
+      "\"expected_selected_f64le_sha256\":\"%s\","
+      "\"selected_count\":%zu,\"status\":%u,\"segment_visits\":%zu,\"rows\":[",
+      test_reference::w01_table_sha256.data(),
+      test_reference::w01_cov_sha256.data(),
+      test_reference::w01_selected_f64le_sha256.data(),
+      consumer.selected_source_indices().size(), (unsigned)batch.status,
+      batch.segment_visits);
+  for (size_t i = 0; i < batch.slots.size(); ++i) {
+    const auto &v = batch.slots[i];
+    const auto &d = v.solve_diagnostics;
+    check(v.status == supernova::Status::ok, "transcript finite row");
+    std::printf(
+        "%s{\"q\":[%.17g,%.17g,%.17g,%.17g,%.17g],"
+        "\"status\":%u,\"background_status\":%u,\"numerical_status\":%u,"
+        "\"profile_status\":%u,\"segment_visits\":%zu,"
+        "\"score\":%.17g,\"score_hex\":\"%a\",\"offset\":%.17g,\"quadratic\":%."
+        "17g,"
+        "\"diagnostics\":[%.17g,%.17g,%.17g,%.17g,%.17g,%.17g,%.17g,%.17g]}",
+        i ? "," : "", v.source.q[0], v.source.q[1], v.source.q[2],
+        v.source.q[3], v.source.q[4], (unsigned)v.status,
+        (unsigned)v.background_status, (unsigned)v.numerical_status,
+        (unsigned)v.profile_status, v.segment_visits, v.relative_profile_score,
+        v.relative_profile_score, v.offset_coefficient, v.quadratic,
+        d.backward_residual, d.estimated_forward_sensitivity,
+        d.coefficient_solve_backward_residual,
+        d.coefficient_solve_forward_sensitivity, d.residual_l1,
+        d.solution_norm_inf, d.adjusted_residual_l1,
+        d.adjusted_solution_norm_inf);
+  }
+  std::printf("]}\n");
+}
+
 // Recover baseline supernova.cpp from the pre-refactor public commit and use
 // IRRED_LEGACY_TRANSCRIPT_ONLY + function sections/GC to compare this
 // transcript.
@@ -475,6 +532,15 @@ int main(int argc, char **argv) {
 #else
     if (argc == 2 && std::string(argv[1]) == "--legacy-transcript") {
       legacy_transcript();
+      return 0;
+    }
+    const bool direct =
+        (argc == 5 && std::string(argv[4]) == "--direct-native-transcript") ||
+        (std::getenv("IRRED_W01_DIRECT_NATIVE_TRANSCRIPT") &&
+         std::string(std::getenv("IRRED_W01_DIRECT_NATIVE_TRANSCRIPT")) == "1");
+    if ((argc == 4 || (argc == 5 && direct)) &&
+        std::string(argv[3]) == "--verified-original-assets" && direct) {
+      direct_native_transcript(argv[1], argv[2]);
       return 0;
     }
     if (argc == 4 && std::string(argv[3]) == "--verified-original-assets")
