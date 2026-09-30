@@ -1,0 +1,30 @@
+{
+  "schema_version": 2,
+  "operation": "photometry.predict",
+  "source_model": "constant_rest_luminosity_rectangular_band",
+  "propagation": "isotropic_luminosity_distance_standard_redshift",
+  "constants_id": "si_2019_radiometric_definitions",
+  "inputs": [
+    {
+      "luminosity_watt_per_metre": 12.566370614359172,
+      "rest_lower_metre": 1e-07,
+      "rest_upper_metre": 3e-06,
+      "observed_lower_metre": 1e-06,
+      "observed_upper_metre": 2e-06,
+      "luminosity_distance_metre": 1.0,
+      "redshift": 0.0,
+      "collecting_area_square_metre": 2.0,
+      "optical_transmission": 0.5,
+      "observer_exposure_second": 3.0
+    }
+  ],
+  "requested_outputs": [
+    "incident_band_flux",
+    "collected_energy",
+    "expected_transmitted_photons"
+  ],
+  "resource_policy": {
+    "maximum_rows": 1,
+    "maximum_native_bytes": 1048576
+  }
+}

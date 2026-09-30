@@ -2,6 +2,7 @@ mod bao_ingestion;
 mod bridge;
 mod cli;
 mod background_run;
+mod photometry_run;
 mod bao_run;
 mod observation_run;
 mod session;

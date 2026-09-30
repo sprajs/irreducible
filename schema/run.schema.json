@@ -1720,6 +1720,121 @@
         "maximum_forward_sensitivity"
       ]
     },
+    "photometry": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "schema_version": {
+          "const": 2
+        },
+        "operation": {
+          "const": "photometry.predict"
+        },
+        "source_model": {
+          "const": "constant_rest_luminosity_rectangular_band"
+        },
+        "propagation": {
+          "const": "isotropic_luminosity_distance_standard_redshift"
+        },
+        "constants_id": {
+          "const": "si_2019_radiometric_definitions"
+        },
+        "inputs": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "luminosity_watt_per_metre": {
+                "type": "number"
+              },
+              "rest_lower_metre": {
+                "type": "number"
+              },
+              "rest_upper_metre": {
+                "type": "number"
+              },
+              "observed_lower_metre": {
+                "type": "number"
+              },
+              "observed_upper_metre": {
+                "type": "number"
+              },
+              "luminosity_distance_metre": {
+                "type": "number"
+              },
+              "redshift": {
+                "type": "number"
+              },
+              "collecting_area_square_metre": {
+                "type": "number"
+              },
+              "optical_transmission": {
+                "type": "number"
+              },
+              "observer_exposure_second": {
+                "type": "number"
+              }
+            },
+            "required": [
+              "luminosity_watt_per_metre",
+              "rest_lower_metre",
+              "rest_upper_metre",
+              "observed_lower_metre",
+              "observed_upper_metre",
+              "luminosity_distance_metre",
+              "redshift",
+              "collecting_area_square_metre",
+              "optical_transmission",
+              "observer_exposure_second"
+            ]
+          },
+          "maxItems": 65536
+        },
+        "requested_outputs": {
+          "type": "array",
+          "items": {
+            "enum": [
+              "incident_band_flux",
+              "collected_energy",
+              "expected_transmitted_photons"
+            ]
+          },
+          "minItems": 1,
+          "uniqueItems": true
+        },
+        "resource_policy": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "maximum_rows": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 65536
+            },
+            "maximum_native_bytes": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 1073741824
+            }
+          },
+          "required": [
+            "maximum_rows",
+            "maximum_native_bytes"
+          ]
+        }
+      },
+      "required": [
+        "schema_version",
+        "operation",
+        "source_model",
+        "propagation",
+        "constants_id",
+        "inputs",
+        "requested_outputs",
+        "resource_policy"
+      ]
+    },
     "quantity_metadata": {
       "type": "object",
       "additionalProperties": false,
@@ -1868,6 +1983,9 @@
     },
     {
       "$ref": "#/$defs/bao"
+    },
+    {
+      "$ref": "#/$defs/photometry"
     }
   ],
   "description": "Structural compiled requests; native domains, numerical gates and scientific qualifications remain distinct."

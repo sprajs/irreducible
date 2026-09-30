@@ -77,6 +77,10 @@ r.append("pub fn expansion_tag_name(group:&str,value:u32)->Option<&'static str>{
 for group,tags in s.get('expansion_tags',{}).items():
  for name,value in tags.items():r.append(f'(\"{group}\",{value})=>Some(\"{name}\"),')
 r.append('_=>None,}}')
+for group,tags in s.get('photometry_tags',{}).items():
+ for name,value in tags.items():
+  c.append(f'#define IRRED_PHOTOMETRY_{macro(group)}_{macro(name)} {value}u')
+  r.append(f'pub const PHOTOMETRY_{macro(group)}_{macro(name)}:u32={value};')
 for structure in s['structures']:
  c.append('typedef struct { '+' '.join(f'{types[t][0]} {n};' for n,t in structure['fields'])+' } '+structure['c_name']+';')
  r.append('#[allow(non_snake_case)]\n#[repr(C)]\npub struct '+structure['rust_name']+' { '+', '.join(f'pub {n}:{types[t][1]}' for n,t in structure['fields'])+' }')

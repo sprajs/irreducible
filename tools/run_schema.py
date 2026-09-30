@@ -122,6 +122,17 @@ def build_schema(abi, fixture):
         "maximum_preparation_bytes": uint, "maximum_evaluation_bytes": uint,
         "maximum_batch_elements": uint,
         "maximum_forward_sensitivity": {**number, "exclusiveMinimum": 0}}, ("response", "proper_prior"))
+    photometry_fields = ("luminosity_watt_per_metre", "rest_lower_metre", "rest_upper_metre",
+        "observed_lower_metre", "observed_upper_metre", "luminosity_distance_metre", "redshift",
+        "collecting_area_square_metre", "optical_transmission", "observer_exposure_second")
+    defs["photometry"] = operation("photometry.predict", {
+        "source_model": {"const": "constant_rest_luminosity_rectangular_band"},
+        "propagation": {"const": "isotropic_luminosity_distance_standard_redshift"},
+        "constants_id": {"const": "si_2019_radiometric_definitions"},
+        "inputs": array(obj({field: number for field in photometry_fields}), 65536),
+        "requested_outputs": outputs(abi["photometry_tags"]["output"]),
+        "resource_policy": obj({"maximum_rows": {**uint, "maximum": 65536},
+            "maximum_native_bytes": {**uint, "maximum": 1073741824}})})
     defs["quantity_metadata"] = obj({key: enum(values) for key, values in abi["quantity_tags"].items()
                                      if key != "quantity_status"})
     defs["quantity"] = operation("quantity.convert", {"values": array(number),
@@ -132,5 +143,5 @@ def build_schema(abi, fixture):
     return {"$schema": "https://json-schema.org/draft/2020-12/schema",
         "$id": "cosmology.run.v2", "$defs": defs,
         "oneOf": [ref(name) for name in ("fixture", "quantity", "numerics", "observations",
-                                          "background", "statistics", "supernova", "bao")],
+                                          "background", "statistics", "supernova", "bao", "photometry")],
         "description": "Structural compiled requests; native domains, numerical gates and scientific qualifications remain distinct."}
