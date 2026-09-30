@@ -16,7 +16,7 @@ jobs:
           persist-credentials: false
       - name: Prepare declared build tools
         run: |
-          rustup toolchain install 1.98.0 --profile minimal
+          rustup toolchain install 1.98.0 --profile minimal --component rustfmt
           rustup default 1.98.0
           python3 -m venv .build-tools
           .build-tools/bin/python -m pip install cmake==4.1.3
