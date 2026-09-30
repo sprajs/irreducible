@@ -7,6 +7,7 @@ Use the executable's `describe --json` output for its exact build, ABI revision 
 | `fixture.checked_i64_add` | Overflow-checked integer addition | Exact integer contract |
 | `quantity.convert` | Typed physical conversions | Explicit units, roles, frames and conventions |
 | `numerics.scalar_batch` | Compiled scalar numerical methods | Method-specific arithmetic and domain |
+| `cosmology.sound_horizon` | Conditional comoving sound horizon | Supplied drag redshift; flat pressureless matter + massless radiation + Lambda |
 | `background.evaluate` | Requested flat-FLRW expansion and projections | LCDM, constant q, CPL or fixed five-bin q |
 | `observations.prepare` | Immutable typed source preparation | Structural checks; no probability or lineage upgrade |
 | `statistics.gaussian` | Normalized Gaussian density, offset profile or proper latent prior | Explicit ordered residuals and nuisance assumptions |
@@ -26,3 +27,5 @@ Native BAO comparisons include the named eleven-point and fixed-q twenty-four-po
 Required numerical checks that pass satisfy default `numerical_contract` assurance and exit 0. Explicit `qualified` assurance exits 6 when applicable named evidence is absent. Completed scientific failures exit 2. Interpretation remains unqualified; no arbitrary request receives automatic scientific qualification.
 
 Measured mirrored dense preparation improved one pinned fixture on one compiler/machine; that historical measurement does not establish performance of the consolidated interface. Optimization follows matched-quality measurements, not the presence of a wider type or more threads. Samplers, priors over cosmological parameters, smoothing campaigns and whole-domain certificates remain outside these capabilities.
+
+The [conditional sound horizon](sound-horizon.md) uses an exact compact scale-factor interval, with explicitly supplied photon/baryon fractions and drag-redshift provenance. It predicts neither thermal history nor drag epoch; no existing BAO likelihood qualification is inherited.

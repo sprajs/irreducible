@@ -243,3 +243,6 @@ pub(crate) mod bao;
 pub(crate) mod supernova;
 #[path = "expansion_bridge.rs"]
 pub(crate) mod expansion;
+
+#[path = "sound_horizon_bridge.rs"]
+pub(crate) mod sound_horizon;

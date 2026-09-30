@@ -15,6 +15,7 @@ Read [AGENTS.md](../AGENTS.md) first, then choose a guide:
 | Make a request | [CLI contract](cli.md) |
 | Interpret an output | [Run records](run-records.md) |
 | Add a model, reader or calculation | [Development](development.md) and [architecture](architecture.md) |
+| Evaluate a supplied-drag early-time ruler | [Conditional sound horizon](sound-horizon.md) |
 | Check scientific assumptions | [Scientific contracts](scientific-contracts.md) |
 | Run tests or add a fixture | [Testing](testing.md) and [fixture provenance](../cpp/tests/fixtures/README.md) |
 | Maintain these docs | [Maintenance](maintenance.md) |

@@ -14,6 +14,7 @@ typedef struct irred_supernova irred_supernova;
 typedef struct irred_supernova_result irred_supernova_result;
 typedef struct irred_bao irred_bao;
 typedef struct irred_bao_result irred_bao_result;
+typedef struct irred_sound_horizon_result irred_sound_horizon_result;
 #define IRRED_OK 0u
 #define IRRED_ABI_MISMATCH 1u
 #define IRRED_INVALID_INPUT 2u
@@ -221,6 +222,11 @@ typedef struct { uint32_t struct_size; uint32_t abi_version; uint32_t role; uint
 typedef struct { uint32_t struct_size; uint32_t abi_version; uint32_t status; uint32_t numerical_status; uint32_t arithmetic; uint32_t reserved; uint64_t retained_bytes; irred_bao_source source; irred_bytes arithmetic_id; irred_bytes density_id; irred_bytes equation_id; irred_bytes ruler_convention_id; } irred_bao_view;
 typedef struct { irred_output_state state; double quadratic; double log_determinant; double log_normalization; double log_density; double backward_residual; double estimated_forward_sensitivity; } irred_density_payload;
 typedef struct { uint32_t struct_size; uint32_t abi_version; uint64_t model_index; irred_bao_model source; uint32_t background_status; uint32_t numerical_status; irred_output_state predictions_state; irred_output_state residuals_state; irred_density_payload density; irred_f64_buffer predictions; irred_f64_buffer residuals; irred_u64_buffer background_node_indices; uint64_t callbacks; uint64_t segment_visits; irred_bytes model_id; irred_bytes arithmetic_id; } irred_bao_row;
+typedef struct { uint32_t struct_size; uint32_t abi_version; double h0_km_s_mpc; double omega_m; double omega_r; double omega_b; double omega_gamma; double z_drag; irred_bytes drag_origin; } irred_sound_horizon_input;
+typedef struct { uint32_t struct_size; uint32_t abi_version; const irred_sound_horizon_input* points; uint64_t count; uint64_t byte_length; } irred_sound_horizon_batch;
+typedef struct { uint32_t struct_size; uint32_t abi_version; double absolute_tolerance_mpc; double relative_tolerance; uint64_t maximum_callbacks_per_point; uint64_t maximum_depth; uint64_t maximum_points; uint64_t maximum_total_callbacks; uint64_t maximum_native_bytes; } irred_sound_horizon_policy;
+typedef struct { uint32_t struct_size; uint32_t abi_version; irred_sound_horizon_input source; uint32_t numerical_status; uint32_t reserved; uint32_t has_value; uint32_t reserved2; double sound_horizon_mpc; double error_estimate_mpc; uint64_t callbacks; } irred_sound_horizon_row;
+typedef struct { uint32_t struct_size; uint32_t abi_version; uint32_t numerical_status; uint32_t reserved; const irred_sound_horizon_row* rows; uint64_t count; uint64_t callbacks; irred_bytes model_id; irred_bytes equation_id; irred_bytes constant_set_id; irred_bytes coordinate_id; irred_bytes arithmetic_id; } irred_sound_horizon_view;
 uint32_t irred_add(const irred_i64_buffer* a, const irred_i64_buffer* b, uint32_t fault, irred_result** out);
 uint32_t irred_result_view(const irred_result* r, const int64_t** data, uint64_t* n);
 uint32_t irred_result_destroy(irred_result* r);
@@ -264,6 +270,9 @@ uint32_t irred_bao_result_source_view(const irred_bao_result* result, irred_bao_
 uint32_t irred_bao_destroy(irred_bao* source);
 uint32_t irred_bao_result_destroy(irred_bao_result* result);
 uint32_t irred_observation_preparation_bytes(const irred_observation_descriptor* descriptor, uint64_t* bytes);
+uint32_t irred_sound_horizon_evaluate(const irred_sound_horizon_batch* batch, const irred_sound_horizon_policy* policy, irred_sound_horizon_result** out);
+uint32_t irred_sound_horizon_result_view(const irred_sound_horizon_result* result, irred_sound_horizon_view* out);
+uint32_t irred_sound_horizon_result_destroy(irred_sound_horizon_result* result);
 static inline uint64_t irred_numerics_output_length(uint32_t operation,uint64_t input) {switch(operation) {
 case IRRED_NUMERICAL_OPERATION_COMPENSATED_SUM:return 1;
 case IRRED_NUMERICAL_OPERATION_LOG_SUM_EXP:return 1;
