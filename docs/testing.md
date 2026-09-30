@@ -84,3 +84,5 @@ cargo test --locked --offline -j4 --test w01_reference -- --ignored --nocapture
 ```
 
 The Rust wrapper verifies raw hashes before running C++; it contains no physical equations. The native harness compares the frozen direct/stable historical scores separately from the approximate compressed route. This is a named fixed-input comparison, not parameter fitting or cosmological inference. The supernova C ABI/CLI remains unavailable until its separate interface gate.
+
+The retained supernova interface has a durable native allocation/ownership suite (`test_supernova_abi_hostile`) and Rust CLI suite (`cargo test --locked --offline -j4 --test supernova_cli`). Its generated transport controls use analytic de Sitter/profile limits and intentionally invalid unselected covariance entries. They are separate from the optional SHA-verified original seven-point regression. Native Debug and Release suites exercise the same checks; the interface also has actual Release CLI coverage. A passing transport regression does not qualify arbitrary source/model requests.

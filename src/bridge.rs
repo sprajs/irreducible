@@ -243,3 +243,7 @@ pub(crate) use background::{
     Parameters as BackgroundParametersRequest, Policy as BackgroundPolicyRequest,
     Query as BackgroundQueryRequest, evaluate as background_evaluate,
 };
+
+#[path = "supernova_bridge.rs"]
+mod supernova;
+pub(crate) use supernova::{Model as SupernovaModelRequest, Policy as SupernovaPolicyRequest, evaluate as supernova_evaluate};

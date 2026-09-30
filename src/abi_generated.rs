@@ -62,6 +62,35 @@ pub fn gaussian_status_name(value: u32) -> Option<&'static str> {
         _ => None,
     }
 }
+pub const SUPERNOVA_ARITHMETIC_BINARY64_LEGACY_V1: u32 = 0;
+pub const SUPERNOVA_ARITHMETIC_LONGDOUBLE_CPU_V1: u32 = 1;
+pub const SUPERNOVA_STATUS_OK: u32 = 0;
+pub const SUPERNOVA_STATUS_INVALID_INPUT: u32 = 1;
+pub const SUPERNOVA_STATUS_INCOMPATIBLE_METADATA: u32 = 2;
+pub const SUPERNOVA_STATUS_NUMERICAL_FAILURE: u32 = 3;
+pub const SUPERNOVA_STATUS_WORK_LIMIT: u32 = 4;
+pub fn supernova_tag_id(group: &str, label: &str) -> Option<u32> {
+    match (group, label) {
+        ("arithmetic", "binary64_legacy_v1") => Some(0),
+        ("arithmetic", "longdouble_cpu_v1") => Some(1),
+        ("status", "ok") => Some(0),
+        ("status", "invalid_input") => Some(1),
+        ("status", "incompatible_metadata") => Some(2),
+        ("status", "numerical_failure") => Some(3),
+        ("status", "work_limit") => Some(4),
+        _ => None,
+    }
+}
+pub fn supernova_status_name(value: u32) -> Option<&'static str> {
+    match value {
+        0 => Some("ok"),
+        1 => Some("invalid_input"),
+        2 => Some("incompatible_metadata"),
+        3 => Some("numerical_failure"),
+        4 => Some("work_limit"),
+        _ => None,
+    }
+}
 pub const BACKGROUND_MODEL_FLAT_LCDM_LATE_V1: u32 = 0;
 pub const BACKGROUND_MODEL_CONSTANT_Q_FLAT_V1: u32 = 1;
 pub const BACKGROUND_CONVENTION_GEOMETRIC_SAME_REDSHIFT: u32 = 0;
@@ -334,6 +363,97 @@ pub struct BackgroundSlot {
     pub lookback_integral_error: f64,
     pub evaluations: u64,
 }
+#[repr(C)]
+pub struct SupernovaModel {
+    pub model: u32,
+    pub reserved: u32,
+    pub omega_m: f64,
+    pub constant_q: f64,
+}
+#[repr(C)]
+pub struct SupernovaPolicy {
+    pub struct_size: u32,
+    pub abi_version: u32,
+    pub arithmetic: u32,
+    pub include_residual_arrays: u32,
+    pub maximum_models: u64,
+    pub maximum_source_rows: u64,
+    pub maximum_matrix_elements: u64,
+    pub maximum_array_elements: u64,
+    pub maximum_native_output_bytes: u64,
+    pub maximum_total_evaluations: u64,
+    pub maximum_evaluations_per_integral: u64,
+    pub maximum_depth: u32,
+    pub reserved: u32,
+    pub absolute_tolerance: f64,
+    pub relative_tolerance: f64,
+    pub maximum_forward_sensitivity: f64,
+}
+#[repr(C)]
+pub struct SupernovaBatch {
+    pub struct_size: u32,
+    pub abi_version: u32,
+    pub models: *const SupernovaModel,
+    pub model_count: u64,
+    pub model_byte_length: u64,
+}
+#[repr(C)]
+pub struct SupernovaView {
+    pub struct_size: u32,
+    pub abi_version: u32,
+    pub status: u32,
+    pub preparation_status: u32,
+    pub preparation_numerical_status: u32,
+    pub arithmetic: u32,
+    pub matrix_validation_scope: u32,
+    pub matrix_validation_assessed: u32,
+    pub ordered_ids: Strings,
+    pub selected_source_indices: U64Buffer,
+    pub source_row_count: u64,
+    pub arithmetic_id: Bytes,
+    pub score_id: Bytes,
+    pub constant_set_id: Bytes,
+    pub radial_equation_id: Bytes,
+    pub shape_convention: Bytes,
+    pub offset_convention: Bytes,
+    pub query_provenance: Bytes,
+    pub table_identity: Bytes,
+    pub uncertainty_identity: Bytes,
+    pub ordering_provenance: Bytes,
+    pub calibration_provenance: Bytes,
+    pub dependence_provenance: Bytes,
+    pub source_semantics: Bytes,
+    pub selected_z_expansion: F64Buffer,
+    pub selected_z_observer: F64Buffer,
+}
+#[repr(C)]
+pub struct SupernovaSlot {
+    pub model_index: u64,
+    pub source_parameters: SupernovaModel,
+    pub status: u32,
+    pub background_status: u32,
+    pub numerical_status: u32,
+    pub profile_status: u32,
+    pub model_id: Bytes,
+    pub arithmetic_id: Bytes,
+    pub score_id: Bytes,
+    pub radial_equation_id: Bytes,
+    pub offset_coefficient: f64,
+    pub quadratic: f64,
+    pub relative_profile_score: f64,
+    pub backward_residual: f64,
+    pub estimated_forward_sensitivity: f64,
+    pub coefficient_solve_backward_residual: f64,
+    pub coefficient_solve_forward_sensitivity: f64,
+    pub residual_l1: f64,
+    pub solution_norm_inf: f64,
+    pub adjusted_residual_l1: f64,
+    pub adjusted_solution_norm_inf: f64,
+    pub background_evaluations: u64,
+    pub shape_magnitudes: F64Buffer,
+    pub base_residuals: F64Buffer,
+    pub profiled_residuals: F64Buffer,
+}
 unsafe extern "C" {
     pub fn cosmo_add(
         a: *const Buffer,
@@ -445,6 +565,29 @@ unsafe extern "C" {
         length: *mut u64,
     ) -> u32;
     pub fn cosmo_background_result_destroy(result: *mut std::ffi::c_void) -> u32;
+    pub fn cosmo_supernova_prepare(
+        observations: *const std::ffi::c_void,
+        policy: *const SupernovaPolicy,
+        out: *mut *mut std::ffi::c_void,
+    ) -> u32;
+    pub fn cosmo_supernova_source_view(
+        owner: *const std::ffi::c_void,
+        out: *mut SupernovaView,
+    ) -> u32;
+    pub fn cosmo_supernova_evaluate(
+        owner: *const std::ffi::c_void,
+        batch: *const SupernovaBatch,
+        policy: *const SupernovaPolicy,
+        out: *mut *mut std::ffi::c_void,
+    ) -> u32;
+    pub fn cosmo_supernova_result_view(
+        owner: *const std::ffi::c_void,
+        rows: *mut *const SupernovaSlot,
+        count: *mut u64,
+        status: *mut u32,
+    ) -> u32;
+    pub fn cosmo_supernova_destroy(owner: *mut std::ffi::c_void) -> u32;
+    pub fn cosmo_supernova_result_destroy(owner: *mut std::ffi::c_void) -> u32;
 }
 #[derive(Clone, serde::Deserialize, serde::Serialize)]
 #[serde(deny_unknown_fields)]

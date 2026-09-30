@@ -10,6 +10,8 @@ typedef struct cosmo_prepared cosmo_prepared;
 typedef struct cosmo_gaussian cosmo_gaussian;
 typedef struct cosmo_gaussian_result cosmo_gaussian_result;
 typedef struct cosmo_background_result cosmo_background_result;
+typedef struct cosmo_supernova cosmo_supernova;
+typedef struct cosmo_supernova_result cosmo_supernova_result;
 #define COSMO_OK 0u
 #define COSMO_ABI_MISMATCH 1u
 #define COSMO_INVALID_INPUT 2u
@@ -112,6 +114,13 @@ typedef struct cosmo_background_result cosmo_background_result;
 #define COSMO_GAUSSIAN_MATRIX_VALIDATION_SCOPE_FULL_DECLARED_MATRIX 0u
 #define COSMO_GAUSSIAN_MATRIX_VALIDATION_SCOPE_SELECTED_COVARIANCE_ONLY 1u
 #define COSMO_GAUSSIAN_MATRIX_VALIDATION_SCOPE_FULL_PRECISION_THEN_MARGINAL 2u
+#define COSMO_SUPERNOVA_ARITHMETIC_BINARY64_LEGACY_V1 0u
+#define COSMO_SUPERNOVA_ARITHMETIC_LONGDOUBLE_CPU_V1 1u
+#define COSMO_SUPERNOVA_STATUS_OK 0u
+#define COSMO_SUPERNOVA_STATUS_INVALID_INPUT 1u
+#define COSMO_SUPERNOVA_STATUS_INCOMPATIBLE_METADATA 2u
+#define COSMO_SUPERNOVA_STATUS_NUMERICAL_FAILURE 3u
+#define COSMO_SUPERNOVA_STATUS_WORK_LIMIT 4u
 #define COSMO_BACKGROUND_MODEL_FLAT_LCDM_LATE_V1 0u
 #define COSMO_BACKGROUND_MODEL_CONSTANT_Q_FLAT_V1 1u
 #define COSMO_BACKGROUND_CONVENTION_GEOMETRIC_SAME_REDSHIFT 0u
@@ -142,6 +151,11 @@ typedef struct { double z_expansion; double z_observer; uint32_t convention; uin
 typedef struct { uint32_t struct_size; uint32_t abi_version; uint32_t maximum_depth; uint32_t reserved; uint64_t maximum_parameters; uint64_t maximum_queries; uint64_t maximum_slots; uint64_t maximum_native_output_bytes; uint64_t maximum_total_evaluations; uint64_t maximum_evaluations_per_integral; double absolute_tolerance; double relative_tolerance; } cosmo_background_policy;
 typedef struct { uint32_t struct_size; uint32_t abi_version; const cosmo_background_parameters* parameters; uint64_t parameter_count; uint64_t parameter_byte_length; const cosmo_background_query* queries; uint64_t query_count; uint64_t query_byte_length; } cosmo_background_batch;
 typedef struct { uint64_t parameter_index; uint64_t query_index; cosmo_background_parameters parameters; cosmo_background_query query; uint32_t status; uint32_t numerical_status; cosmo_bytes model_id; cosmo_bytes constants_id; cosmo_bytes radial_equation_id; cosmo_bytes luminosity_equation_id; cosmo_bytes shape_equation_id; double expansion_e; double h_km_s_mpc; double radial_integral; double radial_mpc; double transverse_mpc; double angular_diameter_mpc; double luminosity_mpc; double dimensionless_luminosity_shape; double lookback_seconds; double volume_mpc3_per_sr_per_redshift; double deceleration_q; double jerk; double radial_integral_error; double lookback_integral_error; uint64_t evaluations; } cosmo_background_slot;
+typedef struct { uint32_t model; uint32_t reserved; double omega_m; double constant_q; } cosmo_supernova_model;
+typedef struct { uint32_t struct_size; uint32_t abi_version; uint32_t arithmetic; uint32_t include_residual_arrays; uint64_t maximum_models; uint64_t maximum_source_rows; uint64_t maximum_matrix_elements; uint64_t maximum_array_elements; uint64_t maximum_native_output_bytes; uint64_t maximum_total_evaluations; uint64_t maximum_evaluations_per_integral; uint32_t maximum_depth; uint32_t reserved; double absolute_tolerance; double relative_tolerance; double maximum_forward_sensitivity; } cosmo_supernova_policy;
+typedef struct { uint32_t struct_size; uint32_t abi_version; const cosmo_supernova_model* models; uint64_t model_count; uint64_t model_byte_length; } cosmo_supernova_batch;
+typedef struct { uint32_t struct_size; uint32_t abi_version; uint32_t status; uint32_t preparation_status; uint32_t preparation_numerical_status; uint32_t arithmetic; uint32_t matrix_validation_scope; uint32_t matrix_validation_assessed; cosmo_strings ordered_ids; cosmo_u64_buffer selected_source_indices; uint64_t source_row_count; cosmo_bytes arithmetic_id; cosmo_bytes score_id; cosmo_bytes constant_set_id; cosmo_bytes radial_equation_id; cosmo_bytes shape_convention; cosmo_bytes offset_convention; cosmo_bytes query_provenance; cosmo_bytes table_identity; cosmo_bytes uncertainty_identity; cosmo_bytes ordering_provenance; cosmo_bytes calibration_provenance; cosmo_bytes dependence_provenance; cosmo_bytes source_semantics; cosmo_f64_buffer selected_z_expansion; cosmo_f64_buffer selected_z_observer; } cosmo_supernova_view;
+typedef struct { uint64_t model_index; cosmo_supernova_model source_parameters; uint32_t status; uint32_t background_status; uint32_t numerical_status; uint32_t profile_status; cosmo_bytes model_id; cosmo_bytes arithmetic_id; cosmo_bytes score_id; cosmo_bytes radial_equation_id; double offset_coefficient; double quadratic; double relative_profile_score; double backward_residual; double estimated_forward_sensitivity; double coefficient_solve_backward_residual; double coefficient_solve_forward_sensitivity; double residual_l1; double solution_norm_inf; double adjusted_residual_l1; double adjusted_solution_norm_inf; uint64_t background_evaluations; cosmo_f64_buffer shape_magnitudes; cosmo_f64_buffer base_residuals; cosmo_f64_buffer profiled_residuals; } cosmo_supernova_slot;
 uint32_t cosmo_add(const cosmo_i64_buffer* a, const cosmo_i64_buffer* b, uint32_t fault, cosmo_result** out);
 uint32_t cosmo_result_view(const cosmo_result* r, const int64_t** data, uint64_t* n);
 uint32_t cosmo_result_destroy(cosmo_result* r);
@@ -166,6 +180,12 @@ uint32_t cosmo_gaussian_selection_view(const cosmo_gaussian* gaussian, uint64_t 
 uint32_t cosmo_background_evaluate(const cosmo_background_batch* batch, const cosmo_background_policy* policy, cosmo_background_result** out);
 uint32_t cosmo_background_result_view(const cosmo_background_result* result, const cosmo_background_slot** slots, uint64_t* length);
 uint32_t cosmo_background_result_destroy(cosmo_background_result* result);
+uint32_t cosmo_supernova_prepare(const cosmo_prepared* observations, const cosmo_supernova_policy* policy, cosmo_supernova** out);
+uint32_t cosmo_supernova_source_view(const cosmo_supernova* owner, cosmo_supernova_view* out);
+uint32_t cosmo_supernova_evaluate(const cosmo_supernova* owner, const cosmo_supernova_batch* batch, const cosmo_supernova_policy* policy, cosmo_supernova_result** out);
+uint32_t cosmo_supernova_result_view(const cosmo_supernova_result* owner, const cosmo_supernova_slot** rows, uint64_t* count, uint32_t* status);
+uint32_t cosmo_supernova_destroy(cosmo_supernova* owner);
+uint32_t cosmo_supernova_result_destroy(cosmo_supernova_result* owner);
 static inline uint64_t cosmo_numerics_output_length(uint32_t operation,uint64_t input) {switch(operation) {
 case COSMO_NUMERICAL_OPERATION_COMPENSATED_SUM:return 1;
 case COSMO_NUMERICAL_OPERATION_LOG_SUM_EXP:return 1;

@@ -13,7 +13,8 @@ This page describes the public command surface at this documentation revision. D
 | C++ statistics library | Scalar normalized densities, retained Gaussian factors, explicit marginal/conditional operations and offset treatments | Tested scalar/2x2/3x3 fixtures; no qualified large survey likelihood |
 | `statistics.gaussian_batch.v1` | Retained normalized densities, proper latent priors or explicit offset profile scores | Bounded native/CLI interface; completed outputs remain unaccepted |
 | `background.parameter_query_batch.v1` | Compiled model-array × shared-query background batches | Bounded native/CLI interface; late-time models only, no survey likelihood |
-| C++ supernova consumer | Retained observations/profile factor and compiled model batches returning relative offset-profile scores | Named synthetic/original-input comparisons; no CLI operation, normalized density or inference claim |
+| C++ supernova consumer | Retained observations/profile factor and compiled model batches returning relative offset-profile scores | Named synthetic/original-input comparisons; no normalized density or inference claim |
+| `supernova.profile_batch.v1` | Retained released-profile observations and compiled relative offset-profile parameter batches | Named native/transport checks; arbitrary requests remain unqualified, no normalized density or inference claim |
 | Local run store | Objects, resolved specifications, attempt receipts, hashes | Replay/cache/resume service not implemented |
 
 The scientific qualification list in CLI discovery is currently empty. Native comparisons and regression tests are useful development evidence, but cannot be promoted into blanket acceptance of a scientific request. The integer fixture may be accepted as an engineering run while its discovery metadata still says `unqualified`.

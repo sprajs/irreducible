@@ -114,7 +114,9 @@ extern "C" uint32_t cosmo_background_evaluate(const cosmo_background_batch *b,
     size_t remaining = p->maximum_total_evaluations;
     for (uint64_t i = 0; i < b->parameter_count; ++i) {
       const auto &source = b->parameters[i];
-      auto model = physics::prepare({static_cast<physics::Model>(source.model),
+      // v1 carries no CPL parameters; unknown IDs stay unsupported per row.
+      const auto model_id = source.model <= 1 ? source.model : UINT32_MAX;
+      auto model = physics::prepare({static_cast<physics::Model>(model_id),
                                      source.h0_km_s_mpc, source.omega_m,
                                      source.constant_q});
       physics::Policy policy{
