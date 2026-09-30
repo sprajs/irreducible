@@ -1919,6 +1919,238 @@
           "u64"
         ]
       ]
+    },
+    {
+      "c_name": "cosmo_piecewise_parameters",
+      "rust_name": "PiecewiseParameters",
+      "fields": [
+        [
+          "h0_km_s_mpc",
+          "f64"
+        ],
+        [
+          "q",
+          "FiveCoefficients"
+        ]
+      ]
+    },
+    {
+      "c_name": "cosmo_piecewise_batch",
+      "rust_name": "PiecewiseBatch",
+      "fields": [
+        [
+          "struct_size",
+          "u32"
+        ],
+        [
+          "abi_version",
+          "u32"
+        ],
+        [
+          "parameters",
+          "const_PiecewiseParameters_ptr"
+        ],
+        [
+          "parameter_count",
+          "u64"
+        ],
+        [
+          "parameter_bytes",
+          "u64"
+        ],
+        [
+          "queries",
+          "const_BackgroundQuery_ptr"
+        ],
+        [
+          "query_count",
+          "u64"
+        ],
+        [
+          "query_bytes",
+          "u64"
+        ]
+      ]
+    },
+    {
+      "c_name": "cosmo_piecewise_policy",
+      "rust_name": "PiecewisePolicy",
+      "fields": [
+        [
+          "struct_size",
+          "u32"
+        ],
+        [
+          "abi_version",
+          "u32"
+        ],
+        [
+          "reserved",
+          "u64"
+        ],
+        [
+          "maximum_parameters",
+          "u64"
+        ],
+        [
+          "maximum_queries",
+          "u64"
+        ],
+        [
+          "maximum_slots",
+          "u64"
+        ],
+        [
+          "maximum_native_output_bytes",
+          "u64"
+        ],
+        [
+          "maximum_total_segment_visits",
+          "u64"
+        ]
+      ]
+    },
+    {
+      "c_name": "cosmo_piecewise_slot",
+      "rust_name": "PiecewiseSlot",
+      "fields": [
+        [
+          "struct_size",
+          "u32"
+        ],
+        [
+          "abi_version",
+          "u32"
+        ],
+        [
+          "parameter_index",
+          "u64"
+        ],
+        [
+          "query_index",
+          "u64"
+        ],
+        [
+          "parameters",
+          "PiecewiseParameters"
+        ],
+        [
+          "query",
+          "BackgroundQuery"
+        ],
+        [
+          "status",
+          "u32"
+        ],
+        [
+          "numerical_status",
+          "u32"
+        ],
+        [
+          "has_geometry",
+          "u32"
+        ],
+        [
+          "has_q",
+          "u32"
+        ],
+        [
+          "has_jerk",
+          "u32"
+        ],
+        [
+          "has_q0",
+          "u32"
+        ],
+        [
+          "q_convention",
+          "u32"
+        ],
+        [
+          "jerk_availability",
+          "u32"
+        ],
+        [
+          "bin",
+          "u64"
+        ],
+        [
+          "segments_processed",
+          "u64"
+        ],
+        [
+          "expansion_E",
+          "f64"
+        ],
+        [
+          "h_km_s_mpc",
+          "f64"
+        ],
+        [
+          "radial_integral",
+          "f64"
+        ],
+        [
+          "radial_mpc",
+          "f64"
+        ],
+        [
+          "transverse_mpc",
+          "f64"
+        ],
+        [
+          "angular_diameter_mpc",
+          "f64"
+        ],
+        [
+          "luminosity_mpc",
+          "f64"
+        ],
+        [
+          "dimensionless_luminosity_shape",
+          "f64"
+        ],
+        [
+          "lookback_seconds",
+          "f64"
+        ],
+        [
+          "volume_mpc3_per_sr_per_redshift",
+          "f64"
+        ],
+        [
+          "assigned_q",
+          "f64"
+        ],
+        [
+          "jerk",
+          "f64"
+        ],
+        [
+          "q0_within_piecewise_model",
+          "f64"
+        ],
+        [
+          "model_id",
+          "Bytes"
+        ],
+        [
+          "radial_equation_id",
+          "Bytes"
+        ],
+        [
+          "luminosity_equation_id",
+          "Bytes"
+        ],
+        [
+          "shape_equation_id",
+          "Bytes"
+        ],
+        [
+          "constant_set_id",
+          "Bytes"
+        ]
+      ]
     }
   ],
   "functions": [
@@ -2623,6 +2855,61 @@
           "bao_result"
         ]
       ]
+    },
+    {
+      "name": "cosmo_piecewise_evaluate",
+      "args": [
+        [
+          "batch",
+          "const_PiecewiseBatch_ptr"
+        ],
+        [
+          "policy",
+          "const_PiecewisePolicy_ptr"
+        ],
+        [
+          "out",
+          "piecewise_result_out"
+        ]
+      ]
+    },
+    {
+      "name": "cosmo_piecewise_result_view",
+      "args": [
+        [
+          "result",
+          "const_piecewise_result"
+        ],
+        [
+          "slots",
+          "const_piecewise_slot_out"
+        ],
+        [
+          "count",
+          "u64_ptr"
+        ],
+        [
+          "status",
+          "u32_ptr"
+        ],
+        [
+          "numerical_status",
+          "u32_ptr"
+        ],
+        [
+          "segments_processed",
+          "u64_ptr"
+        ]
+      ]
+    },
+    {
+      "name": "cosmo_piecewise_result_destroy",
+      "args": [
+        [
+          "result",
+          "piecewise_result"
+        ]
+      ]
     }
   ],
   "max_batch_elements": 1000000,
@@ -2839,6 +3126,34 @@
     ],
     "ownership": "synchronous inputs copied into retained owner; independently owned result; borrowed views valid until their owner destruction",
     "policy": "explicit separate prep/evaluation policies; no automatic request qualification",
+    "interface_gate": "bounded_native_and_cli_passed"
+  },
+  "piecewise_tags": {
+    "q_convention": {
+      "not_assessed": 0,
+      "interior_constant_bin": 1,
+      "right_limit_at_internal_jump": 2,
+      "right_limit_at_zero": 3,
+      "left_limit_at_final_endpoint": 4
+    },
+    "jerk_availability": {
+      "not_assessed": 0,
+      "ordinary_within_bin": 1,
+      "one_sided_endpoint": 2,
+      "unavailable_at_jump": 3
+    }
+  },
+  "piecewise_contract": {
+    "operation": "background.piecewise_query_batch.v1",
+    "implementation_state": "implemented",
+    "cli_available": true,
+    "qualification": "unqualified",
+    "input": "required H0 and five ordered q coefficients; fixed native edges; existing query convention tags",
+    "ownership": "synchronous borrowed inputs; independently owned result; borrowed views valid until result destruction",
+    "limits": "parameters/queries <=4096, product <=1048576, native output<=536870912 bytes; guard retained input and output aggregate bytes before copying",
+    "work": "one global analytic segment budget across parameter-major/query-minor rows, including failed partial work; no quadrature callbacks or epsilons",
+    "failure_payload": "has_geometry/has_q/has_jerk/has_q0 explicit; absent optional values zero-initialized storage never interpreted as values; derivative assessment not_assessed on failure",
+    "count_cap_failure": "owned empty result with background and numerical work_limit, structural malformed descriptors return ABI failure and null out",
     "interface_gate": "bounded_native_and_cli_passed"
   }
 }

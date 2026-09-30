@@ -277,3 +277,6 @@ mod bao;
 pub(crate) use bao::{
     Model as BaoModelRequest, Policy as BaoPolicyRequest, evaluate as bao_evaluate,
 };
+
+#[path = "piecewise_bridge.rs"]
+pub(crate) mod piecewise;

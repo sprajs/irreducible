@@ -91,6 +91,29 @@ pub fn supernova_status_name(value: u32) -> Option<&'static str> {
         _ => None,
     }
 }
+pub const PIECEWISE_Q_CONVENTION_NOT_ASSESSED: u32 = 0;
+pub const PIECEWISE_Q_CONVENTION_INTERIOR_CONSTANT_BIN: u32 = 1;
+pub const PIECEWISE_Q_CONVENTION_RIGHT_LIMIT_AT_INTERNAL_JUMP: u32 = 2;
+pub const PIECEWISE_Q_CONVENTION_RIGHT_LIMIT_AT_ZERO: u32 = 3;
+pub const PIECEWISE_Q_CONVENTION_LEFT_LIMIT_AT_FINAL_ENDPOINT: u32 = 4;
+pub const PIECEWISE_JERK_AVAILABILITY_NOT_ASSESSED: u32 = 0;
+pub const PIECEWISE_JERK_AVAILABILITY_ORDINARY_WITHIN_BIN: u32 = 1;
+pub const PIECEWISE_JERK_AVAILABILITY_ONE_SIDED_ENDPOINT: u32 = 2;
+pub const PIECEWISE_JERK_AVAILABILITY_UNAVAILABLE_AT_JUMP: u32 = 3;
+pub fn piecewise_tag_name(group: &str, value: u32) -> Option<&'static str> {
+    match (group, value) {
+        ("q_convention", 0) => Some("not_assessed"),
+        ("q_convention", 1) => Some("interior_constant_bin"),
+        ("q_convention", 2) => Some("right_limit_at_internal_jump"),
+        ("q_convention", 3) => Some("right_limit_at_zero"),
+        ("q_convention", 4) => Some("left_limit_at_final_endpoint"),
+        ("jerk_availability", 0) => Some("not_assessed"),
+        ("jerk_availability", 1) => Some("ordinary_within_bin"),
+        ("jerk_availability", 2) => Some("one_sided_endpoint"),
+        ("jerk_availability", 3) => Some("unavailable_at_jump"),
+        _ => None,
+    }
+}
 pub const BAO_OBSERVABLE_DM_OVER_RS: u32 = 0;
 pub const BAO_OBSERVABLE_DH_OVER_RS: u32 = 1;
 pub const BAO_OBSERVABLE_DV_OVER_RS: u32 = 2;
@@ -155,6 +178,7 @@ pub fn background_status_name(value: u32) -> Option<&'static str> {
         _ => None,
     }
 }
+#[allow(non_snake_case)]
 #[repr(C)]
 pub struct Buffer {
     pub struct_size: u32,
@@ -165,6 +189,7 @@ pub struct Buffer {
     pub length: u64,
     pub byte_length: u64,
 }
+#[allow(non_snake_case)]
 #[repr(C)]
 pub struct F64Buffer {
     pub struct_size: u32,
@@ -175,6 +200,7 @@ pub struct F64Buffer {
     pub length: u64,
     pub byte_length: u64,
 }
+#[allow(non_snake_case)]
 #[repr(C)]
 pub struct QuantityMetadata {
     pub struct_size: u32,
@@ -186,35 +212,41 @@ pub struct QuantityMetadata {
     pub constant_set: u32,
     pub reserved: u32,
 }
+#[allow(non_snake_case)]
 #[repr(C)]
 pub struct Bytes {
     pub data: *const u8,
     pub length: u64,
 }
+#[allow(non_snake_case)]
 #[repr(C)]
 pub struct Strings {
     pub data: *const Bytes,
     pub length: u64,
     pub byte_length: u64,
 }
+#[allow(non_snake_case)]
 #[repr(C)]
 pub struct U8Buffer {
     pub data: *const u8,
     pub length: u64,
     pub byte_length: u64,
 }
+#[allow(non_snake_case)]
 #[repr(C)]
 pub struct U64Buffer {
     pub data: *const u64,
     pub length: u64,
     pub byte_length: u64,
 }
+#[allow(non_snake_case)]
 #[repr(C)]
 pub struct ObservationPolicy {
     pub maximum_rows: u64,
     pub maximum_matrix_elements: u64,
     pub maximum_string_bytes: u64,
 }
+#[allow(non_snake_case)]
 #[repr(C)]
 pub struct ObservationDescriptor {
     pub struct_size: u32,
@@ -248,6 +280,7 @@ pub struct ObservationDescriptor {
     pub source_selection: U8Buffer,
     pub quality: U64Buffer,
 }
+#[allow(non_snake_case)]
 #[repr(C)]
 pub struct GaussianPolicy {
     pub struct_size: u32,
@@ -259,6 +292,7 @@ pub struct GaussianPolicy {
     pub maximum_string_bytes: u64,
     pub maximum_forward_sensitivity: f64,
 }
+#[allow(non_snake_case)]
 #[repr(C)]
 pub struct GaussianBatch {
     pub struct_size: u32,
@@ -270,6 +304,7 @@ pub struct GaussianBatch {
     pub ordered_ids: Strings,
     pub response: F64Buffer,
 }
+#[allow(non_snake_case)]
 #[repr(C)]
 pub struct GaussianRow {
     pub status: u32,
@@ -282,6 +317,7 @@ pub struct GaussianRow {
     pub estimated_forward_sensitivity: f64,
     pub coefficient: f64,
 }
+#[allow(non_snake_case)]
 #[repr(C)]
 pub struct GaussianView {
     pub struct_size: u32,
@@ -301,6 +337,7 @@ pub struct GaussianView {
     pub prior_count: u64,
     pub selection_count: u64,
 }
+#[allow(non_snake_case)]
 #[repr(C)]
 pub struct GaussianPrior {
     pub struct_size: u32,
@@ -313,6 +350,7 @@ pub struct GaussianPrior {
     pub response: F64Buffer,
     pub ordered_ids: Strings,
 }
+#[allow(non_snake_case)]
 #[repr(C)]
 pub struct GaussianSelection {
     pub struct_size: u32,
@@ -321,6 +359,7 @@ pub struct GaussianSelection {
     pub kept_row_ids: Strings,
     pub complement_row_ids: Strings,
 }
+#[allow(non_snake_case)]
 #[repr(C)]
 pub struct BackgroundParameters {
     pub model: u32,
@@ -329,6 +368,7 @@ pub struct BackgroundParameters {
     pub omega_m: f64,
     pub constant_q: f64,
 }
+#[allow(non_snake_case)]
 #[repr(C)]
 pub struct BackgroundQuery {
     pub z_expansion: f64,
@@ -336,6 +376,7 @@ pub struct BackgroundQuery {
     pub convention: u32,
     pub reserved: u32,
 }
+#[allow(non_snake_case)]
 #[repr(C)]
 pub struct BackgroundPolicy {
     pub struct_size: u32,
@@ -351,6 +392,7 @@ pub struct BackgroundPolicy {
     pub absolute_tolerance: f64,
     pub relative_tolerance: f64,
 }
+#[allow(non_snake_case)]
 #[repr(C)]
 pub struct BackgroundBatch {
     pub struct_size: u32,
@@ -362,6 +404,7 @@ pub struct BackgroundBatch {
     pub query_count: u64,
     pub query_byte_length: u64,
 }
+#[allow(non_snake_case)]
 #[repr(C)]
 pub struct BackgroundSlot {
     pub parameter_index: u64,
@@ -391,6 +434,7 @@ pub struct BackgroundSlot {
     pub lookback_integral_error: f64,
     pub evaluations: u64,
 }
+#[allow(non_snake_case)]
 #[repr(C)]
 pub struct SupernovaModel {
     pub model: u32,
@@ -398,6 +442,7 @@ pub struct SupernovaModel {
     pub omega_m: f64,
     pub constant_q: f64,
 }
+#[allow(non_snake_case)]
 #[repr(C)]
 pub struct SupernovaPolicy {
     pub struct_size: u32,
@@ -417,6 +462,7 @@ pub struct SupernovaPolicy {
     pub relative_tolerance: f64,
     pub maximum_forward_sensitivity: f64,
 }
+#[allow(non_snake_case)]
 #[repr(C)]
 pub struct SupernovaBatch {
     pub struct_size: u32,
@@ -425,6 +471,7 @@ pub struct SupernovaBatch {
     pub model_count: u64,
     pub model_byte_length: u64,
 }
+#[allow(non_snake_case)]
 #[repr(C)]
 pub struct SupernovaView {
     pub struct_size: u32,
@@ -454,6 +501,7 @@ pub struct SupernovaView {
     pub selected_z_expansion: F64Buffer,
     pub selected_z_observer: F64Buffer,
 }
+#[allow(non_snake_case)]
 #[repr(C)]
 pub struct SupernovaSlot {
     pub model_index: u64,
@@ -482,6 +530,7 @@ pub struct SupernovaSlot {
     pub base_residuals: F64Buffer,
     pub profiled_residuals: F64Buffer,
 }
+#[allow(non_snake_case)]
 #[repr(C)]
 pub struct BackgroundParametersV2 {
     pub model: u32,
@@ -492,6 +541,7 @@ pub struct BackgroundParametersV2 {
     pub w0: f64,
     pub wa: f64,
 }
+#[allow(non_snake_case)]
 #[repr(C)]
 pub struct BackgroundBatchV2 {
     pub struct_size: u32,
@@ -503,6 +553,7 @@ pub struct BackgroundBatchV2 {
     pub query_count: u64,
     pub query_byte_length: u64,
 }
+#[allow(non_snake_case)]
 #[repr(C)]
 pub struct BackgroundSlotV2 {
     pub parameter_index: u64,
@@ -532,6 +583,7 @@ pub struct BackgroundSlotV2 {
     pub lookback_integral_error: f64,
     pub evaluations: u64,
 }
+#[allow(non_snake_case)]
 #[repr(C)]
 pub struct SupernovaModelV2 {
     pub model: u32,
@@ -541,6 +593,7 @@ pub struct SupernovaModelV2 {
     pub w0: f64,
     pub wa: f64,
 }
+#[allow(non_snake_case)]
 #[repr(C)]
 pub struct SupernovaBatchV2 {
     pub struct_size: u32,
@@ -549,6 +602,7 @@ pub struct SupernovaBatchV2 {
     pub model_count: u64,
     pub model_byte_length: u64,
 }
+#[allow(non_snake_case)]
 #[repr(C)]
 pub struct SupernovaSlotV2 {
     pub model_index: u64,
@@ -577,12 +631,14 @@ pub struct SupernovaSlotV2 {
     pub base_residuals: F64Buffer,
     pub profiled_residuals: F64Buffer,
 }
+#[allow(non_snake_case)]
 #[repr(C)]
 pub struct BaoQuery {
     pub z: f64,
     pub observable: u32,
     pub reserved: u32,
 }
+#[allow(non_snake_case)]
 #[repr(C)]
 pub struct BaoPolicy {
     pub struct_size: u32,
@@ -601,6 +657,7 @@ pub struct BaoPolicy {
     pub maximum_native_output_bytes: u64,
     pub maximum_forward_sensitivity: f64,
 }
+#[allow(non_snake_case)]
 #[repr(C)]
 pub struct BaoDescriptor {
     pub struct_size: u32,
@@ -623,11 +680,13 @@ pub struct BaoDescriptor {
     pub ruler_convention: Bytes,
     pub computational_h0_convention: Bytes,
 }
+#[allow(non_snake_case)]
 #[repr(C)]
 pub struct BaoModel {
     pub parameters: SupernovaModelV2,
     pub h0_rd_km_s: f64,
 }
+#[allow(non_snake_case)]
 #[repr(C)]
 pub struct BaoBatch {
     pub struct_size: u32,
@@ -636,6 +695,7 @@ pub struct BaoBatch {
     pub model_count: u64,
     pub model_byte_length: u64,
 }
+#[allow(non_snake_case)]
 #[repr(C)]
 pub struct BaoSourceView {
     pub struct_size: u32,
@@ -648,6 +708,7 @@ pub struct BaoSourceView {
     pub equation_id: Bytes,
     pub constants_id: Bytes,
 }
+#[allow(non_snake_case)]
 #[repr(C)]
 pub struct BaoRow {
     pub model_index: u64,
@@ -674,6 +735,74 @@ pub struct BaoRow {
     pub queries: *const BaoQuery,
     pub query_count: u64,
     pub query_byte_length: u64,
+}
+#[allow(non_snake_case)]
+#[repr(C)]
+pub struct PiecewiseParameters {
+    pub h0_km_s_mpc: f64,
+    pub q: [f64; 5],
+}
+#[allow(non_snake_case)]
+#[repr(C)]
+pub struct PiecewiseBatch {
+    pub struct_size: u32,
+    pub abi_version: u32,
+    pub parameters: *const PiecewiseParameters,
+    pub parameter_count: u64,
+    pub parameter_bytes: u64,
+    pub queries: *const BackgroundQuery,
+    pub query_count: u64,
+    pub query_bytes: u64,
+}
+#[allow(non_snake_case)]
+#[repr(C)]
+pub struct PiecewisePolicy {
+    pub struct_size: u32,
+    pub abi_version: u32,
+    pub reserved: u64,
+    pub maximum_parameters: u64,
+    pub maximum_queries: u64,
+    pub maximum_slots: u64,
+    pub maximum_native_output_bytes: u64,
+    pub maximum_total_segment_visits: u64,
+}
+#[allow(non_snake_case)]
+#[repr(C)]
+pub struct PiecewiseSlot {
+    pub struct_size: u32,
+    pub abi_version: u32,
+    pub parameter_index: u64,
+    pub query_index: u64,
+    pub parameters: PiecewiseParameters,
+    pub query: BackgroundQuery,
+    pub status: u32,
+    pub numerical_status: u32,
+    pub has_geometry: u32,
+    pub has_q: u32,
+    pub has_jerk: u32,
+    pub has_q0: u32,
+    pub q_convention: u32,
+    pub jerk_availability: u32,
+    pub bin: u64,
+    pub segments_processed: u64,
+    pub expansion_E: f64,
+    pub h_km_s_mpc: f64,
+    pub radial_integral: f64,
+    pub radial_mpc: f64,
+    pub transverse_mpc: f64,
+    pub angular_diameter_mpc: f64,
+    pub luminosity_mpc: f64,
+    pub dimensionless_luminosity_shape: f64,
+    pub lookback_seconds: f64,
+    pub volume_mpc3_per_sr_per_redshift: f64,
+    pub assigned_q: f64,
+    pub jerk: f64,
+    pub q0_within_piecewise_model: f64,
+    pub model_id: Bytes,
+    pub radial_equation_id: Bytes,
+    pub luminosity_equation_id: Bytes,
+    pub shape_equation_id: Bytes,
+    pub constant_set_id: Bytes,
 }
 unsafe extern "C" {
     pub fn cosmo_add(
@@ -855,6 +984,20 @@ unsafe extern "C" {
         evaluations: *mut u64,
     ) -> u32;
     pub fn cosmo_bao_result_destroy(owner: *mut std::ffi::c_void) -> u32;
+    pub fn cosmo_piecewise_evaluate(
+        batch: *const PiecewiseBatch,
+        policy: *const PiecewisePolicy,
+        out: *mut *mut std::ffi::c_void,
+    ) -> u32;
+    pub fn cosmo_piecewise_result_view(
+        result: *const std::ffi::c_void,
+        slots: *mut *const PiecewiseSlot,
+        count: *mut u64,
+        status: *mut u32,
+        numerical_status: *mut u32,
+        segments_processed: *mut u64,
+    ) -> u32;
+    pub fn cosmo_piecewise_result_destroy(result: *mut std::ffi::c_void) -> u32;
 }
 #[derive(Clone, serde::Deserialize, serde::Serialize)]
 #[serde(deny_unknown_fields)]

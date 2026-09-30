@@ -7,6 +7,7 @@ mod cli;
 mod ingestion;
 mod observation_run;
 mod records;
+mod piecewise_run;
 mod statistics_run;
 mod supernova_run;
 mod supernova_v2_run;

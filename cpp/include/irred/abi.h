@@ -16,6 +16,8 @@ typedef struct cosmo_supernova cosmo_supernova;
 typedef struct cosmo_supernova_result cosmo_supernova_result;
 typedef struct cosmo_background_result_v2 cosmo_background_result_v2;
 typedef struct cosmo_supernova_result_v2 cosmo_supernova_result_v2;
+typedef double cosmo_q_coefficients[5];
+typedef struct cosmo_piecewise_result cosmo_piecewise_result;
 #define COSMO_OK 0u
 #define COSMO_ABI_MISMATCH 1u
 #define COSMO_INVALID_INPUT 2u
@@ -125,6 +127,15 @@ typedef struct cosmo_supernova_result_v2 cosmo_supernova_result_v2;
 #define COSMO_SUPERNOVA_STATUS_INCOMPATIBLE_METADATA 2u
 #define COSMO_SUPERNOVA_STATUS_NUMERICAL_FAILURE 3u
 #define COSMO_SUPERNOVA_STATUS_WORK_LIMIT 4u
+#define COSMO_PIECEWISE_Q_CONVENTION_NOT_ASSESSED 0u
+#define COSMO_PIECEWISE_Q_CONVENTION_INTERIOR_CONSTANT_BIN 1u
+#define COSMO_PIECEWISE_Q_CONVENTION_RIGHT_LIMIT_AT_INTERNAL_JUMP 2u
+#define COSMO_PIECEWISE_Q_CONVENTION_RIGHT_LIMIT_AT_ZERO 3u
+#define COSMO_PIECEWISE_Q_CONVENTION_LEFT_LIMIT_AT_FINAL_ENDPOINT 4u
+#define COSMO_PIECEWISE_JERK_AVAILABILITY_NOT_ASSESSED 0u
+#define COSMO_PIECEWISE_JERK_AVAILABILITY_ORDINARY_WITHIN_BIN 1u
+#define COSMO_PIECEWISE_JERK_AVAILABILITY_ONE_SIDED_ENDPOINT 2u
+#define COSMO_PIECEWISE_JERK_AVAILABILITY_UNAVAILABLE_AT_JUMP 3u
 #define COSMO_BAO_OBSERVABLE_DM_OVER_RS 0u
 #define COSMO_BAO_OBSERVABLE_DH_OVER_RS 1u
 #define COSMO_BAO_OBSERVABLE_DV_OVER_RS 2u
@@ -182,6 +193,10 @@ typedef struct { cosmo_supernova_model_v2 parameters; double h0_rd_km_s; } cosmo
 typedef struct { uint32_t struct_size; uint32_t abi_version; const cosmo_bao_model* models; uint64_t model_count; uint64_t model_byte_length; } cosmo_bao_batch;
 typedef struct { uint32_t struct_size; uint32_t abi_version; uint32_t status; uint32_t numerical_status; cosmo_bao_descriptor source; cosmo_bao_policy prepare_policy; cosmo_bytes arithmetic_id; cosmo_bytes equation_id; cosmo_bytes constants_id; } cosmo_bao_source_view_t;
 typedef struct { uint64_t model_index; cosmo_bao_model source_parameters; uint32_t status; uint32_t background_status; uint32_t numerical_status; uint32_t reserved; cosmo_bytes model_id; cosmo_bytes arithmetic_id; cosmo_bytes equation_id; cosmo_bytes ruler_convention_id; cosmo_bytes computational_h0_convention_id; double log_density; double quadratic; double log_determinant; double normalization; double backward_residual; double estimated_forward_sensitivity; uint64_t evaluations; cosmo_f64_buffer predictions; cosmo_f64_buffer residuals; cosmo_strings ordered_ids; const cosmo_bao_query* queries; uint64_t query_count; uint64_t query_byte_length; } cosmo_bao_row;
+typedef struct { double h0_km_s_mpc; cosmo_q_coefficients q; } cosmo_piecewise_parameters;
+typedef struct { uint32_t struct_size; uint32_t abi_version; const cosmo_piecewise_parameters* parameters; uint64_t parameter_count; uint64_t parameter_bytes; const cosmo_background_query* queries; uint64_t query_count; uint64_t query_bytes; } cosmo_piecewise_batch;
+typedef struct { uint32_t struct_size; uint32_t abi_version; uint64_t reserved; uint64_t maximum_parameters; uint64_t maximum_queries; uint64_t maximum_slots; uint64_t maximum_native_output_bytes; uint64_t maximum_total_segment_visits; } cosmo_piecewise_policy;
+typedef struct { uint32_t struct_size; uint32_t abi_version; uint64_t parameter_index; uint64_t query_index; cosmo_piecewise_parameters parameters; cosmo_background_query query; uint32_t status; uint32_t numerical_status; uint32_t has_geometry; uint32_t has_q; uint32_t has_jerk; uint32_t has_q0; uint32_t q_convention; uint32_t jerk_availability; uint64_t bin; uint64_t segments_processed; double expansion_E; double h_km_s_mpc; double radial_integral; double radial_mpc; double transverse_mpc; double angular_diameter_mpc; double luminosity_mpc; double dimensionless_luminosity_shape; double lookback_seconds; double volume_mpc3_per_sr_per_redshift; double assigned_q; double jerk; double q0_within_piecewise_model; cosmo_bytes model_id; cosmo_bytes radial_equation_id; cosmo_bytes luminosity_equation_id; cosmo_bytes shape_equation_id; cosmo_bytes constant_set_id; } cosmo_piecewise_slot;
 uint32_t cosmo_add(const cosmo_i64_buffer* a, const cosmo_i64_buffer* b, uint32_t fault, cosmo_result** out);
 uint32_t cosmo_result_view(const cosmo_result* r, const int64_t** data, uint64_t* n);
 uint32_t cosmo_result_destroy(cosmo_result* r);
@@ -224,6 +239,9 @@ uint32_t cosmo_bao_destroy(cosmo_bao* owner);
 uint32_t cosmo_bao_evaluate(const cosmo_bao* owner, const cosmo_bao_batch* batch, const cosmo_bao_policy* policy, cosmo_bao_result** out);
 uint32_t cosmo_bao_result_view(const cosmo_bao_result* owner, const cosmo_bao_row** rows, uint64_t* count, uint32_t* status, uint32_t* numerical_status, uint64_t* evaluations);
 uint32_t cosmo_bao_result_destroy(cosmo_bao_result* owner);
+uint32_t cosmo_piecewise_evaluate(const cosmo_piecewise_batch* batch, const cosmo_piecewise_policy* policy, cosmo_piecewise_result** out);
+uint32_t cosmo_piecewise_result_view(const cosmo_piecewise_result* result, const cosmo_piecewise_slot** slots, uint64_t* count, uint32_t* status, uint32_t* numerical_status, uint64_t* segments_processed);
+uint32_t cosmo_piecewise_result_destroy(cosmo_piecewise_result* result);
 static inline uint64_t cosmo_numerics_output_length(uint32_t operation,uint64_t input) {switch(operation) {
 case COSMO_NUMERICAL_OPERATION_COMPENSATED_SUM:return 1;
 case COSMO_NUMERICAL_OPERATION_LOG_SUM_EXP:return 1;

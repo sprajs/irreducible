@@ -31,6 +31,9 @@
     },
     {
       "$ref": "#/$defs/bao"
+    },
+    {
+      "$ref": "#/$defs/piecewise"
     }
   ],
   "$defs": {
@@ -1610,6 +1613,116 @@
         }
       },
       "description": "Normalized Gaussian in ordered dimensionless fitted distance-ratio coordinates; explicit free H0rd with fixed computational H0=70. Supplied axis declarations do not verify unlabeled covariance bytes; no joint-probe claim."
+    },
+    "piecewise": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema_version",
+        "operation",
+        "parameters",
+        "queries",
+        "policy"
+      ],
+      "properties": {
+        "schema_version": {
+          "const": 1
+        },
+        "operation": {
+          "const": "background.piecewise_query_batch.v1"
+        },
+        "parameters": {
+          "type": "array",
+          "maxItems": 4096,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "h0_km_s_mpc",
+              "q"
+            ],
+            "properties": {
+              "h0_km_s_mpc": {
+                "type": "number"
+              },
+              "q": {
+                "type": "array",
+                "minItems": 5,
+                "maxItems": 5,
+                "items": {
+                  "type": "number"
+                }
+              }
+            }
+          }
+        },
+        "queries": {
+          "type": "array",
+          "maxItems": 4096,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "z_expansion",
+              "z_observer",
+              "convention"
+            ],
+            "properties": {
+              "z_expansion": {
+                "type": "number"
+              },
+              "z_observer": {
+                "type": "number"
+              },
+              "convention": {
+                "enum": [
+                  "geometric_same_redshift",
+                  "released_zhd_zhel"
+                ]
+              }
+            }
+          }
+        },
+        "policy": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "maximum_parameters",
+            "maximum_queries",
+            "maximum_slots",
+            "maximum_native_output_bytes",
+            "maximum_total_segment_visits"
+          ],
+          "properties": {
+            "maximum_parameters": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 4096
+            },
+            "maximum_queries": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 4096
+            },
+            "maximum_slots": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 1048576
+            },
+            "maximum_native_output_bytes": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 536870912
+            },
+            "maximum_total_segment_visits": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 18446744073709551615
+            }
+          }
+        }
+      },
+      "description": "Separate fixed-five-bin compiled analytic provider; no model-tag admission or quadrature epsilon. Explicit optional derivative availability and global analytic segment budget."
     }
   },
   "description": "Structural generated view. C++ owns scientific admissibility, conversions and per-row statuses; successful execution without qualification remains unaccepted."
