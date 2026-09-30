@@ -71,10 +71,28 @@ fn released_assets_and_native_eleven_point_comparison() {
     );
 }
 
+// The default serde_json float decoder may round a printed f64 one ULP away.
+// Exact output-bit checks use Rust's correctly rounded decimal parser on the
+// flat numeric arrays; serde remains responsible for JSON structure/status.
+fn printed_arrays(text: &str, key: &str) -> Vec<Vec<f64>> {
+    let marker = format!("\"{key}\":[");
+    text.split(&marker)
+        .skip(1)
+        .map(|tail| {
+            tail.split_once(']')
+                .unwrap()
+                .0
+                .split(',')
+                .filter(|x| !x.trim().is_empty())
+                .map(|x| x.trim().parse::<f64>().unwrap())
+                .collect()
+        })
+        .collect()
+}
 #[test]
 #[ignore = "requires exact original BAO assets; bounded eleven-point CLI transport comparison"]
 fn released_assets_and_cli_eleven_points() {
-    use serde_json::{Value, json};
+    use serde_json::{json, Value};
     use std::fs;
     let mean = PathBuf::from(std::env::var_os("IRRED_BAO_MEAN").expect("IRRED_BAO_MEAN"));
     let covariance =
@@ -153,6 +171,42 @@ fn released_assets_and_cli_eleven_points() {
     assert_eq!(r["receipt"]["interpretation"], "not_assessed");
     assert_eq!(r["receipt"]["outputs"][0]["interpretation"], "unqualified");
     assert_eq!(r["receipt"]["build_id"], manifest["build"]["build_id"]);
+    // Original bytes, not merely a matching profile name, own these row identities.
+    let source = &r["result"]["source"];
+    let source_rows = source["rows"].as_array().unwrap();
+    let original_mean = fs::read_to_string(&mean).unwrap();
+    let fields = original_mean
+        .lines()
+        .filter(|line| !line.trim().is_empty() && !line.trim_start().starts_with('#'))
+        .map(|line| line.split_whitespace().collect::<Vec<_>>())
+        .collect::<Vec<_>>();
+    assert_eq!(fields.len(), 13);
+    assert_eq!(source_rows.len(), 13);
+    for (j, (row, field)) in source_rows.iter().zip(&fields).enumerate() {
+        assert_eq!(field.len(), 3);
+        assert_eq!(
+            row["z"].as_f64().unwrap().to_bits(),
+            field[0].parse::<f64>().unwrap().to_bits()
+        );
+        assert_eq!(
+            row["value"].as_f64().unwrap().to_bits(),
+            field[1].parse::<f64>().unwrap().to_bits()
+        );
+        assert_eq!(row["observable"], field[2]);
+        assert_eq!(
+            row["id"],
+            format!("{}:row:{j}:{}", pinned_hash("bao_mean_sha256"), field[2])
+        );
+    }
+    assert_eq!(source_rows[11]["observable"], "DH_over_rs");
+    assert_eq!(source_rows[12]["observable"], "DM_over_rs");
+    assert_eq!(source_rows[11]["z"], 2.33);
+    assert_eq!(source_rows[12]["z"], 2.33);
+    let output_text = std::str::from_utf8(&output.stdout).unwrap();
+    let printed_predictions = printed_arrays(output_text, "predictions");
+    let printed_residuals = printed_arrays(output_text, "residuals");
+    assert_eq!(printed_predictions.len(), 11);
+    assert_eq!(printed_residuals.len(), 11);
     let rows = r["result"]["calculation"]["rows"].as_array().unwrap();
     assert_eq!(rows.len(), 11);
     let mut maximum_error = 0.0f64;
@@ -174,9 +228,47 @@ fn released_assets_and_cli_eleven_points() {
         for (j, x) in predicted.iter().enumerate() {
             let expected = p[9 + j];
             assert!((x.as_f64().unwrap() - expected).abs() <= 2e-12 + 2e-10 * expected.abs());
+            let observed = source_rows[j]["value"].as_f64().unwrap();
+            assert_eq!(
+                printed_residuals[i][j].to_bits(),
+                (observed - printed_predictions[i][j]).to_bits()
+            );
         }
     }
     let objects = scratch.0.join("store/objects");
+    assert_eq!(
+        fs::read(objects.join(pinned_hash("bao_mean_sha256"))).unwrap(),
+        fs::read(&mean).unwrap()
+    );
+    assert_eq!(
+        fs::read(objects.join(pinned_hash("bao_cov_sha256"))).unwrap(),
+        fs::read(&covariance).unwrap()
+    );
+    let matrix_text = fs::read_to_string(
+        objects.join(source["full_covariance"]["object_digest"].as_str().unwrap()),
+    )
+    .unwrap();
+    let matrix: Value = serde_json::from_str(&matrix_text).unwrap();
+    let covariance_values = fs::read_to_string(&covariance)
+        .unwrap()
+        .split_whitespace()
+        .map(|value| value.parse::<f64>().unwrap())
+        .collect::<Vec<_>>();
+    assert_eq!(covariance_values.len(), 169);
+    let printed_values = printed_arrays(&matrix_text, "values");
+    assert_eq!(printed_values.len(), 1);
+    for (retained, original) in printed_values[0].iter().zip(&covariance_values) {
+        assert_eq!(retained.to_bits(), original.to_bits());
+    }
+    assert_eq!(matrix["values"].as_array().unwrap().len(), 169);
+    assert_eq!(matrix["axis_ids"], source["full_covariance"]["axis_ids"]);
+    assert_eq!(
+        matrix["axis_ids"],
+        json!(source_rows
+            .iter()
+            .map(|row| row["id"].clone())
+            .collect::<Vec<_>>())
+    );
     for entry in fs::read_dir(&objects).unwrap() {
         let p = entry.unwrap().path();
         assert_eq!(digest(&p), p.file_name().unwrap().to_str().unwrap());

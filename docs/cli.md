@@ -10,7 +10,7 @@ target/debug/irred run tests/fixtures/exact-add.json runs/example
 
 ## Requests
 
-Requests use `schema_version: 1` and an explicit `operation`. Operation-specific parsing rejects unknown fields. Do not add fields from a proposed schema or coerce an unsupported scientific object into an existing operation.
+Requests use `schema_version: 1` and an explicit `operation`. Operation-specific parsing rejects unknown fields. JSON decimal numbers use the pinned binary64 roundtrip parser; resolved specifications retain the decoded source bits. Do not add fields from a proposed schema or coerce an unsupported scientific object into an existing operation.
 
 An exact infrastructure request:
 
