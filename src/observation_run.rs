@@ -1,7 +1,7 @@
 //! Local structural adapters and retained acquisition; scientific policy is C++.
 use crate::{
     bridge::{ObservationInput, ObservationMetadata, prepare_observations},
-    ingestion::{gaussian_fixture, pantheon_covariance, pantheon_plus, read_asset},
+    ingestion::{magnitude_table, pantheon_covariance, pantheon_plus, read_asset},
     records::{hash, publish},
 };
 use serde::{Deserialize, Serialize};
@@ -71,7 +71,7 @@ pub(crate) fn execute_calculation(
     publish(&store.join("objects").join(asset.sha256()), asset.bytes())?;
     let table = match r.metadata.profile.as_str() {
         "pantheon_plus_released_v1" => pantheon_plus(asset, limits.maximum_rows as usize)?,
-        "gaussian_fixture_v1" => gaussian_fixture(asset, limits.maximum_rows as usize)?,
+        "gaussian_fixture_v1" | "typed_magnitude_covariance" => magnitude_table(asset, limits.maximum_rows as usize)?,
         _ => return Err("UNAVAILABLE_SOURCE_PROFILE".into()),
     };
     let mut matrix_values = vec![];

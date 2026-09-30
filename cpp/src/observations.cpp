@@ -2,6 +2,7 @@
 #include <cmath>
 #include <limits>
 #include <unordered_set>
+#include <utility>
 namespace irred::observations {
 namespace {
 bool digest(const std::string& s) { if(s.size()!=64)return false; for(char c:s)if(!((c>='0'&&c<='9')||(c>='a'&&c<='f')))return false; return true; }
@@ -9,7 +10,7 @@ bool mask(const std::vector<std::uint8_t>& v,std::size_t n) { if(v.size()!=n)ret
 }
 Prepared prepare(Input in,Policy p) {
  Prepared out; out.source_=std::move(in); const auto& s=out.source_; const auto n=s.values.size();
- if((s.profile!=Profile::pantheon_plus_released_v1&&s.profile!=Profile::gaussian_fixture_v1&&s.profile!=Profile::fits_length_fixture_v1)||(s.calibration!=Calibration::unknown&&s.calibration!=Calibration::released_corrected&&s.calibration!=Calibration::not_applicable)||(s.uncertainty!=Uncertainty::none&&s.uncertainty!=Uncertainty::covariance&&s.uncertainty!=Uncertainty::precision)){out.status_=Status::incompatible_semantics;return out;}
+ if((s.profile!=Profile::pantheon_plus_released_v1&&s.profile!=Profile::gaussian_fixture_v1&&s.profile!=Profile::fits_length_fixture_v1&&s.profile!=Profile::typed_magnitude_covariance)||(s.calibration!=Calibration::unknown&&s.calibration!=Calibration::released_corrected&&s.calibration!=Calibration::not_applicable)||(s.uncertainty!=Uncertainty::none&&s.uncertainty!=Uncertainty::covariance&&s.uncertainty!=Uncertainty::precision)){out.status_=Status::incompatible_semantics;return out;}
  if(s.component!=Component::unknown&&s.component!=Component::statistical&&s.component!=Component::systematic&&s.component!=Component::total){out.status_=Status::incompatible_semantics;return out;}
  const auto expected=s.uncertainty==Uncertainty::none?UncertaintyUnit::none:s.unit==Unit::magnitude?(s.uncertainty==Uncertainty::covariance?UncertaintyUnit::magnitude_squared:UncertaintyUnit::inverse_magnitude_squared):(s.uncertainty==Uncertainty::covariance?UncertaintyUnit::metre_squared:UncertaintyUnit::inverse_metre_squared);
  if(s.uncertainty_unit!=expected){out.status_=Status::incompatible_semantics;return out;}
@@ -24,6 +25,11 @@ Prepared prepare(Input in,Policy p) {
  for(std::size_t i=0;i<n;++i)if(s.measurement_ids[i].empty()||s.event_ids[i].empty()||!ids.insert(s.measurement_ids[i]).second){out.status_=Status::invalid_identity;return out;}
  if(s.profile==Profile::pantheon_plus_released_v1){
   if(s.calibration==Calibration::not_applicable||s.role!=Role::released_fitted_summary||s.unit!=Unit::magnitude||s.zhd.size()!=n||s.zcmb.size()!=n||s.zhel.size()!=n||!mask(s.zhd_missing,n)||!mask(s.zcmb_missing,n)||!mask(s.zhel_missing,n)){out.status_=Status::incompatible_semantics;return out;}
+ }else if(s.profile==Profile::typed_magnitude_covariance){
+  if((s.role!=Role::observed_measurement&&s.role!=Role::released_fitted_summary&&s.role!=Role::synthetic_control)||s.unit!=Unit::magnitude||s.uncertainty!=Uncertainty::covariance){out.status_=Status::incompatible_semantics;return out;}
+  for(const auto& column:{std::pair{&s.zhd,&s.zhd_missing},std::pair{&s.zcmb,&s.zcmb_missing},std::pair{&s.zhel,&s.zhel_missing}}){
+   if((column.first->empty()&&!column.second->empty())||(!column.first->empty()&&(column.first->size()!=n||!mask(*column.second,n)))){out.status_=Status::incompatible_semantics;return out;}
+  }
  }else if(s.role!=Role::synthetic_control||(s.profile==Profile::fits_length_fixture_v1?s.unit!=Unit::metre:s.unit!=Unit::magnitude)||!s.zhd.empty()||!s.zcmb.empty()||!s.zhel.empty()||!s.zhd_missing.empty()||!s.zcmb_missing.empty()||!s.zhel_missing.empty()) {out.status_=Status::incompatible_semantics;return out;}
  if(s.uncertainty==Uncertainty::none){if(s.component!=Component::unknown||!s.uncertainty_matrix.empty()||!s.uncertainty_axis_ids.empty()||!s.uncertainty_sha256.empty())return out;}
  else {

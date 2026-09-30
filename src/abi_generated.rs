@@ -10,6 +10,7 @@ pub const MAX_BATCH_ELEMENTS: u64 = 1000000;
 pub const OBSERVATION_PROFILE_PANTHEON_PLUS_RELEASED_V1: u32 = 0;
 pub const OBSERVATION_PROFILE_GAUSSIAN_FIXTURE_V1: u32 = 1;
 pub const OBSERVATION_PROFILE_FITS_LENGTH_FIXTURE_V1: u32 = 2;
+pub const OBSERVATION_PROFILE_TYPED_MAGNITUDE_COVARIANCE: u32 = 3;
 pub const OBSERVATION_ROLE_OBSERVED_MEASUREMENT: u32 = 0;
 pub const OBSERVATION_ROLE_RELEASED_FITTED_SUMMARY: u32 = 1;
 pub const OBSERVATION_ROLE_SYNTHETIC_CONTROL: u32 = 2;
@@ -1274,6 +1275,7 @@ pub fn observation_tag_id(group: &str, label: &str) -> Option<u32> {
         ("profile", "pantheon_plus_released_v1") => Some(0),
         ("profile", "gaussian_fixture_v1") => Some(1),
         ("profile", "fits_length_fixture_v1") => Some(2),
+        ("profile", "typed_magnitude_covariance") => Some(3),
         ("role", "observed_measurement") => Some(0),
         ("role", "released_fitted_summary") => Some(1),
         ("role", "synthetic_control") => Some(2),

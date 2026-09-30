@@ -63,9 +63,9 @@ fn bounded_read_hash_changes_when_path_bytes_change() {
 }
 #[test]
 fn synthetic_profile_is_explicit_and_retains_permutation() {
-    let t = gaussian_fixture(asset("ROW_ID EVENT_ID MAG\nB event 3\nA event 2\n"), 2).unwrap();
+    let t = magnitude_table(asset("ROW_ID EVENT_ID MAG\nB event 3\nA event 2\n"), 2).unwrap();
     assert_eq!(t.measurement_ids, vec!["B", "A"]);
     assert_eq!(t.event_ids, vec!["event", "event"]);
     assert!(t.zhd.is_empty());
-    assert!(gaussian_fixture(asset("ROW_ID EVENT_ID LENGTH\nA event 2"), 2).is_err());
+    assert!(magnitude_table(asset("ROW_ID EVENT_ID LENGTH\nA event 2"), 2).is_err());
 }

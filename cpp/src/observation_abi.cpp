@@ -3,6 +3,7 @@
 #include "irred/observation_enum_checks.inc"
 #include "result_internal.hpp"
 #include <limits>
+#include <memory>
 #include <new>
 #include <string>
 #include <utility>
@@ -31,11 +32,11 @@ cosmo_f64_buffer view(const std::vector<double>& v) {return {sizeof(cosmo_f64_bu
 cosmo_u8_buffer view(const std::vector<uint8_t>& v) {return {v.data(),v.size(),v.size()};}
 }
 struct cosmo_prepared {
- Prepared prepared;
+ std::shared_ptr<const Prepared> prepared;
  std::vector<cosmo_bytes> measurement_ids,event_ids,axis_ids;
  cosmo_observation_descriptor descriptor{};
- explicit cosmo_prepared(Prepared p):prepared(std::move(p)) {
-  const auto& s=prepared.source();
+ explicit cosmo_prepared(Prepared p):prepared(std::make_shared<const Prepared>(std::move(p))) {
+  const auto& s=prepared->source();
   auto fill=[](const auto& input,auto& output){output.reserve(input.size());for(const auto& x:input)output.push_back(view(x));};
   fill(s.measurement_ids,measurement_ids);fill(s.event_ids,event_ids);fill(s.uncertainty_axis_ids,axis_ids);
   auto strings_view=[](const auto& v){return cosmo_strings{v.data(),v.size(),v.size()*sizeof(cosmo_bytes)};};
@@ -78,7 +79,7 @@ extern "C" uint32_t cosmo_observation_select(const cosmo_prepared* p,uint32_t se
  if(out)*out=nullptr;
  if(semantic)*semantic=static_cast<uint32_t>(Status::invalid_shape);
  if(!p||!out||!semantic)return COSMO_INVALID_INPUT;
- try {auto selected=p->prepared.select(static_cast<Selection>(selection));*semantic=static_cast<uint32_t>(selected.status);if(selected.status!=Status::ok)return COSMO_OK;
+ try {auto selected=p->prepared->select(static_cast<Selection>(selection));*semantic=static_cast<uint32_t>(selected.status);if(selected.status!=Status::ok)return COSMO_OK;
  auto result=new cosmo_result{};try {result->kind=4;result->selection_mask=std::move(selected.mask);result->selection_indices.assign(selected.source_indices.begin(),selected.source_indices.end());}catch(...){delete result;throw;}*out=result;return COSMO_OK;
  }catch(const std::bad_alloc&){return COSMO_ALLOCATION_FAILURE;}catch(...){return COSMO_EXCEPTION;}
 }
@@ -86,5 +87,10 @@ extern "C" uint32_t cosmo_result_selection_view(const cosmo_result* r,const uint
 extern "C" uint32_t cosmo_observation_destroy(cosmo_prepared* p) {delete p;return COSMO_OK;}
 
 const irred::observations::Prepared *native_observations(const cosmo_prepared *p) noexcept {
- return p ? &p->prepared : nullptr;
+ return p ? p->prepared.get() : nullptr;
+}
+
+std::shared_ptr<const irred::observations::Prepared>
+shared_native_observations(const cosmo_prepared *p) noexcept {
+ return p ? p->prepared : nullptr;
 }

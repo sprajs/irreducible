@@ -3612,7 +3612,8 @@
     "profile": {
       "pantheon_plus_released_v1": 0,
       "gaussian_fixture_v1": 1,
-      "fits_length_fixture_v1": 2
+      "fits_length_fixture_v1": 2,
+      "typed_magnitude_covariance": 3
     },
     "role": {
       "observed_measurement": 0,

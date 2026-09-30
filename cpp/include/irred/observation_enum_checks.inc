@@ -2,6 +2,7 @@
 static_assert(static_cast<uint32_t>(irred::observations::Profile::pantheon_plus_released_v1) == COSMO_OBSERVATION_PROFILE_PANTHEON_PLUS_RELEASED_V1);
 static_assert(static_cast<uint32_t>(irred::observations::Profile::gaussian_fixture_v1) == COSMO_OBSERVATION_PROFILE_GAUSSIAN_FIXTURE_V1);
 static_assert(static_cast<uint32_t>(irred::observations::Profile::fits_length_fixture_v1) == COSMO_OBSERVATION_PROFILE_FITS_LENGTH_FIXTURE_V1);
+static_assert(static_cast<uint32_t>(irred::observations::Profile::typed_magnitude_covariance) == COSMO_OBSERVATION_PROFILE_TYPED_MAGNITUDE_COVARIANCE);
 static_assert(static_cast<uint32_t>(irred::observations::Role::observed_measurement) == COSMO_OBSERVATION_ROLE_OBSERVED_MEASUREMENT);
 static_assert(static_cast<uint32_t>(irred::observations::Role::released_fitted_summary) == COSMO_OBSERVATION_ROLE_RELEASED_FITTED_SUMMARY);
 static_assert(static_cast<uint32_t>(irred::observations::Role::synthetic_control) == COSMO_OBSERVATION_ROLE_SYNTHETIC_CONTROL);

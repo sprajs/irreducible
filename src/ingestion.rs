@@ -165,7 +165,7 @@ pub fn pantheon_covariance(
 }
 /// Synthetic magnitude fixture: exact ROW_ID EVENT_ID MAG header. This is a
 /// separately identified control, never a substituted survey release.
-pub fn gaussian_fixture(asset: Asset, maximum_rows: usize) -> Result<Table, String> {
+pub fn magnitude_table(asset: Asset, maximum_rows: usize) -> Result<Table, String> {
     let text = std::str::from_utf8(&asset.bytes).map_err(|_| "INVALID_UTF8")?;
     let mut lines = text.lines().filter(|x| !x.trim().is_empty());
     if lines.next().ok_or("MISSING_HEADER")?.trim() != "ROW_ID EVENT_ID MAG" {
