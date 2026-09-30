@@ -1225,6 +1225,350 @@
           "F64Buffer"
         ]
       ]
+    },
+    {
+      "c_name": "cosmo_background_parameters_v2",
+      "rust_name": "BackgroundParametersV2",
+      "fields": [
+        [
+          "model",
+          "u32"
+        ],
+        [
+          "reserved",
+          "u32"
+        ],
+        [
+          "h0_km_s_mpc",
+          "f64"
+        ],
+        [
+          "omega_m",
+          "f64"
+        ],
+        [
+          "constant_q",
+          "f64"
+        ],
+        [
+          "w0",
+          "f64"
+        ],
+        [
+          "wa",
+          "f64"
+        ]
+      ]
+    },
+    {
+      "c_name": "cosmo_background_batch_v2",
+      "rust_name": "BackgroundBatchV2",
+      "fields": [
+        [
+          "struct_size",
+          "u32"
+        ],
+        [
+          "abi_version",
+          "u32"
+        ],
+        [
+          "parameters",
+          "const_BackgroundParametersV2_ptr"
+        ],
+        [
+          "parameter_count",
+          "u64"
+        ],
+        [
+          "parameter_byte_length",
+          "u64"
+        ],
+        [
+          "queries",
+          "const_BackgroundQuery_ptr"
+        ],
+        [
+          "query_count",
+          "u64"
+        ],
+        [
+          "query_byte_length",
+          "u64"
+        ]
+      ]
+    },
+    {
+      "c_name": "cosmo_background_slot_v2",
+      "rust_name": "BackgroundSlotV2",
+      "fields": [
+        [
+          "parameter_index",
+          "u64"
+        ],
+        [
+          "query_index",
+          "u64"
+        ],
+        [
+          "parameters",
+          "BackgroundParametersV2"
+        ],
+        [
+          "query",
+          "BackgroundQuery"
+        ],
+        [
+          "status",
+          "u32"
+        ],
+        [
+          "numerical_status",
+          "u32"
+        ],
+        [
+          "model_id",
+          "Bytes"
+        ],
+        [
+          "constants_id",
+          "Bytes"
+        ],
+        [
+          "radial_equation_id",
+          "Bytes"
+        ],
+        [
+          "luminosity_equation_id",
+          "Bytes"
+        ],
+        [
+          "shape_equation_id",
+          "Bytes"
+        ],
+        [
+          "expansion_e",
+          "f64"
+        ],
+        [
+          "h_km_s_mpc",
+          "f64"
+        ],
+        [
+          "radial_integral",
+          "f64"
+        ],
+        [
+          "radial_mpc",
+          "f64"
+        ],
+        [
+          "transverse_mpc",
+          "f64"
+        ],
+        [
+          "angular_diameter_mpc",
+          "f64"
+        ],
+        [
+          "luminosity_mpc",
+          "f64"
+        ],
+        [
+          "dimensionless_luminosity_shape",
+          "f64"
+        ],
+        [
+          "lookback_seconds",
+          "f64"
+        ],
+        [
+          "volume_mpc3_per_sr_per_redshift",
+          "f64"
+        ],
+        [
+          "deceleration_q",
+          "f64"
+        ],
+        [
+          "jerk",
+          "f64"
+        ],
+        [
+          "radial_integral_error",
+          "f64"
+        ],
+        [
+          "lookback_integral_error",
+          "f64"
+        ],
+        [
+          "evaluations",
+          "u64"
+        ]
+      ]
+    },
+    {
+      "rust_name": "SupernovaModelV2",
+      "c_name": "cosmo_supernova_model_v2",
+      "fields": [
+        [
+          "model",
+          "u32"
+        ],
+        [
+          "reserved",
+          "u32"
+        ],
+        [
+          "omega_m",
+          "f64"
+        ],
+        [
+          "constant_q",
+          "f64"
+        ],
+        [
+          "w0",
+          "f64"
+        ],
+        [
+          "wa",
+          "f64"
+        ]
+      ]
+    },
+    {
+      "rust_name": "SupernovaBatchV2",
+      "c_name": "cosmo_supernova_batch_v2",
+      "fields": [
+        [
+          "struct_size",
+          "u32"
+        ],
+        [
+          "abi_version",
+          "u32"
+        ],
+        [
+          "models",
+          "const_SupernovaModelV2_ptr"
+        ],
+        [
+          "model_count",
+          "u64"
+        ],
+        [
+          "model_byte_length",
+          "u64"
+        ]
+      ]
+    },
+    {
+      "rust_name": "SupernovaSlotV2",
+      "c_name": "cosmo_supernova_slot_v2",
+      "fields": [
+        [
+          "model_index",
+          "u64"
+        ],
+        [
+          "source_parameters",
+          "SupernovaModelV2"
+        ],
+        [
+          "status",
+          "u32"
+        ],
+        [
+          "background_status",
+          "u32"
+        ],
+        [
+          "numerical_status",
+          "u32"
+        ],
+        [
+          "profile_status",
+          "u32"
+        ],
+        [
+          "model_id",
+          "Bytes"
+        ],
+        [
+          "arithmetic_id",
+          "Bytes"
+        ],
+        [
+          "score_id",
+          "Bytes"
+        ],
+        [
+          "radial_equation_id",
+          "Bytes"
+        ],
+        [
+          "offset_coefficient",
+          "f64"
+        ],
+        [
+          "quadratic",
+          "f64"
+        ],
+        [
+          "relative_profile_score",
+          "f64"
+        ],
+        [
+          "backward_residual",
+          "f64"
+        ],
+        [
+          "estimated_forward_sensitivity",
+          "f64"
+        ],
+        [
+          "coefficient_solve_backward_residual",
+          "f64"
+        ],
+        [
+          "coefficient_solve_forward_sensitivity",
+          "f64"
+        ],
+        [
+          "residual_l1",
+          "f64"
+        ],
+        [
+          "solution_norm_inf",
+          "f64"
+        ],
+        [
+          "adjusted_residual_l1",
+          "f64"
+        ],
+        [
+          "adjusted_solution_norm_inf",
+          "f64"
+        ],
+        [
+          "background_evaluations",
+          "u64"
+        ],
+        [
+          "shape_magnitudes",
+          "F64Buffer"
+        ],
+        [
+          "base_residuals",
+          "F64Buffer"
+        ],
+        [
+          "profiled_residuals",
+          "F64Buffer"
+        ]
+      ]
     }
   ],
   "functions": [
@@ -1737,6 +2081,100 @@
           "supernova_result"
         ]
       ]
+    },
+    {
+      "name": "cosmo_background_evaluate_v2",
+      "args": [
+        [
+          "batch",
+          "const_BackgroundBatchV2_ptr"
+        ],
+        [
+          "policy",
+          "const_BackgroundPolicy_ptr"
+        ],
+        [
+          "out",
+          "background_result_v2_out"
+        ]
+      ]
+    },
+    {
+      "name": "cosmo_background_result_v2_view",
+      "args": [
+        [
+          "result",
+          "const_background_result_v2"
+        ],
+        [
+          "slots",
+          "const_background_slot_v2_out"
+        ],
+        [
+          "length",
+          "u64_ptr"
+        ]
+      ]
+    },
+    {
+      "name": "cosmo_background_result_v2_destroy",
+      "args": [
+        [
+          "result",
+          "background_result_v2"
+        ]
+      ]
+    },
+    {
+      "name": "cosmo_supernova_evaluate_v2",
+      "args": [
+        [
+          "owner",
+          "const_supernova"
+        ],
+        [
+          "batch",
+          "const_SupernovaBatchV2_ptr"
+        ],
+        [
+          "policy",
+          "const_SupernovaPolicy_ptr"
+        ],
+        [
+          "out",
+          "supernova_result_v2_out"
+        ]
+      ]
+    },
+    {
+      "name": "cosmo_supernova_result_v2_view",
+      "args": [
+        [
+          "owner",
+          "const_supernova_result_v2"
+        ],
+        [
+          "rows",
+          "const_supernova_slot_v2_out"
+        ],
+        [
+          "count",
+          "u64_ptr"
+        ],
+        [
+          "status",
+          "u32_ptr"
+        ]
+      ]
+    },
+    {
+      "name": "cosmo_supernova_result_v2_destroy",
+      "args": [
+        [
+          "owner",
+          "supernova_result_v2"
+        ]
+      ]
     }
   ],
   "max_batch_elements": 1000000,
@@ -1880,5 +2318,50 @@
       "maximum_native_output_bytes": "owned native slot/array payload plus wire rows; allocator overhead and prepared-factor storage separately bounded by source/matrix caps"
     },
     "interface_gate": "bounded_native_and_cli_passed"
+  },
+  "background_v2_contract": {
+    "implementation_state": "implemented",
+    "cli_available": true,
+    "model_ids": {
+      "flat_lcdm_late_v1": 0,
+      "constant_q_flat_v1": 1,
+      "flat_cpl_late_v1": 2
+    },
+    "required_fields": [
+      "model",
+      "h0_km_s_mpc",
+      "omega_m",
+      "constant_q",
+      "w0",
+      "wa"
+    ],
+    "inactive_fields": "LCDM/CPL constant_q=0; constant-q omega_m=0; legacy w0=-1,wa=0",
+    "ordering": "parameter-major Cartesian; one global callback budget",
+    "compatibility": "v1 layouts and model 0/1 admission unchanged",
+    "interface_gate": "bounded_native_and_cli_passed",
+    "qualification": "unqualified"
+  },
+  "supernova_v2_contract": {
+    "implementation_state": "implemented",
+    "cli_available": true,
+    "required_fields": [
+      "model",
+      "omega_m",
+      "constant_q",
+      "w0",
+      "wa"
+    ],
+    "source_policy": "full attempted fields retained even on failed slots",
+    "ordering": "one ordered mixed-model batch; no grouping or budget reset",
+    "compatibility": "v1 layouts and model 0/1 admission unchanged",
+    "interface_gate": "bounded_native_and_cli_passed",
+    "qualification": "unqualified"
+  },
+  "background_v2_tags": {
+    "model": {
+      "flat_lcdm_late_v1": 0,
+      "constant_q_flat_v1": 1,
+      "flat_cpl_late_v1": 2
+    }
   }
 }

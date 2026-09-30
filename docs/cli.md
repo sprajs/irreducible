@@ -62,7 +62,7 @@ Outputs retain prepared distribution metadata separately from evaluation treatme
 
 Rows are ordered by parameter, then query. Each retains source parameters/query, equation and constant identities, numerical cause and callback count. Successful rows report distances in Mpc, lookback time in seconds and volume per steradian per redshift. Failed rows omit physical values. `maximum_total_evaluations` applies across every parameter/query pair. `maximum_native_output_bytes` bounds native owned slot storage; the CLI separately caps JSON output at 65,536 slots. Count, product and allocation arithmetic are checked before copying. The operation returns its calculation directly in `result`, without an observation-acquisition wrapper.
 
-Bounded native/CLI interface checks passed. Completed calculations remain unqualified with exit 6. Adaptive error estimates are empirical, and no curvature, CPL, age or sound-horizon calculation is provided.
+Bounded native/CLI interface checks passed. Completed calculations remain unqualified with exit 6. Adaptive error estimates are empirical, and v1 provides no curvature, CPL, age or sound-horizon calculation.
 
 ## Retained supernova profile batches
 
@@ -73,3 +73,9 @@ The explicit `policy` declares `arithmetic` (`binary64_legacy_v1` or `longdouble
 `result.observations` retains acquired rows and immutable full matrix artifacts; `result.calculation` retains selected row/source indices, zHD/zHEL conventions, original asset identities, arithmetic and equation IDs, profile scores and numerical causes. Optional shape/base/profiled residual arrays are empty when omitted. Failed rows omit finite payloads. Successful profile rows explicitly mark density and normalization not applicable.
 
 Execution completion, numerical checks and interpretation are separate: successful native checks report `checks_passed`, while interpretation and request acceptance remain unqualified. Structural transport failures report no invented numerical cause. Named original-input seven-point validation coverage is inspectable development evidence and does not automatically qualify an arbitrary source/model request. Completed finite batches retain exit 6; numerical/domain/resource failures return exit 2 with their structured cause.
+
+## Explicit CPL versioned batches
+
+`background.parameter_query_batch.v2` and `supernova.profile_batch.v2` admit the additional `flat_cpl_late_v1` model. Every row requires explicit `model`, `omega_m`, `constant_q`, `w0` and `wa`; background rows also require `h0_km_s_mpc`. LCDM/CPL require `constant_q: 0`, constant-q requires `omega_m: 0`, and legacy models require `w0: -1, wa: 0`. Missing or unknown fields fail; inactive values are never silently ignored. Existing v1 row layouts and model restrictions are unchanged.
+
+The v2 operations use the same prepared observations, conventions, resource policy and shared native physics as v1. A single callback budget covers mixed-model rows in source order. Outputs retain all attempted parameters even when a row fails, while failed rows omit finite scientific payloads. Named native comparisons and hostile transport tests cover explicit CPL; completed requests remain unqualified. The optional four-point original-input CLI regression exercises transport of the separately validated relative-profile calculation, without normalized density, evidence or inference claims.

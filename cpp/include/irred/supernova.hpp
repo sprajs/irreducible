@@ -20,6 +20,16 @@ struct ModelPoint {
   double omega_m = .3;
   double constant_q = 0;
 };
+// Version 2 admission is explicit: every active and inactive field is supplied.
+// Legacy callers cannot accidentally select CPL through implicit defaults.
+struct ModelPointV2 {
+  cosmology::Model model;
+  double omega_m, constant_q, w0, wa;
+  ModelPointV2(cosmology::Model model_id, double matter, double q,
+               double present_w, double evolution_w)
+      : model(model_id), omega_m(matter), constant_q(q), w0(present_w),
+        wa(evolution_w) {}
+};
 struct Policy {
   cosmology::Policy background;
   numerics::Arithmetic arithmetic = numerics::Arithmetic::binary64_legacy_v1;
@@ -43,6 +53,14 @@ struct Slot {
 struct BatchResult {
   Status status = Status::invalid_input;
   std::vector<Slot> slots;
+};
+struct SlotV2 {
+  ModelPointV2 source; // Full attempted parameters, including failed rows.
+  Slot calculation;  // source here is the three-field compatibility projection.
+};
+struct BatchResultV2 {
+  Status status = Status::invalid_input;
+  std::vector<SlotV2> slots;
 };
 class Consumer {
 public:
@@ -82,11 +100,14 @@ public:
   static constexpr const char *shape_convention =
       "zHD radial integral with zHEL luminosity prefactor";
   BatchResult evaluate_batch(std::span<const ModelPoint>, Policy) const;
+  BatchResultV2 evaluate_batch_v2(std::span<const ModelPointV2>, Policy) const;
   static constexpr double computational_h0_km_s_mpc = 70;
   static constexpr const char *score_id =
       "W01/intercept-free-profile-relative-score/v1";
 
 private:
+  template <class Point, class Result>
+  Result evaluate_common(std::span<const Point>, Policy) const;
   Status status_ = Status::invalid_input;
   bool synthetic_ = false;
   numerics::Status preparation_numerical_status_ =

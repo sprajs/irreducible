@@ -5,10 +5,13 @@
 #include <limits>
 #include <memory>
 #include <new>
+#include <type_traits>
 #include <vector>
 namespace {
 namespace sn = irred::supernova;
 namespace physics = irred::cosmology;
+static_assert(sizeof(cosmo_supernova_model) == 24);
+static_assert(sizeof(cosmo_supernova_model_v2) == 40);
 template <class T> bool aligned(const T *p) {
   return p && reinterpret_cast<uintptr_t>(p) % alignof(T) == 0;
 }
@@ -74,6 +77,11 @@ struct cosmo_supernova {
   std::vector<cosmo_bytes> ids;
   std::vector<uint64_t> indices;
   std::vector<double> expansion_z, observer_z;
+};
+struct cosmo_supernova_result_v2 {
+  sn::BatchResultV2 native;
+  std::vector<cosmo_supernova_slot_v2> rows;
+  std::string arithmetic_id;
 };
 struct cosmo_supernova_result {
   sn::BatchResult native;
@@ -164,10 +172,10 @@ extern "C" uint32_t cosmo_supernova_source_view(const cosmo_supernova *owner,
   out->selected_z_observer = doubles(owner->observer_z);
   return COSMO_OK;
 }
-extern "C" uint32_t cosmo_supernova_evaluate(const cosmo_supernova *owner,
-                                             const cosmo_supernova_batch *b,
-                                             const cosmo_supernova_policy *p,
-                                             cosmo_supernova_result **out) {
+template <class Batch, class Result, class WireModel, class WireSlot,
+          class NativePoint, class NativeSlot>
+uint32_t evaluate_supernova(const cosmo_supernova *owner, const Batch *b,
+                            const cosmo_supernova_policy *p, Result **out) {
   if (aligned(out))
     *out = nullptr;
   if (!aligned(out) || !aligned(owner) || !aligned(b) || !aligned(p))
@@ -177,11 +185,10 @@ extern "C" uint32_t cosmo_supernova_evaluate(const cosmo_supernova *owner,
     return COSMO_ABI_MISMATCH;
   if (b->struct_size != sizeof(*b) || !valid(*p) ||
       b->model_count > p->maximum_models ||
-      b->model_count >
-          std::numeric_limits<size_t>::max() / sizeof(cosmo_supernova_model) ||
-      b->model_byte_length != b->model_count * sizeof(cosmo_supernova_model) ||
+      b->model_count > std::numeric_limits<size_t>::max() / sizeof(WireModel) ||
+      b->model_byte_length != b->model_count * sizeof(WireModel) ||
       (b->model_count && (!b->models || reinterpret_cast<uintptr_t>(b->models) %
-                                            alignof(cosmo_supernova_model))))
+                                            alignof(WireModel))))
     return COSMO_INVALID_INPUT;
   const auto rows = owner->native.selected_source_indices().size();
   if (rows > p->maximum_source_rows)
@@ -194,8 +201,7 @@ extern "C" uint32_t cosmo_supernova_evaluate(const cosmo_supernova *owner,
       array_elements > p->maximum_array_elements ||
       !product(array_elements, sizeof(double), array_bytes) ||
       !product(b->model_count,
-               sizeof(cosmo_supernova_slot) + sizeof(sn::Slot) +
-                   sizeof(sn::ModelPoint),
+               sizeof(WireSlot) + sizeof(NativeSlot) + sizeof(NativePoint),
                row_bytes) ||
       row_bytes > std::numeric_limits<size_t>::max() - array_bytes ||
       row_bytes + array_bytes > p->maximum_native_output_bytes ||
@@ -207,15 +213,23 @@ extern "C" uint32_t cosmo_supernova_evaluate(const cosmo_supernova *owner,
     if (b->models[i].reserved)
       return COSMO_INVALID_INPUT;
   try {
-    std::vector<sn::ModelPoint> points;
+    std::vector<NativePoint> points;
     points.reserve(b->model_count);
-    for (uint64_t i = 0; i < b->model_count; ++i)
-      points.push_back({static_cast<physics::Model>(b->models[i].model <= 1
-                                                        ? b->models[i].model
-                                                        : UINT32_MAX),
-                        b->models[i].omega_m, b->models[i].constant_q});
-    auto result = std::make_unique<cosmo_supernova_result>();
-    result->native = owner->native.evaluate_batch(points, policy(*p));
+    for (uint64_t i = 0; i < b->model_count; ++i) {
+      const auto &m = b->models[i];
+      if constexpr (std::is_same_v<NativePoint, sn::ModelPointV2>)
+        points.emplace_back(static_cast<physics::Model>(m.model), m.omega_m,
+                            m.constant_q, m.w0, m.wa);
+      else
+        points.push_back(
+            {static_cast<physics::Model>(m.model <= 1 ? m.model : UINT32_MAX),
+             m.omega_m, m.constant_q});
+    }
+    auto result = std::make_unique<Result>();
+    if constexpr (std::is_same_v<NativePoint, sn::ModelPointV2>)
+      result->native = owner->native.evaluate_batch_v2(points, policy(*p));
+    else
+      result->native = owner->native.evaluate_batch(points, policy(*p));
     if (owner->native.status() == sn::Status::ok)
       result->arithmetic_id =
           owner->native.probability_metadata().arithmetic_id;
@@ -224,12 +238,17 @@ extern "C" uint32_t cosmo_supernova_evaluate(const cosmo_supernova *owner,
     result->rows.reserve(result->native.slots.size());
     uint64_t used = 0;
     for (size_t i = 0; i < result->native.slots.size(); ++i) {
-      const auto &s = result->native.slots[i];
+      const auto &s = [&]() -> const sn::Slot & {
+        if constexpr (std::is_same_v<NativePoint, sn::ModelPointV2>)
+          return result->native.slots[i].calculation;
+        else
+          return result->native.slots[i];
+      }();
       const auto &d = s.solve_diagnostics;
       if (s.background_evaluations > p->maximum_total_evaluations - used)
         return COSMO_EXCEPTION;
       used += s.background_evaluations;
-      cosmo_supernova_slot row{};
+      WireSlot row{};
       row.model_index = i;
       row.source_parameters = b->models[i];
       row.status = static_cast<uint32_t>(s.status);
@@ -237,9 +256,24 @@ extern "C" uint32_t cosmo_supernova_evaluate(const cosmo_supernova *owner,
       row.numerical_status = static_cast<uint32_t>(s.numerical_status);
       row.profile_status = static_cast<uint32_t>(s.profile_status);
       row.background_evaluations = s.background_evaluations;
-      auto model = physics::prepare({s.source.model,
-                                     sn::Consumer::computational_h0_km_s_mpc,
-                                     s.source.omega_m, s.source.constant_q});
+      auto model = [&] {
+        if constexpr (std::is_same_v<NativePoint, sn::ModelPointV2>) {
+          const auto &m = points[i];
+          if (m.model == physics::Model::flat_cpl_late_v1 && m.constant_q == 0)
+            return physics::prepare_cpl(
+                {sn::Consumer::computational_h0_km_s_mpc, m.omega_m, m.w0,
+                 m.wa});
+          auto value = physics::Parameters{
+              m.model, sn::Consumer::computational_h0_km_s_mpc, m.omega_m,
+              m.constant_q};
+          value.w0 = m.w0;
+          value.wa = m.wa;
+          return physics::prepare(value);
+        } else
+          return physics::prepare({s.source.model,
+                                   sn::Consumer::computational_h0_km_s_mpc,
+                                   s.source.omega_m, s.source.constant_q});
+      }();
       row.model_id = bytes(model.model_id());
       row.radial_equation_id = bytes(physics::Background::radial_equation_id);
       row.score_id = bytes(sn::Consumer::score_id);
@@ -275,6 +309,21 @@ extern "C" uint32_t cosmo_supernova_evaluate(const cosmo_supernova *owner,
     return COSMO_EXCEPTION;
   }
 }
+extern "C" uint32_t cosmo_supernova_evaluate(const cosmo_supernova *owner,
+                                             const cosmo_supernova_batch *b,
+                                             const cosmo_supernova_policy *p,
+                                             cosmo_supernova_result **out) {
+  return evaluate_supernova<cosmo_supernova_batch, cosmo_supernova_result,
+                            cosmo_supernova_model, cosmo_supernova_slot,
+                            sn::ModelPoint, sn::Slot>(owner, b, p, out);
+}
+extern "C" uint32_t cosmo_supernova_evaluate_v2(
+    const cosmo_supernova *owner, const cosmo_supernova_batch_v2 *b,
+    const cosmo_supernova_policy *p, cosmo_supernova_result_v2 **out) {
+  return evaluate_supernova<cosmo_supernova_batch_v2, cosmo_supernova_result_v2,
+                            cosmo_supernova_model_v2, cosmo_supernova_slot_v2,
+                            sn::ModelPointV2, sn::SlotV2>(owner, b, p, out);
+}
 extern "C" uint32_t
 cosmo_supernova_result_view(const cosmo_supernova_result *owner,
                             const cosmo_supernova_slot **rows, uint64_t *count,
@@ -298,6 +347,29 @@ extern "C" uint32_t cosmo_supernova_destroy(cosmo_supernova *owner) {
 }
 extern "C" uint32_t
 cosmo_supernova_result_destroy(cosmo_supernova_result *owner) {
+  delete owner;
+  return COSMO_OK;
+}
+
+extern "C" uint32_t
+cosmo_supernova_result_v2_view(const cosmo_supernova_result_v2 *owner,
+                               const cosmo_supernova_slot_v2 **rows,
+                               uint64_t *count, uint32_t *status) {
+  if (aligned(rows))
+    *rows = nullptr;
+  if (aligned(count))
+    *count = 0;
+  if (aligned(status))
+    *status = COSMO_SUPERNOVA_STATUS_INVALID_INPUT;
+  if (!aligned(owner) || !aligned(rows) || !aligned(count) || !aligned(status))
+    return COSMO_INVALID_INPUT;
+  *rows = owner->rows.data();
+  *count = owner->rows.size();
+  *status = static_cast<uint32_t>(owner->native.status);
+  return COSMO_OK;
+}
+extern "C" uint32_t
+cosmo_supernova_result_v2_destroy(cosmo_supernova_result_v2 *owner) {
   delete owner;
   return COSMO_OK;
 }

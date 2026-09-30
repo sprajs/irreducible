@@ -2,6 +2,7 @@
 #include <algorithm>
 #include <cmath>
 #include <utility>
+#include <type_traits>
 namespace irred::supernova {
 Consumer prepare(observations::Prepared observations, Policy policy) {
   const auto &source = observations.source();
@@ -115,7 +116,16 @@ Consumer Consumer::prepare_common(observations::Prepared observations,
 }
 BatchResult Consumer::evaluate_batch(std::span<const ModelPoint> points,
                                      Policy policy) const {
-  BatchResult out;
+  return evaluate_common<ModelPoint, BatchResult>(points, policy);
+}
+BatchResultV2 Consumer::evaluate_batch_v2(std::span<const ModelPointV2> points,
+                                        Policy policy) const {
+  return evaluate_common<ModelPointV2, BatchResultV2>(points, policy);
+}
+template <class Point, class Result>
+Result Consumer::evaluate_common(std::span<const Point> points,
+                                Policy policy) const {
+  Result out;
   if (!(policy.maximum_forward_sensitivity > 0) ||
       !std::isfinite(policy.maximum_forward_sensitivity))
     return out;
@@ -135,21 +145,51 @@ BatchResult Consumer::evaluate_batch(std::span<const ModelPoint> points,
   out.slots.reserve(points.size());
   auto remaining_evaluations = policy.background.maximum_total_evaluations;
   for (const auto &point : points) {
-    Slot slot;
-    slot.source = point;
-    auto background =
-        cosmology::prepare({point.model, computational_h0_km_s_mpc,
-                            point.omega_m, point.constant_q});
+    auto row = [&]() {
+      if constexpr (std::is_same_v<Point, ModelPoint>)
+        return Slot{};
+      else
+        return SlotV2{point, Slot{}};
+    }();
+    Slot &slot = [&]() -> Slot & {
+      if constexpr (std::is_same_v<Point, ModelPoint>)
+        return row;
+      else
+        return row.calculation;
+    }();
+    slot.source = {point.model, point.omega_m, point.constant_q};
+    if constexpr (std::is_same_v<Point, ModelPointV2>)
+      if (point.model == cosmology::Model::flat_cpl_late_v1 &&
+          point.constant_q != 0) {
+        out.slots.push_back(std::move(row));
+        continue;
+      }
+    auto background = [&]() {
+      if constexpr (std::is_same_v<Point, ModelPointV2>) {
+        if (point.model == cosmology::Model::flat_cpl_late_v1)
+          return cosmology::prepare_cpl({computational_h0_km_s_mpc,
+                                        point.omega_m, point.w0, point.wa});
+        // Keep attempted inactive fields: legacy prepare rejects noncanonical
+        // values instead of silently replacing them with defaults.
+        return cosmology::prepare({point.model, computational_h0_km_s_mpc,
+                                   point.omega_m, point.constant_q,
+                                   point.w0, point.wa});
+      } else {
+        // The existing entry remains strict: prepare does not admit model 2.
+        return cosmology::prepare({point.model, computational_h0_km_s_mpc,
+                                   point.omega_m, point.constant_q});
+      }
+    }();
     slot.background_status = background.status();
     if (background.status() != cosmology::Status::ok) {
-      out.slots.push_back(std::move(slot));
+      out.slots.push_back(std::move(row));
       continue;
     }
     if (remaining_evaluations < 3) {
       slot.status = Status::work_limit;
       slot.background_status = cosmology::Status::work_limit;
       slot.numerical_status = numerics::Status::work_limit;
-      out.slots.push_back(std::move(slot));
+      out.slots.push_back(std::move(row));
       continue;
     }
     auto background_policy = policy.background;
@@ -163,7 +203,7 @@ BatchResult Consumer::evaluate_batch(std::span<const ModelPoint> points,
       slot.status = prediction.status == cosmology::Status::work_limit
                         ? Status::work_limit
                         : Status::numerical_failure;
-      out.slots.push_back(std::move(slot));
+      out.slots.push_back(std::move(row));
       continue;
     }
     bool failed = false;
@@ -203,7 +243,7 @@ BatchResult Consumer::evaluate_batch(std::span<const ModelPoint> points,
       slot.base_residuals.clear();
       slot.profiled_residuals.clear();
     }
-    out.slots.push_back(std::move(slot));
+    out.slots.push_back(std::move(row));
   }
   return out;
 }

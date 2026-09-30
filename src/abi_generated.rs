@@ -91,6 +91,17 @@ pub fn supernova_status_name(value: u32) -> Option<&'static str> {
         _ => None,
     }
 }
+pub const BACKGROUND_V2_MODEL_FLAT_LCDM_LATE_V1: u32 = 0;
+pub const BACKGROUND_V2_MODEL_CONSTANT_Q_FLAT_V1: u32 = 1;
+pub const BACKGROUND_V2_MODEL_FLAT_CPL_LATE_V1: u32 = 2;
+pub fn background_v2_tag_id(group: &str, label: &str) -> Option<u32> {
+    match (group, label) {
+        ("model", "flat_lcdm_late_v1") => Some(0),
+        ("model", "constant_q_flat_v1") => Some(1),
+        ("model", "flat_cpl_late_v1") => Some(2),
+        _ => None,
+    }
+}
 pub const BACKGROUND_MODEL_FLAT_LCDM_LATE_V1: u32 = 0;
 pub const BACKGROUND_MODEL_CONSTANT_Q_FLAT_V1: u32 = 1;
 pub const BACKGROUND_CONVENTION_GEOMETRIC_SAME_REDSHIFT: u32 = 0;
@@ -454,6 +465,101 @@ pub struct SupernovaSlot {
     pub base_residuals: F64Buffer,
     pub profiled_residuals: F64Buffer,
 }
+#[repr(C)]
+pub struct BackgroundParametersV2 {
+    pub model: u32,
+    pub reserved: u32,
+    pub h0_km_s_mpc: f64,
+    pub omega_m: f64,
+    pub constant_q: f64,
+    pub w0: f64,
+    pub wa: f64,
+}
+#[repr(C)]
+pub struct BackgroundBatchV2 {
+    pub struct_size: u32,
+    pub abi_version: u32,
+    pub parameters: *const BackgroundParametersV2,
+    pub parameter_count: u64,
+    pub parameter_byte_length: u64,
+    pub queries: *const BackgroundQuery,
+    pub query_count: u64,
+    pub query_byte_length: u64,
+}
+#[repr(C)]
+pub struct BackgroundSlotV2 {
+    pub parameter_index: u64,
+    pub query_index: u64,
+    pub parameters: BackgroundParametersV2,
+    pub query: BackgroundQuery,
+    pub status: u32,
+    pub numerical_status: u32,
+    pub model_id: Bytes,
+    pub constants_id: Bytes,
+    pub radial_equation_id: Bytes,
+    pub luminosity_equation_id: Bytes,
+    pub shape_equation_id: Bytes,
+    pub expansion_e: f64,
+    pub h_km_s_mpc: f64,
+    pub radial_integral: f64,
+    pub radial_mpc: f64,
+    pub transverse_mpc: f64,
+    pub angular_diameter_mpc: f64,
+    pub luminosity_mpc: f64,
+    pub dimensionless_luminosity_shape: f64,
+    pub lookback_seconds: f64,
+    pub volume_mpc3_per_sr_per_redshift: f64,
+    pub deceleration_q: f64,
+    pub jerk: f64,
+    pub radial_integral_error: f64,
+    pub lookback_integral_error: f64,
+    pub evaluations: u64,
+}
+#[repr(C)]
+pub struct SupernovaModelV2 {
+    pub model: u32,
+    pub reserved: u32,
+    pub omega_m: f64,
+    pub constant_q: f64,
+    pub w0: f64,
+    pub wa: f64,
+}
+#[repr(C)]
+pub struct SupernovaBatchV2 {
+    pub struct_size: u32,
+    pub abi_version: u32,
+    pub models: *const SupernovaModelV2,
+    pub model_count: u64,
+    pub model_byte_length: u64,
+}
+#[repr(C)]
+pub struct SupernovaSlotV2 {
+    pub model_index: u64,
+    pub source_parameters: SupernovaModelV2,
+    pub status: u32,
+    pub background_status: u32,
+    pub numerical_status: u32,
+    pub profile_status: u32,
+    pub model_id: Bytes,
+    pub arithmetic_id: Bytes,
+    pub score_id: Bytes,
+    pub radial_equation_id: Bytes,
+    pub offset_coefficient: f64,
+    pub quadratic: f64,
+    pub relative_profile_score: f64,
+    pub backward_residual: f64,
+    pub estimated_forward_sensitivity: f64,
+    pub coefficient_solve_backward_residual: f64,
+    pub coefficient_solve_forward_sensitivity: f64,
+    pub residual_l1: f64,
+    pub solution_norm_inf: f64,
+    pub adjusted_residual_l1: f64,
+    pub adjusted_solution_norm_inf: f64,
+    pub background_evaluations: u64,
+    pub shape_magnitudes: F64Buffer,
+    pub base_residuals: F64Buffer,
+    pub profiled_residuals: F64Buffer,
+}
 unsafe extern "C" {
     pub fn cosmo_add(
         a: *const Buffer,
@@ -588,6 +694,30 @@ unsafe extern "C" {
     ) -> u32;
     pub fn cosmo_supernova_destroy(owner: *mut std::ffi::c_void) -> u32;
     pub fn cosmo_supernova_result_destroy(owner: *mut std::ffi::c_void) -> u32;
+    pub fn cosmo_background_evaluate_v2(
+        batch: *const BackgroundBatchV2,
+        policy: *const BackgroundPolicy,
+        out: *mut *mut std::ffi::c_void,
+    ) -> u32;
+    pub fn cosmo_background_result_v2_view(
+        result: *const std::ffi::c_void,
+        slots: *mut *const BackgroundSlotV2,
+        length: *mut u64,
+    ) -> u32;
+    pub fn cosmo_background_result_v2_destroy(result: *mut std::ffi::c_void) -> u32;
+    pub fn cosmo_supernova_evaluate_v2(
+        owner: *const std::ffi::c_void,
+        batch: *const SupernovaBatchV2,
+        policy: *const SupernovaPolicy,
+        out: *mut *mut std::ffi::c_void,
+    ) -> u32;
+    pub fn cosmo_supernova_result_v2_view(
+        owner: *const std::ffi::c_void,
+        rows: *mut *const SupernovaSlotV2,
+        count: *mut u64,
+        status: *mut u32,
+    ) -> u32;
+    pub fn cosmo_supernova_result_v2_destroy(owner: *mut std::ffi::c_void) -> u32;
 }
 #[derive(Clone, serde::Deserialize, serde::Serialize)]
 #[serde(deny_unknown_fields)]

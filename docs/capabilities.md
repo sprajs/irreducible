@@ -15,6 +15,8 @@ This page describes the public command surface at this documentation revision. D
 | `background.parameter_query_batch.v1` | Compiled model-array × shared-query background batches | Bounded native/CLI interface; late-time models only, no survey likelihood |
 | C++ supernova consumer | Retained observations/profile factor and compiled model batches returning relative offset-profile scores | Named synthetic/original-input comparisons; no normalized density or inference claim |
 | `supernova.profile_batch.v1` | Retained released-profile observations and compiled relative offset-profile parameter batches | Named native/transport checks; arbitrary requests remain unqualified, no normalized density or inference claim |
+| `background.parameter_query_batch.v2` | Explicit mixed LCDM, constant-q and CPL rows with shared queries | Bounded native/CLI checks; arbitrary requests unqualified |
+| `supernova.profile_batch.v2` | Explicit mixed-model retained relative-profile batches | Named four-point original-input coverage; no normalized density or inference claim |
 | Local run store | Objects, resolved specifications, attempt receipts, hashes | Replay/cache/resume service not implemented |
 
 The scientific qualification list in CLI discovery is currently empty. Native comparisons and regression tests are useful development evidence, but cannot be promoted into blanket acceptance of a scientific request. The integer fixture may be accepted as an engineering run while its discovery metadata still says `unqualified`.
@@ -23,7 +25,7 @@ The scientific qualification list in CLI discovery is currently empty. Native co
 
 Development follows the calculations agents need for cosmology: shared physics, physical models and the readers/numerical operations they depend on. Each new consumer needs validated prerequisites and an error budget. Fitting and orchestration can stay in external tools; internal statistical methods are added when a particular calculation needs them. This is not a checklist for a complete analysis suite.
 
-GPU/distributed execution, broad cosmological analyses and a demonstrated performance advantage remain future work. Historical research results are not established merely by importing their ideas or documenting them.
+GPU/distributed execution and broad cosmological analyses remain future work. Measured CPU improvements below apply only to their stated workload. Historical research results are not established merely by importing their ideas or documenting them.
 
 ## Known numerical limits
 
@@ -44,3 +46,5 @@ Native dense solves have explicit `binary64_legacy_v1` and `longdouble_cpu_v1` p
 The CPU triangular solve stores a transpose in the previously unused allocated upper triangle. Both precision policies keep the same multiplication/subtraction order. On one GCC 16.2.1 CPU host, three serial interleaved Release trials of the fixed original-data seven-point consumer gave median preparation 10.383→6.149 s, retained batch 0.3480→0.3056 s and total 12.028→7.644 s, with all quality checks retained and no material RSS increase. These numbers describe that fixture/compiler/machine, not a general performance guarantee.
 
 Native `irred::bao` supplies flat late-time DM/rd, DH/rd and DV/rd batches and a separately normalized retained Gaussian consumer. H0rd is an explicit free ruler in km/s, not a computed early-universe sound horizon. Ordered fitted-distance summaries, full covariance, calibration/dependence declarations and precision policy are retained. Analytic and independent native cases plus eleven named original-input cases exercise bounded observable and assembled-density budgets; arbitrary requests and cross-probe independence remain unqualified. No BAO CLI operation is currently available.
+
+The explicit `background.parameter_query_batch.v2` and `supernova.profile_batch.v2` operations admit mixed LCDM, constant-q and CPL rows with all source parameters required. Old v1 models/layouts remain restricted. Native analytic/independent CPL and supernova comparisons, allocation/ownership tests and CLI regressions supply named bounded coverage; they do not automatically qualify arbitrary requests. The original-input four-point CPL relative-profile case is separate from normalized-density or inference claims.

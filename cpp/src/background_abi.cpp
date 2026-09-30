@@ -6,9 +6,14 @@
 #include <memory>
 #include <new>
 #include <span>
+#include <type_traits>
 #include <vector>
 namespace {
 namespace physics = irred::cosmology;
+static_assert(static_cast<uint32_t>(physics::Model::flat_cpl_late_v1) ==
+              COSMO_BACKGROUND_V2_MODEL_FLAT_CPL_LATE_V1);
+static_assert(sizeof(cosmo_background_parameters) == 32);
+static_assert(sizeof(cosmo_background_parameters_v2) == 48);
 static_assert(static_cast<uint32_t>(physics::Model::flat_lcdm_late_v1) ==
               COSMO_BACKGROUND_MODEL_FLAT_LCDM_LATE_V1);
 static_assert(static_cast<uint32_t>(physics::Model::constant_q_flat_v1) ==
@@ -30,6 +35,9 @@ static_assert(static_cast<uint32_t>(physics::Status::numerical_failure) ==
               COSMO_BACKGROUND_STATUS_NUMERICAL_FAILURE);
 static_assert(static_cast<uint32_t>(physics::Status::work_limit) ==
               COSMO_BACKGROUND_STATUS_WORK_LIMIT);
+template <class T> bool aligned(const T *p) {
+  return p && reinterpret_cast<uintptr_t>(p) % alignof(T) == 0;
+}
 template <class T>
 bool bounded(const T *p, uint64_t n, uint64_t bytes, uint64_t cap) {
   return n <= cap && n <= std::numeric_limits<size_t>::max() / sizeof(T) &&
@@ -56,15 +64,18 @@ bool valid(const cosmo_background_policy &p) {
          (p.absolute_tolerance > 0 || p.relative_tolerance > 0);
 }
 } // namespace
+struct cosmo_background_result_v2 {
+  std::vector<cosmo_background_slot_v2> slots;
+};
 struct cosmo_background_result {
   std::vector<cosmo_background_slot> slots;
 };
-extern "C" uint32_t cosmo_background_evaluate(const cosmo_background_batch *b,
-                                              const cosmo_background_policy *p,
-                                              cosmo_background_result **out) {
-  if (out)
+template <class Batch, class Result, class WireSlot>
+uint32_t evaluate_background(const Batch *b, const cosmo_background_policy *p,
+                             Result **out) {
+  if (aligned(out))
     *out = nullptr;
-  if (!out || !b || !p)
+  if (!aligned(out) || !aligned(b) || !aligned(p))
     return COSMO_INVALID_INPUT;
   if (b->abi_version != COSMO_ABI_VERSION ||
       p->abi_version != COSMO_ABI_VERSION)
@@ -80,14 +91,12 @@ extern "C" uint32_t cosmo_background_evaluate(const cosmo_background_batch *b,
   if (b->query_count && b->parameter_count > p->maximum_slots / b->query_count)
     return COSMO_INVALID_INPUT;
   const auto total = b->parameter_count * b->query_count;
-  if (total > p->maximum_native_output_bytes / sizeof(cosmo_background_slot) ||
-      total >
-          std::numeric_limits<size_t>::max() / sizeof(cosmo_background_slot))
+  if (total > p->maximum_native_output_bytes / sizeof(WireSlot) ||
+      total > std::numeric_limits<size_t>::max() / sizeof(WireSlot))
     return COSMO_INVALID_INPUT;
   // Also guard the sum of owned output, copied queries and one temporary native
   // per-model batch. Count caps bound these work buffers independently.
-  const auto output_bytes =
-      static_cast<size_t>(total) * sizeof(cosmo_background_slot);
+  const auto output_bytes = static_cast<size_t>(total) * sizeof(WireSlot);
   if (b->query_count > (std::numeric_limits<size_t>::max() - output_bytes) /
                            sizeof(physics::Query))
     return COSMO_INVALID_INPUT;
@@ -109,16 +118,31 @@ extern "C" uint32_t cosmo_background_evaluate(const cosmo_background_batch *b,
       queries.push_back(
           {b->queries[i].z_expansion, b->queries[i].z_observer,
            static_cast<physics::Convention>(b->queries[i].convention)});
-    auto result = std::make_unique<cosmo_background_result>();
+    auto result = std::make_unique<Result>();
     result->slots.resize(total);
     size_t remaining = p->maximum_total_evaluations;
     for (uint64_t i = 0; i < b->parameter_count; ++i) {
       const auto &source = b->parameters[i];
       // v1 carries no CPL parameters; unknown IDs stay unsupported per row.
-      const auto model_id = source.model <= 1 ? source.model : UINT32_MAX;
-      auto model = physics::prepare({static_cast<physics::Model>(model_id),
-                                     source.h0_km_s_mpc, source.omega_m,
-                                     source.constant_q});
+      auto model = [&] {
+        if constexpr (std::is_same_v<Batch, cosmo_background_batch_v2>) {
+          if (source.model == COSMO_BACKGROUND_V2_MODEL_FLAT_CPL_LATE_V1 &&
+              source.constant_q == 0)
+            return physics::prepare_cpl(
+                {source.h0_km_s_mpc, source.omega_m, source.w0, source.wa});
+          auto value = physics::Parameters{
+              static_cast<physics::Model>(source.model), source.h0_km_s_mpc,
+              source.omega_m, source.constant_q};
+          value.w0 = source.w0;
+          value.wa = source.wa;
+          return physics::prepare(value);
+        } else {
+          const auto model_id = source.model <= 1 ? source.model : UINT32_MAX;
+          return physics::prepare({static_cast<physics::Model>(model_id),
+                                   source.h0_km_s_mpc, source.omega_m,
+                                   source.constant_q});
+        }
+      }();
       physics::Policy policy{
           {p->absolute_tolerance, p->relative_tolerance,
            static_cast<size_t>(p->maximum_evaluations_per_integral),
@@ -181,15 +205,29 @@ extern "C" uint32_t cosmo_background_evaluate(const cosmo_background_batch *b,
     return COSMO_EXCEPTION;
   }
 }
+extern "C" uint32_t cosmo_background_evaluate(const cosmo_background_batch *b,
+                                              const cosmo_background_policy *p,
+                                              cosmo_background_result **out) {
+  return evaluate_background<cosmo_background_batch, cosmo_background_result,
+                             cosmo_background_slot>(b, p, out);
+}
+extern "C" uint32_t
+cosmo_background_evaluate_v2(const cosmo_background_batch_v2 *b,
+                             const cosmo_background_policy *p,
+                             cosmo_background_result_v2 **out) {
+  return evaluate_background<cosmo_background_batch_v2,
+                             cosmo_background_result_v2,
+                             cosmo_background_slot_v2>(b, p, out);
+}
 extern "C" uint32_t
 cosmo_background_result_view(const cosmo_background_result *r,
                              const cosmo_background_slot **slots,
                              uint64_t *length) {
-  if (slots)
+  if (aligned(slots))
     *slots = nullptr;
-  if (length)
+  if (aligned(length))
     *length = 0;
-  if (!r || !slots || !length)
+  if (!aligned(r) || !aligned(slots) || !aligned(length))
     return COSMO_INVALID_INPUT;
   *slots = r->slots.data();
   *length = r->slots.size();
@@ -197,6 +235,26 @@ cosmo_background_result_view(const cosmo_background_result *r,
 }
 extern "C" uint32_t
 cosmo_background_result_destroy(cosmo_background_result *r) {
+  delete r;
+  return COSMO_OK;
+}
+
+extern "C" uint32_t
+cosmo_background_result_v2_view(const cosmo_background_result_v2 *r,
+                                const cosmo_background_slot_v2 **slots,
+                                uint64_t *length) {
+  if (aligned(slots))
+    *slots = nullptr;
+  if (aligned(length))
+    *length = 0;
+  if (!aligned(r) || !aligned(slots) || !aligned(length))
+    return COSMO_INVALID_INPUT;
+  *slots = r->slots.data();
+  *length = r->slots.size();
+  return COSMO_OK;
+}
+extern "C" uint32_t
+cosmo_background_result_v2_destroy(cosmo_background_result_v2 *r) {
   delete r;
   return COSMO_OK;
 }

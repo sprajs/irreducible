@@ -237,6 +237,10 @@ mod statistics;
 
 pub(crate) use statistics::{ProperPrior, gaussian_batch};
 
+#[macro_use]
+#[path = "background_transport.rs"]
+mod background_transport;
+
 #[path = "background_bridge.rs"]
 mod background;
 pub(crate) use background::{
@@ -244,6 +248,26 @@ pub(crate) use background::{
     Query as BackgroundQueryRequest, evaluate as background_evaluate,
 };
 
+#[macro_use]
+#[path = "supernova_transport.rs"]
+mod supernova_transport;
+
 #[path = "supernova_bridge.rs"]
 mod supernova;
-pub(crate) use supernova::{Model as SupernovaModelRequest, Policy as SupernovaPolicyRequest, evaluate as supernova_evaluate};
+pub(crate) use supernova::{
+    Model as SupernovaModelRequest, Policy as SupernovaPolicyRequest,
+    evaluate as supernova_evaluate,
+};
+
+#[path = "background_v2_bridge.rs"]
+mod background_v2;
+pub(crate) use background_v2::{
+    Parameters as BackgroundParametersV2Request, Policy as BackgroundPolicyV2Request,
+    Query as BackgroundQueryV2Request, evaluate as background_v2_evaluate,
+};
+#[path = "supernova_v2_bridge.rs"]
+mod supernova_v2;
+pub(crate) use supernova_v2::{
+    Model as SupernovaModelV2Request, Policy as SupernovaPolicyV2Request,
+    evaluate as supernova_v2_evaluate,
+};

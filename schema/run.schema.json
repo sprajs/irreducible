@@ -22,6 +22,12 @@
     },
     {
       "$ref": "#/$defs/supernova"
+    },
+    {
+      "$ref": "#/$defs/background_v2"
+    },
+    {
+      "$ref": "#/$defs/supernova_v2"
     }
   ],
   "$defs": {
@@ -787,6 +793,326 @@
         }
       },
       "description": "Retained compiled released-source relative single-offset profile batch; requires Pantheon profile and strict zHD>.01 selection. No density/evidence claim."
+    },
+    "background_v2": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema_version",
+        "operation",
+        "parameters",
+        "queries",
+        "policy"
+      ],
+      "properties": {
+        "schema_version": {
+          "const": 1
+        },
+        "operation": {
+          "const": "background.parameter_query_batch.v2"
+        },
+        "parameters": {
+          "type": "array",
+          "maxItems": 4096,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "model",
+              "h0_km_s_mpc",
+              "omega_m",
+              "constant_q",
+              "w0",
+              "wa"
+            ],
+            "properties": {
+              "model": {
+                "enum": [
+                  "flat_lcdm_late_v1",
+                  "constant_q_flat_v1",
+                  "flat_cpl_late_v1"
+                ]
+              },
+              "h0_km_s_mpc": {
+                "type": "number"
+              },
+              "omega_m": {
+                "type": "number"
+              },
+              "constant_q": {
+                "type": "number"
+              },
+              "w0": {
+                "type": "number"
+              },
+              "wa": {
+                "type": "number"
+              }
+            }
+          }
+        },
+        "queries": {
+          "type": "array",
+          "maxItems": 4096,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "z_expansion",
+              "z_observer",
+              "convention"
+            ],
+            "properties": {
+              "z_expansion": {
+                "type": "number"
+              },
+              "z_observer": {
+                "type": "number"
+              },
+              "convention": {
+                "enum": [
+                  "geometric_same_redshift",
+                  "released_zhd_zhel"
+                ]
+              }
+            }
+          }
+        },
+        "policy": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "maximum_parameters",
+            "maximum_queries",
+            "maximum_slots",
+            "maximum_native_output_bytes",
+            "maximum_total_evaluations",
+            "maximum_evaluations_per_integral",
+            "maximum_depth",
+            "absolute_tolerance",
+            "relative_tolerance"
+          ],
+          "properties": {
+            "maximum_parameters": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 4096
+            },
+            "maximum_queries": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 4096
+            },
+            "maximum_slots": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 1000000
+            },
+            "maximum_native_output_bytes": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 536870912
+            },
+            "maximum_total_evaluations": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 18446744073709551615
+            },
+            "maximum_evaluations_per_integral": {
+              "type": "integer",
+              "minimum": 3,
+              "maximum": 18446744073709551615
+            },
+            "maximum_depth": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 64
+            },
+            "absolute_tolerance": {
+              "type": "number",
+              "minimum": 0
+            },
+            "relative_tolerance": {
+              "type": "number",
+              "minimum": 0
+            }
+          },
+          "anyOf": [
+            {
+              "properties": {
+                "absolute_tolerance": {
+                  "exclusiveMinimum": 0
+                }
+              }
+            },
+            {
+              "properties": {
+                "relative_tolerance": {
+                  "exclusiveMinimum": 0
+                }
+              }
+            }
+          ]
+        }
+      },
+      "description": "Parameter-major Cartesian batch; CLI total JSON slots<=65536, native output storage and global integration callbacks bounded before allocation. Structural view only; C++ owns model domains/conventions. Explicit mixed v2 fields; canonical inactive parameters validated by C++."
+    },
+    "supernova_v2": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema_version",
+        "operation",
+        "observations",
+        "models",
+        "policy"
+      ],
+      "properties": {
+        "schema_version": {
+          "const": 1
+        },
+        "operation": {
+          "const": "supernova.profile_batch.v2"
+        },
+        "observations": {
+          "$ref": "#/$defs/observations"
+        },
+        "models": {
+          "type": "array",
+          "maxItems": 64,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "model",
+              "omega_m",
+              "constant_q",
+              "w0",
+              "wa"
+            ],
+            "properties": {
+              "model": {
+                "enum": [
+                  "flat_lcdm_late_v1",
+                  "constant_q_flat_v1",
+                  "flat_cpl_late_v1"
+                ]
+              },
+              "omega_m": {
+                "type": "number"
+              },
+              "constant_q": {
+                "type": "number"
+              },
+              "w0": {
+                "type": "number"
+              },
+              "wa": {
+                "type": "number"
+              }
+            }
+          }
+        },
+        "policy": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "arithmetic",
+            "include_residual_arrays",
+            "maximum_models",
+            "maximum_source_rows",
+            "maximum_matrix_elements",
+            "maximum_array_elements",
+            "maximum_native_output_bytes",
+            "maximum_total_evaluations",
+            "maximum_evaluations_per_integral",
+            "maximum_depth",
+            "absolute_tolerance",
+            "relative_tolerance",
+            "maximum_forward_sensitivity"
+          ],
+          "properties": {
+            "maximum_models": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 64
+            },
+            "maximum_source_rows": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 4096
+            },
+            "maximum_matrix_elements": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 16777216
+            },
+            "maximum_array_elements": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 1000000
+            },
+            "maximum_native_output_bytes": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 536870912
+            },
+            "maximum_total_evaluations": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 18446744073709551615
+            },
+            "maximum_evaluations_per_integral": {
+              "type": "integer",
+              "minimum": 3,
+              "maximum": 18446744073709551615
+            },
+            "maximum_depth": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 64
+            },
+            "arithmetic": {
+              "enum": [
+                "binary64_legacy_v1",
+                "longdouble_cpu_v1"
+              ]
+            },
+            "include_residual_arrays": {
+              "type": "boolean"
+            },
+            "maximum_forward_sensitivity": {
+              "type": "number",
+              "exclusiveMinimum": 0
+            },
+            "absolute_tolerance": {
+              "type": "number",
+              "minimum": 0
+            },
+            "relative_tolerance": {
+              "type": "number",
+              "minimum": 0
+            }
+          },
+          "anyOf": [
+            {
+              "properties": {
+                "absolute_tolerance": {
+                  "exclusiveMinimum": 0
+                }
+              }
+            },
+            {
+              "properties": {
+                "relative_tolerance": {
+                  "exclusiveMinimum": 0
+                }
+              }
+            }
+          ]
+        }
+      },
+      "description": "Retained compiled released-source relative single-offset profile batch; requires Pantheon profile and strict zHD>.01 selection. No density/evidence claim. Explicit mixed v2 fields; canonical inactive parameters validated by C++."
     }
   },
   "description": "Structural generated view. C++ owns scientific admissibility, conversions and per-row statuses; successful execution without qualification remains unaccepted."

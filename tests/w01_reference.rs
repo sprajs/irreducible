@@ -204,3 +204,177 @@ fn released_assets_and_cli_seven_points() {
         "maximum_historical_stable_score_error":maximum_error,"fixed_allocation":2e-7,"accepted":false})
     );
 }
+
+#[test]
+#[ignore = "requires explicit original table/covariance; bounded four-point explicit CPL v2 CLI transport regression"]
+fn released_assets_and_cli_cpl_four_points() {
+    use serde_json::{Value, json};
+    use std::fs;
+    let table = PathBuf::from(std::env::var_os("IRRED_W01_TABLE").expect("IRRED_W01_TABLE"));
+    let covariance =
+        PathBuf::from(std::env::var_os("IRRED_W01_COVARIANCE").expect("IRRED_W01_COVARIANCE"));
+    assert_eq!(digest(&table), pinned_hash("w01_table_sha256"));
+    assert_eq!(digest(&covariance), pinned_hash("w01_cov_sha256"));
+    // Parse frozen reference constants; Rust implements no prediction/profile equation.
+    let header = include_str!("../cpp/tests/fixtures/w01_cpl.hpp");
+    for (cpl_key, historical_key) in [
+        ("w01_cpl_table_sha256", "w01_table_sha256"),
+        ("w01_cpl_covariance_sha256", "w01_cov_sha256"),
+    ] {
+        let marker = format!(" {cpl_key} =");
+        let hash = header
+            .split_once(&marker)
+            .unwrap()
+            .1
+            .split('"')
+            .nth(1)
+            .unwrap();
+        assert_eq!(
+            hash,
+            pinned_hash(historical_key),
+            "CPL fixture must name the same exact original assets"
+        );
+    }
+    let rows = header
+        .split_once("w01_cpl_points{")
+        .unwrap()
+        .1
+        .split_once("};")
+        .unwrap()
+        .0;
+    let mut models = Vec::new();
+    let mut expected = Vec::new();
+    for row in rows.split("},") {
+        let fields: Vec<_> = row
+            .trim_matches(|c: char| c.is_whitespace() || c == '{' || c == '}')
+            .split(',')
+            .map(str::trim)
+            .filter(|x| !x.is_empty())
+            .collect();
+        if fields.is_empty() {
+            continue;
+        }
+        assert_eq!(fields.len(), 5);
+        models.push(json!({"model":"flat_cpl_late_v1","omega_m":fields[0].parse::<f64>().unwrap(),"constant_q":fields[1].parse::<f64>().unwrap(),"w0":fields[2].parse::<f64>().unwrap(),"wa":fields[3].parse::<f64>().unwrap()}));
+        expected.push(fields[4].parse::<f64>().unwrap());
+    }
+    assert_eq!(models.len(), 4);
+    let path = std::env::temp_dir().join(format!(
+        "irred-original-cli-{}-{}",
+        std::process::id(),
+        std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap()
+            .as_nanos()
+    ));
+    fs::create_dir(&path).unwrap();
+    struct Scratch(PathBuf);
+    impl Drop for Scratch {
+        fn drop(&mut self) {
+            let _ = fs::remove_dir_all(&self.0);
+        }
+    }
+    let scratch = Scratch(path);
+    let request = json!({"schema_version":1,"operation":"supernova.profile_batch.v2",
+        "observations":{"schema_version":1,"operation":"observations.prepare.v1","table":table,"uncertainty":covariance,
+        "metadata":{"profile":"pantheon_plus_released_v1","role":"released_fitted_summary","unit":"magnitude","calibration":"unknown",
+        "uncertainty":"covariance","uncertainty_unit":"magnitude_squared","component":"total"},"selection":"pantheon_zhd_gt_001",
+        "ordering_provenance":"supplied original release row order; unlabeled matrix linkage not independently verified",
+        "calibration_provenance":"released fitted summaries; absolute calibration unknown and free offset profiled",
+        "dependence_provenance":"released covariance; repeated events retained; no extra independence assumed",
+        "resources":{"maximum_asset_bytes":268435456,"maximum_rows":4096,"maximum_matrix_elements":16777216,"maximum_string_bytes":16777216}},
+        "models":models,"policy":{"arithmetic":"longdouble_cpu_v1","include_residual_arrays":false,"maximum_models":64,"maximum_source_rows":4096,
+        "maximum_matrix_elements":16777216,"maximum_array_elements":1000000,"maximum_native_output_bytes":536870912,"maximum_total_evaluations":20000000,
+        "maximum_evaluations_per_integral":100000,"maximum_depth":30,"absolute_tolerance":1e-12,"relative_tolerance":1e-12,"maximum_forward_sensitivity":1e-10}});
+    let request_path = scratch.0.join("request.json");
+    fs::write(&request_path, serde_json::to_vec(&request).unwrap()).unwrap();
+    let executable = PathBuf::from(env!("CARGO_BIN_EXE_irred"));
+    println!("cli_sha256={}", digest(&executable));
+    let output = Command::new(&executable)
+        .arg("run")
+        .arg(&request_path)
+        .arg(scratch.0.join("store"))
+        .output()
+        .unwrap();
+    assert_eq!(digest(&table), pinned_hash("w01_table_sha256"));
+    assert_eq!(digest(&covariance), pinned_hash("w01_cov_sha256"));
+    assert_eq!(
+        output.status.code(),
+        Some(6),
+        "{}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+    let response: Value = serde_json::from_slice(&output.stdout).unwrap();
+    let c = &response["result"]["calculation"];
+    assert_eq!(c["kind"], "finite");
+    assert_eq!(c["source"]["source_row_count"], 1701);
+    assert_eq!(c["source"]["ordered_ids"].as_array().unwrap().len(), 1590);
+    assert_eq!(c["source"]["arithmetic_id"], "F02/longdouble-cpu/v1");
+    assert_eq!(response["receipt"]["accepted"], false);
+    assert_eq!(response["receipt"]["execution"], "completed");
+    assert_eq!(
+        response["receipt"]["outputs"][0]["numerical"],
+        "checks_passed"
+    );
+    assert_eq!(c["interpretation_status"], "unqualified");
+    let rows = c["rows"].as_array().unwrap();
+    assert_eq!(rows.len(), 4);
+    let mut maximum_error = 0.0_f64;
+    for (i, row) in rows.iter().enumerate() {
+        assert_eq!(row["identity"]["model_index"], i);
+        assert_eq!(row["identity"]["source_parameters"], request["models"][i]);
+        assert_eq!(row["identity"]["arithmetic_id"], "F02/longdouble-cpu/v1");
+        assert_eq!(row["diagnostics"]["numerical_status"], "ok");
+        assert_eq!(row["result"]["kind"], "finite");
+        let error = (row["result"]["relative_profile_score"].as_f64().unwrap() - expected[i]).abs();
+        assert!(
+            error <= 1e-6,
+            "point{i} frozen native CPL comparison allocation exceeded: {error}"
+        );
+        maximum_error = maximum_error.max(error);
+        assert_eq!(row["result"]["arrays"]["shape_magnitudes"], json!([]));
+        assert_eq!(row["result"]["density_status"], "not_applicable");
+    }
+    assert!(c["evaluations"].as_u64().unwrap() <= 20_000_000);
+    let objects = scratch.0.join("store/objects");
+    for key in ["w01_table_sha256", "w01_cov_sha256"] {
+        let hash = pinned_hash(key);
+        assert_eq!(digest(&objects.join(&hash)), hash);
+    }
+    for key in ["scientific_specification_digest", "output_digest"] {
+        let hash = response["receipt"][key].as_str().unwrap();
+        assert_eq!(digest(&objects.join(hash)), hash);
+    }
+    // Optional developer capture: exclusive new destination preserves this one
+    // acceptance run. Ordinary optional checks still clean their scratch data.
+    if let Some(destination) = std::env::var_os("IRRED_W01_CPL_RECORD_DIRECTORY") {
+        fn copy_tree(source: &std::path::Path, target: &std::path::Path) {
+            fs::create_dir(target).unwrap();
+            for entry in fs::read_dir(source).unwrap() {
+                let entry = entry.unwrap();
+                let to = target.join(entry.file_name());
+                if entry.file_type().unwrap().is_dir() {
+                    copy_tree(&entry.path(), &to);
+                } else {
+                    fs::copy(entry.path(), to).unwrap();
+                }
+            }
+        }
+        let destination = PathBuf::from(destination);
+        fs::create_dir(&destination).expect("acceptance capture destination must be new");
+        fs::copy(&request_path, destination.join("request.json")).unwrap();
+        fs::write(destination.join("stdout.json"), &output.stdout).unwrap();
+        fs::write(destination.join("stderr.txt"), &output.stderr).unwrap();
+        copy_tree(&scratch.0.join("store"), &destination.join("store"));
+        for key in ["scientific_specification_digest", "output_digest"] {
+            let hash = response["receipt"][key].as_str().unwrap();
+            assert_eq!(digest(&destination.join("store/objects").join(hash)), hash);
+        }
+        println!("acceptance_capture={}", destination.display());
+    }
+    println!(
+        "{}",
+        json!({"build_id":response["receipt"]["build_id"],"points":4,"selected_rows":1590,
+        "maximum_frozen_native_score_error":maximum_error,"fixed_allocation":1e-6,"accepted":false})
+    );
+}

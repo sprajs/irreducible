@@ -154,6 +154,14 @@ target_link_libraries(test_numerics_layout_parity PRIVATE irred_core)
 add_executable(benchmark_w01 EXCLUDE_FROM_ALL tests/benchmark_w01.cpp)
 target_link_libraries(benchmark_w01 PRIVATE irred_core)
 
+add_executable(test_supernova_cpl tests/test_supernova_cpl.cpp)
+target_link_libraries(test_supernova_cpl PRIVATE irred_core)
+add_test(NAME supernova_cpl_contract COMMAND test_supernova_cpl)
+
+add_executable(test_supernova_cpl_hostile tests/test_supernova_cpl_hostile.cpp)
+target_link_libraries(test_supernova_cpl_hostile PRIVATE irred_core)
+add_test(NAME supernova_cpl_hostile_contract COMMAND test_supernova_cpl_hostile)
+
 add_executable(test_bao tests/test_bao.cpp)
 target_link_libraries(test_bao PRIVATE irred_core)
 add_test(NAME bao_contract COMMAND test_bao)
@@ -161,3 +169,7 @@ add_test(NAME bao_contract COMMAND test_bao)
 add_executable(test_bao_hostile tests/test_bao_hostile.cpp)
 target_link_libraries(test_bao_hostile PRIVATE irred_core)
 add_test(NAME bao_hostile_contract COMMAND test_bao_hostile)
+
+add_executable(test_cpl_v2_abi_hostile tests/test_cpl_v2_abi_hostile.cpp)
+target_link_libraries(test_cpl_v2_abi_hostile PRIVATE irred_core)
+add_test(NAME cpl_v2_abi_hostile_contract COMMAND test_cpl_v2_abi_hostile)

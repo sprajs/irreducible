@@ -83,7 +83,7 @@ Set `IRRED_W01_TABLE`, `IRRED_W01_COVARIANCE` and `IRRED_W01_NATIVE_HARNESS` to 
 cargo test --locked --offline -j4 --test w01_reference -- --ignored --nocapture
 ```
 
-The Rust wrapper verifies raw hashes before running C++; it contains no physical equations. The native harness compares the frozen direct/stable historical scores separately from the approximate compressed route. This is a named fixed-input comparison, not parameter fitting or cosmological inference. The supernova C ABI/CLI remains unavailable until its separate interface gate.
+The Rust wrapper verifies raw hashes before running C++; it contains no physical equations. The native harness compares the frozen direct/stable historical scores separately from the approximate compressed route. This is a named fixed-input comparison, not parameter fitting or cosmological inference. The implemented supernova interface has separate native and CLI transport gates.
 
 The retained supernova interface has a durable native allocation/ownership suite (`test_supernova_abi_hostile`) and Rust CLI suite (`cargo test --locked --offline -j4 --test supernova_cli`). Its generated transport controls use analytic de Sitter/profile limits and intentionally invalid unselected covariance entries. They are separate from the optional SHA-verified original seven-point regression. Native Debug and Release suites exercise the same checks; the interface also has actual Release CLI coverage. A passing transport regression does not qualify arbitrary source/model requests.
 
@@ -97,3 +97,11 @@ cargo test --release --locked --offline -j4 --test bao_reference -- --ignored --
 ```
 
 This is native fixed-case numerical coverage; it supplies no BAO CLI, posterior or joint-probe qualification.
+
+Explicit mixed-model v2 transport has native `test_cpl_v2_abi_hostile` and Rust `cpl_v2_cli` suites. For the optional original four-point CPL CLI comparison, set the same exact `IRRED_W01_TABLE` and `IRRED_W01_COVARIANCE` assets and run:
+
+```sh
+cargo test --release --locked --offline -j4 --test w01_reference released_assets_and_cli_cpl_four_points -- --ignored --nocapture
+```
+
+This verifies source hashes before/after execution, full attempted parameter identities and immutable result records against the pinned native relative-profile fixture. It contains no Rust physical equations and does not qualify arbitrary requests.
