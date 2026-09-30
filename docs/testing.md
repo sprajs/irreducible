@@ -129,3 +129,5 @@ cargo test --release --locked --offline -j4 --test bao_reference released_assets
 ```
 
 The guard verifies raw hashes before and after execution and compares eleven ordered outputs to the independent GL8/long-double LDLT fixture. Exact direct native/ABI parity is a separate ordinary hostile test. Optional `IRRED_BAO_CLI_RECORD_DIRECTORY` captures the executable and discovery before execution plus the request, output and immutable store. No dataset is bundled or required by ordinary CI.
+
+The ordinary native grey-magnitude tests cover the shared retained profile consumer, zero-shift parity and independent controls. The optional `test_supernova_grey_magnitude COV TABLE --verified-original-assets` mode uses the existing SHA-guarded W01 native-harness test to compare twelve fixed current-input cases and migrated historical-class facts. Original assets remain optional. `python3 tools/check_install.py --profile release` checks a fresh install from `build/native-release`; the default profile is debug.

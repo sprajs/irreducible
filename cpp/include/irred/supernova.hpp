@@ -63,6 +63,33 @@ struct BatchResultV2 {
   Status status = Status::invalid_input;
   std::vector<SlotV2> slots;
 };
+// Explicit additive predicted-magnitude hypothesis, not a measured age/dust
+// correction or a prior. Positive epsilon means dimmer at zHD=1.
+struct GreyMagnitudePoint {
+  ModelPointV2 background;
+  double epsilon_mag;
+  GreyMagnitudePoint(ModelPointV2 point, double epsilon)
+      : background(point), epsilon_mag(epsilon) {}
+};
+struct GreyMagnitudeSlot {
+  GreyMagnitudePoint source;
+  Slot calculation; // shape_magnitudes remains geometric; residual includes B.
+  std::vector<double> magnitude_shifts;
+  static constexpr const char *hypothesis_id =
+      "W01/grey-log1p-zhd-magnitude/v1";
+  static constexpr const char *shift_convention =
+      "B=epsilon_mag*log1p(zHD)/log(2), added to predicted magnitude; B(0)=0";
+};
+struct GreyMagnitudePolicy {
+  Policy evaluation;
+  // Conservative retained batch plus current background/profile workspace,
+  // excluding the immutable prepared operator and caller inputs.
+  std::size_t maximum_native_bytes = 0;
+};
+struct GreyMagnitudeBatchResult {
+  Status status = Status::invalid_input;
+  std::vector<GreyMagnitudeSlot> slots;
+};
 // Analytic fixed-five-bin provider; no defaults, priors or legacy model tag.
 struct PiecewiseModelPoint {
   std::array<double, 5> q;
@@ -132,6 +159,9 @@ public:
       "zHD radial integral with zHEL luminosity prefactor";
   BatchResult evaluate_batch(std::span<const ModelPoint>, Policy) const;
   BatchResultV2 evaluate_batch_v2(std::span<const ModelPointV2>, Policy) const;
+  GreyMagnitudeBatchResult
+      evaluate_grey_magnitude_batch(std::span<const GreyMagnitudePoint>,
+                                    GreyMagnitudePolicy) const;
   PiecewiseBatchResult
       evaluate_piecewise_batch(std::span<const PiecewiseModelPoint>,
                                PiecewiseEvaluationPolicy) const;

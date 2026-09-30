@@ -28,3 +28,5 @@ Use small commits with explicit paths, respect `.gitignore`, and review `git dif
 
 The integration owner coordinates shared workers and publishes validated milestones under the repository's standing authorization. Other contributors submit PRs. Do not force-push without explicit authorization.
 
+
+`python3 tools/build.py --profile release --jobs 3` selects three build jobs while preserving the Release compiler settings. `--jobs` accepts 1 through 4 and defaults to 4; the selected value is recorded in the build manifest. Installation checks use the explicit matching profile: `python3 tools/check_install.py --profile release` (default debug).

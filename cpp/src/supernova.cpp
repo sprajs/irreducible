@@ -122,6 +122,12 @@ BatchResultV2 Consumer::evaluate_batch_v2(std::span<const ModelPointV2> points,
                                           Policy policy) const {
   return evaluate_common<ModelPointV2, BatchResultV2>(points, policy);
 }
+GreyMagnitudeBatchResult Consumer::evaluate_grey_magnitude_batch(
+    std::span<const GreyMagnitudePoint> points,
+    GreyMagnitudePolicy policy) const {
+  return evaluate_common<GreyMagnitudePoint, GreyMagnitudeBatchResult>(points,
+                                                                       policy);
+}
 PiecewiseBatchResult
 Consumer::evaluate_piecewise_batch(std::span<const PiecewiseModelPoint> points,
                                    PiecewiseEvaluationPolicy policy) const {
@@ -132,35 +138,75 @@ template <class Point, class Result, class EvaluationPolicy>
 Result Consumer::evaluate_common(std::span<const Point> points,
                                  EvaluationPolicy policy) const {
   Result out;
-  if (!(policy.maximum_forward_sensitivity > 0) ||
-      !std::isfinite(policy.maximum_forward_sensitivity))
+  const auto &evaluation_policy = [&]() -> const auto & {
+    if constexpr (std::is_same_v<Point, GreyMagnitudePoint>)
+      return policy.evaluation;
+    else
+      return policy;
+  }();
+  if (!(evaluation_policy.maximum_forward_sensitivity > 0) ||
+      !std::isfinite(evaluation_policy.maximum_forward_sensitivity))
     return out;
   if (status_ != Status::ok) {
     out.status = status_;
     return out;
   }
-  if (policy.arithmetic != profile_.arithmetic()) {
+  if (evaluation_policy.arithmetic != profile_.arithmetic()) {
     out.status = Status::incompatible_metadata;
     return out;
   }
-  if (points.size() > policy.maximum_models) {
+  if (points.size() > evaluation_policy.maximum_models) {
     out.status = Status::work_limit;
     return out;
+  }
+  if constexpr (std::is_same_v<Point, GreyMagnitudePoint>) {
+    auto remaining_bytes = policy.maximum_native_bytes;
+    auto fits_bytes = [&](std::size_t count, std::size_t width) {
+      if (count > remaining_bytes / width)
+        return false;
+      remaining_bytes -= count * width;
+      return true;
+    };
+    const auto n = queries_.size();
+    // Five retained double vectors per row: geometry, B, base residual,
+    // adjusted residual, and ProfileResult's canonical adjusted residual.
+    // Workspace bounds are deliberately conservative, not measured allocation.
+    bool fits = fits_bytes(points.size(), sizeof(GreyMagnitudeSlot));
+    for (int k = 0; k < 5 && fits; ++k) {
+      if (n && points.size() > remaining_bytes / sizeof(double) / n)
+        fits = false;
+      else
+        fits = fits_bytes(points.size() * n, sizeof(double));
+    }
+    fits = fits && fits_bytes(n, sizeof(cosmology::Slot) + 16 * sizeof(double) +
+                                     8 * sizeof(long double));
+    if (!fits) {
+      out.status = Status::work_limit;
+      return out;
+    }
   }
   out.status = Status::ok;
   out.slots.reserve(points.size());
   auto remaining_evaluations = [&]() {
     if constexpr (std::is_same_v<Point, PiecewiseModelPoint>)
-      return policy.background.maximum_segment_visits;
+      return evaluation_policy.background.maximum_segment_visits;
     else
-      return policy.background.maximum_total_evaluations;
+      return evaluation_policy.background.maximum_total_evaluations;
   }();
   for (const auto &point : points) {
+    const auto &physical_point = [&]() -> const auto & {
+      if constexpr (std::is_same_v<Point, GreyMagnitudePoint>)
+        return point.background;
+      else
+        return point;
+    }();
     auto row = [&]() {
       if constexpr (std::is_same_v<Point, PiecewiseModelPoint>)
         return PiecewiseSlot{point};
       else if constexpr (std::is_same_v<Point, ModelPoint>)
         return Slot{};
+      else if constexpr (std::is_same_v<Point, GreyMagnitudePoint>)
+        return GreyMagnitudeSlot{point, Slot{}, {}};
       else
         return SlotV2{point, Slot{}};
     }();
@@ -172,30 +218,43 @@ Result Consumer::evaluate_common(std::span<const Point> points,
         return row.calculation;
     }();
     if constexpr (!std::is_same_v<Point, PiecewiseModelPoint>)
-      slot.source = {point.model, point.omega_m, point.constant_q};
-    if constexpr (std::is_same_v<Point, ModelPointV2>)
-      if (point.model == cosmology::Model::flat_cpl_late_v1 &&
-          point.constant_q != 0) {
+      slot.source = {physical_point.model, physical_point.omega_m,
+                     physical_point.constant_q};
+    if constexpr (std::is_same_v<Point, ModelPointV2> ||
+                  std::is_same_v<Point, GreyMagnitudePoint>)
+      if (physical_point.model == cosmology::Model::flat_cpl_late_v1 &&
+          physical_point.constant_q != 0) {
         out.slots.push_back(std::move(row));
         continue;
       }
+    if constexpr (std::is_same_v<Point, GreyMagnitudePoint>) {
+      if (!std::isfinite(point.epsilon_mag) || point.epsilon_mag < -.5 ||
+          point.epsilon_mag > .5) {
+        out.slots.push_back(std::move(row));
+        continue;
+      }
+    }
     auto background = [&]() {
       if constexpr (std::is_same_v<Point, PiecewiseModelPoint>) {
         return cosmology::prepare_piecewise_q(
             {computational_h0_km_s_mpc, point.q});
-      } else if constexpr (std::is_same_v<Point, ModelPointV2>) {
-        if (point.model == cosmology::Model::flat_cpl_late_v1)
-          return cosmology::prepare_cpl(
-              {computational_h0_km_s_mpc, point.omega_m, point.w0, point.wa});
+      } else if constexpr (std::is_same_v<Point, ModelPointV2> ||
+                           std::is_same_v<Point, GreyMagnitudePoint>) {
+        if (physical_point.model == cosmology::Model::flat_cpl_late_v1)
+          return cosmology::prepare_cpl({computational_h0_km_s_mpc,
+                                         physical_point.omega_m,
+                                         physical_point.w0, physical_point.wa});
         // Keep attempted inactive fields: legacy prepare rejects noncanonical
         // values instead of silently replacing them with defaults.
-        return cosmology::prepare({point.model, computational_h0_km_s_mpc,
-                                   point.omega_m, point.constant_q, point.w0,
-                                   point.wa});
+        return cosmology::prepare(
+            {physical_point.model, computational_h0_km_s_mpc,
+             physical_point.omega_m, physical_point.constant_q,
+             physical_point.w0, physical_point.wa});
       } else {
         // The existing entry remains strict: prepare does not admit model 2.
-        return cosmology::prepare({point.model, computational_h0_km_s_mpc,
-                                   point.omega_m, point.constant_q});
+        return cosmology::prepare(
+            {physical_point.model, computational_h0_km_s_mpc,
+             physical_point.omega_m, physical_point.constant_q});
       }
     }();
     slot.background_status = background.status();
@@ -211,7 +270,7 @@ Result Consumer::evaluate_common(std::span<const Point> points,
       out.slots.push_back(std::move(row));
       continue;
     }
-    auto background_policy = policy.background;
+    auto background_policy = evaluation_policy.background;
     if constexpr (std::is_same_v<Point, PiecewiseModelPoint>)
       background_policy.maximum_segment_visits = remaining_evaluations;
     else
@@ -236,6 +295,11 @@ Result Consumer::evaluate_common(std::span<const Point> points,
       out.slots.push_back(std::move(row));
       continue;
     }
+    if constexpr (std::is_same_v<Point, GreyMagnitudePoint>) {
+      slot.shape_magnitudes.reserve(queries_.size());
+      slot.base_residuals.reserve(queries_.size());
+      row.magnitude_shifts.reserve(queries_.size());
+    }
     bool failed = false;
     for (std::size_t i = 0; i < prediction.slots.size(); ++i) {
       const auto &value = prediction.slots[i];
@@ -256,11 +320,36 @@ Result Consumer::evaluate_common(std::span<const Point> points,
       }
       const auto shape = 5 * std::log10(luminosity_shape);
       slot.shape_magnitudes.push_back(shape);
-      slot.base_residuals.push_back(observed_[i] - shape);
+      if constexpr (std::is_same_v<Point, GreyMagnitudePoint>) {
+        // +/-0 intentionally preserves the existing arithmetic exactly.
+        const long double shift_wide =
+            point.epsilon_mag == 0
+                ? 0
+                : (long double)point.epsilon_mag *
+                      std::log1p((long double)queries_[i].z_expansion) /
+                      std::log(2.L);
+        const double shift = static_cast<double>(shift_wide);
+        if (!std::isfinite(shift) ||
+            (point.epsilon_mag != 0 && (!(shift_wide != 0) || shift == 0 ||
+                                        std::fpclassify(shift) != FP_NORMAL))) {
+          slot.status = Status::numerical_failure;
+          slot.numerical_status = !std::isfinite(shift)
+                                      ? numerics::Status::overflow
+                                      : numerics::Status::outside_domain;
+          failed = true;
+          break;
+        }
+        row.magnitude_shifts.push_back(shift);
+        slot.base_residuals.push_back(point.epsilon_mag == 0
+                                          ? observed_[i] - shape
+                                          : observed_[i] - shape - shift);
+      } else
+        slot.base_residuals.push_back(observed_[i] - shape);
     }
     if (!failed) {
-      const auto profile = profile_.evaluate(
-          slot.base_residuals, ids_, policy.maximum_forward_sensitivity);
+      const auto profile =
+          profile_.evaluate(slot.base_residuals, ids_,
+                            evaluation_policy.maximum_forward_sensitivity);
       slot.solve_diagnostics = profile;
       slot.profile_status = profile.status;
       slot.numerical_status = profile.numerical_status;
@@ -277,6 +366,8 @@ Result Consumer::evaluate_common(std::span<const Point> points,
       slot.shape_magnitudes.clear();
       slot.base_residuals.clear();
       slot.profiled_residuals.clear();
+      if constexpr (std::is_same_v<Point, GreyMagnitudePoint>)
+        row.magnitude_shifts.clear();
     }
     out.slots.push_back(std::move(row));
   }
