@@ -850,7 +850,7 @@ unsafe extern "C" {
         out: *mut *mut std::ffi::c_void,
     ) -> u32;
     pub fn cosmo_result_view(r: *const std::ffi::c_void, data: *mut *const i64, n: *mut u64)
-    -> u32;
+        -> u32;
     pub fn cosmo_result_destroy(r: *mut std::ffi::c_void) -> u32;
     pub fn cosmo_convert_quantities(
         values: *const F64Buffer,

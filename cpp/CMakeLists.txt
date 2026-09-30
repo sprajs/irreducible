@@ -194,12 +194,18 @@ add_test(NAME observation_ownership_hostile_contract COMMAND test_observation_ow
 
 # Obsolete wire-only tests are not registered. Mathematical source fixtures in
 # test_supernova_{cpl,piecewise,grey_magnitude}, test_bao_piecewise,
-# test_supernova_hostile and test_bao_hostile remain preserved, but their old
-# API adapters are retired. Current shared-path peers and optional original
+# the historical test_bao_hostile adapter remain preserved. The distinct
+# test_supernova_hostile adapter is migrated and registered below. Current
+# shared-path peers and optional original
 # named29/11/directed24 retain unique mathematical fixtures and budgets; this
 # does not claim assertion-count parity with obsolete wire contracts.
 foreach(current_test IN ITEMS current_expansion_abi_hostile current_supernova_abi_hostile current_bao_abi_hostile supernova_hostile payload_accounting payload_accounting_hostile preparation_payload_hostile)
   add_executable(test_${current_test} tests/test_${current_test}.cpp)
   target_link_libraries(test_${current_test} PRIVATE irred_core)
   add_test(NAME ${current_test}_contract COMMAND test_${current_test})
+endforeach()
+foreach(reference_test IN ITEMS current_supernova_reference current_bao_reference)
+  add_executable(test_${reference_test} EXCLUDE_FROM_ALL tests/test_${reference_test}.cpp)
+  target_link_libraries(test_${reference_test} PRIVATE irred_core)
+  target_compile_options(test_${reference_test} PRIVATE -Wall -Wextra -Wpedantic -fno-fast-math -ffp-contract=off)
 endforeach()

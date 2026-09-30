@@ -27,14 +27,16 @@ fn digest(path: &PathBuf) -> String {
     }
     format!("{:x}", hash.finalize())
 }
-#[test]
-#[ignore = "requires explicit original assets and prebuilt optional native harness"]
-fn released_assets_and_native_eleven_point_comparison() {
+fn check_native(directed: bool) {
     let required =
         |key| PathBuf::from(std::env::var_os(key).unwrap_or_else(|| panic!("required {key}")));
     let mean = required("IRRED_BAO_MEAN");
     let covariance = required("IRRED_BAO_COVARIANCE");
-    let executable = required("IRRED_BAO_NATIVE_HARNESS");
+    let executable = required(if directed {
+        "IRRED_BAO_INTERVAL_HARNESS"
+    } else {
+        "IRRED_BAO_NATIVE_HARNESS"
+    });
     assert_eq!(
         digest(&mean),
         pinned_hash("bao_mean_sha256"),
@@ -64,9 +66,47 @@ fn released_assets_and_native_eleven_point_comparison() {
     );
     println!("{}", String::from_utf8_lossy(&output.stdout));
     eprintln!("{}", String::from_utf8_lossy(&output.stderr));
+    let markers: Vec<serde_json::Value> = String::from_utf8_lossy(&output.stdout)
+        .lines()
+        .filter_map(|line| serde_json::from_str(line).ok())
+        .collect();
+    if directed {
+        let marker = markers
+            .iter()
+            .find(|v| v["suite"] == "piecewise_BAO_directed_original24")
+            .expect("directed24 marker");
+        assert_eq!(marker["failed"], 0);
+        let mut points: Vec<u64> = markers.iter().filter_map(|v| v["point"].as_u64()).collect();
+        points.sort_unstable();
+        points.dedup();
+        assert_eq!(
+            points,
+            (0..24).collect::<Vec<u64>>(),
+            "exact directed case count"
+        );
+    } else {
+        let marker = markers
+            .iter()
+            .find(|v| v["suite"] == "current_BAO_original11")
+            .expect("original11 marker");
+        assert_eq!(marker["models"], 11);
+        assert_eq!(marker["n"], 13);
+        assert_eq!(marker["passed"], true);
+    }
     assert!(
         output.status.success(),
         "native original-input comparison failed: {:?}",
         output.status
     );
+}
+
+#[test]
+#[ignore = "requires explicit original assets and prebuilt optional native harness"]
+fn released_assets_and_native_eleven_point_comparison() {
+    check_native(false);
+}
+#[test]
+#[ignore = "requires explicit original assets and prebuilt optional GMP/MPFR native harness"]
+fn released_assets_and_native_directed_twentyfour_point_comparison() {
+    check_native(true);
 }
