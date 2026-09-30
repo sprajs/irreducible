@@ -1,9 +1,9 @@
-#include "cosmology/observations.hpp"
+#include "irred/observations.hpp"
 #include <stdexcept>
 #define CHECK(...) do { if(!(__VA_ARGS__)) throw std::runtime_error("contract failed: " #__VA_ARGS__); } while(false)
 #include <cmath>
 #include <limits>
-using namespace cosmology::observations;
+using namespace irred::observations;
 Input fixture(){Input x{};x.profile=Profile::pantheon_plus_released_v1;x.role=Role::released_fitted_summary;x.unit=Unit::magnitude;x.calibration=Calibration::unknown;x.uncertainty=Uncertainty::covariance;x.uncertainty_unit=UncertaintyUnit::magnitude_squared;x.table_sha256=std::string(64,'a');x.uncertainty_sha256=std::string(64,'b');x.measurement_ids={"a:0","a:1","a:2"};x.event_ids={"A","A","B"};x.uncertainty_axis_ids=x.measurement_ids;x.ordering_provenance="supplied original release row order; not independently verified";x.values={17,18,19};x.zhd={.009,.02,.01};x.zcmb={.02,.03,.04};x.zhel={.03,.04,.05};x.missing=x.zhd_missing=x.zcmb_missing=x.zhel_missing={0,0,0};x.quality={0,2,128};x.uncertainty_matrix={4,1.00000003,0,1,9,0,0,0,0};return x;}
 int main(){
  auto x=fixture();auto p=prepare(x,{3,9});CHECK(p.status()==Status::ok);x.values[1]=999;CHECK(p.source().values[1]==18);CHECK(!p.calibration_state_declared());CHECK(p.source().event_ids[0]==p.source().event_ids[1]);CHECK(p.source().uncertainty_matrix[1]!=p.source().uncertainty_matrix[3]);

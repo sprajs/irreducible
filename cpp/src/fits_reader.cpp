@@ -1,10 +1,10 @@
-#include "cosmology/fits_reader.hpp"
+#include "irred/fits_reader.hpp"
 #include <limits>
 #include <cstdio>
 #ifdef COSMOLOGY_WITH_CFITSIO
 #include <fitsio.h>
 #endif
-namespace cosmology::observations {
+namespace irred::observations {
 Decoded decode_fits_length(std::span<const std::byte> bytes,const std::string& hash,std::size_t maximum_rows){
  Decoded out;
 #ifndef COSMOLOGY_WITH_CFITSIO

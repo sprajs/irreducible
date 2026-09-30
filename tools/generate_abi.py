@@ -61,17 +61,17 @@ c.append('static inline uint64_t cosmo_numerics_output_length(uint32_t operation
 for name,shape in s['numerical_output_shapes'].items():c.append(f'case COSMO_NUMERICAL_OPERATION_{macro(name)}:return '+('1' if shape=='scalar' else 'input')+';')
 c.append('default:return UINT64_MAX;}}')
 c+=['#ifdef __cplusplus','}','#endif']
-(root/'cpp/include/cosmology/abi.h').write_text('\n'.join(c)+'\n');(root/'src/abi_generated.rs').write_text('\n'.join(r)+'\n')
+(root/'cpp/include/irred/abi.h').write_text('\n'.join(c)+'\n');(root/'src/abi_generated.rs').write_text('\n'.join(r)+'\n')
 checks=[]
 for group,enum in [('unit','Unit'),('role','Role'),('frame','Frame'),('convention','LengthConvention'),('quantity_status','QuantityStatus')]:
- for name in s['quantity_tags'][group]:checks.append(f'static_assert(static_cast<uint32_t>(cosmology::{enum}::{name}) == COSMO_{macro(group)}_{macro(name)});')
-for name in s['numerical_tags']['status']:checks.append(f'static_assert(static_cast<uint32_t>(cosmology::numerics::Status::{name}) == COSMO_NUMERICAL_STATUS_{macro(name)});')
-(root/'cpp/include/cosmology/quantity_enum_checks.inc').write_text('// Generated structural ID agreement; physical semantics owned by quantities.cpp.\n'+'\n'.join(checks)+'\n')
+ for name in s['quantity_tags'][group]:checks.append(f'static_assert(static_cast<uint32_t>(irred::{enum}::{name}) == COSMO_{macro(group)}_{macro(name)});')
+for name in s['numerical_tags']['status']:checks.append(f'static_assert(static_cast<uint32_t>(irred::numerics::Status::{name}) == COSMO_NUMERICAL_STATUS_{macro(name)});')
+(root/'cpp/include/irred/quantity_enum_checks.inc').write_text('// Generated structural ID agreement; physical semantics owned by quantities.cpp.\n'+'\n'.join(checks)+'\n')
 observation_checks=[]
 for group,enum in [('profile','Profile'),('role','Role'),('unit','Unit'),('calibration','Calibration'),('uncertainty','Uncertainty'),('uncertainty_unit','UncertaintyUnit'),('component','Component'),('selection','Selection'),('status','Status')]:
  for name in s.get('observation_tags',{}).get(group,{}):
-  observation_checks.append(f'static_assert(static_cast<uint32_t>(cosmology::observations::{enum}::{name}) == COSMO_OBSERVATION_{macro(group)}_{macro(name)});')
-(root/'cpp/include/cosmology/observation_enum_checks.inc').write_text('// Generated structural observation tag agreement.\n'+'\n'.join(observation_checks)+'\n')
+  observation_checks.append(f'static_assert(static_cast<uint32_t>(irred::observations::{enum}::{name}) == COSMO_OBSERVATION_{macro(group)}_{macro(name)});')
+(root/'cpp/include/irred/observation_enum_checks.inc').write_text('// Generated structural observation tag agreement.\n'+'\n'.join(observation_checks)+'\n')
 subprocess.run(['rustfmt',str(root/'src/abi_generated.rs')],check=True)
 
 # Agent-facing JSON metadata enum views use the same structural tag source.

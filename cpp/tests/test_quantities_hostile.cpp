@@ -1,11 +1,11 @@
-#include "cosmology/quantities.hpp"
+#include "irred/quantities.hpp"
 #include "fixtures/foundations_oracles.hpp"
 #include <array>
 #include <cmath>
 #include <cstdio>
 #include <limits>
 #include <stdexcept>
-using namespace cosmology;
+using namespace irred;
 static unsigned count=0;static void expect(bool b,const char* s){++count;if(!b)throw std::runtime_error(s);}
 static Quantity q(double value,Unit unit,Role role=Role::physical_length){return {value,unit,role,Frame::none,role==Role::comoving_distance?LengthConvention::comoving_a0_one:LengthConvention::physical};}
 static Target t(Unit unit,Role role=Role::physical_length){return {unit,role,Frame::none,role==Role::comoving_distance?LengthConvention::comoving_a0_one:LengthConvention::physical};}

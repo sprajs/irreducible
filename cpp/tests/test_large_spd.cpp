@@ -1,4 +1,4 @@
-#include "cosmology/numerics.hpp"
+#include "irred/numerics.hpp"
 #include <algorithm>
 #include <chrono>
 #include <cmath>
@@ -8,7 +8,7 @@
 #include <string_view>
 #include <sys/resource.h>
 #include <vector>
-using namespace cosmology::numerics;
+using namespace irred::numerics;
 // Synthetic family only: C=I+11^T/64, no released survey covariance or W01 replay.
 // Independent rank-one inverse/determinant algebra, exact integer/dyadic sums.
 // Native reference logs share standard-library ancestry: no independent libm claim.

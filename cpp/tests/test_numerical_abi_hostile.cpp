@@ -1,6 +1,6 @@
 // Interface/status parity evidence only: author owns the shared numerical core.
-#include "cosmology/abi.h"
-#include "cosmology/numerics.hpp"
+#include "irred/abi.h"
+#include "irred/numerics.hpp"
 #include "fixtures/foundations_oracles.hpp"
 #include <array>
 #include <cmath>
@@ -14,13 +14,13 @@ namespace {
 int checks=0;
 void check(bool x,const char* name){++checks;if(!x)throw std::runtime_error(name);}
 cosmo_f64_buffer buffer(const double* p,std::size_t n){return {sizeof(cosmo_f64_buffer),COSMO_ABI_VERSION,2,0,p,n,n*sizeof(double)};}
-cosmology::numerics::ScalarResult direct(std::uint32_t op,std::span<const double> input,std::size_t i){using namespace cosmology::numerics;switch(op){case 1:return compensated_sum(input);case 2:return log_sum_exp(input);case 3:return log1p_checked(input[i]);case 4:return expm1_checked(input[i]);case 5:return log_gamma_positive(input[i]);default:throw std::runtime_error("invalid direct op");}}
+irred::numerics::ScalarResult direct(std::uint32_t op,std::span<const double> input,std::size_t i){using namespace irred::numerics;switch(op){case 1:return compensated_sum(input);case 2:return log_sum_exp(input);case 3:return log1p_checked(input[i]);case 4:return expm1_checked(input[i]);case 5:return log_gamma_positive(input[i]);default:throw std::runtime_error("invalid direct op");}}
 void parity(std::uint32_t op,std::span<const double> input){
  auto b=buffer(input.data(),input.size());cosmo_result* owner=nullptr;check(cosmo_numerics_evaluate(op,&b,&owner)==COSMO_OK&&owner,"completed ABI call");
  const double* values=nullptr;const std::uint32_t* statuses=nullptr;const double* errors=nullptr;const std::uint64_t* work=nullptr;std::uint64_t n=0;
  check(cosmo_result_numerics_view(owner,&values,&statuses,&errors,&work,&n)==COSMO_OK,"numerical view");
  check(n==cosmo_numerics_output_length(op,input.size()),"result shape");
- for(std::size_t i=0;i<n;++i){const auto d=direct(op,input,i);check(statuses[i]==static_cast<std::uint32_t>(d.status),"direct status parity");if(d.status==cosmology::numerics::Status::ok){check(values[i]==d.value,"direct finite parity");check(std::isfinite(values[i]),"finite tag finite value");}check(errors[i]==d.error_estimate&&work[i]==d.evaluations,"diagnostic parity");}
+ for(std::size_t i=0;i<n;++i){const auto d=direct(op,input,i);check(statuses[i]==static_cast<std::uint32_t>(d.status),"direct status parity");if(d.status==irred::numerics::Status::ok){check(values[i]==d.value,"direct finite parity");check(std::isfinite(values[i]),"finite tag finite value");}check(errors[i]==d.error_estimate&&work[i]==d.evaluations,"diagnostic parity");}
  const std::int64_t* wrong=nullptr;std::uint64_t wrongn=123;check(cosmo_result_view(owner,&wrong,&wrongn)==COSMO_INVALID_INPUT&&!wrong&&wrongn==0,"wrong result view kind");
  check(cosmo_result_destroy(owner)==COSMO_OK,"same allocator destruction");
 }
@@ -54,7 +54,7 @@ int main(){try{
  check(cosmo_result_destroy(nullptr)==COSMO_OK,"null cleanup");
  // Frozen independent numeric point is convenient bridge evidence, not a new core gate.
  auto x=buffer(good.data(),1);out=nullptr;check(cosmo_numerics_evaluate(3,&x,&out)==COSMO_OK,"frozen fixture call");check(cosmo_result_numerics_view(out,&values,&statuses,&errors,&evaluations,&n)==COSMO_OK,"frozen fixture view");
- double expected=0;for(auto f:cosmology::test_fixtures::foundations_oracles)if(f.id=="log1p_0.5")expected=f.rounded;
+ double expected=0;for(auto f:irred::test_fixtures::foundations_oracles)if(f.id=="log1p_0.5")expected=f.rounded;
  check(statuses[0]==COSMO_NUMERICAL_STATUS_OK&&std::abs(values[0]-expected)<1e-15,"frozen Decimal log1p bridge point");cosmo_result_destroy(out);
  std::printf("{\"suite\":\"numerical_ABI_hostile\",\"checks\":%d,\"passed\":true,\"ancestry\":\"core author; shared-core direct/ABI parity and contract evidence only\"}\n",checks);return 0;
  }catch(const std::exception& e){std::fprintf(stderr,"%s\n",e.what());return 1;}}

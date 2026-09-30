@@ -11,6 +11,7 @@ python3 tools/build.py
 .build-tools/bin/ctest --test-dir build/native --output-on-failure
 cargo test --locked --offline -j4
 python3 tools/check_docs.py
+python3 tools/check_install.py
 ```
 
 C++ tests exercise scientific/numerical contracts and hostile ABI cases. Rust tests cover safe wrappers, request parsing, records and the CLI. `check_docs.py` checks tracked publication paths and relative Markdown file links; it does not validate equations, external websites or every Markdown feature.
@@ -44,3 +45,5 @@ A passing test is scoped evidence. It does not qualify arbitrary inputs, every s
 Ordinary native tests include immutable observation ownership, exact masks/row order, uncertainty asymmetry retention, hostile descriptors and scoped allocation-failure cleanup. Rust ingestion/CLI tests retain raw source bytes, challenge same-path mutations, semantic failures and nonfinite/missing distinctions. They use small synthetic inputs and require no acquired survey files.
 
 The product build deliberately reports FITS unavailable. A separate optional native codec profile requires installed CFITSIO and can be tested with `-DCOSMOLOGY_TEST_CFITSIO=ON` in a separate CMake build directory. It covers one handcrafted synthetic BINTABLE profile, not universal FITS support. The wrapper resets this test-only option to OFF for its supported product build. CFITSIO is file-format infrastructure; its installed version/library identity and NASA permissive notice must be reviewed for any enabled deployment.
+
+`check_install.py` installs to a fresh temporary prefix, rejects the old generic include root, and compiles/runs the durable `test_installed_consumer.cpp` against the installed `libirred_core.a`. It checks independent library usability and cleans its temporary installation.

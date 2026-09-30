@@ -1,12 +1,12 @@
-#include "cosmology/abi.h"
-#include "cosmology/quantities.hpp"
+#include "irred/abi.h"
+#include "irred/quantities.hpp"
 #include <array>
 #include <cstdint>
 #include <cstddef>
 #include <cstring>
 #include <cstdio>
 #include <stdexcept>
-using namespace cosmology;
+using namespace irred;
 static unsigned checks=0;static void require(bool b,const char* name){++checks;if(!b)throw std::runtime_error(name);}
 static cosmo_quantity_metadata meta(uint32_t u,uint32_t r,uint32_t f=0,uint32_t c=0){return {sizeof(cosmo_quantity_metadata),COSMO_ABI_VERSION,u,r,f,c,1,0};}
 static cosmo_f64_buffer desc(const double* data,uint64_t n){return {sizeof(cosmo_f64_buffer),COSMO_ABI_VERSION,2,0,data,n,n*8};}

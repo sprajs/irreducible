@@ -18,10 +18,11 @@ Start with [AGENTS.md](../AGENTS.md), [architecture](architecture.md) and [scien
 
 Do not mutate source while another build is reading it. Coordinate shared CPU/memory budgets. The exclusive build-identity test belongs in an isolated checkout and must run directly as described in [testing](testing.md).
 
-The C++ namespaces and some internal identifiers retain `cosmology`. The public name is Irreducible and the binary is `irred`; do not churn stable scientific identities to match branding.
+Use `irred` for generic C++ namespaces and `irred_core` for the native library. Public headers live under `cpp/include/irred/`. Actual cosmological models may later use `irred::cosmology`; this is not the root for generic numerical or observation infrastructure. Retain existing C ABI and scientific identifiers unless their contracts explicitly change.
 
 ## Publishing
 
 Use small commits with explicit paths. Review `git diff --cached`; generated data and local plans/receipts must not enter the index. Keep `Cargo.lock`, source, tests, schemas and documentation in Git. See [repository maintenance](maintenance.md).
 
 The integration owner coordinates shared workers and publishes validated milestones under the repository's standing authorization. Other contributors submit PRs. Do not merge old pre-cleanup history or force-push without explicit authorization.
+

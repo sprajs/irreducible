@@ -20,7 +20,7 @@
 #pragma once
 #include <array>
 #include <string_view>
-namespace cosmology::test_fixtures {
+namespace irred::test_fixtures {
 struct Oracle { std::string_view id; std::string_view decimal; double rounded; };
 inline constexpr std::array<Oracle, 43> foundations_oracles{{
     {"pi", "3.1415926535897932384626433832795028841971693993751", 3.1415926535897932384626433832795028841971693993751},
@@ -67,4 +67,4 @@ inline constexpr std::array<Oracle, 43> foundations_oracles{{
     {"log1p_10", "2.3978952727983705440619435779651292998217068539374", 2.3978952727983705440619435779651292998217068539374},
     {"expm1_10", "22025.465794806716516957900645284244366353512618557", 22025.465794806716516957900645284244366353512618557},
 }};
-} // namespace cosmology::test_fixtures
+} // namespace irred::test_fixtures

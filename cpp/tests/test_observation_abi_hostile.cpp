@@ -1,5 +1,5 @@
-#include "cosmology/abi.h"
-#include "cosmology/observations.hpp"
+#include "irred/abi.h"
+#include "irred/observations.hpp"
 #include <cstdlib>
 #include <new>
 #include <stdexcept>
@@ -14,7 +14,7 @@ void* operator new[](std::size_t n){return ::operator new(n);}
 void operator delete[](void* p) noexcept{::operator delete(p);}
 void operator delete[](void* p,std::size_t) noexcept{::operator delete(p);}
 #define CHECK(...) do{if(!(__VA_ARGS__))throw std::runtime_error("observation ABI contract: " #__VA_ARGS__);}while(false)
-using namespace cosmology::observations;
+using namespace irred::observations;
 static cosmo_bytes bytes(const std::string& s){return {reinterpret_cast<const uint8_t*>(s.data()),s.size()};}
 static cosmo_f64_buffer doubles(const double* p,std::size_t n){return {sizeof(cosmo_f64_buffer),COSMO_ABI_VERSION,2,0,p,n,n*sizeof(double)};}
 struct Fixture{

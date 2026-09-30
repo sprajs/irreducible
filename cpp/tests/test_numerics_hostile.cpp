@@ -1,11 +1,11 @@
-#include "cosmology/numerics.hpp"
+#include "irred/numerics.hpp"
 #include <array>
 #include <cstdint>
 #include <cmath>
 #include <cstdio>
 #include <limits>
 #include <stdexcept>
-using namespace cosmology::numerics;
+using namespace irred::numerics;
 static unsigned checks=0;static void check(bool ok,const char* name){++checks;if(!ok)throw std::runtime_error(name);}
 static long double log2_series(){long double total=0,term=1.L/3;for(unsigned k=1;k<105;k+=2){total+=term/k;term/=9;}return 2*total;}
 static double cancellation(double x,const void*){const double xx=x*x;return xx*xx*xx-1./7;}

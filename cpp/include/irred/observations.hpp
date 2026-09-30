@@ -4,7 +4,7 @@
 #include <span>
 #include <string>
 #include <vector>
-namespace cosmology::observations {
+namespace irred::observations {
 enum class Profile : std::uint32_t { pantheon_plus_released_v1, gaussian_fixture_v1, fits_length_fixture_v1 };
 enum class Role : std::uint32_t { observed_measurement, released_fitted_summary, synthetic_control, posterior_summary };
 enum class Unit : std::uint32_t { magnitude, metre };

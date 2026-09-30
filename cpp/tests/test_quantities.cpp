@@ -1,4 +1,4 @@
-#include "cosmology/quantities.hpp"
+#include "irred/quantities.hpp"
 #include "fixtures/foundations_oracles.hpp"
 #include <array>
 #include <cmath>
@@ -6,7 +6,7 @@
 #include <limits>
 #include <stdexcept>
 #include <type_traits>
-using namespace cosmology;
+using namespace irred;
 namespace {
 int checks=0;double maximum_relative=0;
 void check(bool ok,const char* name){++checks;if(!ok)throw std::runtime_error(name);}

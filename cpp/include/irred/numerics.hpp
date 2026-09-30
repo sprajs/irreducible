@@ -2,7 +2,7 @@
 #include <cstddef>
 #include <span>
 #include <vector>
-namespace cosmology::numerics {
+namespace irred::numerics {
 enum class Status { ok, invalid_input, nonfinite_input, overflow, work_limit, outside_domain, singular, not_positive_definite, conditioning_budget_exceeded };
 // error_estimate is an empirical estimator or arithmetic diagnostic, never a proven bound.
 struct ScalarResult { Status status=Status::invalid_input; double value=0; double error_estimate=0; std::size_t evaluations=0; };
@@ -37,4 +37,4 @@ Factorization cholesky(std::span<const double>,std::size_t n,std::size_t maximum
 struct SolveResult { Status status=Status::invalid_input; std::vector<double> value; double backward_residual=0; double estimated_forward_sensitivity=0; };
 // Requested sensitivity budget is caller/consumer policy, not a global epsilon.
 SolveResult solve(const Factorization&,std::span<const double> rhs,double maximum_forward_sensitivity);
-} // namespace cosmology::numerics
+} // namespace irred::numerics

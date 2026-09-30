@@ -1,8 +1,8 @@
-#include "cosmology/observations.hpp"
+#include "irred/observations.hpp"
 #include <cmath>
 #include <limits>
 #include <unordered_set>
-namespace cosmology::observations {
+namespace irred::observations {
 namespace {
 bool digest(const std::string& s) { if(s.size()!=64)return false; for(char c:s)if(!((c>='0'&&c<='9')||(c>='a'&&c<='f')))return false; return true; }
 bool mask(const std::vector<std::uint8_t>& v,std::size_t n) { if(v.size()!=n)return false; for(auto x:v)if(x>1)return false;return true; }

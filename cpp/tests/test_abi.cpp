@@ -1,5 +1,5 @@
-#include "cosmology/abi.h"
-#include "cosmology/arithmetic.hpp"
+#include "irred/abi.h"
+#include "irred/arithmetic.hpp"
 #include <cassert>
 #include <iostream>
 #include <limits>
@@ -10,7 +10,7 @@ int main() {
  assert(cosmo_add(&x,&y,0,&r)==0);
  const int64_t* p; uint64_t n; assert(cosmo_result_view(r,&p,&n)==0 && n==4);
  assert(p[0]==0 && p[1]==2 && p[2]==-4 && p[3]==std::numeric_limits<int64_t>::max());
- int64_t direct; for(int i=0;i<4;++i){assert(cosmology::checked_add(a[i],b[i],direct));assert(direct==p[i]);}
+ int64_t direct; for(int i=0;i<4;++i){assert(irred::checked_add(a[i],b[i],direct));assert(direct==p[i]);}
  std::cout<<"[0,2,-4,9223372036854775807]\n"; assert(cosmo_result_destroy(r)==0);
  x=buffer(nullptr,0); y=x; assert(cosmo_add(&x,&y,0,&r)==0); assert(cosmo_result_destroy(r)==0);
  x.abi_version=2; assert(cosmo_add(&x,&y,0,&r)==COSMO_ABI_MISMATCH && !r);

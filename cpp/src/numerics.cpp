@@ -1,9 +1,9 @@
-#include "cosmology/numerics.hpp"
+#include "irred/numerics.hpp"
 #include <algorithm>
 #include <cmath>
 #include <limits>
 #include <numeric>
-namespace cosmology::numerics {
+namespace irred::numerics {
 namespace {
 ScalarResult finite_result(long double x,double error=0,std::size_t evaluations=0) noexcept {
  if(!std::isfinite(x)||std::abs(x)>std::numeric_limits<double>::max())return {Status::overflow,0,error,evaluations};
@@ -129,4 +129,4 @@ Factorization cholesky(std::span<const double> matrix,std::size_t n,std::size_t 
  f.condition_estimate_inf_=std::max(1.,static_cast<double>(condition));f.status_=Status::ok;return f;
 }
 SolveResult solve(const Factorization& f,std::span<const double> rhs,double budget){return FactorAccess::solve_impl(f,rhs,budget);}
-} // namespace cosmology::numerics
+} // namespace irred::numerics

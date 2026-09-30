@@ -1,4 +1,4 @@
-#include "cosmology/abi.h"
+#include "irred/abi.h"
 #include <array>
 #include <cstdint>
 #include <cstdio>

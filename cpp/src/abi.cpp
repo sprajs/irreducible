@@ -1,8 +1,8 @@
-#include "cosmology/abi.h"
-#include "cosmology/arithmetic.hpp"
-#include "cosmology/quantities.hpp"
-#include "cosmology/numerics.hpp"
-#include "cosmology/quantity_enum_checks.inc"
+#include "irred/abi.h"
+#include "irred/arithmetic.hpp"
+#include "irred/quantities.hpp"
+#include "irred/numerics.hpp"
+#include "irred/quantity_enum_checks.inc"
 #include <vector>
 #include <limits>
 #include <new>
@@ -29,7 +29,7 @@ extern "C" uint32_t cosmo_add(const cosmo_i64_buffer* a,const cosmo_i64_buffer* 
   std::vector<int64_t> values; values.reserve(static_cast<size_t>(a->length));
   for(uint64_t i=0;i<a->length;++i) {
    const auto x=a->data[i],y=b->data[i];
-   int64_t sum; if(!cosmology::checked_add(x,y,sum)) return COSMO_OVERFLOW;
+   int64_t sum; if(!irred::checked_add(x,y,sum)) return COSMO_OVERFLOW;
    values.push_back(sum);
   }
   *out=new cosmo_result{std::move(values),{},{},1,{},{}};
@@ -51,7 +51,7 @@ static uint32_t validate_metadata(const cosmo_quantity_metadata* m) noexcept {
  return COSMO_OK;
 }
 static std::string_view constants(const cosmo_quantity_metadata& m) noexcept {
- return m.constant_set==COSMO_CONSTANT_SET_SI_IAU_DEFINITIONS_V1 ? cosmology::constant_set_id : std::string_view{};
+ return m.constant_set==COSMO_CONSTANT_SET_SI_IAU_DEFINITIONS_V1 ? irred::constant_set_id : std::string_view{};
 }
 extern "C" uint32_t cosmo_convert_quantities(const cosmo_f64_buffer* values,const cosmo_quantity_metadata* source,const cosmo_quantity_metadata* target,cosmo_result** out) {
  if(!out) return COSMO_INVALID_INPUT;
@@ -63,18 +63,18 @@ extern "C" uint32_t cosmo_convert_quantities(const cosmo_f64_buffer* values,cons
  if(values->length && (!values->data || reinterpret_cast<uintptr_t>(values->data)%alignof(double))) return COSMO_INVALID_INPUT;
  auto status=validate_metadata(source); if(status) return status;
  status=validate_metadata(target); if(status) return status;
- const cosmology::Target destination{static_cast<cosmology::Unit>(target->unit),static_cast<cosmology::Role>(target->role),static_cast<cosmology::Frame>(target->frame),static_cast<cosmology::LengthConvention>(target->convention),constants(*target)};
- const auto input=[&](double value){return cosmology::Quantity{value,static_cast<cosmology::Unit>(source->unit),static_cast<cosmology::Role>(source->role),static_cast<cosmology::Frame>(source->frame),static_cast<cosmology::LengthConvention>(source->convention),constants(*source)};};
+ const irred::Target destination{static_cast<irred::Unit>(target->unit),static_cast<irred::Role>(target->role),static_cast<irred::Frame>(target->frame),static_cast<irred::LengthConvention>(target->convention),constants(*target)};
+ const auto input=[&](double value){return irred::Quantity{value,static_cast<irred::Unit>(source->unit),static_cast<irred::Role>(source->role),static_cast<irred::Frame>(source->frame),static_cast<irred::LengthConvention>(source->convention),constants(*source)};};
  // Empty arrays still validate scientific metadata, with a normal-domain probe.
- if(values->length==0 && cosmology::convert(input(1.0),destination).status!=cosmology::QuantityStatus::ok) return COSMO_INVALID_INPUT;
+ if(values->length==0 && irred::convert(input(1.0),destination).status!=irred::QuantityStatus::ok) return COSMO_INVALID_INPUT;
  try {
   std::vector<double> converted; std::vector<uint32_t> statuses;
   converted.reserve(static_cast<size_t>(values->length)); statuses.reserve(static_cast<size_t>(values->length));
   for(uint64_t i=0;i<values->length;++i) {
-   const auto result=cosmology::convert(input(values->data[i]),destination);
+   const auto result=irred::convert(input(values->data[i]),destination);
    statuses.push_back(static_cast<uint32_t>(result.status));
    // Failed slots have no public numeric meaning; their status must be consumed.
-   converted.push_back(result.status==cosmology::QuantityStatus::ok ? result.target.value : 0.0);
+   converted.push_back(result.status==irred::QuantityStatus::ok ? result.target.value : 0.0);
   }
   *out=new cosmo_result{{},std::move(converted),std::move(statuses),2,{},{}}; return COSMO_OK;
  } catch(const std::bad_alloc&) {return COSMO_ALLOCATION_FAILURE;} catch(...) {return COSMO_EXCEPTION;}
@@ -99,17 +99,17 @@ extern "C" uint32_t cosmo_numerics_evaluate(uint32_t operation,const cosmo_f64_b
   const auto count=static_cast<size_t>(cosmo_numerics_output_length(operation,values->length));
   std::vector<double> output,error;std::vector<uint32_t> statuses;std::vector<uint64_t> evaluations;
   output.reserve(count);error.reserve(count);statuses.reserve(count);evaluations.reserve(count);
-  const auto append=[&](cosmology::numerics::ScalarResult result){
-   output.push_back(result.status==cosmology::numerics::Status::ok ? result.value : 0);
+  const auto append=[&](irred::numerics::ScalarResult result){
+   output.push_back(result.status==irred::numerics::Status::ok ? result.value : 0);
    statuses.push_back(static_cast<uint32_t>(result.status));error.push_back(result.error_estimate);evaluations.push_back(result.evaluations);
   };
   const std::span<const double> input{values->data,static_cast<size_t>(values->length)};
   switch(operation) {
-  case COSMO_NUMERICAL_OPERATION_COMPENSATED_SUM:append(cosmology::numerics::compensated_sum(input));break;
-  case COSMO_NUMERICAL_OPERATION_LOG_SUM_EXP:append(cosmology::numerics::log_sum_exp(input));break;
-  case COSMO_NUMERICAL_OPERATION_LOG1P:for(double value:input)append(cosmology::numerics::log1p_checked(value));break;
-  case COSMO_NUMERICAL_OPERATION_EXPM1:for(double value:input)append(cosmology::numerics::expm1_checked(value));break;
-  case COSMO_NUMERICAL_OPERATION_LOG_GAMMA_POSITIVE:for(double value:input)append(cosmology::numerics::log_gamma_positive(value));break;
+  case COSMO_NUMERICAL_OPERATION_COMPENSATED_SUM:append(irred::numerics::compensated_sum(input));break;
+  case COSMO_NUMERICAL_OPERATION_LOG_SUM_EXP:append(irred::numerics::log_sum_exp(input));break;
+  case COSMO_NUMERICAL_OPERATION_LOG1P:for(double value:input)append(irred::numerics::log1p_checked(value));break;
+  case COSMO_NUMERICAL_OPERATION_EXPM1:for(double value:input)append(irred::numerics::expm1_checked(value));break;
+  case COSMO_NUMERICAL_OPERATION_LOG_GAMMA_POSITIVE:for(double value:input)append(irred::numerics::log_gamma_positive(value));break;
   default:return COSMO_INVALID_INPUT;
   }
   *out=new cosmo_result{{},std::move(output),std::move(statuses),3,std::move(error),std::move(evaluations)};return COSMO_OK;

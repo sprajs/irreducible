@@ -40,7 +40,7 @@ Label reproduction exact, approximate, conditional or blocked, with reasons. Do 
 
 ## Repository and publication
 
-- Product: **Irreducible**. Executable: **`irred`**. Existing C++ namespaces and scientific/schema IDs may still use `cosmology`; renaming the product does not rewrite scientific identity.
+- Product: **Irreducible**. Executable: **`irred`**. Generic C++ code uses the `irred` namespace, `cpp/include/irred/` and the `irred_core` library. A future `irred::cosmology` module is reserved for actual cosmological models. Legacy `cosmo_*` C ABI names, `COSMO_*` tags and scientific/schema IDs remain wire identifiers; product naming does not rewrite scientific identity.
 - **`docs/` is canonical and agent-first.** Update it with every public command, contract or workflow change. Keep README and executable discovery consistent. The Wiki is a navigation layer linking to `docs/`.
 - **Never commit `Plan/`, `evidence/`, run stores, acquired datasets, local environments or scratch output.** They stay local and ignored. Do not force-add them. Retain concise provenance and small intentional fixtures under the public tests/docs instead.
 - Do not erase original research, local planning reviews or immutable accepted records as routine cleanup. Ignore/untrack local material without deleting it. Git is for the tool, tests and documentation; users retain scientific run records separately.

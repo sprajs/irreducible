@@ -2,7 +2,7 @@
 #include <cstdint>
 #include <span>
 #include <string_view>
-namespace cosmology {
+namespace irred {
 inline constexpr std::string_view constant_set_id = "SI-IAU-definitions-v1";
 inline constexpr double speed_of_light_m_per_s = 299792458.0;
 enum class Dimension : std::uint32_t { dimensionless, length, time, inverse_time };
@@ -22,4 +22,4 @@ struct Conversion { QuantityStatus status=QuantityStatus::invalid_batch; Quantit
 Conversion convert(Quantity source, Target target) noexcept;
 QuantityStatus convert_batch(std::span<const Quantity> source, Target target, std::span<Conversion> output) noexcept;
 double parsec_in_metres() noexcept;
-} // namespace cosmology
+} // namespace irred

@@ -1,9 +1,9 @@
-#include "cosmology/fits_reader.hpp"
+#include "irred/fits_reader.hpp"
 #include "../../tests/verification/handcrafted_fits.hpp"
 #include <stdexcept>
 #define CHECK(...) do { if(!(__VA_ARGS__)) throw std::runtime_error("contract failed: " #__VA_ARGS__); } while(false)
 #include <span>
-using namespace cosmology::observations;
+using namespace irred::observations;
 int main(){auto bytes=verifier_fits::table();auto view=std::as_bytes(std::span(bytes));auto d=decode_fits_length(view,std::string(64,'a'),3);
 #ifdef COSMOLOGY_WITH_CFITSIO
  CHECK(d.status==DecodeStatus::ok);CHECK(d.input.values[0]==-2);CHECK(d.input.values[1]==6);CHECK(d.input.missing==std::vector<std::uint8_t>({0,0,1}));CHECK(d.input.quality==std::vector<std::uint64_t>({0,2,128}));CHECK(d.input.event_ids[0]==d.input.event_ids[1]);CHECK(d.input.measurement_ids[0]!=d.input.measurement_ids[1]);auto p=prepare(d.input,{3,0});CHECK(p.status()==Status::ok);CHECK(p.select(Selection::all).status==Status::missing_required_value);

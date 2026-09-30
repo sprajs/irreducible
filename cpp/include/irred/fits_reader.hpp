@@ -1,7 +1,7 @@
 #pragma once
-#include "cosmology/observations.hpp"
+#include "irred/observations.hpp"
 #include <span>
-namespace cosmology::observations {
+namespace irred::observations {
 enum class DecodeStatus { ok, codec_unavailable, invalid_format, resource_limit };
 struct Decoded { DecodeStatus status=DecodeStatus::invalid_format; Input input{}; };
 // Narrow synthetic VERIFIER BINTABLE profile only. Decode supplied bytes, never

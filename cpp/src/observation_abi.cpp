@@ -1,12 +1,12 @@
-#include "cosmology/abi.h"
-#include "cosmology/observations.hpp"
-#include "cosmology/observation_enum_checks.inc"
+#include "irred/abi.h"
+#include "irred/observations.hpp"
+#include "irred/observation_enum_checks.inc"
 #include "result_internal.hpp"
 #include <limits>
 #include <new>
 #include <string>
 #include <utility>
-using namespace cosmology::observations;
+using namespace irred::observations;
 namespace {
 template<class T> bool bounded(const T* p,uint64_t n,uint64_t bytes,uint64_t cap) {
  return n<=cap && n<=std::numeric_limits<size_t>::max()/sizeof(T) && bytes==n*sizeof(T) && (!n || (p && reinterpret_cast<uintptr_t>(p)%alignof(T)==0));

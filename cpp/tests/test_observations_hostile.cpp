@@ -1,10 +1,10 @@
 // Independent semantic adversaries, no scientific arithmetic/legacy package oracle.
-#include "cosmology/observations.hpp"
+#include "irred/observations.hpp"
 #include <cmath>
 #include <cstdio>
 #include <limits>
 #include <stdexcept>
-using namespace cosmology::observations;
+using namespace irred::observations;
 namespace {
 int checks=0;void check(bool ok,const char* name){++checks;if(!ok)throw std::runtime_error(name);}
 Input fixture(){Input x{};x.profile=Profile::gaussian_fixture_v1;x.role=Role::synthetic_control;x.unit=Unit::magnitude;x.calibration=Calibration::unknown;x.uncertainty=Uncertainty::covariance;x.uncertainty_unit=UncertaintyUnit::magnitude_squared;x.component=Component::unknown;x.ordering_provenance="synthetic explicit row axis";x.table_sha256=std::string(64,'a');x.uncertainty_sha256=std::string(64,'b');x.measurement_ids={"row1","row2","row3"};x.event_ids={"eventA","eventA","eventB"};x.uncertainty_axis_ids=x.measurement_ids;x.values={-2,0,std::numeric_limits<double>::quiet_NaN()};x.missing={0,0,1};x.quality={0,2,128};x.source_selection={1,1,0};x.uncertainty_matrix={4,1,2,1.00000003,9,3,2,3,-1};return x;}

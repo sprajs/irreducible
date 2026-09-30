@@ -1,4 +1,4 @@
-#include "cosmology/numerics.hpp"
+#include "irred/numerics.hpp"
 #include "fixtures/foundations_oracles.hpp"
 #include <array>
 #include <cmath>
@@ -6,13 +6,13 @@
 #include <limits>
 #include <stdexcept>
 #include <string>
-using namespace cosmology::numerics;
+using namespace irred::numerics;
 namespace {
 int checks=0;double maximum_error=0;
 std::array<double,3> integral_errors{};
 std::array<std::size_t,3> integral_evaluations{};
 void check(bool ok,const char* s){++checks;if(!ok)throw std::runtime_error(s);}
-double oracle(std::string_view id){for(auto v:cosmology::test_fixtures::foundations_oracles)if(v.id==id)return v.rounded;throw std::runtime_error("missing oracle");}
+double oracle(std::string_view id){for(auto v:irred::test_fixtures::foundations_oracles)if(v.id==id)return v.rounded;throw std::runtime_error("missing oracle");}
 void within(double x,double y,double absolute,double relative,const char* s){auto e=std::abs(x-y);maximum_error=std::max(maximum_error,e);check(e<=absolute+relative*std::abs(y),s);}
 double exponential(double x,const void*){return std::exp(x);}
 double reciprocal(double x,const void*){return 1/(1+x);}

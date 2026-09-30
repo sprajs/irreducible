@@ -1,8 +1,8 @@
-#include "cosmology/quantities.hpp"
+#include "irred/quantities.hpp"
 #include <cmath>
 #include <limits>
 #include <numbers>
-namespace cosmology {
+namespace irred {
 namespace {
 struct UnitDefinition { bool known; Dimension dimension; long double scale; };
 UnitDefinition definition(Unit u) noexcept {
@@ -75,4 +75,4 @@ QuantityStatus convert_batch(std::span<const Quantity> source,Target target,std:
  for(std::size_t i=0;i<source.size();++i)output[i]=convert(source[i],target);
  return QuantityStatus::ok;
 }
-} // namespace cosmology
+} // namespace irred
