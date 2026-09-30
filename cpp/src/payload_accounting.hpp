@@ -5,6 +5,17 @@
 #include <string>
 #include <vector>
 namespace irred::detail {
+// Zero factors contribute no bytes, including when total is already maximal.
+// A rejected nonzero product leaves total unchanged.
+inline bool checked_payload_add(size_t &total, size_t count,
+                                size_t width) noexcept {
+  if (!count || !width)
+    return true;
+  if (count > (std::numeric_limits<size_t>::max() - total) / width)
+    return false;
+  total += count * width;
+  return true;
+}
 // Requested retained payload, not allocator bookkeeping/RSS. Conservatively
 // charges capacity+1 for every owned string, including inline SSO storage.
 class PayloadAccounting {
@@ -14,12 +25,10 @@ class PayloadAccounting {
 public:
   explicit PayloadAccounting(size_t owner) : total_(owner) {}
   void add(size_t count, size_t width) noexcept {
-    if (!valid_ ||
-        count > (std::numeric_limits<size_t>::max() - total_) / width) {
+    if (!valid_ || !checked_payload_add(total_, count, width)) {
       valid_ = false;
       return;
     }
-    total_ += count * width;
   }
   template <class T> void vector(const std::vector<T> &v) noexcept {
     add(v.capacity(), sizeof(T));

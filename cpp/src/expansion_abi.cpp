@@ -1,3 +1,4 @@
+#include "payload_accounting.hpp"
 #include "irred/abi.h"
 #include "irred/background.hpp"
 #include <cmath>
@@ -16,10 +17,7 @@ template <class T> bool descriptor(const T *p, uint64_t count, uint64_t bytes) {
          (!count || aligned(p));
 }
 bool add(size_t &bytes, size_t count, size_t width) {
-  if (count > (SIZE_MAX - bytes) / width)
-    return false;
-  bytes += count * width;
-  return true;
+  return irred::detail::checked_payload_add(bytes, count, width);
 }
 irred_bytes view(std::string_view s) {
   return {reinterpret_cast<const uint8_t *>(s.data()), s.size()};

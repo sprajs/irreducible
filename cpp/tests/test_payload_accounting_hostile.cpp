@@ -14,6 +14,38 @@ int main() {
       throw std::runtime_error(s);
   };
   try {
+    // Zero-byte products remain valid even when the current total is maximal.
+    // Nonzero products must fit without wrapping or mutating a rejected total.
+    size_t total = SIZE_MAX;
+    check(detail::checked_payload_add(total, 0, SIZE_MAX) && total == SIZE_MAX,
+          "zero count at maximal total");
+    check(detail::checked_payload_add(total, SIZE_MAX, 0) && total == SIZE_MAX,
+          "zero width at maximal total");
+    check(detail::checked_payload_add(total, 0, 0) && total == SIZE_MAX,
+          "both factors zero");
+    total = SIZE_MAX - 6;
+    check(detail::checked_payload_add(total, 2, 3) && total == SIZE_MAX,
+          "exact remaining payload admitted");
+    total = SIZE_MAX - 5;
+    check(!detail::checked_payload_add(total, 2, 3) && total == SIZE_MAX - 5,
+          "addition overflow leaves total unchanged");
+    total = 0;
+    check(!detail::checked_payload_add(total, SIZE_MAX, 2) && total == 0,
+          "multiplication overflow leaves total unchanged");
+    total = SIZE_MAX;
+    check(!detail::checked_payload_add(total, 1, 1) && total == SIZE_MAX,
+          "nonzero charge at maximal total rejects");
+    detail::PayloadAccounting zero(SIZE_MAX);
+    zero.add(0, SIZE_MAX);
+    zero.add(SIZE_MAX, 0);
+    zero.add(0, 0);
+    check(zero.result() == SIZE_MAX,
+          "accounting zero factors preserve validity");
+    detail::PayloadAccounting latched(SIZE_MAX);
+    latched.add(1, 1);
+    latched.add(0, 0);
+    latched.add(SIZE_MAX, 0);
+    check(!latched.result(), "zero products never clear failed accounting");
     detail::PayloadAccounting a(17);
     a.embedded(41, 13);
     check(a.result() == 45, "embedded header once");
