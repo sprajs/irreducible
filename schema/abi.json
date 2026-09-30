@@ -641,6 +641,256 @@
           "Strings"
         ]
       ]
+    },
+    {
+      "c_name": "cosmo_background_parameters",
+      "rust_name": "BackgroundParameters",
+      "fields": [
+        [
+          "model",
+          "u32"
+        ],
+        [
+          "reserved",
+          "u32"
+        ],
+        [
+          "h0_km_s_mpc",
+          "f64"
+        ],
+        [
+          "omega_m",
+          "f64"
+        ],
+        [
+          "constant_q",
+          "f64"
+        ]
+      ]
+    },
+    {
+      "c_name": "cosmo_background_query",
+      "rust_name": "BackgroundQuery",
+      "fields": [
+        [
+          "z_expansion",
+          "f64"
+        ],
+        [
+          "z_observer",
+          "f64"
+        ],
+        [
+          "convention",
+          "u32"
+        ],
+        [
+          "reserved",
+          "u32"
+        ]
+      ]
+    },
+    {
+      "c_name": "cosmo_background_policy",
+      "rust_name": "BackgroundPolicy",
+      "fields": [
+        [
+          "struct_size",
+          "u32"
+        ],
+        [
+          "abi_version",
+          "u32"
+        ],
+        [
+          "maximum_depth",
+          "u32"
+        ],
+        [
+          "reserved",
+          "u32"
+        ],
+        [
+          "maximum_parameters",
+          "u64"
+        ],
+        [
+          "maximum_queries",
+          "u64"
+        ],
+        [
+          "maximum_slots",
+          "u64"
+        ],
+        [
+          "maximum_native_output_bytes",
+          "u64"
+        ],
+        [
+          "maximum_total_evaluations",
+          "u64"
+        ],
+        [
+          "maximum_evaluations_per_integral",
+          "u64"
+        ],
+        [
+          "absolute_tolerance",
+          "f64"
+        ],
+        [
+          "relative_tolerance",
+          "f64"
+        ]
+      ]
+    },
+    {
+      "c_name": "cosmo_background_batch",
+      "rust_name": "BackgroundBatch",
+      "fields": [
+        [
+          "struct_size",
+          "u32"
+        ],
+        [
+          "abi_version",
+          "u32"
+        ],
+        [
+          "parameters",
+          "const_BackgroundParameters_ptr"
+        ],
+        [
+          "parameter_count",
+          "u64"
+        ],
+        [
+          "parameter_byte_length",
+          "u64"
+        ],
+        [
+          "queries",
+          "const_BackgroundQuery_ptr"
+        ],
+        [
+          "query_count",
+          "u64"
+        ],
+        [
+          "query_byte_length",
+          "u64"
+        ]
+      ]
+    },
+    {
+      "c_name": "cosmo_background_slot",
+      "rust_name": "BackgroundSlot",
+      "fields": [
+        [
+          "parameter_index",
+          "u64"
+        ],
+        [
+          "query_index",
+          "u64"
+        ],
+        [
+          "parameters",
+          "BackgroundParameters"
+        ],
+        [
+          "query",
+          "BackgroundQuery"
+        ],
+        [
+          "status",
+          "u32"
+        ],
+        [
+          "numerical_status",
+          "u32"
+        ],
+        [
+          "model_id",
+          "Bytes"
+        ],
+        [
+          "constants_id",
+          "Bytes"
+        ],
+        [
+          "radial_equation_id",
+          "Bytes"
+        ],
+        [
+          "luminosity_equation_id",
+          "Bytes"
+        ],
+        [
+          "shape_equation_id",
+          "Bytes"
+        ],
+        [
+          "expansion_e",
+          "f64"
+        ],
+        [
+          "h_km_s_mpc",
+          "f64"
+        ],
+        [
+          "radial_integral",
+          "f64"
+        ],
+        [
+          "radial_mpc",
+          "f64"
+        ],
+        [
+          "transverse_mpc",
+          "f64"
+        ],
+        [
+          "angular_diameter_mpc",
+          "f64"
+        ],
+        [
+          "luminosity_mpc",
+          "f64"
+        ],
+        [
+          "dimensionless_luminosity_shape",
+          "f64"
+        ],
+        [
+          "lookback_seconds",
+          "f64"
+        ],
+        [
+          "volume_mpc3_per_sr_per_redshift",
+          "f64"
+        ],
+        [
+          "deceleration_q",
+          "f64"
+        ],
+        [
+          "jerk",
+          "f64"
+        ],
+        [
+          "radial_integral_error",
+          "f64"
+        ],
+        [
+          "lookback_integral_error",
+          "f64"
+        ],
+        [
+          "evaluations",
+          "u64"
+        ]
+      ]
     }
   ],
   "functions": [
@@ -1020,6 +1270,49 @@
           "GaussianSelection_ptr"
         ]
       ]
+    },
+    {
+      "name": "cosmo_background_evaluate",
+      "args": [
+        [
+          "batch",
+          "const_BackgroundBatch_ptr"
+        ],
+        [
+          "policy",
+          "const_BackgroundPolicy_ptr"
+        ],
+        [
+          "out",
+          "background_result_out"
+        ]
+      ]
+    },
+    {
+      "name": "cosmo_background_result_view",
+      "args": [
+        [
+          "result",
+          "const_background_result"
+        ],
+        [
+          "slots",
+          "const_background_slot_out"
+        ],
+        [
+          "length",
+          "u64_ptr"
+        ]
+      ]
+    },
+    {
+      "name": "cosmo_background_result_destroy",
+      "args": [
+        [
+          "result",
+          "background_result"
+        ]
+      ]
     }
   ],
   "max_batch_elements": 1000000,
@@ -1120,6 +1413,24 @@
       "full_declared_matrix": 0,
       "selected_covariance_only": 1,
       "full_precision_then_marginal": 2
+    }
+  },
+  "background_tags": {
+    "model": {
+      "flat_lcdm_late_v1": 0,
+      "constant_q_flat_v1": 1
+    },
+    "convention": {
+      "geometric_same_redshift": 0,
+      "released_zhd_zhel": 1
+    },
+    "status": {
+      "ok": 0,
+      "invalid_input": 1,
+      "unsupported_domain": 2,
+      "incompatible_convention": 3,
+      "numerical_failure": 4,
+      "work_limit": 5
     }
   }
 }

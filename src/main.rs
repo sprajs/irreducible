@@ -1,3 +1,4 @@
+mod background_run;
 mod bridge;
 mod cli;
 mod ingestion;

@@ -1,0 +1,46 @@
+{
+  "schema_version": 1,
+  "operation": "background.parameter_query_batch.v1",
+  "parameters": [
+    {
+      "model": "flat_lcdm_late_v1",
+      "h0_km_s_mpc": 70,
+      "omega_m": 0.3,
+      "constant_q": 0
+    },
+    {
+      "model": "constant_q_flat_v1",
+      "h0_km_s_mpc": 70,
+      "omega_m": 0,
+      "constant_q": 0
+    }
+  ],
+  "queries": [
+    {
+      "z_expansion": 0,
+      "z_observer": 0,
+      "convention": "geometric_same_redshift"
+    },
+    {
+      "z_expansion": 1,
+      "z_observer": 1,
+      "convention": "geometric_same_redshift"
+    },
+    {
+      "z_expansion": 0.1,
+      "z_observer": 0.11,
+      "convention": "released_zhd_zhel"
+    }
+  ],
+  "policy": {
+    "maximum_parameters": 16,
+    "maximum_queries": 64,
+    "maximum_slots": 1024,
+    "maximum_native_output_bytes": 1048576,
+    "maximum_total_evaluations": 1000000,
+    "maximum_evaluations_per_integral": 100000,
+    "maximum_depth": 30,
+    "absolute_tolerance": 1e-13,
+    "relative_tolerance": 1e-12
+  }
+}

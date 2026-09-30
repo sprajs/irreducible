@@ -230,9 +230,16 @@ pub(crate) fn numerics_evaluate(
 
 #[path = "observation_bridge.rs"]
 mod observations;
-pub(crate) use observations::{prepare_observations, ObservationInput, ObservationMetadata};
+pub(crate) use observations::{ObservationInput, ObservationMetadata, prepare_observations};
 
 #[path = "statistics_bridge.rs"]
 mod statistics;
 
-pub(crate) use statistics::{gaussian_batch, ProperPrior};
+pub(crate) use statistics::{ProperPrior, gaussian_batch};
+
+#[path = "background_bridge.rs"]
+mod background;
+pub(crate) use background::{
+    Parameters as BackgroundParametersRequest, Policy as BackgroundPolicyRequest,
+    Query as BackgroundQueryRequest, evaluate as background_evaluate,
+};

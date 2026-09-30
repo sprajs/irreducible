@@ -1,11 +1,11 @@
 use crate::{
     bridge::{
-        add, convert_quantities, numerics_evaluate, Metadata, ABI_VERSION, MAX_BATCH_ELEMENTS,
+        ABI_VERSION, MAX_BATCH_ELEMENTS, Metadata, add, convert_quantities, numerics_evaluate,
     },
     records::{hash, publish, runtime_libraries},
 };
 use serde::Deserialize;
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 use std::{fs, path::PathBuf};
 #[derive(Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -46,7 +46,7 @@ pub(crate) fn execute() -> Result<(), String> {
         Some("describe") | Some("version") if args.len() == 3 && args[2] == "--json" => {
             println!(
                 "{}",
-                json!({"schema_version":1,"product":"Irreducible","executable":"irred","version":env!("CARGO_PKG_VERSION"),"abi_version":ABI_VERSION,"build":manifest,"capabilities":[{"id":"fixture.checked_i64_add.v1","implementation":"implemented","qualification":"unqualified","scientific":false},{"id":"quantity.convert.v1","implementation":"implemented","qualification":"unqualified","scientific":true},{"id":"numerics.scalar_batch.v1","implementation":"implemented","qualification":"unqualified","scientific":true},{"id":"statistics.gaussian_batch.v1","implementation":"implemented","qualification":"unqualified","scientific":true,"interface_gate":"bounded_native_and_cli_passed","modes":["normalized_density","profile_offset_score"]},{"id":"observations.prepare.v1","implementation":"implemented","qualification":"unqualified","scientific":true,"profiles":["pantheon_plus_released_v1","gaussian_fixture_v1"],"fits_codec":"unavailable_in_product"}],"quantity_schema":serde_json::from_str::<Value>(include_str!("../schema/abi.json")).map_err(|e|e.to_string())?,"commands":["describe --json","version --json","run REQUEST STORE"],"scientific_qualifications":[]})
+                json!({"schema_version":1,"product":"Irreducible","executable":"irred","version":env!("CARGO_PKG_VERSION"),"abi_version":ABI_VERSION,"build":manifest,"capabilities":[{"id":"fixture.checked_i64_add.v1","implementation":"implemented","qualification":"unqualified","scientific":false},{"id":"quantity.convert.v1","implementation":"implemented","qualification":"unqualified","scientific":true},{"id":"numerics.scalar_batch.v1","implementation":"implemented","qualification":"unqualified","scientific":true},{"id":"background.parameter_query_batch.v1","implementation":"implemented","qualification":"unqualified","scientific":true,"interface_gate":"bounded_native_and_cli_passed","models":["flat_lcdm_late_v1","constant_q_flat_v1"]},{"id":"statistics.gaussian_batch.v1","implementation":"implemented","qualification":"unqualified","scientific":true,"interface_gate":"bounded_native_and_cli_passed","modes":["normalized_density","profile_offset_score"]},{"id":"observations.prepare.v1","implementation":"implemented","qualification":"unqualified","scientific":true,"profiles":["pantheon_plus_released_v1","gaussian_fixture_v1"],"fits_codec":"unavailable_in_product"}],"abi_schema":serde_json::from_str::<Value>(include_str!("../schema/abi.json")).map_err(|e|e.to_string())?,"commands":["describe --json","version --json","run REQUEST STORE"],"scientific_qualifications":[]})
             );
             Ok(())
         }
@@ -135,6 +135,9 @@ pub(crate) fn execute() -> Result<(), String> {
                                 "error_id":if failed {Some("NUMERICAL_EVALUATION_FAILURE")}else{None},
                                 "method":request.method,"source_values":request.values,"evaluations":evaluations}))
                         },
+                        "background.parameter_query_batch.v1" => {
+                            let (spec,output)=crate::background_run::execute(&input,&store)?;resolved=Some(spec);Ok(output)
+                        }
                         "statistics.gaussian_batch.v1" => {
                             let (spec,output)=crate::statistics_run::execute(&input,&store)?;resolved=Some(spec);Ok(output)
                         }
@@ -165,6 +168,7 @@ pub(crate) fn execute() -> Result<(), String> {
             let is_observation = resolved.as_ref().is_some_and(|spec| {
                 spec["operation"] == "observations.prepare.v1"
                     || spec["operation"] == "statistics.gaussian_batch.v1"
+                    || spec["operation"] == "background.parameter_query_batch.v1"
             });
             let mut final_record = initial;
             final_record["precision"] = json!(if is_observation {

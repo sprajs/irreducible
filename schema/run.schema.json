@@ -16,6 +16,9 @@
     },
     {
       "$ref": "#/$defs/gaussian"
+    },
+    {
+      "$ref": "#/$defs/background"
     }
   ],
   "$defs": {
@@ -479,6 +482,160 @@
           "exclusiveMinimum": 0
         }
       }
+    },
+    "background": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema_version",
+        "operation",
+        "parameters",
+        "queries",
+        "policy"
+      ],
+      "properties": {
+        "schema_version": {
+          "const": 1
+        },
+        "operation": {
+          "const": "background.parameter_query_batch.v1"
+        },
+        "parameters": {
+          "type": "array",
+          "maxItems": 4096,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "model",
+              "h0_km_s_mpc",
+              "omega_m",
+              "constant_q"
+            ],
+            "properties": {
+              "model": {
+                "enum": [
+                  "flat_lcdm_late_v1",
+                  "constant_q_flat_v1"
+                ]
+              },
+              "h0_km_s_mpc": {
+                "type": "number"
+              },
+              "omega_m": {
+                "type": "number"
+              },
+              "constant_q": {
+                "type": "number"
+              }
+            }
+          }
+        },
+        "queries": {
+          "type": "array",
+          "maxItems": 4096,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "z_expansion",
+              "z_observer",
+              "convention"
+            ],
+            "properties": {
+              "z_expansion": {
+                "type": "number"
+              },
+              "z_observer": {
+                "type": "number"
+              },
+              "convention": {
+                "enum": [
+                  "geometric_same_redshift",
+                  "released_zhd_zhel"
+                ]
+              }
+            }
+          }
+        },
+        "policy": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "maximum_parameters",
+            "maximum_queries",
+            "maximum_slots",
+            "maximum_native_output_bytes",
+            "maximum_total_evaluations",
+            "maximum_evaluations_per_integral",
+            "maximum_depth",
+            "absolute_tolerance",
+            "relative_tolerance"
+          ],
+          "properties": {
+            "maximum_parameters": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 4096
+            },
+            "maximum_queries": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 4096
+            },
+            "maximum_slots": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 1000000
+            },
+            "maximum_native_output_bytes": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 536870912
+            },
+            "maximum_total_evaluations": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 18446744073709551615
+            },
+            "maximum_evaluations_per_integral": {
+              "type": "integer",
+              "minimum": 3,
+              "maximum": 18446744073709551615
+            },
+            "maximum_depth": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 64
+            },
+            "absolute_tolerance": {
+              "type": "number",
+              "minimum": 0
+            },
+            "relative_tolerance": {
+              "type": "number",
+              "minimum": 0
+            }
+          },
+          "anyOf": [
+            {
+              "properties": {
+                "absolute_tolerance": {
+                  "exclusiveMinimum": 0
+                }
+              }
+            },
+            {
+              "properties": {
+                "relative_tolerance": {
+                  "exclusiveMinimum": 0
+                }
+              }
+            }
+          ]
+        }
+      },
+      "description": "Parameter-major Cartesian batch; CLI total JSON slots<=65536, native output storage and global integration callbacks bounded before allocation. Structural view only; C++ owns model domains/conventions."
     }
   },
   "description": "Structural generated view. C++ owns scientific admissibility, conversions and per-row statuses; successful execution without qualification remains unaccepted."

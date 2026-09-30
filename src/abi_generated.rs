@@ -62,6 +62,42 @@ pub fn gaussian_status_name(value: u32) -> Option<&'static str> {
         _ => None,
     }
 }
+pub const BACKGROUND_MODEL_FLAT_LCDM_LATE_V1: u32 = 0;
+pub const BACKGROUND_MODEL_CONSTANT_Q_FLAT_V1: u32 = 1;
+pub const BACKGROUND_CONVENTION_GEOMETRIC_SAME_REDSHIFT: u32 = 0;
+pub const BACKGROUND_CONVENTION_RELEASED_ZHD_ZHEL: u32 = 1;
+pub const BACKGROUND_STATUS_OK: u32 = 0;
+pub const BACKGROUND_STATUS_INVALID_INPUT: u32 = 1;
+pub const BACKGROUND_STATUS_UNSUPPORTED_DOMAIN: u32 = 2;
+pub const BACKGROUND_STATUS_INCOMPATIBLE_CONVENTION: u32 = 3;
+pub const BACKGROUND_STATUS_NUMERICAL_FAILURE: u32 = 4;
+pub const BACKGROUND_STATUS_WORK_LIMIT: u32 = 5;
+pub fn background_tag_id(group: &str, label: &str) -> Option<u32> {
+    match (group, label) {
+        ("model", "flat_lcdm_late_v1") => Some(0),
+        ("model", "constant_q_flat_v1") => Some(1),
+        ("convention", "geometric_same_redshift") => Some(0),
+        ("convention", "released_zhd_zhel") => Some(1),
+        ("status", "ok") => Some(0),
+        ("status", "invalid_input") => Some(1),
+        ("status", "unsupported_domain") => Some(2),
+        ("status", "incompatible_convention") => Some(3),
+        ("status", "numerical_failure") => Some(4),
+        ("status", "work_limit") => Some(5),
+        _ => None,
+    }
+}
+pub fn background_status_name(value: u32) -> Option<&'static str> {
+    match value {
+        0 => Some("ok"),
+        1 => Some("invalid_input"),
+        2 => Some("unsupported_domain"),
+        3 => Some("incompatible_convention"),
+        4 => Some("numerical_failure"),
+        5 => Some("work_limit"),
+        _ => None,
+    }
+}
 #[repr(C)]
 pub struct Buffer {
     pub struct_size: u32,
@@ -228,6 +264,76 @@ pub struct GaussianSelection {
     pub kept_row_ids: Strings,
     pub complement_row_ids: Strings,
 }
+#[repr(C)]
+pub struct BackgroundParameters {
+    pub model: u32,
+    pub reserved: u32,
+    pub h0_km_s_mpc: f64,
+    pub omega_m: f64,
+    pub constant_q: f64,
+}
+#[repr(C)]
+pub struct BackgroundQuery {
+    pub z_expansion: f64,
+    pub z_observer: f64,
+    pub convention: u32,
+    pub reserved: u32,
+}
+#[repr(C)]
+pub struct BackgroundPolicy {
+    pub struct_size: u32,
+    pub abi_version: u32,
+    pub maximum_depth: u32,
+    pub reserved: u32,
+    pub maximum_parameters: u64,
+    pub maximum_queries: u64,
+    pub maximum_slots: u64,
+    pub maximum_native_output_bytes: u64,
+    pub maximum_total_evaluations: u64,
+    pub maximum_evaluations_per_integral: u64,
+    pub absolute_tolerance: f64,
+    pub relative_tolerance: f64,
+}
+#[repr(C)]
+pub struct BackgroundBatch {
+    pub struct_size: u32,
+    pub abi_version: u32,
+    pub parameters: *const BackgroundParameters,
+    pub parameter_count: u64,
+    pub parameter_byte_length: u64,
+    pub queries: *const BackgroundQuery,
+    pub query_count: u64,
+    pub query_byte_length: u64,
+}
+#[repr(C)]
+pub struct BackgroundSlot {
+    pub parameter_index: u64,
+    pub query_index: u64,
+    pub parameters: BackgroundParameters,
+    pub query: BackgroundQuery,
+    pub status: u32,
+    pub numerical_status: u32,
+    pub model_id: Bytes,
+    pub constants_id: Bytes,
+    pub radial_equation_id: Bytes,
+    pub luminosity_equation_id: Bytes,
+    pub shape_equation_id: Bytes,
+    pub expansion_e: f64,
+    pub h_km_s_mpc: f64,
+    pub radial_integral: f64,
+    pub radial_mpc: f64,
+    pub transverse_mpc: f64,
+    pub angular_diameter_mpc: f64,
+    pub luminosity_mpc: f64,
+    pub dimensionless_luminosity_shape: f64,
+    pub lookback_seconds: f64,
+    pub volume_mpc3_per_sr_per_redshift: f64,
+    pub deceleration_q: f64,
+    pub jerk: f64,
+    pub radial_integral_error: f64,
+    pub lookback_integral_error: f64,
+    pub evaluations: u64,
+}
 unsafe extern "C" {
     pub fn cosmo_add(
         a: *const Buffer,
@@ -328,6 +434,17 @@ unsafe extern "C" {
         index: u64,
         out: *mut GaussianSelection,
     ) -> u32;
+    pub fn cosmo_background_evaluate(
+        batch: *const BackgroundBatch,
+        policy: *const BackgroundPolicy,
+        out: *mut *mut std::ffi::c_void,
+    ) -> u32;
+    pub fn cosmo_background_result_view(
+        result: *const std::ffi::c_void,
+        slots: *mut *const BackgroundSlot,
+        length: *mut u64,
+    ) -> u32;
+    pub fn cosmo_background_result_destroy(result: *mut std::ffi::c_void) -> u32;
 }
 #[derive(Clone, serde::Deserialize, serde::Serialize)]
 #[serde(deny_unknown_fields)]
