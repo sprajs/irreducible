@@ -147,7 +147,7 @@ fn released_assets_and_cli_seven_points() {
     let output = Command::new(&executable)
         .arg("run")
         .arg(&request_path)
-        .arg(scratch.0.join("store"))
+        .arg(scratch.0.join("store")).args(["--assurance","qualified"])
         .output()
         .unwrap();
     assert_eq!(digest(&table), pinned_hash("w01_table_sha256"));
@@ -293,7 +293,7 @@ fn released_assets_and_cli_cpl_four_points() {
     let output = Command::new(&executable)
         .arg("run")
         .arg(&request_path)
-        .arg(scratch.0.join("store"))
+        .arg(scratch.0.join("store")).args(["--assurance","qualified"])
         .output()
         .unwrap();
     assert_eq!(digest(&table), pinned_hash("w01_table_sha256"));
@@ -451,7 +451,7 @@ fn released_assets_and_cli_piecewise_six_points() {
     let o = Command::new(&exe)
         .arg("run")
         .arg(path.join("request.json"))
-        .arg(path.join("store"))
+        .arg(path.join("store")).args(["--assurance","qualified"])
         .output()
         .unwrap();
     fs::write(path.join("stdout.json"), &o.stdout).unwrap();

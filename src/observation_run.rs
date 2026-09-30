@@ -1,11 +1,11 @@
 //! Local structural adapters and retained acquisition; scientific policy is C++.
 use crate::{
-    bridge::{prepare_observations, ObservationInput, ObservationMetadata},
+    bridge::{ObservationInput, ObservationMetadata, prepare_observations},
     ingestion::{gaussian_fixture, pantheon_covariance, pantheon_plus, read_asset},
     records::{hash, publish},
 };
 use serde::{Deserialize, Serialize};
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 use std::path::{Path, PathBuf};
 #[derive(Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -36,8 +36,18 @@ struct Request {
     #[serde(default)]
     source_selection: Vec<u8>,
 }
-pub(crate) fn execute(input: &[u8], store: &Path) -> Result<(Value, Value), String> {
-    execute_calculation(input, store, |_, _, _| Ok(None))
+pub(crate) fn execute(input: &[u8], store: &Path) -> Result<crate::outcome::Outcome, String> {
+    let (spec, output) = execute_calculation(input, store, |_, _, _| Ok(None))?;
+    let resources = spec["resource_budget"].clone();
+    Ok(crate::outcome::Outcome::structural(
+        spec,
+        output,
+        "prepared_observations",
+        json!("typed_observation_preparation"),
+        json!("binary64_source_storage_no_scientific_transformation"),
+        resources,
+        "structural typed observations and source identity; no inference acceptance",
+    ))
 }
 // Reuse exactly the same structural acquisition and immutable source retention.
 pub(crate) fn execute_calculation(
@@ -92,7 +102,10 @@ pub(crate) fn execute_calculation(
         uncertainty_sha256: matrix_digest,
         calibration_provenance: r.calibration_provenance,
         dependence_provenance: r.dependence_provenance,
-        quality_dictionary: format!("ASCII adapter: no decoded quality column; zero placeholders are not all-clear flags; supplied dictionary declaration: {}",r.quality_dictionary),
+        quality_dictionary: format!(
+            "ASCII adapter: no decoded quality column; zero placeholders are not all-clear flags; supplied dictionary declaration: {}",
+            r.quality_dictionary
+        ),
         ordering_provenance: r.ordering_provenance,
         measurement_ids: table.measurement_ids,
         event_ids: table.event_ids,
@@ -127,7 +140,7 @@ pub(crate) fn execute_calculation(
         ],
     ) {
         Ok(value) => value,
-        Err(error) => return Ok((spec, json!({"kind":"failure","error_id":error}))),
+        Err(error) => return Err(error),
     };
     #[derive(Serialize)]
     struct RetainedMatrix<'a> {
@@ -168,8 +181,7 @@ pub(crate) fn execute_calculation(
             limits.maximum_matrix_elements,
             limits.maximum_string_bytes,
         ],
-    )
-    .unwrap_or_else(|error| Some(json!({"kind":"failure","error_id":error})));
+    )?;
     let output = if let Some(result) = calculation {
         json!({"kind":result["kind"],"observations":output,"calculation":result})
     } else {

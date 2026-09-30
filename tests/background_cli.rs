@@ -36,7 +36,7 @@ fn run_raw(bytes: &[u8]) -> (Value, i32, Option<Value>) {
     fs::write(&input, bytes).unwrap();
     let output = Command::new(env!("CARGO_BIN_EXE_irred"))
         .current_dir(env!("CARGO_MANIFEST_DIR"))
-        .args(["run", input.to_str().unwrap(), store.to_str().unwrap()])
+        .args(["run", input.to_str().unwrap(), store.to_str().unwrap(), "--assurance", "qualified"])
         .output()
         .unwrap();
     let response: Value = serde_json::from_slice(&output.stdout).unwrap();
@@ -103,7 +103,7 @@ fn batch_order_units_identity_and_zero() {
     assert!(c["evaluations"].as_u64().unwrap() <= 2000000);
     assert_eq!(
         response["receipt"]["outputs"][0]["numerical"],
-        "not_assessed"
+        "checks_passed"
     );
 }
 #[test]

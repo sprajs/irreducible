@@ -38,7 +38,7 @@ fn run(s: &Scratch, v: &Value) -> (Value, i32) {
     let out = Command::new(env!("CARGO_BIN_EXE_irred"))
         .arg("run")
         .arg(path)
-        .arg(s.0.join("store"))
+        .arg(s.0.join("store")).args(["--assurance","qualified"])
         .output()
         .unwrap();
     (

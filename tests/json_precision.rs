@@ -61,7 +61,7 @@ fn actual_scalar_request_spec_source_and_native_sum_preserve_decimal() {
         let output = Command::new(env!("CARGO_BIN_EXE_irred"))
             .arg("run")
             .arg(&request)
-            .arg(&store)
+            .arg(&store).args(["--assurance","qualified"])
             .output()
             .unwrap();
         assert_eq!(

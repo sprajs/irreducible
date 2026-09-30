@@ -7,11 +7,11 @@ This page describes the public command surface at this documentation revision. D
 | `describe --json`, `version --json` | Product, build, ABI/schema, commands and capability metadata | No automatic scientific qualification |
 | `fixture.checked_i64_add.v1` | Checked integer batches and infrastructure fault tests | Engineering fixture, not science |
 | `quantity.convert.v1` | Tagged scale conversions with role/frame/convention metadata | No physical model or frame transformation; finite results currently unaccepted |
-| `numerics.scalar_batch.v1` | Compensated sum, log-sum-exp, log1p, expm1, positive log-gamma | Bounded interface; finite results currently unaccepted |
+| `numerics.scalar_batch.v1` | Compensated sum, log-sum-exp, log1p, expm1, positive log-gamma | Bounded interface; numerical acceptance is separate from interpretation |
 | C++ numerical library | Integration and dense SPD/Gaussian building blocks with native tests | Specific sampled contracts, not unrestricted domain qualification |
 | `observations.prepare.v1` | Typed local ASCII observations, full uncertainty retention, immutable prepared selection | Two explicit profiles; no matrix repair, likelihood, independence claim or registered qualification |
 | C++ statistics library | Scalar normalized densities, retained Gaussian factors, explicit marginal/conditional operations and offset treatments | Tested scalar/2x2/3x3 fixtures; no qualified large survey likelihood |
-| `statistics.gaussian_batch.v1` | Retained normalized densities, proper latent priors or explicit offset profile scores | Bounded native/CLI interface; completed outputs remain unaccepted |
+| `statistics.gaussian_batch.v1` | Retained normalized densities, proper latent priors or explicit offset profile scores | Bounded native/CLI interface; passed numerical checks satisfy default assurance, interpretation remains unqualified |
 | `background.parameter_query_batch.v1` | Compiled model-array × shared-query background batches | Bounded native/CLI interface; late-time models only, no survey likelihood |
 | C++ supernova consumer | Retained observations/profile factor and compiled model batches returning relative offset-profile scores | Named synthetic/original-input comparisons; no normalized density or inference claim |
 | `supernova.profile_batch.v1` | Retained released-profile observations and compiled relative offset-profile parameter batches | Named native/transport checks; arbitrary requests remain unqualified, no normalized density or inference claim |

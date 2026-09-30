@@ -15,7 +15,7 @@ struct Request {
     models: Vec<SupernovaModelV2Request>,
     policy: SupernovaPolicyV2Request,
 }
-pub(crate) fn execute(input: &[u8], store: &Path) -> Result<(Value, Value), String> {
+fn calculation(input: &[u8], store: &Path) -> Result<(Value, Value), String> {
     let request: Request = serde_json::from_slice(input).map_err(|e| e.to_string())?;
     if request.schema_version != 1 || request.operation != "supernova.profile_batch.v2" {
         return Err("UNSUPPORTED_SPECIFICATION".into());
@@ -38,4 +38,19 @@ pub(crate) fn execute(input: &[u8], store: &Path) -> Result<(Value, Value), Stri
         "maximum_total_evaluations":"one native callback budget across all models and selected observations"},
         "requested_outputs":[{"id":"profile_scores","required":true,"numerical_gate":"required","inference_gate":"not_applicable"}]});
     Ok((spec, output))
+}
+
+pub(crate) fn execute(input: &[u8], store: &Path) -> Result<crate::outcome::Outcome, String> {
+    let (spec, output) = calculation(input, store)?;
+    let arithmetic = spec["policy"]["arithmetic"].clone();
+    let resources = spec["policy"].clone();
+    Ok(crate::outcome::Outcome::scientific(
+        spec,
+        output,
+        "profile_scores",
+        json!("retained_single_offset_profile"),
+        arithmetic,
+        resources,
+        "named original-input four-point CPL regression; request applicability not established",
+    ))
 }

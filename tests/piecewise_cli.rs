@@ -38,7 +38,7 @@ fn run(s: &Scratch, v: &Value) -> (Value, i32) {
     let o = Command::new(env!("CARGO_BIN_EXE_irred"))
         .arg("run")
         .arg(p)
-        .arg(s.0.join("store"))
+        .arg(s.0.join("store")).args(["--assurance","qualified"])
         .output()
         .unwrap();
     let r = serde_json::from_slice(&o.stdout)
@@ -74,7 +74,7 @@ fn analytic_geometry_derivative_absence_source_and_records() {
     assert_eq!(r["receipt"]["outputs"][0]["interpretation"], "unqualified");
     assert_eq!(
         r["receipt"]["precision"],
-        "binary64_storage_native_longdouble_analytic_intermediate"
+        "binary64_storage_longdouble_analytic_intermediate"
     );
     let rows = r["result"]["slots"].as_array().unwrap();
     assert_eq!(rows.len(), 10);
@@ -127,7 +127,7 @@ fn analytic_geometry_derivative_absence_source_and_records() {
     assert_eq!(spec["policy"], req["policy"]);
     assert_eq!(spec["units"]["volume"], "Mpc^3/sr/redshift");
     assert_eq!(
-        r["receipt"]["resource_budget"]["piecewise_policy"],
+        r["receipt"]["resource_budget"]["operation"],
         req["policy"]
     );
     object(&s, r["receipt"]["output_digest"].as_str().unwrap());

@@ -1,10 +1,10 @@
 //! Request resolution only; C++ owns the retained Gaussian and batch equations.
 use crate::{
-    bridge::{gaussian_batch, ProperPrior},
+    bridge::{ProperPrior, gaussian_batch},
     observation_run,
 };
 use serde::{Deserialize, Serialize};
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 use std::path::Path;
 #[derive(Deserialize, Serialize)]
 #[serde(deny_unknown_fields)]
@@ -32,7 +32,7 @@ struct Request {
     maximum_batch_elements: u64,
     maximum_forward_sensitivity: f64,
 }
-pub(crate) fn execute(input: &[u8], store: &Path) -> Result<(Value, Value), String> {
+fn calculation(input: &[u8], store: &Path) -> Result<(Value, Value), String> {
     let r: Request = serde_json::from_slice(input).map_err(|e| e.to_string())?;
     if r.schema_version != 1 || r.operation != "statistics.gaussian_batch.v1" {
         return Err("UNSUPPORTED_SPECIFICATION".into());
@@ -77,4 +77,20 @@ pub(crate) fn execute(input: &[u8], store: &Path) -> Result<(Value, Value), Stri
         })?;
     let spec = json!({"schema_version":1,"operation":r.operation,"equation_id":"F03/prepared-Gaussian/v1","observations":observations,"mode":r.mode,"residual_unit":r.residual_unit,"response_unit":r.response_unit,"ordered_ids":r.ordered_ids,"residuals":r.residuals,"response":r.response,"proper_prior":r.proper_prior,"maximum_batch_elements":r.maximum_batch_elements,"maximum_forward_sensitivity":r.maximum_forward_sensitivity,"requested_outputs":[{"id":"gaussian_batch","required":true,"numerical_gate":"required","inference_gate":"not_applicable"}]});
     Ok((spec, output))
+}
+
+pub(crate) fn execute(input: &[u8], store: &Path) -> Result<crate::outcome::Outcome, String> {
+    let (spec, output) = calculation(input, store)?;
+    let arithmetic = json!("binary64_legacy_v1");
+    let resources = json!({"maximum_batch_elements":spec["maximum_batch_elements"],"maximum_forward_sensitivity":spec["maximum_forward_sensitivity"]});
+    let method = spec["mode"].clone();
+    Ok(crate::outcome::Outcome::scientific(
+        spec,
+        output,
+        "gaussian_batch",
+        method,
+        arithmetic,
+        resources,
+        "bounded native Gaussian and interface tests; request applicability not established",
+    ))
 }

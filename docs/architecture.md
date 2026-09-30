@@ -19,4 +19,6 @@ Equations belong in compiled source with explicit model/equation identities. Age
 
 A future accelerator implements an explicit numerical contract. It must preserve a portable baseline and be compared at matched quality, including setup/transfer costs and downstream error. A backend label is not qualification.
 
-Generic C++ modules use `irred` (`irred::numerics`, `irred::observations`) and install under `include/irred/`; the standalone archive is `libirred_core.a`. Reserve `irred::cosmology` for an actual physical-model module. Legacy C ABI `cosmo_*` names and `COSMO_*` tags, plus existing scientific/schema IDs, remain stable identifiers.
+Generic C++ modules use `irred` (`irred::numerics`, `irred::observations`) and install under `include/irred/`; the standalone archive is `libirred_core.a`. Reserve `irred::cosmology` for an actual physical-model module. C ABI names are structural transport identities, not a promise of indefinite compatibility. Coherent breaking migrations may replace routes/layouts and their callers; immutable scientific records retain the exact contracts they used.
+
+Operation wrappers return a typed outcome with output IDs, actual method/arithmetic, numerical checks and resource metadata. The common recorder records that outcome without classifying operation-name families. Retained native factors already serve batches; duplicated acquisition/preparation and request-level ownership are separate migration targets.

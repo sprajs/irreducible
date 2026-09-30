@@ -1,5 +1,5 @@
 //! Gaussian interface/status/identity tests, core-author role; no Rust equations.
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 use std::{
     fs,
     path::PathBuf,
@@ -49,8 +49,8 @@ fn normalized_profile_and_proper_prior_modes() {
     let mut spec = request();
     spec["residuals"] = json!([[2., -3.], [0., 0.]]);
     let (r, exit, resolved) = run(&spec);
-    assert_eq!(exit, 6);
-    assert_eq!(r["receipt"]["accepted"], false);
+    assert_eq!(exit, 0);
+    assert_eq!(r["receipt"]["accepted"], true);
     assert_eq!(r["receipt"]["execution"], "completed");
     let c = calc(&r);
     assert_eq!(c["kind"], "finite");
@@ -66,11 +66,15 @@ fn normalized_profile_and_proper_prior_modes() {
     assert_eq!(resolved["ordered_ids"], spec["ordered_ids"]);
     assert_eq!(resolved["residuals"], spec["residuals"]);
     assert_eq!(resolved["equation_id"], "F03/prepared-Gaussian/v1");
-    assert_eq!(r["receipt"]["outputs"][0]["numerical"], "not_assessed");
+    assert_eq!(r["receipt"]["outputs"][0]["numerical"], "checks_passed");
+    assert_eq!(r["receipt"]["outputs"][0]["id"], "gaussian_batch");
+    assert_eq!(r["receipt"]["method"], "normalized_density");
+    assert_eq!(r["receipt"]["precision"], "binary64_legacy_v1");
+    assert_eq!(r["receipt"]["accepted_scope"], "numerical_contract");
     spec["mode"] = json!("profile_offset_score");
     spec["response"] = json!([1., 1.]);
     let (r, exit, _) = run(&spec);
-    assert_eq!(exit, 6);
+    assert_eq!(exit, 0);
     let row = &calc(&r)["rows"][0];
     assert_eq!(row["density"], Value::Null);
     assert_eq!(row["normalization"], "not_applicable");
@@ -92,7 +96,7 @@ fn normalized_profile_and_proper_prior_modes() {
     spec["response"] = Value::Null;
     spec["proper_prior"] = json!({"response":[1.,1.],"ordered_ids":["r0","r1"],"mean":1./3.,"variance":2.,"latent_identity":"proper-offset","independence_declared":true});
     let (r, exit, _) = run(&spec);
-    assert_eq!(exit, 6);
+    assert_eq!(exit, 0);
     let c = calc(&r);
     assert_eq!(c["priors"][0]["mean"], spec["proper_prior"]["mean"]);
     assert_eq!(c["priors"][0]["variance"], 2.);
@@ -108,7 +112,7 @@ fn row_failures_no_sentinel_and_order_checks() {
     let (r, exit, _) = run(&spec);
     assert_ne!(exit, 0);
     assert_ne!(exit, 6);
-    assert_eq!(r["receipt"]["execution"], "failed");
+    assert_eq!(r["receipt"]["execution"], "completed");
     assert_eq!(calc(&r)["kind"], "failure");
     assert_eq!(calc(&r)["rows"][0]["kind"], "finite");
     let row = &calc(&r)["rows"][1];
@@ -134,7 +138,7 @@ fn row_failures_no_sentinel_and_order_checks() {
     spec = request();
     spec["residuals"] = json!([]);
     let (r, exit, _) = run(&spec);
-    assert_eq!(exit, 6);
+    assert_eq!(exit, 0);
     assert_eq!(calc(&r)["rows"], json!([]));
 }
 #[test]

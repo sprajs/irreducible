@@ -153,7 +153,7 @@ fn released_assets_and_cli_eleven_points() {
     let output = Command::new(&executable)
         .arg("run")
         .arg(&request_path)
-        .arg(scratch.0.join("store"))
+        .arg(scratch.0.join("store")).args(["--assurance","qualified"])
         .output()
         .unwrap();
     assert_eq!(digest(&mean), pinned_hash("bao_mean_sha256"));
@@ -416,7 +416,7 @@ fn released_assets_and_cli_piecewise_twentyfour_points() {
     let output = Command::new(&executable)
         .arg("run")
         .arg(&request_path)
-        .arg(scratch.0.join("store"))
+        .arg(scratch.0.join("store")).args(["--assurance","qualified"])
         .output()
         .unwrap();
     assert_eq!(digest(&mean), pinned_hash("bao_mean_sha256"));

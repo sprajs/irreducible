@@ -33,7 +33,7 @@ The exact fixture returns `[0, 2, -4, 9223372036854775807]`, with a receipt. Thi
 target/debug/irred run tests/fixtures/quantity-length.json runs/quantity-example
 ```
 
-The quantity example preserves source metadata and converts metre values to kilometres. A finite result currently exits **6** with `accepted=false` because numerical qualification is not registered in the executable. Automation must handle this explicitly. See [CLI status semantics](cli.md).
+The quantity example preserves source metadata and converts metre values to kilometres. A result whose required numerical checks pass exits **0** by default, with acceptance scoped to `numerical_contract`. Explicit `--assurance qualified` exits **6** when applicable evidence is absent; interpretation remains unqualified. See [CLI status semantics](cli.md).
 
 ## Verify the build
 

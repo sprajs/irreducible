@@ -7,6 +7,7 @@ mod bridge;
 mod cli;
 mod ingestion;
 mod observation_run;
+mod outcome;
 mod piecewise_run;
 mod records;
 mod statistics_run;

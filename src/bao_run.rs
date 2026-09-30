@@ -17,7 +17,7 @@ struct Request {
     models: Vec<BaoModelRequest>,
     evaluation_policy: BaoPolicyRequest,
 }
-pub(crate) fn execute(input: &[u8], store: &Path) -> Result<(Value, Value), String> {
+fn calculation(input: &[u8], store: &Path) -> Result<(Value, Value), String> {
     let r: Request = serde_json::from_slice(input).map_err(|e| e.to_string())?;
     if r.schema_version != 1 || r.operation != "bao.gaussian_batch.v1" {
         return Err("UNSUPPORTED_SPECIFICATION".into());
@@ -53,5 +53,20 @@ pub(crate) fn execute(input: &[u8], store: &Path) -> Result<(Value, Value), Stri
     Ok((
         spec,
         json!({"kind":if success{"finite"}else{"failure"},"error_id":if success{None}else{Some("BAO_NUMERICAL_EVALUATION_FAILURE")},"source":resolved,"calculation":calculation}),
+    ))
+}
+
+pub(crate) fn execute(input: &[u8], store: &Path) -> Result<crate::outcome::Outcome, String> {
+    let (spec, output) = calculation(input, store)?;
+    let arithmetic = spec["evaluation_policy"]["arithmetic"].clone();
+    let resources = json!({"prepare_policy":spec["prepare_policy"],"evaluation_policy":spec["evaluation_policy"]});
+    Ok(crate::outcome::Outcome::scientific(
+        spec,
+        output,
+        "bao_densities",
+        json!("retained_normalized_gaussian"),
+        arithmetic,
+        resources,
+        "named native eleven-point original-input regression; request applicability not established",
     ))
 }

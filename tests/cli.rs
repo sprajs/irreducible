@@ -22,7 +22,7 @@ fn independent_records_adversarial() {
  let mut payload=json!({"schema_version":1,"operation":"fixture.checked_i64_add.v1","a":[0,1,-2,1048576,-1048576],"b":[0,-1,3,-1048576,1048576],"fault":0});
  fs::write(&request,serde_json::to_vec(&payload).unwrap()).unwrap();
  let first=run(&request,&store,None);assert!(first.status.success());let first=decode(&first);assert_eq!(first["result"]["values"],json!([0,0,1,0,0]));
- let receipt=&first["receipt"];assert_eq!(receipt["execution"],"completed");assert_eq!(receipt["numerical"],"not_assessed");
+ let receipt=&first["receipt"];assert_eq!(receipt["execution"],"completed");assert_eq!(receipt["numerical"],"checks_passed");
  let old=files(&store);let second=run(&request,&store,None);assert!(second.status.success());let second=decode(&second);assert_ne!(receipt["attempt_id"],second["receipt"]["attempt_id"]);
  for (name,bytes) in old {assert_eq!(fs::read(store.join(name)).unwrap(),bytes,"duplicate run overwrote immutable bytes");}
  for key in ["input_digest","output_digest"] {let name=receipt[key].as_str().unwrap();assert_eq!(digest(&fs::read(store.join("objects").join(name)).unwrap()),name);}

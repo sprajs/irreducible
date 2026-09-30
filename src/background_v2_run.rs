@@ -15,7 +15,7 @@ struct Request {
     queries: Vec<BackgroundQueryV2Request>,
     policy: BackgroundPolicyV2Request,
 }
-pub(crate) fn execute(input: &[u8], _store: &Path) -> Result<(Value, Value), String> {
+fn calculation(input: &[u8], _store: &Path) -> Result<(Value, Value), String> {
     let request: Request = serde_json::from_slice(input).map_err(|e| e.to_string())?;
     if request.schema_version != 1 || request.operation != "background.parameter_query_batch.v2" {
         return Err("UNSUPPORTED_SPECIFICATION".into());
@@ -24,7 +24,21 @@ pub(crate) fn execute(input: &[u8], _store: &Path) -> Result<(Value, Value), Str
     if std::env::var_os("COSMOLOGY_TEST_PANIC").is_some() {
         panic!("injected Rust panic");
     }
-    let result = background_v2_evaluate(&request.parameters, &request.queries, &request.policy)
-        .unwrap_or_else(|error| json!({"kind":"failure","error_id":error}));
+    let result = background_v2_evaluate(&request.parameters, &request.queries, &request.policy)?;
     Ok((spec, result))
+}
+
+pub(crate) fn execute(input: &[u8], store: &Path) -> Result<crate::outcome::Outcome, String> {
+    let (spec, output) = calculation(input, store)?;
+    let arithmetic = json!("binary64_storage_longdouble_intermediate");
+    let resources = spec["policy"].clone();
+    Ok(crate::outcome::Outcome::scientific(
+        spec,
+        output,
+        "background_slots",
+        json!("adaptive_simpson"),
+        arithmetic,
+        resources,
+        "bounded native CPL model/reference and interface tests; request applicability not established",
+    ))
 }

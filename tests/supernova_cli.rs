@@ -39,7 +39,7 @@ fn run(s: &Scratch, v: &Value) -> (Value, i32) {
     let o = Command::new(env!("CARGO_BIN_EXE_irred"))
         .arg("run")
         .arg(p)
-        .arg(s.0.join("store"))
+        .arg(s.0.join("store")).args(["--assurance","qualified"])
         .output()
         .unwrap();
     (
@@ -61,7 +61,7 @@ fn analytic_scores_order_assets_and_unqualified_status() {
     assert_eq!(exit, 6);
     assert_eq!(r["receipt"]["accepted"], false);
     assert_eq!(r["receipt"]["execution"], "completed");
-    assert_eq!(r["receipt"]["numerical"], "not_assessed");
+    assert_eq!(r["receipt"]["numerical"], "checks_passed");
     assert_eq!(r["receipt"]["outputs"][0]["numerical"], "checks_passed");
     let c = &r["result"]["calculation"];
     let o = &r["result"]["observations"];
