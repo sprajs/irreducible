@@ -292,6 +292,58 @@ int main() {
   near(cg3.evaluate(rk3, cg3.metadata().ordered_ids, budget).density.log_value,
        -.5L * (155.L / 48 + log_reference(144.L / 29) + 2 * ln2pi), budget,
        "precision3 centered conditional normalized target differs");
+
+  observations::Input observed{};
+  observed.profile = observations::Profile::gaussian_fixture_v1;
+  observed.role = observations::Role::synthetic_control;
+  observed.unit = observations::Unit::magnitude;
+  observed.calibration = observations::Calibration::unknown;
+  observed.uncertainty = observations::Uncertainty::covariance;
+  observed.uncertainty_unit = observations::UncertaintyUnit::magnitude_squared;
+  observed.table_sha256 = std::string(64, 'a');
+  observed.uncertainty_sha256 = std::string(64, 'b');
+  observed.ordering_provenance = "explicit synthetic source row order";
+  observed.measurement_ids = {"a", "b", "c"};
+  observed.event_ids = {"event", "event", "other"};
+  observed.uncertainty_axis_ids = observed.measurement_ids;
+  observed.values = {2, -3, 0};
+  observed.missing = {0, 0, 0};
+  observed.quality = {0, 0, 0};
+  observed.source_selection = {1, 1, 0};
+  observed.uncertainty_matrix = {4, 1, 8, 1, 9, 5, 7, 5, -100};
+  auto prepared = observations::prepare(observed, {3, 9});
+  auto selected =
+      prepare_observations(prepared, observations::Selection::all, 4, budget);
+  check(selected.status() == DensityStatus::finite,
+        "valid selected block admitted without silently repairing invalid "
+        "excluded full entries");
+  check(selected.metadata().matrix_validation_scope ==
+            MatrixValidationScope::selected_covariance_only,
+        "selected-only admissibility machine scope");
+  check(selected.metadata().ordered_ids == std::vector<std::string>({"a", "b"}),
+        "selected axis identity retained");
+  near(selected.evaluate(r, selected.metadata().ordered_ids, budget)
+           .density.log_value,
+       d.density.log_value, budget, "selected-only exact normalized target");
+  check(prepared.source().uncertainty_matrix == observed.uncertainty_matrix,
+        "full raw asymmetric source unchanged");
+  check(selected.selection_history()[0].complement_row_ids ==
+            std::vector<std::string>{"c"},
+        "discarded source ID retained in selection declaration");
+  observed.uncertainty_matrix[1] = 1.00000003;
+  check(prepare_observations(observations::prepare(observed, {3, 9}),
+                             observations::Selection::all, 4, budget)
+                .status() == DensityStatus::numerical_failure,
+        "asymmetry within selected block rejects without averaging");
+  observed.uncertainty_matrix[1] = 1;
+  observed.uncertainty = observations::Uncertainty::precision;
+  observed.uncertainty_unit =
+      observations::UncertaintyUnit::inverse_magnitude_squared;
+  check(prepare_observations(observations::prepare(observed, {3, 9}),
+                             observations::Selection::all, 9, budget)
+                .status() == DensityStatus::numerical_failure,
+        "precision requires valid full operator before marginal; cannot "
+        "discard invalid couplings");
   std::printf("{\"suite\":\"independent_statistics\",\"checks\":%d,\"maximum_"
               "error\":%.17Lg,\"passed\":true}\n",
               checks, max_error);

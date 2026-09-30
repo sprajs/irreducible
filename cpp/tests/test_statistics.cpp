@@ -5,6 +5,16 @@
 // assembly. Normalization budget1e-9, analytic truncation tails <1e-10.
 // Logarithms in references share system libm: not independent libm
 // qualification.
+// W01 source audit motivating selected covariance validation: original
+// Pantheon+SH0ES_STAT+SYS.cov SHA256
+// abf806d966485e64afdb359c87bffc0ecc00d05eff0a31ced66f247385df0fdc and table
+// SHA256 1cb0fc379ef066afdc2ffd1857681cc478024570d8a3eba284fb645775198cf8. 1701
+// original rows; strict zHD>0.01 keeps1590. Independent decimal-token parsing
+// confirmed every selected transposed token identical. Full release has389
+// unequal pairs (max3e-8 mag^2), outside that selected block. This tiny
+// synthetic regression tests the same scope without acquiring survey data:
+// discarded covariance entries unchanged; selected SPD assessed alone; full
+// precision remains an operator whose couplings cannot be discarded first.
 #include "irred/statistics.hpp"
 #include <array>
 #include <cmath>
@@ -260,6 +270,53 @@ int main() {
               consumer.metadata().dependence_provenance.empty() &&
               !consumer.metadata().source_semantics.empty(),
           "unknown lineage remains unknown in consumer");
+    check(consumer.metadata().matrix_validation_scope ==
+              MatrixValidationScope::full_precision_then_marginal,
+          "full precision marginal scope retained");
+    auto source = observation.source();
+    source.uncertainty = observations::Uncertainty::covariance;
+    source.uncertainty_unit = observations::UncertaintyUnit::magnitude_squared;
+    source.measurement_ids = {"a", "b", "discarded"};
+    source.event_ids = {"same", "same", "other"};
+    source.uncertainty_axis_ids = source.measurement_ids;
+    source.values = {2, -3, 0};
+    source.missing = {0, 0, 0};
+    source.quality = {0, 0, 0};
+    source.source_selection = {1, 1, 0};
+    source.uncertainty_matrix = {4, 1, 2, 1, 9, 3, 8, 10, -1};
+    auto raw_matrix = source.uncertainty_matrix;
+    auto retained = observations::prepare(source, {3, 9});
+    auto selected_only =
+        prepare_observations(retained, observations::Selection::all, 4, budget);
+    check(
+        selected_only.status() == DensityStatus::finite,
+        "asymmetric discarded covariance rows do not block selected marginal");
+    near(
+        selected_only.evaluate(r, meta().ordered_ids, budget).density.log_value,
+        v.density.log_value, budget,
+        "selected marginal equals exact declared block");
+    check(selected_only.metadata().matrix_validation_scope ==
+                  MatrixValidationScope::selected_covariance_only &&
+              selected_only.selection_history()[0].complement_row_ids ==
+                  std::vector<std::string>({"discarded"}),
+          "selected only validation scope and original map");
+    check(retained.source().uncertainty_matrix == raw_matrix,
+          "full source not repaired or altered");
+    source.uncertainty_matrix[1] = 1.01;
+    auto asymmetric_kept = observations::prepare(source, {3, 9});
+    check(prepare_observations(asymmetric_kept, observations::Selection::all, 4,
+                               budget)
+                  .status() == DensityStatus::numerical_failure,
+          "asymmetry inside kept block rejected");
+    source.uncertainty = observations::Uncertainty::precision;
+    source.uncertainty_unit =
+        observations::UncertaintyUnit::inverse_magnitude_squared;
+    source.uncertainty_matrix = raw_matrix;
+    auto invalid_full_precision = observations::prepare(source, {3, 9});
+    check(prepare_observations(invalid_full_precision,
+                               observations::Selection::all, 9, budget)
+                  .status() == DensityStatus::numerical_failure,
+          "discarded precision coupling still requires valid full operator");
     std::printf("{\"suite\":\"statistics_contract\",\"checks\":%d,\"max_"
                 "absolute_error\":%.17g,\"passed\":true}\n",
                 checks, maximum);

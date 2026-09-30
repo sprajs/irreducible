@@ -400,16 +400,15 @@ Gaussian prepare_observations(const observations::Prepared &p,
   const auto &s = p.source();
   if (s.uncertainty == observations::Uncertainty::none)
     return {};
-  Metadata m{s.measurement_ids,
-             s.unit == observations::Unit::magnitude ? "product d(magnitude)"
-                                                     : "product d(metre)",
-             s.table_sha256,
-             s.uncertainty_sha256,
-             s.ordering_provenance,
-             s.calibration_provenance,
-             s.dependence_provenance,
-             {},
-             {}};
+  Metadata m{};
+  m.ordered_ids = s.measurement_ids;
+  m.measure = s.unit == observations::Unit::magnitude ? "product d(magnitude)"
+                                                      : "product d(metre)";
+  m.table_identity = s.table_sha256;
+  m.uncertainty_identity = s.uncertainty_sha256;
+  m.ordering_provenance = s.ordering_provenance;
+  m.calibration_provenance = s.calibration_provenance;
+  m.dependence_provenance = s.dependence_provenance;
   m.source_semantics =
       "profile=" + std::to_string(static_cast<unsigned>(s.profile)) +
       ";role=" + std::to_string(static_cast<unsigned>(s.role)) +
@@ -420,12 +419,37 @@ Gaussian prepare_observations(const observations::Prepared &p,
       std::to_string(static_cast<unsigned>(s.uncertainty)) +
       ";uncertainty_unit=" +
       std::to_string(static_cast<unsigned>(s.uncertainty_unit));
-  auto full =
-      prepare_gaussian(s.uncertainty_matrix,
-                       s.uncertainty == observations::Uncertainty::covariance
-                           ? MatrixKind::covariance
-                           : MatrixKind::precision,
-                       std::move(m), cap, budget);
+  if (s.uncertainty == observations::Uncertainty::covariance) {
+    const auto k = selected.source_indices.size(), n = s.values.size();
+    if (k > cap / k)
+      return {};
+    m.ordered_ids.clear();
+    for (auto i : selected.source_indices)
+      m.ordered_ids.push_back(s.measurement_ids[i]);
+    m.matrix_validation_scope = MatrixValidationScope::selected_covariance_only;
+    std::vector<double> block;
+    block.reserve(k * k);
+    for (auto i : selected.source_indices)
+      for (auto j : selected.source_indices)
+        block.push_back(s.uncertainty_matrix[i * n + j]);
+    auto out = prepare_gaussian(block, MatrixKind::covariance, std::move(m),
+                                cap, budget);
+    SelectionRecord history;
+    history.operation = "selected principal covariance block; full source probability "
+                        "validity not assessed";
+    history.kept_row_ids = out.metadata_.ordered_ids;
+    for (std::size_t i = 0; i < n; ++i)
+      if (!selected.mask[i])
+        history.complement_row_ids.push_back(s.measurement_ids[i]);
+    out.history_.push_back(std::move(history));
+    return out;
+  }
+  m.matrix_validation_scope =
+      MatrixValidationScope::full_precision_then_marginal;
+  auto full = prepare_gaussian(s.uncertainty_matrix, MatrixKind::precision,
+                               std::move(m), cap, budget);
+  if (full.status() != DensityStatus::finite)
+    return full;
   return full.marginal(selected.source_indices, cap, budget);
 }
 } // namespace irred::statistics

@@ -35,12 +35,19 @@ struct ProfileResult {
   DensityStatus status = DensityStatus::invalid_input;
   double coefficient = 0, quadratic = 0;
 }; // optimized score, NOT a normalized density
+enum class MatrixValidationScope {
+  full_declared_matrix,
+  selected_covariance_only,
+  full_precision_then_marginal
+};
 struct Metadata {
   std::vector<std::string> ordered_ids;
   std::string measure, table_identity, uncertainty_identity,
       ordering_provenance, calibration_provenance, dependence_provenance,
       source_semantics, input_matrix_convention,
       treatment = "normalized Gaussian";
+  MatrixValidationScope matrix_validation_scope =
+      MatrixValidationScope::full_declared_matrix;
 };
 // These are original generative priors, not conditional latent posteriors.
 struct PriorRecord {
@@ -102,6 +109,9 @@ private:
   std::vector<PriorRecord> priors_;
   std::vector<SelectionRecord> history_;
   numerics::Factorization factor_;
+  friend Gaussian prepare_observations(const observations::Prepared &,
+                                       observations::Selection, std::size_t,
+                                       double);
   friend Gaussian prepare_gaussian(std::span<const double>, MatrixKind,
                                    Metadata, std::size_t, double);
 };
