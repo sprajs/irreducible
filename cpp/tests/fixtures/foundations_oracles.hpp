@@ -1,6 +1,22 @@
-// Validation-only frozen fixtures: Decimal 70/100-digit precision ladder.
-// Provenance: evidence/reference/constants-provenance-v1.json and
-// evidence/contracts/foundations-v1.json. Independent of production C++.
+// Validation-only frozen fixtures, self-contained and independent of production C++.
+// Generated using Python standard-library Decimal at 70/100 decimal digits;
+// both ladders agree at 50 displayed significant digits (not an interval proof).
+// pi=16 atan(1/5)-4 atan(1/239), separately summed alternating series with
+// next-term truncation bounds. No C++ core or external astronomy engine imports.
+// c=299792458 m/s exactly: https://www.bipm.org/en/si-base-units/metre
+// au=149597870700 m exactly: IAU2012 B2 recommendation1,
+// https://iauarchive.eso.org/static/resolutions/IAU2012_English.pdf
+// pc=648000*au/pi exactly: IAU2015 B2 note4,
+// https://iauarchive.eso.org/static/resolutions/IAU2015_English.pdf
+// Mpc=1e6 pc; H0=70 km/s/Mpc; c/H0 reference in Mpc. Output strings
+// retain decimal source representation; rounded is binary64 expected value.
+// Toy I(z,q)=(1-exp(-q*log(1+z)))/q; q=0 limit independently log(1+z).
+// gamma(1/2)=sqrt(pi), gamma(5)=24; SPD C=[[4,1],[1,9]], r=[2,-3],
+// detC=35, C^-1r=[3/5,-2/5], q=12/5; normalized Gaussian includes logdet.
+// Predeclared fixture budgets: quantity relative1e-13; log1p/expm1
+// abs1e-27+relative3e-15; lgamma half/integer absolute1e-14;
+// final toy integral abs1e-12+relative1e-10; Gaussian logdensity absolute1e-10.
+// These synthetic/sampled fixtures do not qualify every admitted argument.
 #pragma once
 #include <array>
 #include <string_view>

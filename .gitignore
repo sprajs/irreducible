@@ -2,4 +2,42 @@
 /build/
 /.build-tools/
 /runs/
+# Private planning, comparison tooling/receipts, data and scratch work
+/Plan/
+/evidence/
+/tests/verification/reference_oracles.py
+/data/
+/datasets/
+/scratch/
+/tmp/
+
+# Local environments and build products
+/.venv/
+/venv/
+/cmake-build-*/
+/CMakeFiles/
+/CMakeCache.txt
+*.o
+*.a
+*.so
+*.so.*
+*.dylib
+*.dll
+*.exe
 __pycache__/
+*.py[cod]
+/.pytest_cache/
+/.mypy_cache/
+/.ruff_cache/
+
+# Credentials and machine/editor state
+.env
+.env.*
+!.env.example
+/.idea/
+/.vscode/
+.DS_Store
+Thumbs.db
+*~
+*.swp
+*.swo

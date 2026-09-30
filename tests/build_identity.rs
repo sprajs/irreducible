@@ -14,7 +14,7 @@ fn build(root:&Path)->String {
 #[ignore="exclusive build/mutation test: execute compiled test binary directly after cargo test --no-run"]
 fn source_receipt_flags_and_cache_identity() {
  let root=PathBuf::from(env!("CARGO_MANIFEST_DIR"));let base=build(&root);
- let probe=Remove(root.join("Plan/08-delivery/implementation/verifier-native-mutable-probe.txt"));fs::write(&probe.0,b"mutable receipt\n").unwrap();assert_eq!(build(&root),base,"mutable receipt affected scientific identity");drop(probe);
+ let probe=Remove(root.join("build/verifier-native-mutable-probe.txt"));fs::write(&probe.0,b"mutable receipt\n").unwrap();assert_eq!(build(&root),base,"mutable receipt affected scientific identity");drop(probe);
  for path in ["src/main.rs","cpp/src/abi.cpp"] {
   let path=root.join(path);let restore=Restore{bytes:fs::read(&path).unwrap(),path};let mut changed=restore.bytes.clone();changed.extend_from_slice(b"\n// independent native build-identity mutation\n");fs::write(&restore.path,changed).unwrap();assert_ne!(build(&root),base,"source mutation missing from identity");drop(restore);assert_eq!(build(&root),base,"restored source identity differs");
  }
