@@ -1,0 +1,20 @@
+# Run records
+
+A run store is the local directory supplied to `irred run`. It contains SHA-256-addressed `objects/` and `attempts/` records. It belongs outside version control.
+
+The request bytes are retained as an object. A run records an incomplete attempt before calculation, then stores outputs and, when available, a resolved scientific specification and complete attempt. The incomplete record remains as part of the history. A terminated process may have an incomplete record and some objects without a complete record.
+
+Records identify the source revision/status captured by the build, build identity, executable digest, runtime libraries, input/output digests, resolved specification and execution identity. Current deterministic operations record RNG as not applicable and declare precision/backend and resources. Source changes after building do not change an existing executable's embedded metadata; rebuild when source changes.
+
+Object publication checks existing content rather than trusting a digest-shaped filename. Preserve immutable outputs. Never edit a receipt to make a failed run appear accepted. Objects on disk do not imply an implemented cache or resume facility.
+
+| Status | Question |
+| --- | --- |
+| Execution | Did the calculation complete? |
+| Numerical | Does it meet the applicable numerical contract and budget? |
+| Inference | Are the estimator, support, diagnostics and uncertainty adequate? |
+| Interpretation | What follows from the result and assumptions? |
+
+The scientific CLI can complete while numerical qualification is not assessed. Inference may be not applicable. Keep these states explicit in agent summaries.
+
+Full receipts, raw comparisons and acquired assets belong in local or purpose-built archival storage. For a published scientific result, preserve its exact run record and data identities in a suitable research archive and cite that separately. The source repository carries native tests and concise fixture provenance, not every development run. Removing material from Git does not mean deleting local historical originals.

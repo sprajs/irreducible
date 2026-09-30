@@ -1,73 +1,55 @@
 # Working in Irreducible
 
-This repository is both a software-development project and, once implemented, an analysis tool. Choose the appropriate track below. The repository contains a reviewed planning package and a tested minimal infrastructure executable. Discover the actual built capabilities; scientific calculations remain unqualified unless their own evidence says otherwise. Do not turn proposed commands into claims that they have run.
+**Read [docs/README.md](docs/README.md) at the start of every task.** It is the canonical agent-first entry point. Public documentation must be sufficient to build and work on a fresh clone. Discover actual executable capabilities before making scientific claims.
 
 ## Start every task
 
-1. Read [Plan/STATUS.md](Plan/STATUS.md), [the main plan](Plan/README.md) and [BUILD-ORDER.md](Plan/BUILD-ORDER.md). The build order owns sequencing; topic plans own their contracts; reference snapshots and review history are evidence rather than active requirements.
-2. Identify the requested capability, equation/model, data product, numerical domain and relevant owner plans. Read existing code and local instructions before changing it. Preserve unrelated work and original inputs.
-3. Distinguish development from analysis. Record what exists, what has been tested, and what remains planned. All scientific capability statuses start unqualified until actual evidence exists.
+1. Read the documentation index, [capabilities](docs/capabilities.md), and the relevant task guide. Identify development versus analysis, the equation/model, input product, numerical domain and affected consumers. Read existing code and local instructions before editing.
+2. If a local `Plan/` directory exists, read its `STATUS.md`, `README.md` and `BUILD-ORDER.md`. Its build order owns local implementation sequencing; topic plans own detailed contracts. Historical reviews and reference snapshots are evidence, not new requirements. Public contributors do not need this private planning package.
+3. Preserve unrelated work and original inputs. Coordinate with the integration owner before builds or shared edits. Use explicit paths when staging. Scientific statuses begin unqualified; implementation and passing tests alone do not change that.
 
-## Development track
+## Development
 
-Implement the smallest coherent slice whose prerequisite capabilities have qualified. Start with S00 and [FIRST-TASKS.md](Plan/08-delivery/FIRST-TASKS.md); do not jump to headline cosmological fits before the mathematical and statistical contracts exist.
+Implement the smallest coherent slice whose prerequisites have qualified. Follow [development](docs/development.md) and [scientific contracts](docs/scientific-contracts.md). Do not jump to headline fits before the mathematical and statistical contracts exist.
 
-Rust owns CLI/configuration, structural parsing, acquisition and run records. C++20 owns physical definitions/conversions, models, numerical kernels, likelihoods and inference loops. CUDA kernels are optional C++ backends. Follow [E05](Plan/04-execution/E05-rust-cpp-boundary.md): coarse batches, one schema source, explicit ownership, no cross-language unwinding and no per-row FFI. The C++ library remains usable independently of the CLI.
+Rust owns CLI/configuration, structural parsing, acquisition and run records. C++20 owns physical definitions/conversions, models, numerical kernels, likelihoods and inference loops. CUDA is a future optional C++ backend. Use coarse batches, one ABI schema source, explicit ownership, no cross-language unwinding and no per-row FFI. Keep the C++ library independently usable.
 
-Add or modify physical hypotheses directly in source, rebuild and rerun. Use small compiled modules and explicit model IDs; do not add a runtime physics plugin framework or duplicate shared equations in separate analyses. Model changes are legitimate scientific work, but they change scientific identity and must not inherit stale cache entries or qualification. Keep immutable historical outputs and their model identity.
+Add hypotheses directly in source as small compiled modules with explicit model IDs. Rebuild and rerun. Do not introduce a runtime physics plugin framework or duplicate shared equations across analyses. A changed model changes scientific identity; it must not inherit stale cached results or qualification. Preserve immutable historical results locally.
 
-For a change, identify equations/assumptions, implement the comparison case, justify the consumer error budget, then write and optimize code. Own domain physics/statistical definitions. Reuse justified infrastructure under [DEPENDENCY-POLICY.md](Plan/08-delivery/DEPENDENCY-POLICY.md); do not smuggle an astronomy or inference package into the production calculation. Upstream algorithms are references; copied code/assets require actual license and attribution review.
+Identify equations and assumptions, build the comparison case and justify the consumer error budget before optimizing. Own physical/statistical definitions. Reuse justified general infrastructure; do not import an astronomy or inference package as the production scientific engine. Review actual licenses and attribution before copying code or assets.
 
-Optimize repeated hotspots after measurement: algorithm/layout/batching, compiler vectorization, multicore, runtime-dispatched SIMD, selected intrinsics or small assembly, and GPU/cluster execution where useful. Maintain a portable baseline and explicit precision/ISA contracts. Compare total wall time and memory at matched numerical quality. A wider vector or more threads is not automatically faster. Keep Rust I/O and C++ compute within one resource budget.
+Measure hotspots and total wall time/memory at matched numerical quality. Improve algorithms, layout and batching before selecting vectorization, multicore, SIMD or accelerator work. Maintain a portable baseline, explicit precision/ISA contracts and one resource budget for Rust and C++. More threads or wider vectors are not automatically faster.
 
-Tests must challenge the stated mathematical/scientific contract, not mirror implementation logic. Use analytic limits, independent algorithms, high precision, refinement and adversarial invalid cases. Shared ancestry is not independent evidence. Before updating an expected result, preserve the old result and explain whether a defect, changed convention, changed input or intentional theory change caused the difference. Never hide a discrepancy by adding jitter, dropping rows, weakening tolerance or replacing a failed result silently.
+Tests must challenge the contract using analytic limits, independent algorithms, high precision, refinement and invalid cases. Shared ancestry is not independent evidence. Before changing an expected result, preserve the old result locally and explain whether the cause is a defect, convention, input or intentional theory change. Never hide discrepancies with jitter, dropped rows or weakened tolerances.
 
-Deliver durable C++ scientific tests and Rust ABI/safe-wrapper/CLI tests wired into the real build and actually run. Follow V01 for independent fixtures and pinned provenance. Python/IDL/astronomy reference scripts and environments are developer-only comparison tooling: inventory them, migrate accepted comparisons and discrepancy regressions into native tests, then clean temporary outputs/tooling/environments after concise immutable evidence preserves reconstructibility. Do not delete original historical research, planning-review receipts or immutable accepted records.
+Keep durable C++ tests and Rust ABI/wrapper/CLI tests wired into the real build. Keep small necessary fixture provenance with the tests: sources, derivations, input conventions, uncertainty and tolerance rationale. Developer-only oracle environments, bulk outputs and receipts belong locally. After migration, native tests must run without external comparison software or local evidence folders. See [testing](docs/testing.md).
 
-Review changes to shared kernels against their affected consumers. Compare at observable, log-likelihood and estimand level. On a failed gate follow [V02](Plan/06-validation/V02-discrepancy-protocol.md), withhold the affected capability/claim and continue useful independent work. Do not reflexively defer to an established package or to this codebase: follow the equations and evidence.
+Review shared kernels against affected consumers at observable, log-likelihood and estimand levels. A failed gate withholds the affected claim. Preserve its cause and reconstructibility locally, add a durable discrepancy regression, and continue independent work. Neither an established package nor this repository is automatically right.
 
-## Analysis track
+## Analysis
 
-Use discovery from the actual built executable to learn capabilities/schemas. The broad CLI described in [A01](Plan/05-agent-interface/A01-cli-contract.md) is proposed; only commands listed below are currently implemented. Once it exists, resolve the full request, check input identities/units/frames/calibrations and required qualifications, then run a bounded batch or compiled analysis. Prefer retained prepared data to one process per likelihood evaluation.
+Use `irred describe --json` from the actual build to discover operations and schemas. Read [the CLI contract](docs/cli.md); proposed commands are not executable capabilities. Check source identities, units, frames, calibrations and required qualifications before a bounded run. Prefer prepared data and coarse batches over per-evaluation processes.
 
-Keep observations, fitted summaries, empirical training/model assets, assumptions and synthetic truth distinct. Track repeated sources, cross-survey overlap, covariance ordering, shared calibrators and selection. Do not substitute a posterior summary for an independent measurement. Unknown dependence or unavailable original assets limits the corresponding inference; it is not silently assumed absent.
+Keep observations, fitted summaries, empirical training/model assets, assumptions and synthetic truth distinct. Track repeated sources, survey overlap, covariance ordering, shared calibrators and selection. Posterior summaries are not independent measurements. Unknown dependence or unavailable original assets limits the inference; it is not silently assumed absent.
 
-Record exact source/build/model/data identities, resolved configuration, resource allocation, RNG policy, numerical settings, output hashes and diagnostics. Report execution, numerical, inference and interpretation statuses separately. A process that completed is not necessarily an accepted result. Do not infer scientific certainty from code reuse or reference agreement.
+Record exact source/build/model/data identities, resolved configuration, resource allocation, RNG policy, numerical settings, output hashes and diagnostics. Report execution, numerical, inference and interpretation statuses separately. Completion is not acceptance. Do not infer scientific certainty from code reuse or reference agreement.
 
-If the requested equation or model is missing, switch to development: add the compiled capability, compare it, update qualification and rebuild before analysis. Do not execute agent-generated expressions from data files. New readers are narrow source adapters and must preserve the same scientific object semantics.
+If an equation/model is missing, switch to development, qualify the new compiled capability and rebuild before analysis. Never execute agent-generated expressions from data files. Source adapters must preserve scientific object semantics.
 
-Reproduction must be labelled exact, approximate, blocked or conditional with reasons. Use [R01](Plan/07-reproduction/R01-migration-map.md) and [R02](Plan/07-reproduction/R02-acceptance-cases.md) for old-research cases. Do not claim the original repo's historical validation was rerun in Irreducible. For posterior claims check the specific estimand's error, support and sensitivity; do not promote a weakly supported reweighting or an unresolved numerical screen.
+Label reproduction exact, approximate, conditional or blocked, with reasons. Do not claim historical research was rerun here without actual runs. Check the estimand's error, support and sensitivity before posterior claims; weak reweighting or an unresolved numerical screen is insufficient.
 
-## Commands that exist now
+## Repository and publication
 
-From the repository root:
+- Product: **Irreducible**. Executable: **`irred`**. Existing C++ namespaces and scientific/schema IDs may still use `cosmology`; renaming the product does not rewrite scientific identity.
+- **`docs/` is canonical and agent-first.** Update it with every public command, contract or workflow change. Keep README and executable discovery consistent. The Wiki is a navigation layer linking to `docs/`.
+- **Never commit `Plan/`, `evidence/`, run stores, acquired datasets, local environments or scratch output.** They stay local and ignored. Do not force-add them. Retain concise provenance and small intentional fixtures under the public tests/docs instead.
+- Do not erase original research, local planning reviews or immutable accepted records as routine cleanup. Ignore/untrack local material without deleting it. Git is for the tool, tests and documentation; users retain scientific run records separately.
+- The integration owner makes small coherent commits at validated milestones and before handoff, coordinates stable snapshots, stages explicit related paths, then pushes `origin main` and verifies the remote SHA. This is standing user authorization for this repository. Workers do not independently commit or push. Never force-push without explicit user authorization for that specific rewrite.
 
-```bash
-python3 Plan/tools/check_plan.py
-```
+## Validation and handoff
 
-This validates planning structure, reference snapshot hashes, catalogue routing and stage dependencies. It does not compile Rust/C++, test equations or rerun science. No dependencies need installing to read or structurally check this plan beyond Python 3.9+.
+Use the commands in [getting started](docs/getting-started.md) and [testing](docs/testing.md). Shared builds use at most four jobs. The source/flag mutation test is exclusive: use an isolated checkout and run its compiled binary directly while no other build operates there.
 
-Implemented and verified S00 commands ([receipt](Plan/08-delivery/implementation/verifier-s00-gate.json), [setup](Plan/08-delivery/implementation/BUILD.md)):
+Update public capability/contract documentation when behavior changes; retain detailed receipts locally. A handoff records implemented scope, commands actually run, comparisons, failures, unresolved decisions and the next dependency. If local plans exist, update their status and link their local receipts.
 
-```bash
-python3 tools/build.py
-.build-tools/bin/ctest --test-dir build/native --output-on-failure
-cargo test --locked --offline -j4
-target/debug/irred describe --json
-target/debug/irred run tests/fixtures/exact-add.json runs/example
-```
-
-The exclusive native source/flag mutation suite is compiled with `cargo test --locked --offline -j4 --test build_identity --no-run`, then its emitted binary is run directly with `--ignored --exact source_receipt_flags_and_cache_identity` while no other build is running. These commands verify infrastructure and bounded native tests; they do not establish cosmological inference. The implemented `quantity.convert.v1` request in `tests/fixtures/quantity-length.json` also produces ordered tagged conversion results with preserved source metadata. Until matching numerical evidence is registered, its completed finite run returns exit 6 and `accepted=false`; no execution success implies numerical qualification. The build uses four jobs; coordinate shared builds before running it. Add further production commands only after actual implementation and verification.
-
-## Handoff and completion
-
-Update status/manifests when evidence changes, linking the receipt rather than merely marking a checkbox. A handoff records the exact stage, implemented slice, actual commands, comparisons, failures, unresolved decisions and next dependency. Keep one authoritative main plan and build order; put review findings in the review ledger and integrate accepted corrections into their owner documents.
-
-Report changed files, validation actually performed and material limitations. No claim of implementation, acceleration, scientific agreement or exhaustive software coverage follows from completing documentation alone.
-
-## Product identity and validated publication
-
-The product is **Irreducible** and its executable is **irred**. The checkout path remains `cosmology`; C++ scientific namespaces, schema/scientific IDs and immutable historical receipts keep their original identities. Public repository: https://github.com/sprajs/irreducible ; remote `origin`.
-
-The integration owner makes small coherent commits at validated milestones and before handoff, stages explicit related paths and coordinates a stable snapshot with workers before committing. Preserve unrelated and unfinished work. Push validated milestone commits with `git push origin main` once initial publication ownership is released; never force-push. Report actual build/test and qualification state, including failures and pending gates. Workers do not independently commit or push.
+Report changed files, actual validation and material limits. Documentation alone establishes no implementation, speedup, scientific agreement or exhaustive coverage.
