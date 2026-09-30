@@ -122,6 +122,13 @@ struct DensityBatch {
 };
 class PreparedDensity {
 public:
+  PreparedDensity() = default;
+  PreparedDensity(const PreparedDensity &) = default;
+  PreparedDensity &operator=(const PreparedDensity &) = default;
+  // Distinct moves invalidate the source; self assignment retains its state.
+  PreparedDensity(PreparedDensity &&) noexcept;
+  PreparedDensity &operator=(PreparedDensity &&) noexcept;
+
   std::optional<std::size_t> retained_payload_bound() const noexcept;
   statistics::DensityStatus status() const noexcept { return status_; }
   numerics::Status numerical_status() const noexcept {

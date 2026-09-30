@@ -102,6 +102,13 @@ struct BatchResult {
 };
 class Consumer {
 public:
+  Consumer() = default;
+  Consumer(const Consumer &) = default;
+  Consumer &operator=(const Consumer &) = default;
+  // Distinct moves invalidate the source; self assignment retains its state.
+  Consumer(Consumer &&) noexcept;
+  Consumer &operator=(Consumer &&) noexcept;
+
   // Shared Prepared source excluded; context charges it once by owner identity.
   std::optional<std::size_t> retained_payload_bound() const noexcept;
   Status status() const noexcept { return status_; }

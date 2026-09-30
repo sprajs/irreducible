@@ -262,9 +262,8 @@ int main(int argc, char **argv) {
     auto r = b.evaluate(overflow, policy()).slots[0];
     check(r.physical.availability == Availability::failed && r.kinematics.value,
           "physical overflow isolation");
-    auto huge = std::span<const Request>((const Request *)nullptr, SIZE_MAX);
-    check(b.evaluate(huge, policy()).status == Status::work_limit,
-          "precopy guard");
+    check(!Expansion::workspace_payload_bound(SIZE_MAX).has_value(),
+          "count-only overflow guard without an invalid span");
     std::array<Request, 2> qs{
         Request(.3, 63, Observer{.4, Convention::released_zhd_zhel},
                 PhysicalScale(70)),

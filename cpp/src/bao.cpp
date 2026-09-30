@@ -3,7 +3,26 @@
 #include "piecewise_radial.hpp"
 #include <cmath>
 #include <limits>
+#include <utility>
 namespace irred::bao {
+PreparedDensity::PreparedDensity(PreparedDensity &&other) noexcept
+    : source_(std::move(other.source_)), gaussian_(std::move(other.gaussian_)),
+      status_(std::exchange(other.status_,
+                            statistics::DensityStatus::invalid_input)),
+      numerical_status_(std::exchange(other.numerical_status_,
+                                      numerics::Status::invalid_input)) {}
+PreparedDensity &PreparedDensity::operator=(PreparedDensity &&other) noexcept {
+  if (this != &other) {
+    source_ = std::move(other.source_);
+    gaussian_ = std::move(other.gaussian_);
+    status_ =
+        std::exchange(other.status_, statistics::DensityStatus::invalid_input);
+    numerical_status_ =
+        std::exchange(other.numerical_status_, numerics::Status::invalid_input);
+  }
+  return *this;
+}
+
 std::optional<size_t> PreparedDensity::retained_payload_bound() const noexcept {
   detail::PayloadAccounting b(sizeof(*this));
   const auto source = retained_source_payload_bound(source_);

@@ -48,6 +48,14 @@ ScalarResult integrate(Integrand, const void *, double lower, double upper,
 enum class Arithmetic { binary64_legacy_v1 = 0, longdouble_cpu_v1 = 1 };
 class Factorization {
 public:
+  Factorization() = default;
+  Factorization(const Factorization &) = default;
+  Factorization &operator=(const Factorization &) = default;
+  // Moving preserves the destination and leaves the source explicitly invalid.
+  // Self move assignment is a no-op and retains the original valid state.
+  Factorization(Factorization &&) noexcept;
+  Factorization &operator=(Factorization &&) noexcept;
+
   Status status() const noexcept { return status_; }
   Arithmetic arithmetic() const noexcept { return arithmetic_; }
   const char *arithmetic_id() const noexcept {
@@ -66,6 +74,7 @@ public:
   }
 
 private:
+  void swap(Factorization &) noexcept;
   Status status_ = Status::invalid_input;
   std::size_t n_ = 0;
   Arithmetic arithmetic_ = Arithmetic::binary64_legacy_v1;

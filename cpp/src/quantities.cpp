@@ -50,6 +50,7 @@ QuantityStatus validate(Quantity q, UnitDefinition u) noexcept {
  return QuantityStatus::ok;
 }
 }
+long double megaparsec_in_metres_wide() noexcept {return definition(Unit::megaparsec).scale;}
 double parsec_in_metres() noexcept {return static_cast<double>(definition(Unit::parsec).scale);}
 Conversion convert(Quantity q, Target t) noexcept {
  Conversion out;out.source=q;out.target={0,t.unit,t.role,t.frame,t.convention,t.constants};

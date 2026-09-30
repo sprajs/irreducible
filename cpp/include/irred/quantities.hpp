@@ -22,4 +22,6 @@ struct Conversion { QuantityStatus status=QuantityStatus::invalid_batch; Quantit
 Conversion convert(Quantity source, Target target) noexcept;
 QuantityStatus convert_batch(std::span<const Quantity> source, Target target, std::span<Conversion> output) noexcept;
 double parsec_in_metres() noexcept;
+// Authoritative wide unit scale for physical projections before final casting.
+long double megaparsec_in_metres_wide() noexcept;
 } // namespace irred

@@ -107,18 +107,14 @@ int main() {
     check(g.numerical_status() == numerics::Status::ok,
           "Gaussian preparation exact success cause");
     auto rejected_budget = prepare_gaussian(
-        std::span<const double>(static_cast<const double *>(nullptr), 4),
+        std::span<const double>(c),
         MatrixKind::covariance, meta(), 4, 0);
     check(rejected_budget.status() == DensityStatus::invalid_input &&
               rejected_budget.numerical_status() ==
                   numerics::Status::invalid_input,
           "invalid budget rejected before matrix access");
-    check(g.evaluate(
-               std::span<const double>(static_cast<const double *>(nullptr),
-                                       std::numeric_limits<std::size_t>::max()),
-               meta().ordered_ids, budget)
-                  .density.status == DensityStatus::invalid_input,
-          "residual impossible size rejected before copy");
+    check(!gaussian_preparation_payload_bound(std::numeric_limits<std::size_t>::max(), MatrixKind::covariance, numerics::Arithmetic::binary64_legacy_v1, meta()),
+          "impossible evaluation count rejected without invalid span");
     std::array<double, 4> indefinite{1, 2, 2, 1};
     check(
         prepare_gaussian(indefinite, MatrixKind::covariance, meta(), 4, budget)

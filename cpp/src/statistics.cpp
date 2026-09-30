@@ -5,7 +5,64 @@
 #include <limits>
 #include <numbers>
 #include <unordered_set>
+#include <utility>
 namespace irred::statistics {
+void ProfileOperator::swap(ProfileOperator &other) noexcept {
+  using std::swap;
+  swap(status_, other.status_);
+  swap(numerical_status_, other.numerical_status_);
+  swap(metadata_, other.metadata_);
+  swap(history_, other.history_);
+  swap(factor_, other.factor_);
+  swap(response_, other.response_);
+  swap(wx_, other.wx_);
+  swap(gram_, other.gram_);
+  swap(backward_, other.backward_);
+  swap(sensitivity_, other.sensitivity_);
+}
+ProfileOperator::ProfileOperator(ProfileOperator &&other) noexcept
+    : status_(std::exchange(other.status_, DensityStatus::invalid_input)),
+      numerical_status_(std::exchange(other.numerical_status_, numerics::Status::invalid_input)),
+      metadata_(std::move(other.metadata_)), history_(std::move(other.history_)),
+      factor_(std::move(other.factor_)), response_(std::move(other.response_)),
+      wx_(std::move(other.wx_)), gram_(std::exchange(other.gram_, 0)),
+      backward_(std::exchange(other.backward_, 0)),
+      sensitivity_(std::exchange(other.sensitivity_, 0)) {}
+ProfileOperator &ProfileOperator::operator=(ProfileOperator &&other) noexcept {
+  if (this != &other) {
+    ProfileOperator moved(std::move(other));
+    swap(moved);
+  }
+  return *this;
+}
+
+void Gaussian::swap(Gaussian &other) noexcept {
+  using std::swap;
+  swap(status_, other.status_);
+  swap(numerical_status_, other.numerical_status_);
+  swap(metadata_, other.metadata_);
+  swap(covariance_, other.covariance_);
+  swap(mean_shift_, other.mean_shift_);
+  swap(latent_ids_, other.latent_ids_);
+  swap(priors_, other.priors_);
+  swap(history_, other.history_);
+  swap(factor_, other.factor_);
+}
+Gaussian::Gaussian(Gaussian &&other) noexcept
+    : status_(std::exchange(other.status_, DensityStatus::invalid_input)),
+      numerical_status_(std::exchange(other.numerical_status_, numerics::Status::invalid_input)),
+      metadata_(std::move(other.metadata_)), covariance_(std::move(other.covariance_)),
+      mean_shift_(std::move(other.mean_shift_)), latent_ids_(std::move(other.latent_ids_)),
+      priors_(std::move(other.priors_)), history_(std::move(other.history_)),
+      factor_(std::move(other.factor_)) {}
+Gaussian &Gaussian::operator=(Gaussian &&other) noexcept {
+  if (this != &other) {
+    Gaussian moved(std::move(other));
+    swap(moved);
+  }
+  return *this;
+}
+
 namespace {
 void metadata_payload(detail::PayloadAccounting &b,
                       const Metadata &m) noexcept {
@@ -560,6 +617,7 @@ ProfileResult Gaussian::profile_offset(std::span<const double> r,
   ProfileResult out;
   if (status_ != DensityStatus::finite) {
     out.status = status_;
+    out.numerical_status = numerical_status_;
     return out;
   }
   if (!priors_.empty() || ids.size() != metadata_.ordered_ids.size() ||

@@ -7,6 +7,29 @@
 #include <numeric>
 #include <type_traits>
 namespace irred::numerics {
+void Factorization::swap(Factorization &other) noexcept {
+  using std::swap;
+  swap(status_, other.status_);
+  swap(n_, other.n_);
+  swap(arithmetic_, other.arithmetic_);
+  swap(lower_, other.lower_);
+  swap(original_, other.original_);
+  swap(wide_lower_, other.wide_lower_);
+  swap(log_determinant_, other.log_determinant_);
+  swap(norm_inf_, other.norm_inf_);
+  swap(condition_estimate_inf_, other.condition_estimate_inf_);
+  swap(wide_norm_inf_, other.wide_norm_inf_);
+  swap(wide_condition_inf_, other.wide_condition_inf_);
+}
+Factorization::Factorization(Factorization &&other) noexcept { swap(other); }
+Factorization &Factorization::operator=(Factorization &&other) noexcept {
+  if (this != &other) {
+    Factorization moved(std::move(other));
+    swap(moved);
+  }
+  return *this;
+}
+
 std::optional<size_t> Factorization::retained_payload_bound() const noexcept {
   detail::PayloadAccounting bytes(sizeof(*this));
   bytes.vector(lower_);

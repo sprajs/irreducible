@@ -12,32 +12,16 @@ inline bool physical_representable(long double v) {
 }
 struct FlatScale {
   Status status = Status::invalid_input;
-  double time_seconds = 0, distance_mpc = 0;
+  long double time_seconds = 0, distance_mpc = 0;
 };
 inline FlatScale prepare_flat_scale(double value) {
   FlatScale out;
-  const auto h = convert({value, Unit::km_per_s_per_mpc, Role::expansion_rate},
-                         {Unit::inverse_second, Role::expansion_rate});
-  if (h.status != QuantityStatus::ok) {
-    out.status = Status::numerical_failure;
+  if (!std::isfinite(value) || !(value > 0))
     return out;
-  }
-  const auto time = 1.L / h.target.value;
-  const auto length = (long double)speed_of_light_m_per_s * time;
-  if (!representable(time) || !representable(length)) {
-    out.status = Status::numerical_failure;
-    return out;
-  }
-  const auto d = convert({(double)length, Unit::metre, Role::physical_length,
-                          Frame::none, LengthConvention::physical},
-                         {Unit::megaparsec, Role::physical_length, Frame::none,
-                          LengthConvention::physical});
-  if (d.status != QuantityStatus::ok) {
-    out.status = Status::numerical_failure;
-    return out;
-  }
-  out.time_seconds = (double)time;
-  out.distance_mpc = d.target.value;
+  // H0 is supplied in km/s/Mpc. Keep the unit scales wide and validate only
+  // requested final seconds/Mpc/volume values in the consuming projection.
+  out.time_seconds = (megaparsec_in_metres_wide() / 1000) / value;
+  out.distance_mpc = ((long double)speed_of_light_m_per_s / 1000) / value;
   out.status = Status::ok;
   return out;
 }

@@ -3,7 +3,32 @@
 #include <algorithm>
 #include <cmath>
 #include <limits>
+#include <utility>
 namespace irred::supernova {
+Consumer::Consumer(Consumer &&other) noexcept
+    : selected_(std::move(other.selected_)),
+      observed_(std::move(other.observed_)),
+      profile_(std::move(other.profile_)),
+      status_(std::exchange(other.status_, Status::invalid_input)),
+      preparation_status_(std::exchange(
+          other.preparation_status_, statistics::DensityStatus::invalid_input)),
+      preparation_numerical_status_(
+          std::exchange(other.preparation_numerical_status_,
+                        numerics::Status::invalid_input)) {}
+Consumer &Consumer::operator=(Consumer &&other) noexcept {
+  if (this != &other) {
+    selected_ = std::move(other.selected_);
+    observed_ = std::move(other.observed_);
+    profile_ = std::move(other.profile_);
+    status_ = std::exchange(other.status_, Status::invalid_input);
+    preparation_status_ = std::exchange(
+        other.preparation_status_, statistics::DensityStatus::invalid_input);
+    preparation_numerical_status_ = std::exchange(
+        other.preparation_numerical_status_, numerics::Status::invalid_input);
+  }
+  return *this;
+}
+
 std::optional<size_t> Consumer::retained_payload_bound() const noexcept {
   detail::PayloadAccounting b(sizeof(*this));
   b.vector(selected_.source_indices);

@@ -132,3 +132,53 @@ fn invalid_model_is_owned_empty_not_false_success_and_schema_is_strict() {
     assert_eq!(code, 2);
     assert_eq!(r["receipt"]["execution"], "failed");
 }
+
+#[test]
+fn final_units_survive_unrequested_metre_overflow() {
+    let s = scratch();
+    let mut v = request();
+    v["models"] = json!([{"kind":"constant_q","q":-1.0}]);
+    v["numerical_policy"]["integration"] = json!({"absolute_tolerance":1e-14,"relative_tolerance":1e-12,"maximum_evaluations":10000,"maximum_depth":30});
+    v["numerical_policy"]["maximum_callbacks"] = json!(10000);
+    for (z, outputs) in [(0.5, json!(["clock"])), (1e-300, json!(["physical"]))] {
+        v["queries"] = json!([{"z_expansion":z,"requested_outputs":outputs,"observer":{"redshift":z,"convention":"geometric_same_redshift"},"physical_scale":{"h0_km_s_mpc":1e-285}}]);
+        let (r, code) = run(&s, &v, false);
+        assert_eq!(code, 0);
+        assert_eq!(r["receipt"]["accepted"], true);
+        let groups = &r["result"]["evaluations"][0]["groups"];
+        if z == 0.5 {
+            assert_eq!(
+                groups["clock"]["value"]["lookback_seconds"]["availability"],
+                "available"
+            );
+            let seconds = groups["clock"]["value"]["lookback_seconds"]["value"]
+                .as_f64()
+                .unwrap();
+            // Independent numeric fixture from the separately reviewed unit
+            // definition and exact de Sitter clock log(1+z), budget unchanged.
+            assert!((seconds / 1.2511345941663363e304 - 1.0).abs() < 1e-13);
+        } else {
+            assert_eq!(groups["physical"]["availability"], "available");
+            for key in [
+                "radial_mpc",
+                "transverse_mpc",
+                "angular_diameter_mpc",
+                "luminosity_mpc",
+            ] {
+                let value = groups["physical"]["value"][key].as_f64().unwrap();
+                assert!((value / 2.99792458e-10 - 1.0).abs() < 1e-13);
+            }
+            let volume = groups["physical"]["value"]["volume_mpc3_per_sr_per_redshift"]
+                .as_f64()
+                .unwrap();
+            assert!((volume / 2.69440024173739849e271 - 1.0).abs() < 1e-13);
+        }
+    }
+    v["queries"] = json!([{"z_expansion":0.5,"requested_outputs":["physical","expansion"],"observer":{"redshift":0.5,"convention":"geometric_same_redshift"},"physical_scale":{"h0_km_s_mpc":1e-285}}]);
+    let (r, code) = run(&s, &v, false);
+    assert_eq!(code, 2);
+    let groups = &r["result"]["evaluations"][0]["groups"];
+    assert_eq!(groups["physical"]["availability"], "failed");
+    assert!(groups["physical"]["value"].is_null());
+    assert_eq!(groups["expansion"]["availability"], "available");
+}

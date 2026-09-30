@@ -1,6 +1,6 @@
 # Fixture provenance and budgets
 
-These are small, intentional native test assets. Their expected values are independent of the production C++ implementation. Full comparison runs and generator environments stay local; the derivations below preserve the meaning of the committed fixtures.
+These are small, intentional native test assets. Their expected values have distinct ancestry: independent analytic or high-precision references, historical calculations, and explicitly labelled production-native regression values. Shared equations, libm, or supplied native prediction vectors limit independence as described per fixture. Full comparison runs and generator environments stay local; the derivations below preserve the meaning of the committed fixtures.
 
 ## Constants and high-precision values
 

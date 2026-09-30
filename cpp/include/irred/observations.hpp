@@ -34,11 +34,20 @@ struct Policy { std::size_t maximum_rows; std::size_t maximum_matrix_elements; s
 struct SelectionResult { Status status=Status::invalid_shape; std::vector<std::uint8_t> mask; std::vector<std::size_t> source_indices; };
 class Prepared {
 public:
- Status status() const noexcept { return status_; }
- const Input& source() const noexcept { return source_; }
- SelectionResult select(Selection) const;
- // Unknown calibration/dependence is retained, never an independence claim.
- bool calibration_state_declared() const noexcept { return source_.calibration!=Calibration::unknown; }
+  Prepared() = default;
+  Prepared(const Prepared &) = default;
+  Prepared &operator=(const Prepared &) = default;
+  // Distinct moves invalidate the source; self assignment retains its state.
+  Prepared(Prepared &&) noexcept;
+  Prepared &operator=(Prepared &&) noexcept;
+
+  Status status() const noexcept { return status_; }
+  const Input &source() const noexcept { return source_; }
+  SelectionResult select(Selection) const;
+  // Unknown calibration/dependence is retained, never an independence claim.
+  bool calibration_state_declared() const noexcept {
+    return source_.calibration != Calibration::unknown;
+  }
 bool calibration_provenance_known() const noexcept { return !source_.calibration_provenance.empty(); }
 private:
  Status status_=Status::invalid_shape;

@@ -82,6 +82,14 @@ std::optional<std::size_t> selected_gaussian_preparation_payload_bound(
 class ProfileOperator;
 class Gaussian {
 public:
+  Gaussian() = default;
+  Gaussian(const Gaussian &) = default;
+  Gaussian &operator=(const Gaussian &) = default;
+  // Moving preserves the destination and leaves the source explicitly invalid.
+  // Self move assignment is a no-op and retains the original valid state.
+  Gaussian(Gaussian &&) noexcept;
+  Gaussian &operator=(Gaussian &&) noexcept;
+
   // Includes this retained owner and the candidate transform simultaneously;
   // callers must not add its retained charge a second time to this peak.
   std::optional<std::size_t>
@@ -141,6 +149,7 @@ public:
                          double maximum_forward_sensitivity) const;
 
 private:
+  void swap(Gaussian &) noexcept;
   DensityStatus status_ = DensityStatus::invalid_input;
   numerics::Status numerical_status_ = numerics::Status::invalid_input;
   Metadata metadata_;
@@ -162,6 +171,14 @@ private:
 };
 class ProfileOperator {
 public:
+  ProfileOperator() = default;
+  ProfileOperator(const ProfileOperator &) = default;
+  ProfileOperator &operator=(const ProfileOperator &) = default;
+  // Moving preserves the destination and leaves the source explicitly invalid.
+  // Self move assignment is a no-op and retains the original valid state.
+  ProfileOperator(ProfileOperator &&) noexcept;
+  ProfileOperator &operator=(ProfileOperator &&) noexcept;
+
   std::optional<std::size_t> retained_payload_bound() const noexcept;
   DensityStatus status() const noexcept { return status_; }
   numerics::Arithmetic arithmetic() const noexcept {
@@ -190,6 +207,7 @@ public:
                          double maximum_forward_sensitivity) const;
 
 private:
+  void swap(ProfileOperator &) noexcept;
   DensityStatus status_ = DensityStatus::invalid_input;
   numerics::Status numerical_status_ = numerics::Status::invalid_input;
   Metadata metadata_;

@@ -209,3 +209,12 @@ foreach(reference_test IN ITEMS current_supernova_reference current_bao_referenc
   target_link_libraries(test_${reference_test} PRIVATE irred_core)
   target_compile_options(test_${reference_test} PRIVATE -Wall -Wextra -Wpedantic -fno-fast-math -ffp-contract=off)
 endforeach()
+
+add_executable(test_lifetime_scale_hostile tests/test_lifetime_scale_hostile.cpp)
+target_link_libraries(test_lifetime_scale_hostile PRIVATE irred_core)
+target_compile_options(test_lifetime_scale_hostile PRIVATE -Wall -Wextra -Wpedantic -fno-fast-math -ffp-contract=off)
+add_test(NAME lifetime_scale_hostile COMMAND test_lifetime_scale_hostile)
+add_executable(test_consumer_controls tests/test_consumer_controls.cpp)
+target_link_libraries(test_consumer_controls PRIVATE irred_core)
+target_compile_options(test_consumer_controls PRIVATE -Wall -Wextra -Wpedantic -fno-fast-math -ffp-contract=off)
+add_test(NAME consumer_controls COMMAND test_consumer_controls)
