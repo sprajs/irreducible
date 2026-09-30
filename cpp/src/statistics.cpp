@@ -29,6 +29,12 @@ bool valid_ids(const Metadata &m) {
       return false;
   return true;
 }
+// Reported nonzero coefficient/residual/quadratic terms require normal f64.
+// A rounded zero is not an exact scientific zero.
+bool normal_or_zero_output(long double source, double output) {
+  return source == 0 ? output == 0
+                     : output != 0 && std::fpclassify(output) == FP_NORMAL;
+}
 bool finite_span(std::span<const double> x) {
   return std::all_of(x.begin(), x.end(),
                      [](double v) { return std::isfinite(v); });
@@ -120,9 +126,21 @@ DensityResult selected_standard_normal_positive(double x) noexcept {
   return r;
 }
 Gaussian prepare_gaussian(std::span<const double> matrix, MatrixKind kind,
-                          Metadata m, std::size_t cap, double budget) {
+                          Metadata m, std::size_t cap, double budget,
+                          numerics::Arithmetic arithmetic) {
   Gaussian g;
   g.metadata_ = std::move(m);
+  if (arithmetic != numerics::Arithmetic::binary64_legacy_v1 &&
+      arithmetic != numerics::Arithmetic::longdouble_cpu_v1) {
+    g.factor_ = numerics::cholesky({}, 0, 0, arithmetic);
+    g.metadata_.arithmetic_id = g.factor_.arithmetic_id();
+    return g;
+  }
+
+  g.metadata_.arithmetic_id =
+      arithmetic == numerics::Arithmetic::longdouble_cpu_v1
+          ? "F02/longdouble-cpu/v1"
+          : "F02/binary64-legacy/v1";
   if (g.metadata_.input_matrix_convention.empty())
     g.metadata_.input_matrix_convention =
         kind == MatrixKind::covariance ? "covariance" : "precision";
@@ -135,7 +153,8 @@ Gaussian prepare_gaussian(std::span<const double> matrix, MatrixKind kind,
     return g;
   if (!std::isfinite(budget) || budget <= 0)
     return g;
-  auto f = numerics::cholesky(matrix, n, cap);
+  auto f = numerics::cholesky(matrix, n, cap, arithmetic);
+  g.metadata_.arithmetic_id = f.arithmetic_id();
   if (f.status() != numerics::Status::ok) {
     g.status_ = DensityStatus::numerical_failure;
     g.numerical_status_ = f.status();
@@ -147,7 +166,7 @@ Gaussian prepare_gaussian(std::span<const double> matrix, MatrixKind kind,
       g.status_ = DensityStatus::numerical_failure;
       return g;
     }
-    g.factor_ = numerics::cholesky(g.covariance_, n, cap);
+    g.factor_ = numerics::cholesky(g.covariance_, n, cap, arithmetic);
   } else {
     g.covariance_.assign(matrix.begin(), matrix.end());
     g.factor_ = std::move(f);
@@ -195,9 +214,17 @@ GaussianResult Gaussian::evaluate(std::span<const double> r,
   const auto q = dot(centered, s.value);
   if (q < 0 || !std::isfinite(q) || q > std::numeric_limits<double>::max()) {
     out.density.status = DensityStatus::numerical_failure;
+    out.density.numerical_status = q < 0 ? numerics::Status::outside_domain
+                                        : numerics::Status::overflow;
     return out;
   }
-  out.quadratic = static_cast<double>(q);
+  const auto reported_q = static_cast<double>(q);
+  if (!normal_or_zero_output(q, reported_q)) {
+    out.density.status = DensityStatus::numerical_failure;
+    out.density.numerical_status = numerics::Status::outside_domain;
+    return out;
+  }
+  out.quadratic = reported_q;
   out.log_determinant = factor_.log_determinant();
   const auto norm = static_cast<long double>(r.size()) * log2pi;
   out.normalization = static_cast<double>(norm);
@@ -221,8 +248,8 @@ Gaussian Gaussian::marginal(std::span<const std::size_t> keep, std::size_t cap,
   for (auto i : keep)
     for (auto j : keep)
       c.push_back(covariance_[i * factor_.size() + j]);
-  auto out =
-      prepare_gaussian(c, MatrixKind::covariance, std::move(m), cap, budget);
+  auto out = prepare_gaussian(c, MatrixKind::covariance, std::move(m), cap,
+                              budget, factor_.arithmetic());
   out.latent_ids_ = latent_ids_;
   out.priors_ = priors_;
   out.history_ = history_;
@@ -262,8 +289,8 @@ Gaussian::conditional_zero_complement(std::span<const std::size_t> keep,
   for (auto i : keep)
     for (auto j : keep)
       p.push_back(precision[i * factor_.size() + j]);
-  auto out =
-      prepare_gaussian(p, MatrixKind::precision, std::move(m), cap, budget);
+  auto out = prepare_gaussian(p, MatrixKind::precision, std::move(m), cap,
+                              budget, factor_.arithmetic());
   out.latent_ids_ = latent_ids_;
   out.priors_ = priors_;
   out.history_ = history_;
@@ -307,6 +334,12 @@ ProfileResult evaluate_profile(const numerics::Factorization &factor,
     out.numerical_status = numerics::Status::overflow;
     return out;
   }
+  const auto reported_a = static_cast<double>(a);
+  if (!normal_or_zero_output(a, reported_a)) {
+    out.status = DensityStatus::numerical_failure;
+    out.numerical_status = numerics::Status::outside_domain;
+    return out;
+  }
   std::vector<double> adjusted(r.size());
   for (std::size_t i = 0; i < r.size(); ++i) {
     const auto v = static_cast<long double>(r[i]) - a * x[i];
@@ -316,6 +349,11 @@ ProfileResult evaluate_profile(const numerics::Factorization &factor,
       return out;
     }
     adjusted[i] = static_cast<double>(v);
+    if (!normal_or_zero_output(v, adjusted[i])) {
+      out.status = DensityStatus::numerical_failure;
+      out.numerical_status = numerics::Status::outside_domain;
+      return out;
+    }
   }
   auto wa = numerics::solve(factor, adjusted, budget);
   if (wa.status != numerics::Status::ok) {
@@ -327,6 +365,12 @@ ProfileResult evaluate_profile(const numerics::Factorization &factor,
   if (q < 0 || !std::isfinite(q) || q > std::numeric_limits<double>::max()) {
     out.status = DensityStatus::numerical_failure;
     out.numerical_status = numerics::Status::overflow;
+    return out;
+  }
+  const auto reported_q = static_cast<double>(q);
+  if (!normal_or_zero_output(q, reported_q)) {
+    out.status = DensityStatus::numerical_failure;
+    out.numerical_status = numerics::Status::outside_domain;
     return out;
   }
   long double residual_l1 = 0, adjusted_l1 = 0;
@@ -346,8 +390,8 @@ ProfileResult evaluate_profile(const numerics::Factorization &factor,
   }
   out.status = DensityStatus::finite;
   out.numerical_status = numerics::Status::ok;
-  out.coefficient = static_cast<double>(a);
-  out.quadratic = static_cast<double>(q);
+  out.coefficient = reported_a;
+  out.quadratic = reported_q;
   out.backward_residual = wa.backward_residual;
   out.estimated_forward_sensitivity = wa.estimated_forward_sensitivity;
   out.coefficient_solve_backward_residual = wr.backward_residual;
@@ -479,8 +523,8 @@ Gaussian Gaussian::proper_offset(std::span<const double> x,
     }
   auto m = metadata_;
   m.treatment += "; proper independent offset:" + identity;
-  auto out =
-      prepare_gaussian(c, MatrixKind::covariance, std::move(m), cap, budget);
+  auto out = prepare_gaussian(c, MatrixKind::covariance, std::move(m), cap,
+                              budget, factor_.arithmetic());
   out.latent_ids_ = latent_ids_;
   out.latent_ids_.push_back(identity);
   out.priors_ = priors_;
@@ -506,7 +550,12 @@ Gaussian Gaussian::proper_offset(std::span<const double> x,
 Gaussian
 prepare_selected_observations(const observations::Prepared &p,
                               std::span<const std::size_t> selected_indices,
-                              std::size_t cap, double budget) {
+                              std::size_t cap, double budget,
+                              numerics::Arithmetic arithmetic) {
+  if (arithmetic != numerics::Arithmetic::binary64_legacy_v1 &&
+      arithmetic != numerics::Arithmetic::longdouble_cpu_v1)
+    return prepare_gaussian({}, MatrixKind::covariance, {}, cap, budget,
+                            arithmetic);
   if (p.status() != observations::Status::ok)
     return {};
   const auto &s = p.source();
@@ -575,7 +624,7 @@ prepare_selected_observations(const observations::Prepared &p,
       for (auto j : selected.source_indices)
         block.push_back(s.uncertainty_matrix[i * n + j]);
     auto out = prepare_gaussian(block, MatrixKind::covariance, std::move(m),
-                                cap, budget);
+                                cap, budget, arithmetic);
     SelectionRecord history;
     history.operation = "caller-declared selected principal covariance block; "
                         "full source probability validity not assessed";
@@ -589,7 +638,7 @@ prepare_selected_observations(const observations::Prepared &p,
   m.matrix_validation_scope =
       MatrixValidationScope::full_precision_then_marginal;
   auto full = prepare_gaussian(s.uncertainty_matrix, MatrixKind::precision,
-                               std::move(m), cap, budget);
+                               std::move(m), cap, budget, arithmetic);
   if (full.status() != DensityStatus::finite)
     return full;
   auto out = full.marginal(selected.source_indices, cap, budget);
@@ -600,14 +649,18 @@ prepare_selected_observations(const observations::Prepared &p,
 }
 Gaussian prepare_observations(const observations::Prepared &p,
                               observations::Selection choice, std::size_t cap,
-                              double budget) {
+                              double budget, numerics::Arithmetic arithmetic) {
+  if (arithmetic != numerics::Arithmetic::binary64_legacy_v1 &&
+      arithmetic != numerics::Arithmetic::longdouble_cpu_v1)
+    return prepare_gaussian({}, MatrixKind::covariance, {}, cap, budget,
+                            arithmetic);
   if (p.status() != observations::Status::ok)
     return {};
   auto selected = p.select(choice);
   if (selected.status != observations::Status::ok)
     return {};
-  auto out =
-      prepare_selected_observations(p, selected.source_indices, cap, budget);
+  auto out = prepare_selected_observations(p, selected.source_indices, cap,
+                                           budget, arithmetic);
   if (!out.history_.empty())
     out.history_.back().operation +=
         "; compiled selection=" + std::to_string(static_cast<unsigned>(choice));

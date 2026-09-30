@@ -463,6 +463,54 @@ int main() {
         g.evaluate(cached.adjusted_residuals, meta().ordered_ids, budget);
     near(canonical_check.quadratic, cached.quadratic, 4e-11,
          "reported score uses returned canonical adjusted residuals");
+    {
+      std::array<double, 4> identity{1, 0, 0, 1};
+      std::array<double, 2> response{1, 1}, tiny{1e-170, -1e-170};
+      auto tiny_g =
+          prepare_gaussian(identity, MatrixKind::covariance, meta(), 4, budget);
+      auto normalized_underflow =
+          tiny_g.evaluate(tiny, meta().ordered_ids, budget);
+      check(normalized_underflow.density.status ==
+                    DensityStatus::numerical_failure &&
+                normalized_underflow.density.numerical_status ==
+                    numerics::Status::outside_domain,
+            "normalized reported quadratic underflow rejected");
+      // Identity covariance gives q = 2e400: the solve is representable,
+      // but the public binary64 quadratic is not.
+      std::array<double, 2> huge_residual{1e200, -1e200};
+      auto normalized_overflow =
+          tiny_g.evaluate(huge_residual, meta().ordered_ids, budget);
+      check(normalized_overflow.density.status ==
+                    DensityStatus::numerical_failure &&
+                normalized_overflow.density.numerical_status ==
+                    numerics::Status::overflow,
+            "normalized quadratic overflow retains numerical cause");
+      std::array<double, 2> exact_zero{};
+      check(tiny_g.evaluate(exact_zero, meta().ordered_ids, budget)
+                    .density.status == DensityStatus::finite,
+            "normalized exactzero quadratic remains finite");
+      auto underflow =
+          tiny_g.profile_offset(tiny, response, meta().ordered_ids, budget);
+      check(underflow.status == DensityStatus::numerical_failure &&
+                underflow.numerical_status == numerics::Status::outside_domain,
+            "positive profile quadratic cannot cast to exact zero");
+      std::array<double, 2> huge_response{1e200, 1e200};
+      tiny = {1e-170, 1e-170};
+      auto coefficient = tiny_g.profile_offset(tiny, huge_response,
+                                               meta().ordered_ids, budget);
+      check(coefficient.status == DensityStatus::numerical_failure &&
+                coefficient.numerical_status ==
+                    numerics::Status::outside_domain,
+            "nonzero profile coefficient cannot cast to zero");
+      std::array<double, 2> boundary{
+          std::numeric_limits<double>::min(),
+          std::nextafter(std::numeric_limits<double>::min(), 1.)};
+      auto adjusted =
+          tiny_g.profile_offset(boundary, response, meta().ordered_ids, budget);
+      check(adjusted.status == DensityStatus::numerical_failure &&
+                adjusted.numerical_status == numerics::Status::outside_domain,
+            "nonzero adjusted residual cannot underflow on cast");
+    }
     std::printf("{\"suite\":\"statistics_contract\",\"checks\":%d,\"max_"
                 "absolute_error\":%.17g,\"passed\":true}\n",
                 checks, maximum);

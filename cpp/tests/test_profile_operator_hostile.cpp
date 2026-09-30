@@ -110,6 +110,45 @@ int main() {
   check(op.evaluate(zero, m.ordered_ids, 0).status !=
             statistics::DensityStatus::finite,
         "zero requested policy invalid");
+  std::array<double, 4> identity{1, 0, 0, 1};
+  auto small = statistics::prepare_gaussian(
+      identity, statistics::MatrixKind::covariance, m, 4, 1e-10);
+  std::array<double, 2> antisymmetric_tiny{1e-170, -1e-170};
+  auto normalized_tiny =
+      small.evaluate(antisymmetric_tiny, m.ordered_ids, 1e-10);
+  check(normalized_tiny.density.status ==
+                statistics::DensityStatus::numerical_failure &&
+            normalized_tiny.density.numerical_status ==
+                numerics::Status::outside_domain,
+        "normalized positive quadratic must not cast to zero");
+  auto normalized_zero = small.evaluate(zero, m.ordered_ids, 1e-10);
+  check(normalized_zero.density.status == statistics::DensityStatus::finite &&
+            normalized_zero.quadratic == 0,
+        "normalized exact zero remains finite");
+  auto tiny_q =
+      small.profile_offset(antisymmetric_tiny, ones, m.ordered_ids, 1e-10);
+  check(tiny_q.status == statistics::DensityStatus::numerical_failure &&
+            tiny_q.numerical_status == numerics::Status::outside_domain,
+        "nonrepresentable positive q must not report mathematical zero");
+  std::array<double, 2> huge_response{1e200, 1e200}, tiny_equal{1e-170, 1e-170};
+  auto tiny_a =
+      small.profile_offset(tiny_equal, huge_response, m.ordered_ids, 1e-10);
+  check(tiny_a.status == statistics::DensityStatus::numerical_failure &&
+            tiny_a.numerical_status == numerics::Status::outside_domain,
+        "nonrepresentable nonzero coefficient must not report zero");
+  const auto minimum = std::numeric_limits<double>::min();
+  std::array<double, 2> tiny_difference{
+      minimum,
+      std::nextafter(minimum, std::numeric_limits<double>::infinity())};
+  auto tiny_adjusted =
+      small.profile_offset(tiny_difference, ones, m.ordered_ids, 1e-10);
+  check(tiny_adjusted.status == statistics::DensityStatus::numerical_failure &&
+            tiny_adjusted.numerical_status == numerics::Status::outside_domain,
+        "nonzero adjusted residual cast cannot silently underflow");
+  auto exact_zero = small.profile_offset(zero, ones, m.ordered_ids, 1e-10);
+  check(exact_zero.status == statistics::DensityStatus::finite &&
+            exact_zero.quadratic == 0,
+        "analytic zero profile remains valid");
   auto source = observations_fixture();
   // Real valid span larger than source rows; no invalid span precondition or
   // inaccessible-pointer assumption. Allocation tracing distinguishes bounded

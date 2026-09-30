@@ -4,7 +4,7 @@ set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
-add_library(irred_core STATIC src/abi.cpp src/quantities.cpp src/numerics.cpp src/observations.cpp src/fits_reader.cpp src/observation_abi.cpp src/statistics.cpp src/statistics_abi.cpp src/background.cpp src/background_abi.cpp)
+add_library(irred_core STATIC src/abi.cpp src/quantities.cpp src/numerics.cpp src/observations.cpp src/fits_reader.cpp src/observation_abi.cpp src/statistics.cpp src/statistics_abi.cpp src/background.cpp src/background_abi.cpp src/supernova.cpp)
 target_include_directories(irred_core PUBLIC include)
 target_compile_options(irred_core PRIVATE -Wall -Wextra -Wpedantic -fno-fast-math -ffp-contract=off)
 add_executable(test_abi tests/test_abi.cpp)
@@ -86,6 +86,9 @@ add_executable(test_background_hostile tests/test_background_hostile.cpp)
 target_link_libraries(test_background_hostile PRIVATE irred_core)
 add_test(NAME background_hostile_contract COMMAND test_background_hostile)
 
+# Explicit developer audit of external release assets; no default dataset dependency.
+add_executable(test_w01_covariance_audit EXCLUDE_FROM_ALL tests/test_w01_covariance_audit.cpp)
+target_compile_options(test_w01_covariance_audit PRIVATE -Wall -Wextra -Wpedantic -fno-fast-math -ffp-contract=off)
 
 add_executable(test_gaussian_abi_hostile tests/test_gaussian_abi_hostile.cpp)
 target_link_libraries(test_gaussian_abi_hostile PRIVATE irred_core)
@@ -98,3 +101,33 @@ add_test(NAME profile_operator_hostile_contract COMMAND test_profile_operator_ho
 add_executable(test_background_abi_hostile tests/test_background_abi_hostile.cpp)
 target_link_libraries(test_background_abi_hostile PRIVATE irred_core)
 add_test(NAME background_abi_hostile_contract COMMAND test_background_abi_hostile)
+
+add_executable(test_ldlt_reference tests/test_ldlt_reference.cpp)
+target_compile_options(test_ldlt_reference PRIVATE -Wall -Wextra -Wpedantic -fno-fast-math -ffp-contract=off)
+add_test(NAME ldlt_reference_contract COMMAND test_ldlt_reference)
+
+add_executable(test_w01_reference EXCLUDE_FROM_ALL tests/test_w01_reference.cpp)
+target_include_directories(test_w01_reference PRIVATE include)
+target_link_libraries(test_w01_reference PRIVATE irred_core)
+target_compile_options(test_w01_reference PRIVATE -Wall -Wextra -Wpedantic -fno-fast-math -ffp-contract=off)
+
+add_executable(test_numerics_wide tests/test_numerics_wide.cpp)
+target_link_libraries(test_numerics_wide PRIVATE irred_core)
+add_test(NAME numerics_wide_contract COMMAND test_numerics_wide)
+
+add_executable(test_numerics_longdouble_hostile tests/test_numerics_longdouble_hostile.cpp)
+target_link_libraries(test_numerics_longdouble_hostile PRIVATE irred_core)
+add_test(NAME numerics_longdouble_hostile_contract COMMAND test_numerics_longdouble_hostile)
+
+add_executable(test_supernova tests/test_supernova.cpp)
+target_link_libraries(test_supernova PRIVATE irred_core)
+add_test(NAME supernova_contract COMMAND test_supernova)
+
+add_executable(test_supernova_hostile tests/test_supernova_hostile.cpp)
+target_link_libraries(test_supernova_hostile PRIVATE irred_core)
+add_test(NAME supernova_hostile_contract COMMAND test_supernova_hostile)
+
+add_executable(test_w01_scores EXCLUDE_FROM_ALL tests/test_w01_scores.cpp)
+target_include_directories(test_w01_scores PRIVATE include)
+target_link_libraries(test_w01_scores PRIVATE irred_core)
+target_compile_options(test_w01_scores PRIVATE -Wall -Wextra -Wpedantic -fno-fast-math -ffp-contract=off)

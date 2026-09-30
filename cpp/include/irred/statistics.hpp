@@ -50,6 +50,7 @@ enum class MatrixValidationScope {
   full_precision_then_marginal
 };
 struct Metadata {
+  std::string arithmetic_id = "F02/binary64-legacy/v1";
   std::vector<std::string> ordered_ids;
   std::string measure, table_identity, uncertainty_identity,
       ordering_provenance, calibration_provenance, dependence_provenance,
@@ -75,6 +76,9 @@ class ProfileOperator;
 class Gaussian {
 public:
   DensityStatus status() const noexcept { return status_; }
+  numerics::Arithmetic arithmetic() const noexcept {
+    return factor_.arithmetic();
+  }
   numerics::Status numerical_status() const noexcept {
     return numerical_status_;
   }
@@ -131,16 +135,21 @@ private:
   numerics::Factorization factor_;
   friend Gaussian prepare_selected_observations(const observations::Prepared &,
                                                 std::span<const std::size_t>,
-                                                std::size_t, double);
+                                                std::size_t, double,
+                                                numerics::Arithmetic);
   friend Gaussian prepare_observations(const observations::Prepared &,
                                        observations::Selection, std::size_t,
-                                       double);
+                                       double, numerics::Arithmetic);
   friend Gaussian prepare_gaussian(std::span<const double>, MatrixKind,
-                                   Metadata, std::size_t, double);
+                                   Metadata, std::size_t, double,
+                                   numerics::Arithmetic);
 };
 class ProfileOperator {
 public:
   DensityStatus status() const noexcept { return status_; }
+  numerics::Arithmetic arithmetic() const noexcept {
+    return factor_.arithmetic();
+  }
   numerics::Status numerical_status() const noexcept {
     return numerical_status_;
   }
@@ -179,15 +188,17 @@ private:
 // selected finite rows.
 Gaussian prepare_selected_observations(
     const observations::Prepared &, std::span<const std::size_t> source_indices,
-    std::size_t maximum_elements, double maximum_forward_sensitivity);
-Gaussian prepare_gaussian(std::span<const double> matrix, MatrixKind, Metadata,
-                          std::size_t maximum_elements,
-                          double maximum_forward_sensitivity);
+    std::size_t maximum_elements, double maximum_forward_sensitivity,
+    numerics::Arithmetic arithmetic = numerics::Arithmetic::binary64_legacy_v1);
+Gaussian prepare_gaussian(
+    std::span<const double> matrix, MatrixKind, Metadata,
+    std::size_t maximum_elements, double maximum_forward_sensitivity,
+    numerics::Arithmetic arithmetic = numerics::Arithmetic::binary64_legacy_v1);
 // Covariance validates the selected principal block only, without asserting
 // full-source probability validity. Precision validates/inverts the full
 // declared operator before marginalization. Unknown source lineage retained.
-Gaussian prepare_observations(const observations::Prepared &,
-                              observations::Selection,
-                              std::size_t maximum_elements,
-                              double maximum_forward_sensitivity);
+Gaussian prepare_observations(
+    const observations::Prepared &, observations::Selection,
+    std::size_t maximum_elements, double maximum_forward_sensitivity,
+    numerics::Arithmetic arithmetic = numerics::Arithmetic::binary64_legacy_v1);
 } // namespace irred::statistics

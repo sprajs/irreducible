@@ -68,3 +68,19 @@ cargo test --locked --offline -j4 --test profile_identity -- --ignored
 ```
 
 This checks each executable's describe/version manifest, identical source digests with distinct profile/build/native-archive identities, and a deliberately wrong native fixture compiled with NDEBUG. That fixture must fail, proving its required checks were executed. It compiles one temporary native test, cleans it after success, and never mutates production source.
+
+## Optional original-input supernova comparison
+
+The native consumer and independent synthetic/LDLT checks run in ordinary tests. The original released-input comparison is explicit and potentially expensive; acquire the exact assets pinned by `cpp/tests/fixtures/w01_historical.hpp` before invoking it. No dataset is bundled. Build its optional target in the chosen profile:
+
+```sh
+.build-tools/bin/cmake --build build/native --target test_w01_scores --parallel 4
+```
+
+Set `IRRED_W01_TABLE`, `IRRED_W01_COVARIANCE` and `IRRED_W01_NATIVE_HARNESS` to the original files and built `test_w01_scores` executable, then run:
+
+```sh
+cargo test --locked --offline -j4 --test w01_reference -- --ignored --nocapture
+```
+
+The Rust wrapper verifies raw hashes before running C++; it contains no physical equations. The native harness compares the frozen direct/stable historical scores separately from the approximate compressed route. This is a named fixed-input comparison, not parameter fitting or cosmological inference. The supernova C ABI/CLI remains unavailable until its separate interface gate.
