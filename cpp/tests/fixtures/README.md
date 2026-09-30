@@ -47,3 +47,11 @@ A cancellation regression integrates `x^6 - rounded(1/7)` on `[0,1]`. A local re
 A sufficiently narrow unsampled peak can evade an adaptive quadrature estimator entirely. Tests retain that limitation; a finite estimate is not a certified bound. Shared libm calls, shared constants and similar algorithms are disclosed dependencies, not independent confirmations.
 
 See [testing](../../../docs/testing.md) for actual commands and [scientific contracts](../../../docs/scientific-contracts.md) for qualification rules. These notes describe fixture ancestry and intended budgets; they are not run receipts or blanket scientific qualification.
+
+## Large synthetic rank-one covariance
+
+`test_large_spd` uses exactly dyadic `C = I + 11^T/64` and `r_i = ((i mod 11)-5)/4`. Sherman–Morrison gives `C^-1 r = r - 1 sum(r)/(64+n)`; the determinant lemma gives `det(C)=1+n/64`. Integer sums produce the reference quadratic without calling the production factorization or reduction. The exact infinity-norm condition number is `1+(2n-2)/64`.
+
+The ordinary suite runs `test_large_spd --size64`. Its default n=1590 execution is explicit and expensive, not an ordinary test workload. The fixed assembled log-density absolute budget is `1e-8`, intended for a synthetic consumer reporting roughly seven decimal places. Component checks allocate `2e-9` each to quadratic and log determinant, `4e-9` to normalization, and `1e-10` to maximum solution component error. Backward residual and forward sensitivity are diagnostics, not proved bounds. Reference logarithms share standard-library ancestry; differences below `1e-12` are not asserted as proven accuracy digits.
+
+This tests the named rank-one family only. It is not a survey covariance, a likelihood reproduction, or qualification of arbitrary large SPD matrices. The numerical ABI tests separately compare direct native and coarse batch values/statuses/diagnostics, and explicitly disclose their shared numerical-core ancestry.
