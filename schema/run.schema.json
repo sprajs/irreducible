@@ -28,6 +28,9 @@
     },
     {
       "$ref": "#/$defs/supernova_v2"
+    },
+    {
+      "$ref": "#/$defs/bao"
     }
   ],
   "$defs": {
@@ -1113,6 +1116,500 @@
         }
       },
       "description": "Retained compiled released-source relative single-offset profile batch; requires Pantheon profile and strict zHD>.01 selection. No density/evidence claim. Explicit mixed v2 fields; canonical inactive parameters validated by C++."
+    },
+    "bao": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema_version",
+        "operation",
+        "source",
+        "prepare_policy",
+        "models",
+        "evaluation_policy"
+      ],
+      "properties": {
+        "schema_version": {
+          "const": 1
+        },
+        "operation": {
+          "const": "bao.gaussian_batch.v1"
+        },
+        "source": {
+          "oneOf": [
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "profile",
+                "ordering_provenance",
+                "calibration_provenance",
+                "dependence_provenance",
+                "redshift_convention",
+                "ruler_convention",
+                "computational_h0_convention",
+                "mean",
+                "covariance",
+                "maximum_asset_bytes"
+              ],
+              "properties": {
+                "profile": {
+                  "const": "desi_dr2_all_gccomb_13_v1"
+                },
+                "ordering_provenance": {
+                  "type": "string"
+                },
+                "calibration_provenance": {
+                  "type": "string"
+                },
+                "dependence_provenance": {
+                  "type": "string"
+                },
+                "redshift_convention": {
+                  "const": "P01/released-effective-redshift/v1"
+                },
+                "ruler_convention": {
+                  "const": "P01/free-H0rd-km-s-no-early-physics/v1"
+                },
+                "computational_h0_convention": {
+                  "const": "P01/computational-H0-fixed-70-km-s-Mpc/v1"
+                },
+                "mean": {
+                  "type": "string"
+                },
+                "covariance": {
+                  "type": "string"
+                },
+                "maximum_asset_bytes": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 16777216
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "profile",
+                "ordering_provenance",
+                "calibration_provenance",
+                "dependence_provenance",
+                "redshift_convention",
+                "ruler_convention",
+                "computational_h0_convention",
+                "rows",
+                "covariance",
+                "covariance_axis_ids"
+              ],
+              "properties": {
+                "profile": {
+                  "const": "synthetic_inline_v1"
+                },
+                "ordering_provenance": {
+                  "type": "string"
+                },
+                "calibration_provenance": {
+                  "type": "string"
+                },
+                "dependence_provenance": {
+                  "type": "string"
+                },
+                "redshift_convention": {
+                  "const": "P01/released-effective-redshift/v1"
+                },
+                "ruler_convention": {
+                  "const": "P01/free-H0rd-km-s-no-early-physics/v1"
+                },
+                "computational_h0_convention": {
+                  "const": "P01/computational-H0-fixed-70-km-s-Mpc/v1"
+                },
+                "rows": {
+                  "type": "array",
+                  "maxItems": 4096,
+                  "items": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                      "id",
+                      "z",
+                      "observable",
+                      "value"
+                    ],
+                    "properties": {
+                      "id": {
+                        "type": "string"
+                      },
+                      "z": {
+                        "type": "number"
+                      },
+                      "observable": {
+                        "enum": [
+                          "DM_over_rs",
+                          "DH_over_rs",
+                          "DV_over_rs"
+                        ]
+                      },
+                      "value": {
+                        "type": "number"
+                      }
+                    }
+                  }
+                },
+                "covariance": {
+                  "type": "array",
+                  "maxItems": 16777216,
+                  "items": {
+                    "type": "number"
+                  }
+                },
+                "covariance_axis_ids": {
+                  "type": "array",
+                  "maxItems": 4096,
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          ]
+        },
+        "prepare_policy": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "background",
+            "arithmetic",
+            "include_predictions",
+            "include_residuals",
+            "maximum_models",
+            "maximum_rows",
+            "maximum_matrix_elements",
+            "maximum_string_bytes",
+            "maximum_native_bytes",
+            "maximum_array_elements",
+            "maximum_native_output_bytes",
+            "maximum_forward_sensitivity"
+          ],
+          "properties": {
+            "background": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "maximum_parameters",
+                "maximum_queries",
+                "maximum_slots",
+                "maximum_native_output_bytes",
+                "maximum_total_evaluations",
+                "maximum_evaluations_per_integral",
+                "maximum_depth",
+                "absolute_tolerance",
+                "relative_tolerance"
+              ],
+              "properties": {
+                "maximum_parameters": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 64
+                },
+                "maximum_queries": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 4096
+                },
+                "maximum_slots": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 1000000
+                },
+                "maximum_native_output_bytes": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 536870912
+                },
+                "maximum_total_evaluations": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 18446744073709551615
+                },
+                "maximum_evaluations_per_integral": {
+                  "type": "integer",
+                  "minimum": 3,
+                  "maximum": 18446744073709551615
+                },
+                "maximum_depth": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 64
+                },
+                "absolute_tolerance": {
+                  "type": "number",
+                  "minimum": 0
+                },
+                "relative_tolerance": {
+                  "type": "number",
+                  "minimum": 0
+                }
+              },
+              "anyOf": [
+                {
+                  "properties": {
+                    "absolute_tolerance": {
+                      "exclusiveMinimum": 0
+                    }
+                  }
+                },
+                {
+                  "properties": {
+                    "relative_tolerance": {
+                      "exclusiveMinimum": 0
+                    }
+                  }
+                }
+              ]
+            },
+            "arithmetic": {
+              "enum": [
+                "binary64_legacy_v1",
+                "longdouble_cpu_v1"
+              ]
+            },
+            "include_predictions": {
+              "type": "boolean"
+            },
+            "include_residuals": {
+              "type": "boolean"
+            },
+            "maximum_forward_sensitivity": {
+              "type": "number",
+              "exclusiveMinimum": 0
+            },
+            "maximum_models": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 64
+            },
+            "maximum_rows": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 4096
+            },
+            "maximum_matrix_elements": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 16777216
+            },
+            "maximum_string_bytes": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 16777216
+            },
+            "maximum_native_bytes": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 536870912
+            },
+            "maximum_array_elements": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 1000000
+            },
+            "maximum_native_output_bytes": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 536870912
+            }
+          }
+        },
+        "models": {
+          "type": "array",
+          "maxItems": 64,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "model",
+              "omega_m",
+              "constant_q",
+              "w0",
+              "wa",
+              "h0_rd_km_s"
+            ],
+            "properties": {
+              "model": {
+                "enum": [
+                  "flat_lcdm_late_v1",
+                  "constant_q_flat_v1",
+                  "flat_cpl_late_v1"
+                ]
+              },
+              "omega_m": {
+                "type": "number"
+              },
+              "constant_q": {
+                "type": "number"
+              },
+              "w0": {
+                "type": "number"
+              },
+              "wa": {
+                "type": "number"
+              },
+              "h0_rd_km_s": {
+                "type": "number"
+              }
+            }
+          }
+        },
+        "evaluation_policy": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "background",
+            "arithmetic",
+            "include_predictions",
+            "include_residuals",
+            "maximum_models",
+            "maximum_rows",
+            "maximum_matrix_elements",
+            "maximum_string_bytes",
+            "maximum_native_bytes",
+            "maximum_array_elements",
+            "maximum_native_output_bytes",
+            "maximum_forward_sensitivity"
+          ],
+          "properties": {
+            "background": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "maximum_parameters",
+                "maximum_queries",
+                "maximum_slots",
+                "maximum_native_output_bytes",
+                "maximum_total_evaluations",
+                "maximum_evaluations_per_integral",
+                "maximum_depth",
+                "absolute_tolerance",
+                "relative_tolerance"
+              ],
+              "properties": {
+                "maximum_parameters": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 64
+                },
+                "maximum_queries": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 4096
+                },
+                "maximum_slots": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 1000000
+                },
+                "maximum_native_output_bytes": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 536870912
+                },
+                "maximum_total_evaluations": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 18446744073709551615
+                },
+                "maximum_evaluations_per_integral": {
+                  "type": "integer",
+                  "minimum": 3,
+                  "maximum": 18446744073709551615
+                },
+                "maximum_depth": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 64
+                },
+                "absolute_tolerance": {
+                  "type": "number",
+                  "minimum": 0
+                },
+                "relative_tolerance": {
+                  "type": "number",
+                  "minimum": 0
+                }
+              },
+              "anyOf": [
+                {
+                  "properties": {
+                    "absolute_tolerance": {
+                      "exclusiveMinimum": 0
+                    }
+                  }
+                },
+                {
+                  "properties": {
+                    "relative_tolerance": {
+                      "exclusiveMinimum": 0
+                    }
+                  }
+                }
+              ]
+            },
+            "arithmetic": {
+              "enum": [
+                "binary64_legacy_v1",
+                "longdouble_cpu_v1"
+              ]
+            },
+            "include_predictions": {
+              "type": "boolean"
+            },
+            "include_residuals": {
+              "type": "boolean"
+            },
+            "maximum_forward_sensitivity": {
+              "type": "number",
+              "exclusiveMinimum": 0
+            },
+            "maximum_models": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 64
+            },
+            "maximum_rows": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 4096
+            },
+            "maximum_matrix_elements": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 16777216
+            },
+            "maximum_string_bytes": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 16777216
+            },
+            "maximum_native_bytes": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 536870912
+            },
+            "maximum_array_elements": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 1000000
+            },
+            "maximum_native_output_bytes": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 536870912
+            }
+          }
+        }
+      },
+      "description": "Normalized Gaussian in ordered dimensionless fitted distance-ratio coordinates; explicit free H0rd with fixed computational H0=70. Supplied axis declarations do not verify unlabeled covariance bytes; no joint-probe claim."
     }
   },
   "description": "Structural generated view. C++ owns scientific admissibility, conversions and per-row statuses; successful execution without qualification remains unaccepted."

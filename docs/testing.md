@@ -105,3 +105,13 @@ cargo test --release --locked --offline -j4 --test w01_reference released_assets
 ```
 
 This verifies source hashes before/after execution, full attempted parameter identities and immutable result records against the pinned native relative-profile fixture. It contains no Rust physical equations and does not qualify arbitrary requests.
+
+## Original BAO CLI transport check
+
+With the exact assets pinned in `cpp/tests/fixtures/bao_reference.hpp`, set `IRRED_BAO_MEAN` and `IRRED_BAO_COVARIANCE`, then run:
+
+```sh
+cargo test --release --locked --offline -j4 --test bao_reference released_assets_and_cli_eleven_points -- --ignored --nocapture
+```
+
+The guard verifies raw hashes before and after execution and compares eleven ordered outputs to the independent GL8/long-double LDLT fixture. Exact direct native/ABI parity is a separate ordinary hostile test. Optional `IRRED_BAO_CLI_RECORD_DIRECTORY` captures the executable and discovery before execution plus the request, output and immutable store. No dataset is bundled or required by ordinary CI.

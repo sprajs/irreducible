@@ -70,3 +70,149 @@ fn released_assets_and_native_eleven_point_comparison() {
         output.status
     );
 }
+
+#[test]
+#[ignore = "requires exact original BAO assets; bounded eleven-point CLI transport comparison"]
+fn released_assets_and_cli_eleven_points() {
+    use serde_json::{Value, json};
+    use std::fs;
+    let mean = PathBuf::from(std::env::var_os("IRRED_BAO_MEAN").expect("IRRED_BAO_MEAN"));
+    let covariance =
+        PathBuf::from(std::env::var_os("IRRED_BAO_COVARIANCE").expect("IRRED_BAO_COVARIANCE"));
+    assert_eq!(digest(&mean), pinned_hash("bao_mean_sha256"));
+    assert_eq!(digest(&covariance), pinned_hash("bao_cov_sha256"));
+    let header = include_str!("../cpp/tests/fixtures/bao_reference.hpp");
+    let body = header
+        .split_once("bao_points{{")
+        .unwrap()
+        .1
+        .split_once("}};")
+        .unwrap()
+        .0;
+    let numbers = body
+        .split(',')
+        .map(|s| s.trim_matches(|c: char| c.is_whitespace() || c == '{' || c == '}'))
+        .filter(|s| !s.is_empty())
+        .map(|s| s.parse::<f64>().unwrap())
+        .collect::<Vec<_>>();
+    assert_eq!(numbers.len(), 11 * 22);
+    let points = numbers.chunks_exact(22).collect::<Vec<_>>();
+    let models=points.iter().map(|p|json!({"model":if p[1]==-1.0&&p[2]==0.0{"flat_lcdm_late_v1"}else{"flat_cpl_late_v1"},"omega_m":p[0],"constant_q":0.0,"w0":p[1],"wa":p[2],"h0_rd_km_s":p[3]})).collect::<Vec<_>>();
+    let policy = json!({"background":{"maximum_parameters":64,"maximum_queries":13,"maximum_slots":143,"maximum_native_output_bytes":1048576,"maximum_total_evaluations":20000000,"maximum_evaluations_per_integral":100000,"maximum_depth":30,"absolute_tolerance":1e-14,"relative_tolerance":1e-14},"arithmetic":"longdouble_cpu_v1","include_predictions":true,"include_residuals":true,"maximum_models":64,"maximum_rows":13,"maximum_matrix_elements":169,"maximum_string_bytes":65536,"maximum_native_bytes":1048576,"maximum_array_elements":286,"maximum_native_output_bytes":1048576,"maximum_forward_sensitivity":1e-10});
+    let request = json!({"schema_version":1,"operation":"bao.gaussian_batch.v1","source":{"profile":"desi_dr2_all_gccomb_13_v1","mean":mean,"covariance":covariance,"maximum_asset_bytes":1048576,"ordering_provenance":"supplied released original row order; not independently verified from unlabeled covariance","calibration_provenance":"released fitted-distance Gaussian; free empirical ruler","dependence_provenance":"internal covariance supplied; external probe dependence not assessed","redshift_convention":"P01/released-effective-redshift/v1","ruler_convention":"P01/free-H0rd-km-s-no-early-physics/v1","computational_h0_convention":"P01/computational-H0-fixed-70-km-s-Mpc/v1"},"prepare_policy":policy,"evaluation_policy":policy,"models":models});
+    let scratch = std::env::temp_dir().join(format!(
+        "irred-bao-original-cli-{}-{}",
+        std::process::id(),
+        std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap()
+            .as_nanos()
+    ));
+    fs::create_dir(&scratch).unwrap();
+    struct Scratch(PathBuf);
+    impl Drop for Scratch {
+        fn drop(&mut self) {
+            let _ = fs::remove_dir_all(&self.0);
+        }
+    }
+    let scratch = Scratch(scratch);
+    let executable = PathBuf::from(env!("CARGO_BIN_EXE_irred"));
+    let discovery = Command::new(&executable)
+        .args(["describe", "--json"])
+        .output()
+        .unwrap();
+    assert!(discovery.status.success());
+    let manifest: Value = serde_json::from_slice(&discovery.stdout).unwrap();
+    let destination = std::env::var_os("IRRED_BAO_CLI_RECORD_DIRECTORY").map(PathBuf::from);
+    if let Some(d) = &destination {
+        fs::create_dir(d).expect("capture directory must be new");
+        fs::write(d.join("discovery-before.json"), &discovery.stdout).unwrap();
+        fs::copy(&executable, d.join("executed-irred")).unwrap();
+    }
+    let request_path = scratch.0.join("request.json");
+    let request_bytes = serde_json::to_vec(&request).unwrap();
+    fs::write(&request_path, &request_bytes).unwrap();
+    let output = Command::new(&executable)
+        .arg("run")
+        .arg(&request_path)
+        .arg(scratch.0.join("store"))
+        .output()
+        .unwrap();
+    assert_eq!(digest(&mean), pinned_hash("bao_mean_sha256"));
+    assert_eq!(digest(&covariance), pinned_hash("bao_cov_sha256"));
+    assert_eq!(
+        output.status.code(),
+        Some(6),
+        "{}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+    let r: Value = serde_json::from_slice(&output.stdout).unwrap();
+    assert_eq!(r["receipt"]["accepted"], false);
+    assert_eq!(r["receipt"]["execution"], "completed");
+    assert_eq!(r["receipt"]["outputs"][0]["numerical"], "checks_passed");
+    assert_eq!(r["receipt"]["interpretation"], "not_assessed");
+    assert_eq!(r["receipt"]["outputs"][0]["interpretation"], "unqualified");
+    assert_eq!(r["receipt"]["build_id"], manifest["build"]["build_id"]);
+    let rows = r["result"]["calculation"]["rows"].as_array().unwrap();
+    assert_eq!(rows.len(), 11);
+    let mut maximum_error = 0.0f64;
+    for (i, (row, p)) in rows.iter().zip(&points).enumerate() {
+        assert_eq!(row["identity"]["model_index"], i);
+        assert_eq!(row["identity"]["source_parameters"], request["models"][i]);
+        assert_eq!(row["numerical_status"], "ok");
+        assert_eq!(row["status"], "finite");
+        let values = &row["result"];
+        let error = (values["log_density"].as_f64().unwrap() - p[4]).abs();
+        maximum_error = maximum_error.max(error);
+        assert!(error <= 1e-8, "point{i} density error {error}");
+        assert!((values["quadratic"].as_f64().unwrap() - p[5]).abs() <= 2e-8);
+        assert!((values["log_determinant"].as_f64().unwrap() - p[6]).abs() <= 1e-10);
+        assert!((values["normalization"].as_f64().unwrap() - p[7]).abs() <= 1e-10);
+        let predicted = values["predictions"].as_array().unwrap();
+        assert_eq!(predicted.len(), 13);
+        assert_eq!(values["residuals"].as_array().unwrap().len(), 13);
+        for (j, x) in predicted.iter().enumerate() {
+            let expected = p[9 + j];
+            assert!((x.as_f64().unwrap() - expected).abs() <= 2e-12 + 2e-10 * expected.abs());
+        }
+    }
+    let objects = scratch.0.join("store/objects");
+    for entry in fs::read_dir(&objects).unwrap() {
+        let p = entry.unwrap().path();
+        assert_eq!(digest(&p), p.file_name().unwrap().to_str().unwrap());
+    }
+    for key in [
+        "scientific_specification_digest",
+        "output_digest",
+        "input_digest",
+    ] {
+        let h = r["receipt"][key].as_str().unwrap();
+        assert_eq!(digest(&objects.join(h)), h);
+    }
+    if let Some(d) = &destination {
+        fn copy_tree(a: &std::path::Path, b: &std::path::Path) {
+            fs::create_dir(b).unwrap();
+            for e in fs::read_dir(a).unwrap() {
+                let e = e.unwrap();
+                let dest = b.join(e.file_name());
+                if e.file_type().unwrap().is_dir() {
+                    copy_tree(&e.path(), &dest);
+                } else {
+                    fs::copy(e.path(), dest).unwrap();
+                }
+            }
+        }
+        fs::write(d.join("request.json"), &request_bytes).unwrap();
+        fs::write(d.join("stdout.json"), &output.stdout).unwrap();
+        fs::write(d.join("stderr.txt"), &output.stderr).unwrap();
+        copy_tree(&scratch.0.join("store"), &d.join("store"));
+        assert_eq!(
+            digest(&d.join("executed-irred")),
+            r["receipt"]["executable_digest"].as_str().unwrap()
+        );
+    }
+    println!(
+        "{}",
+        json!({"build_id":r["receipt"]["build_id"],"points":11,"maximum_reference_fixture_density_difference":maximum_error,"assembled_budget":1e-8,"accepted":false})
+    );
+}

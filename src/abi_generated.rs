@@ -91,6 +91,23 @@ pub fn supernova_status_name(value: u32) -> Option<&'static str> {
         _ => None,
     }
 }
+pub const BAO_OBSERVABLE_DM_OVER_RS: u32 = 0;
+pub const BAO_OBSERVABLE_DH_OVER_RS: u32 = 1;
+pub const BAO_OBSERVABLE_DV_OVER_RS: u32 = 2;
+pub const BAO_ROLE_RELEASED_FITTED_DISTANCE_SUMMARY: u32 = 0;
+pub const BAO_ROLE_SYNTHETIC_CONTROL: u32 = 1;
+pub const BAO_COVARIANCE_UNIT_RATIO_SQUARED: u32 = 0;
+pub fn bao_tag_id(group: &str, label: &str) -> Option<u32> {
+    match (group, label) {
+        ("observable", "DM_over_rs") => Some(0),
+        ("observable", "DH_over_rs") => Some(1),
+        ("observable", "DV_over_rs") => Some(2),
+        ("role", "released_fitted_distance_summary") => Some(0),
+        ("role", "synthetic_control") => Some(1),
+        ("covariance_unit", "ratio_squared") => Some(0),
+        _ => None,
+    }
+}
 pub const BACKGROUND_V2_MODEL_FLAT_LCDM_LATE_V1: u32 = 0;
 pub const BACKGROUND_V2_MODEL_CONSTANT_Q_FLAT_V1: u32 = 1;
 pub const BACKGROUND_V2_MODEL_FLAT_CPL_LATE_V1: u32 = 2;
@@ -560,6 +577,104 @@ pub struct SupernovaSlotV2 {
     pub base_residuals: F64Buffer,
     pub profiled_residuals: F64Buffer,
 }
+#[repr(C)]
+pub struct BaoQuery {
+    pub z: f64,
+    pub observable: u32,
+    pub reserved: u32,
+}
+#[repr(C)]
+pub struct BaoPolicy {
+    pub struct_size: u32,
+    pub abi_version: u32,
+    pub background: BackgroundPolicy,
+    pub arithmetic: u32,
+    pub include_predictions: u32,
+    pub include_residuals: u32,
+    pub reserved: u32,
+    pub maximum_models: u64,
+    pub maximum_rows: u64,
+    pub maximum_matrix_elements: u64,
+    pub maximum_string_bytes: u64,
+    pub maximum_native_bytes: u64,
+    pub maximum_array_elements: u64,
+    pub maximum_native_output_bytes: u64,
+    pub maximum_forward_sensitivity: f64,
+}
+#[repr(C)]
+pub struct BaoDescriptor {
+    pub struct_size: u32,
+    pub abi_version: u32,
+    pub role: u32,
+    pub covariance_unit: u32,
+    pub queries: *const BaoQuery,
+    pub query_count: u64,
+    pub query_byte_length: u64,
+    pub observed: F64Buffer,
+    pub covariance: F64Buffer,
+    pub ordered_ids: Strings,
+    pub covariance_axis_ids: Strings,
+    pub table_identity: Bytes,
+    pub covariance_identity: Bytes,
+    pub ordering_provenance: Bytes,
+    pub calibration_provenance: Bytes,
+    pub dependence_provenance: Bytes,
+    pub redshift_convention: Bytes,
+    pub ruler_convention: Bytes,
+    pub computational_h0_convention: Bytes,
+}
+#[repr(C)]
+pub struct BaoModel {
+    pub parameters: SupernovaModelV2,
+    pub h0_rd_km_s: f64,
+}
+#[repr(C)]
+pub struct BaoBatch {
+    pub struct_size: u32,
+    pub abi_version: u32,
+    pub models: *const BaoModel,
+    pub model_count: u64,
+    pub model_byte_length: u64,
+}
+#[repr(C)]
+pub struct BaoSourceView {
+    pub struct_size: u32,
+    pub abi_version: u32,
+    pub status: u32,
+    pub numerical_status: u32,
+    pub source: BaoDescriptor,
+    pub prepare_policy: BaoPolicy,
+    pub arithmetic_id: Bytes,
+    pub equation_id: Bytes,
+    pub constants_id: Bytes,
+}
+#[repr(C)]
+pub struct BaoRow {
+    pub model_index: u64,
+    pub source_parameters: BaoModel,
+    pub status: u32,
+    pub background_status: u32,
+    pub numerical_status: u32,
+    pub reserved: u32,
+    pub model_id: Bytes,
+    pub arithmetic_id: Bytes,
+    pub equation_id: Bytes,
+    pub ruler_convention_id: Bytes,
+    pub computational_h0_convention_id: Bytes,
+    pub log_density: f64,
+    pub quadratic: f64,
+    pub log_determinant: f64,
+    pub normalization: f64,
+    pub backward_residual: f64,
+    pub estimated_forward_sensitivity: f64,
+    pub evaluations: u64,
+    pub predictions: F64Buffer,
+    pub residuals: F64Buffer,
+    pub ordered_ids: Strings,
+    pub queries: *const BaoQuery,
+    pub query_count: u64,
+    pub query_byte_length: u64,
+}
 unsafe extern "C" {
     pub fn cosmo_add(
         a: *const Buffer,
@@ -718,6 +833,28 @@ unsafe extern "C" {
         status: *mut u32,
     ) -> u32;
     pub fn cosmo_supernova_result_v2_destroy(owner: *mut std::ffi::c_void) -> u32;
+    pub fn cosmo_bao_prepare(
+        descriptor: *const BaoDescriptor,
+        policy: *const BaoPolicy,
+        out: *mut *mut std::ffi::c_void,
+    ) -> u32;
+    pub fn cosmo_bao_source_view(owner: *const std::ffi::c_void, out: *mut BaoSourceView) -> u32;
+    pub fn cosmo_bao_destroy(owner: *mut std::ffi::c_void) -> u32;
+    pub fn cosmo_bao_evaluate(
+        owner: *const std::ffi::c_void,
+        batch: *const BaoBatch,
+        policy: *const BaoPolicy,
+        out: *mut *mut std::ffi::c_void,
+    ) -> u32;
+    pub fn cosmo_bao_result_view(
+        owner: *const std::ffi::c_void,
+        rows: *mut *const BaoRow,
+        count: *mut u64,
+        status: *mut u32,
+        numerical_status: *mut u32,
+        evaluations: *mut u64,
+    ) -> u32;
+    pub fn cosmo_bao_result_destroy(owner: *mut std::ffi::c_void) -> u32;
 }
 #[derive(Clone, serde::Deserialize, serde::Serialize)]
 #[serde(deny_unknown_fields)]

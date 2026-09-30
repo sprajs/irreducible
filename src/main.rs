@@ -1,5 +1,7 @@
 mod background_run;
 mod background_v2_run;
+mod bao_ingestion;
+mod bao_run;
 mod bridge;
 mod cli;
 mod ingestion;

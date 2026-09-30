@@ -1569,6 +1569,356 @@
           "F64Buffer"
         ]
       ]
+    },
+    {
+      "rust_name": "BaoQuery",
+      "c_name": "cosmo_bao_query",
+      "fields": [
+        [
+          "z",
+          "f64"
+        ],
+        [
+          "observable",
+          "u32"
+        ],
+        [
+          "reserved",
+          "u32"
+        ]
+      ]
+    },
+    {
+      "rust_name": "BaoPolicy",
+      "c_name": "cosmo_bao_policy",
+      "fields": [
+        [
+          "struct_size",
+          "u32"
+        ],
+        [
+          "abi_version",
+          "u32"
+        ],
+        [
+          "background",
+          "BackgroundPolicy"
+        ],
+        [
+          "arithmetic",
+          "u32"
+        ],
+        [
+          "include_predictions",
+          "u32"
+        ],
+        [
+          "include_residuals",
+          "u32"
+        ],
+        [
+          "reserved",
+          "u32"
+        ],
+        [
+          "maximum_models",
+          "u64"
+        ],
+        [
+          "maximum_rows",
+          "u64"
+        ],
+        [
+          "maximum_matrix_elements",
+          "u64"
+        ],
+        [
+          "maximum_string_bytes",
+          "u64"
+        ],
+        [
+          "maximum_native_bytes",
+          "u64"
+        ],
+        [
+          "maximum_array_elements",
+          "u64"
+        ],
+        [
+          "maximum_native_output_bytes",
+          "u64"
+        ],
+        [
+          "maximum_forward_sensitivity",
+          "f64"
+        ]
+      ]
+    },
+    {
+      "rust_name": "BaoDescriptor",
+      "c_name": "cosmo_bao_descriptor",
+      "fields": [
+        [
+          "struct_size",
+          "u32"
+        ],
+        [
+          "abi_version",
+          "u32"
+        ],
+        [
+          "role",
+          "u32"
+        ],
+        [
+          "covariance_unit",
+          "u32"
+        ],
+        [
+          "queries",
+          "const_BaoQuery_ptr"
+        ],
+        [
+          "query_count",
+          "u64"
+        ],
+        [
+          "query_byte_length",
+          "u64"
+        ],
+        [
+          "observed",
+          "F64Buffer"
+        ],
+        [
+          "covariance",
+          "F64Buffer"
+        ],
+        [
+          "ordered_ids",
+          "Strings"
+        ],
+        [
+          "covariance_axis_ids",
+          "Strings"
+        ],
+        [
+          "table_identity",
+          "Bytes"
+        ],
+        [
+          "covariance_identity",
+          "Bytes"
+        ],
+        [
+          "ordering_provenance",
+          "Bytes"
+        ],
+        [
+          "calibration_provenance",
+          "Bytes"
+        ],
+        [
+          "dependence_provenance",
+          "Bytes"
+        ],
+        [
+          "redshift_convention",
+          "Bytes"
+        ],
+        [
+          "ruler_convention",
+          "Bytes"
+        ],
+        [
+          "computational_h0_convention",
+          "Bytes"
+        ]
+      ]
+    },
+    {
+      "rust_name": "BaoModel",
+      "c_name": "cosmo_bao_model",
+      "fields": [
+        [
+          "parameters",
+          "SupernovaModelV2"
+        ],
+        [
+          "h0_rd_km_s",
+          "f64"
+        ]
+      ]
+    },
+    {
+      "rust_name": "BaoBatch",
+      "c_name": "cosmo_bao_batch",
+      "fields": [
+        [
+          "struct_size",
+          "u32"
+        ],
+        [
+          "abi_version",
+          "u32"
+        ],
+        [
+          "models",
+          "const_BaoModel_ptr"
+        ],
+        [
+          "model_count",
+          "u64"
+        ],
+        [
+          "model_byte_length",
+          "u64"
+        ]
+      ]
+    },
+    {
+      "rust_name": "BaoSourceView",
+      "c_name": "cosmo_bao_source_view_t",
+      "fields": [
+        [
+          "struct_size",
+          "u32"
+        ],
+        [
+          "abi_version",
+          "u32"
+        ],
+        [
+          "status",
+          "u32"
+        ],
+        [
+          "numerical_status",
+          "u32"
+        ],
+        [
+          "source",
+          "BaoDescriptor"
+        ],
+        [
+          "prepare_policy",
+          "BaoPolicy"
+        ],
+        [
+          "arithmetic_id",
+          "Bytes"
+        ],
+        [
+          "equation_id",
+          "Bytes"
+        ],
+        [
+          "constants_id",
+          "Bytes"
+        ]
+      ]
+    },
+    {
+      "rust_name": "BaoRow",
+      "c_name": "cosmo_bao_row",
+      "fields": [
+        [
+          "model_index",
+          "u64"
+        ],
+        [
+          "source_parameters",
+          "BaoModel"
+        ],
+        [
+          "status",
+          "u32"
+        ],
+        [
+          "background_status",
+          "u32"
+        ],
+        [
+          "numerical_status",
+          "u32"
+        ],
+        [
+          "reserved",
+          "u32"
+        ],
+        [
+          "model_id",
+          "Bytes"
+        ],
+        [
+          "arithmetic_id",
+          "Bytes"
+        ],
+        [
+          "equation_id",
+          "Bytes"
+        ],
+        [
+          "ruler_convention_id",
+          "Bytes"
+        ],
+        [
+          "computational_h0_convention_id",
+          "Bytes"
+        ],
+        [
+          "log_density",
+          "f64"
+        ],
+        [
+          "quadratic",
+          "f64"
+        ],
+        [
+          "log_determinant",
+          "f64"
+        ],
+        [
+          "normalization",
+          "f64"
+        ],
+        [
+          "backward_residual",
+          "f64"
+        ],
+        [
+          "estimated_forward_sensitivity",
+          "f64"
+        ],
+        [
+          "evaluations",
+          "u64"
+        ],
+        [
+          "predictions",
+          "F64Buffer"
+        ],
+        [
+          "residuals",
+          "F64Buffer"
+        ],
+        [
+          "ordered_ids",
+          "Strings"
+        ],
+        [
+          "queries",
+          "const_BaoQuery_ptr"
+        ],
+        [
+          "query_count",
+          "u64"
+        ],
+        [
+          "query_byte_length",
+          "u64"
+        ]
+      ]
     }
   ],
   "functions": [
@@ -2175,6 +2525,104 @@
           "supernova_result_v2"
         ]
       ]
+    },
+    {
+      "name": "cosmo_bao_prepare",
+      "args": [
+        [
+          "descriptor",
+          "const_BaoDescriptor_ptr"
+        ],
+        [
+          "policy",
+          "const_BaoPolicy_ptr"
+        ],
+        [
+          "out",
+          "bao_out"
+        ]
+      ]
+    },
+    {
+      "name": "cosmo_bao_source_view",
+      "args": [
+        [
+          "owner",
+          "const_bao"
+        ],
+        [
+          "out",
+          "BaoSourceView_ptr"
+        ]
+      ]
+    },
+    {
+      "name": "cosmo_bao_destroy",
+      "args": [
+        [
+          "owner",
+          "bao"
+        ]
+      ]
+    },
+    {
+      "name": "cosmo_bao_evaluate",
+      "args": [
+        [
+          "owner",
+          "const_bao"
+        ],
+        [
+          "batch",
+          "const_BaoBatch_ptr"
+        ],
+        [
+          "policy",
+          "const_BaoPolicy_ptr"
+        ],
+        [
+          "out",
+          "bao_result_out"
+        ]
+      ]
+    },
+    {
+      "name": "cosmo_bao_result_view",
+      "args": [
+        [
+          "owner",
+          "const_bao_result"
+        ],
+        [
+          "rows",
+          "const_bao_row_out"
+        ],
+        [
+          "count",
+          "u64_ptr"
+        ],
+        [
+          "status",
+          "u32_ptr"
+        ],
+        [
+          "numerical_status",
+          "u32_ptr"
+        ],
+        [
+          "evaluations",
+          "u64_ptr"
+        ]
+      ]
+    },
+    {
+      "name": "cosmo_bao_result_destroy",
+      "args": [
+        [
+          "owner",
+          "bao_result"
+        ]
+      ]
     }
   ],
   "max_batch_elements": 1000000,
@@ -2363,5 +2811,34 @@
       "constant_q_flat_v1": 1,
       "flat_cpl_late_v1": 2
     }
+  },
+  "bao_tags": {
+    "observable": {
+      "DM_over_rs": 0,
+      "DH_over_rs": 1,
+      "DV_over_rs": 2
+    },
+    "role": {
+      "released_fitted_distance_summary": 0,
+      "synthetic_control": 1
+    },
+    "covariance_unit": {
+      "ratio_squared": 0
+    }
+  },
+  "bao_contract": {
+    "operation": "bao.gaussian_batch.v1",
+    "implementation_state": "implemented",
+    "cli_available": true,
+    "qualification": "unqualified",
+    "computational_h0_km_s_mpc": 70,
+    "conventions": [
+      "P01/released-effective-redshift/v1",
+      "P01/free-H0rd-km-s-no-early-physics/v1",
+      "P01/computational-H0-fixed-70-km-s-Mpc/v1"
+    ],
+    "ownership": "synchronous inputs copied into retained owner; independently owned result; borrowed views valid until their owner destruction",
+    "policy": "explicit separate prep/evaluation policies; no automatic request qualification",
+    "interface_gate": "bounded_native_and_cli_passed"
   }
 }

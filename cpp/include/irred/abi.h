@@ -5,6 +5,8 @@
 extern "C" {
 #endif
 #define COSMO_ABI_VERSION 1u
+typedef struct cosmo_bao cosmo_bao;
+typedef struct cosmo_bao_result cosmo_bao_result;
 typedef struct cosmo_result cosmo_result;
 typedef struct cosmo_prepared cosmo_prepared;
 typedef struct cosmo_gaussian cosmo_gaussian;
@@ -123,6 +125,12 @@ typedef struct cosmo_supernova_result_v2 cosmo_supernova_result_v2;
 #define COSMO_SUPERNOVA_STATUS_INCOMPATIBLE_METADATA 2u
 #define COSMO_SUPERNOVA_STATUS_NUMERICAL_FAILURE 3u
 #define COSMO_SUPERNOVA_STATUS_WORK_LIMIT 4u
+#define COSMO_BAO_OBSERVABLE_DM_OVER_RS 0u
+#define COSMO_BAO_OBSERVABLE_DH_OVER_RS 1u
+#define COSMO_BAO_OBSERVABLE_DV_OVER_RS 2u
+#define COSMO_BAO_ROLE_RELEASED_FITTED_DISTANCE_SUMMARY 0u
+#define COSMO_BAO_ROLE_SYNTHETIC_CONTROL 1u
+#define COSMO_BAO_COVARIANCE_UNIT_RATIO_SQUARED 0u
 #define COSMO_BACKGROUND_V2_MODEL_FLAT_LCDM_LATE_V1 0u
 #define COSMO_BACKGROUND_V2_MODEL_CONSTANT_Q_FLAT_V1 1u
 #define COSMO_BACKGROUND_V2_MODEL_FLAT_CPL_LATE_V1 2u
@@ -167,6 +175,13 @@ typedef struct { uint64_t parameter_index; uint64_t query_index; cosmo_backgroun
 typedef struct { uint32_t model; uint32_t reserved; double omega_m; double constant_q; double w0; double wa; } cosmo_supernova_model_v2;
 typedef struct { uint32_t struct_size; uint32_t abi_version; const cosmo_supernova_model_v2* models; uint64_t model_count; uint64_t model_byte_length; } cosmo_supernova_batch_v2;
 typedef struct { uint64_t model_index; cosmo_supernova_model_v2 source_parameters; uint32_t status; uint32_t background_status; uint32_t numerical_status; uint32_t profile_status; cosmo_bytes model_id; cosmo_bytes arithmetic_id; cosmo_bytes score_id; cosmo_bytes radial_equation_id; double offset_coefficient; double quadratic; double relative_profile_score; double backward_residual; double estimated_forward_sensitivity; double coefficient_solve_backward_residual; double coefficient_solve_forward_sensitivity; double residual_l1; double solution_norm_inf; double adjusted_residual_l1; double adjusted_solution_norm_inf; uint64_t background_evaluations; cosmo_f64_buffer shape_magnitudes; cosmo_f64_buffer base_residuals; cosmo_f64_buffer profiled_residuals; } cosmo_supernova_slot_v2;
+typedef struct { double z; uint32_t observable; uint32_t reserved; } cosmo_bao_query;
+typedef struct { uint32_t struct_size; uint32_t abi_version; cosmo_background_policy background; uint32_t arithmetic; uint32_t include_predictions; uint32_t include_residuals; uint32_t reserved; uint64_t maximum_models; uint64_t maximum_rows; uint64_t maximum_matrix_elements; uint64_t maximum_string_bytes; uint64_t maximum_native_bytes; uint64_t maximum_array_elements; uint64_t maximum_native_output_bytes; double maximum_forward_sensitivity; } cosmo_bao_policy;
+typedef struct { uint32_t struct_size; uint32_t abi_version; uint32_t role; uint32_t covariance_unit; const cosmo_bao_query* queries; uint64_t query_count; uint64_t query_byte_length; cosmo_f64_buffer observed; cosmo_f64_buffer covariance; cosmo_strings ordered_ids; cosmo_strings covariance_axis_ids; cosmo_bytes table_identity; cosmo_bytes covariance_identity; cosmo_bytes ordering_provenance; cosmo_bytes calibration_provenance; cosmo_bytes dependence_provenance; cosmo_bytes redshift_convention; cosmo_bytes ruler_convention; cosmo_bytes computational_h0_convention; } cosmo_bao_descriptor;
+typedef struct { cosmo_supernova_model_v2 parameters; double h0_rd_km_s; } cosmo_bao_model;
+typedef struct { uint32_t struct_size; uint32_t abi_version; const cosmo_bao_model* models; uint64_t model_count; uint64_t model_byte_length; } cosmo_bao_batch;
+typedef struct { uint32_t struct_size; uint32_t abi_version; uint32_t status; uint32_t numerical_status; cosmo_bao_descriptor source; cosmo_bao_policy prepare_policy; cosmo_bytes arithmetic_id; cosmo_bytes equation_id; cosmo_bytes constants_id; } cosmo_bao_source_view_t;
+typedef struct { uint64_t model_index; cosmo_bao_model source_parameters; uint32_t status; uint32_t background_status; uint32_t numerical_status; uint32_t reserved; cosmo_bytes model_id; cosmo_bytes arithmetic_id; cosmo_bytes equation_id; cosmo_bytes ruler_convention_id; cosmo_bytes computational_h0_convention_id; double log_density; double quadratic; double log_determinant; double normalization; double backward_residual; double estimated_forward_sensitivity; uint64_t evaluations; cosmo_f64_buffer predictions; cosmo_f64_buffer residuals; cosmo_strings ordered_ids; const cosmo_bao_query* queries; uint64_t query_count; uint64_t query_byte_length; } cosmo_bao_row;
 uint32_t cosmo_add(const cosmo_i64_buffer* a, const cosmo_i64_buffer* b, uint32_t fault, cosmo_result** out);
 uint32_t cosmo_result_view(const cosmo_result* r, const int64_t** data, uint64_t* n);
 uint32_t cosmo_result_destroy(cosmo_result* r);
@@ -203,6 +218,12 @@ uint32_t cosmo_background_result_v2_destroy(cosmo_background_result_v2* result);
 uint32_t cosmo_supernova_evaluate_v2(const cosmo_supernova* owner, const cosmo_supernova_batch_v2* batch, const cosmo_supernova_policy* policy, cosmo_supernova_result_v2** out);
 uint32_t cosmo_supernova_result_v2_view(const cosmo_supernova_result_v2* owner, const cosmo_supernova_slot_v2** rows, uint64_t* count, uint32_t* status);
 uint32_t cosmo_supernova_result_v2_destroy(cosmo_supernova_result_v2* owner);
+uint32_t cosmo_bao_prepare(const cosmo_bao_descriptor* descriptor, const cosmo_bao_policy* policy, cosmo_bao** out);
+uint32_t cosmo_bao_source_view(const cosmo_bao* owner, cosmo_bao_source_view_t* out);
+uint32_t cosmo_bao_destroy(cosmo_bao* owner);
+uint32_t cosmo_bao_evaluate(const cosmo_bao* owner, const cosmo_bao_batch* batch, const cosmo_bao_policy* policy, cosmo_bao_result** out);
+uint32_t cosmo_bao_result_view(const cosmo_bao_result* owner, const cosmo_bao_row** rows, uint64_t* count, uint32_t* status, uint32_t* numerical_status, uint64_t* evaluations);
+uint32_t cosmo_bao_result_destroy(cosmo_bao_result* owner);
 static inline uint64_t cosmo_numerics_output_length(uint32_t operation,uint64_t input) {switch(operation) {
 case COSMO_NUMERICAL_OPERATION_COMPENSATED_SUM:return 1;
 case COSMO_NUMERICAL_OPERATION_LOG_SUM_EXP:return 1;

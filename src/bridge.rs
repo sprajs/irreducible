@@ -271,3 +271,9 @@ pub(crate) use supernova_v2::{
     Model as SupernovaModelV2Request, Policy as SupernovaPolicyV2Request,
     evaluate as supernova_v2_evaluate,
 };
+
+#[path = "bao_bridge.rs"]
+mod bao;
+pub(crate) use bao::{
+    Model as BaoModelRequest, Policy as BaoPolicyRequest, evaluate as bao_evaluate,
+};
