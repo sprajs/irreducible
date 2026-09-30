@@ -3024,7 +3024,7 @@
   },
   "current_expansion_contract": {
     "operation": "background.evaluate",
-    "state": "unpublished transition; obsolete families removed before coherent publication",
+    "state": "current ABI2 compiled expansion interface with independent requested outcomes",
     "active_counts": {
       "lcdm": 1,
       "constant_q": 1,
@@ -3045,7 +3045,7 @@
     "model_accounting": "Each attempted model owns active bits/status and row_offset/row_count; all original queries retained. Rejected nonempty model has zero rows but fails every dependent requested group. Mixed valid model rows retained. Zero models/queries are explicit empty requests, never confused with model rejection."
   },
   "current_consumer_contract": {
-    "state": "unpublished current ABI2; obsolete opaque types/functions removed at coherent migration",
+    "state": "published current ABI2; one coherent compiled-model interface with retained consumers",
     "supernova_operation": "supernova.profile",
     "bao_operation": "bao.density",
     "selection": "explicit ascending indices plus declared observer coordinates; IDs derived from exact retained source axes. Named Pantheon preset1 is separate from generic type0; preset ignores no supplied coordinates: explicit buffers must be zero for named preset",
