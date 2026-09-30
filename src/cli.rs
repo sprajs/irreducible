@@ -105,6 +105,7 @@ pub(crate) fn execute() -> Result<(), String> {
             let mut fault = 0;
             let result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(
                 || -> Result<crate::outcome::Outcome, String> {
+                    crate::strict_json::validate(&input).map_err(|e| e.to_string())?;
                     let header: OperationHeader = serde_json::from_slice(&input).map_err(|e|e.to_string())?;
                     match header.operation.as_str() {
                         "fixture.checked_i64_add.v1" => {

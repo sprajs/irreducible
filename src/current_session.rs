@@ -168,6 +168,7 @@ fn dispatch(
     store: &Path,
     limit: usize,
 ) -> Result<Vec<u8>, String> {
+    crate::strict_json::validate(bytes).map_err(|_| "INVALID_SESSION_COMMAND")?;
     let command: Command = serde_json::from_slice(bytes).map_err(|_| "INVALID_SESSION_COMMAND")?;
     match command {
         Command::PrepareBao {

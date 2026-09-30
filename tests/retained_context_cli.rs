@@ -102,7 +102,10 @@ impl Session {
     fn send(&mut self, x: &Value) -> Value {
         let mut bytes = serde_json::to_vec(x).unwrap();
         bytes.push(b'\n');
-        self.input.write_all(&bytes).unwrap();
+        self.send_raw(&bytes)
+    }
+    fn send_raw(&mut self, bytes: &[u8]) -> Value {
+        self.input.write_all(bytes).unwrap();
         self.input.flush().unwrap();
         let mut line = String::new();
         assert!(self.output.read_line(&mut line).unwrap() > 0);
@@ -340,5 +343,46 @@ fn actual_nested_required_dimensional_failures_preserve_dimensionless_groups() {
         "failed"
     );
     assert!(groups["clock"]["value"]["lookback_seconds"]["value"].is_null());
+    s.close();
+}
+
+#[test]
+fn raw_duplicate_rejection_preserves_live_owner_and_quota() {
+    let f = fixtures();
+    let mut s = Session::new(100, 1 << 20);
+    // Duplicate a legitimate nested acquisition field before any handle exists.
+    let raw = serde_json::to_string(&f[0]).unwrap().replace(
+        "\"maximum_rows\":8",
+        "\"maximum_rows\":0,\"maximum_rows\":8",
+    );
+    assert_ne!(raw, serde_json::to_string(&f[0]).unwrap());
+    let rejected = s.send_raw(format!("{raw}\n").as_bytes());
+    assert_eq!(rejected["error_id"], "INVALID_SESSION_COMMAND");
+    assert_eq!(s.send(&f[0])["handle"], 1);
+    let prepared = s.send(&f[1]);
+    assert_eq!(prepared["handle"], 2);
+    let original = s.send(&f[3]);
+    assert_eq!(original["accepted"], true);
+    for raw in [
+        "{\"action\":\"release\",\"handle\":999,\"handle\":2}\n".to_string(),
+        serde_json::to_string(&f[1]).unwrap().replace(
+            "\"source_handle\":1",
+            "\"source_handle\":999,\"source_handle\":1",
+        ) + "\n",
+        serde_json::to_string(&f[3])
+            .unwrap()
+            .replace("\"handle\":2", "\"handle\":999,\"handle\":2")
+            + "\n",
+    ] {
+        let rejected = s.send_raw(raw.as_bytes());
+        assert_eq!(rejected["execution"], "failed");
+        assert_eq!(rejected["error_id"], "INVALID_SESSION_COMMAND");
+        assert_eq!(s.send(&f[3])["output"], original["output"]);
+    }
+    assert_eq!(s.send(&f[4])["disposition"], "released");
+    assert_eq!(s.send(&f[1])["handle"], 3);
+    s.send(&json!({"action":"release","handle":3}));
+    assert_eq!(s.send(&f[2])["disposition"], "released");
+    assert_eq!(s.send(&f[0])["handle"], 4);
     s.close();
 }
