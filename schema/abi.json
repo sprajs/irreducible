@@ -1,0 +1,1 @@
+{"schema_version":1,"abi_version":1,"statuses":{"OK":0,"ABI_MISMATCH":1,"INVALID_INPUT":2,"OVERFLOW":3,"ALLOCATION_FAILURE":4,"EXCEPTION":5},"element_type":"signed_i64","ownership":"synchronous_borrowed_inputs_owned_result","evaluation_kinds":["finite","outside_support","failure"]}
