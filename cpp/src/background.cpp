@@ -1,4 +1,5 @@
 #include "irred/background.hpp"
+#include "flat_geometry.hpp"
 #include <algorithm>
 #include <cmath>
 #include <limits>
@@ -35,14 +36,7 @@ double integrand(double z, const void *opaque) {
     value /= 1 + static_cast<long double>(z);
   return static_cast<double>(value);
 }
-bool physical_representable(long double v) {
-  return std::isfinite(v) &&
-         std::abs(v) <= std::numeric_limits<double>::max() &&
-         (v == 0 || std::abs(v) >= std::numeric_limits<double>::min());
-}
-bool representable(long double v) {
-  return std::isfinite(v) && std::abs(v) <= std::numeric_limits<double>::max();
-}
+using detail::representable;
 } // namespace
 Background prepare(Parameters p) {
   Background out;
@@ -70,30 +64,13 @@ Background prepare(Parameters p) {
       return out;
     }
   }
-  const auto h0 =
-      convert({p.h0_km_s_mpc, Unit::km_per_s_per_mpc, Role::expansion_rate},
-              {Unit::inverse_second, Role::expansion_rate});
-  if (h0.status != QuantityStatus::ok) {
-    out.status_ = Status::numerical_failure;
+  const auto scale = detail::prepare_flat_scale(p.h0_km_s_mpc);
+  if (scale.status != Status::ok) {
+    out.status_ = scale.status;
     return out;
   }
-  const auto time = 1.L / h0.target.value;
-  const auto length = static_cast<long double>(speed_of_light_m_per_s) * time;
-  if (!representable(time) || !representable(length)) {
-    out.status_ = Status::numerical_failure;
-    return out;
-  }
-  const auto dh =
-      convert({static_cast<double>(length), Unit::metre, Role::physical_length,
-               Frame::none, LengthConvention::physical},
-              {Unit::megaparsec, Role::physical_length, Frame::none,
-               LengthConvention::physical});
-  if (dh.status != QuantityStatus::ok) {
-    out.status_ = Status::numerical_failure;
-    return out;
-  }
-  out.hubble_time_seconds_ = static_cast<double>(time);
-  out.hubble_distance_mpc_ = dh.target.value;
+  out.hubble_time_seconds_ = scale.time_seconds;
+  out.hubble_distance_mpc_ = scale.distance_mpc;
   out.status_ = Status::ok;
   return out;
 }
@@ -246,26 +223,11 @@ BatchResult Background::evaluate_batch(std::span<const Query> queries,
       slot.status = Status::numerical_failure;
       continue;
     }
-    const auto dc =
-        static_cast<long double>(hubble_distance_mpc_) * radial.value;
-    const auto da = dc / u;
-    const auto shape =
-        (1 + static_cast<long double>(query.z_observer)) * radial.value;
-    const auto dl = static_cast<long double>(hubble_distance_mpc_) * shape;
-    const auto lookback =
-        static_cast<long double>(hubble_time_seconds_) * clock.value;
-    const auto volume = static_cast<long double>(hubble_distance_mpc_) * dc *
-                        dc / e; // dVc/(dz dOmega)
-    if (query.z_expansion > 0 &&
-        (!(dc > 0) || !(da > 0) || !(shape > 0) || !(dl > 0) ||
-         !(lookback > 0) || !(volume > 0))) {
-      slot.status = Status::numerical_failure;
-      continue;
-    }
-    if (!physical_representable(dc) || !physical_representable(da) ||
-        !representable(shape) || !physical_representable(dl) ||
-        !physical_representable(lookback) || !physical_representable(volume)) {
-      slot.status = Status::numerical_failure;
+    const auto geometry =
+        detail::flat_geometry(query, e, radial.value, clock.value,
+                              hubble_distance_mpc_, hubble_time_seconds_);
+    if (geometry.status != Status::ok) {
+      slot.status = geometry.status;
       continue;
     }
     slot.status = Status::ok;
@@ -275,12 +237,12 @@ BatchResult Background::evaluate_batch(std::span<const Query> queries,
     slot.deceleration_q = static_cast<double>(q);
     slot.jerk = static_cast<double>(j);
     slot.radial_integral = radial.value;
-    slot.radial_mpc = slot.transverse_mpc = static_cast<double>(dc);
-    slot.angular_diameter_mpc = static_cast<double>(da);
-    slot.luminosity_mpc = static_cast<double>(dl);
-    slot.dimensionless_luminosity_shape = static_cast<double>(shape);
-    slot.lookback_seconds = static_cast<double>(lookback);
-    slot.volume_mpc3_per_sr_per_redshift = static_cast<double>(volume);
+    slot.radial_mpc = slot.transverse_mpc = static_cast<double>(geometry.dc);
+    slot.angular_diameter_mpc = static_cast<double>(geometry.da);
+    slot.luminosity_mpc = static_cast<double>(geometry.dl);
+    slot.dimensionless_luminosity_shape = static_cast<double>(geometry.shape);
+    slot.lookback_seconds = static_cast<double>(geometry.lookback);
+    slot.volume_mpc3_per_sr_per_redshift = static_cast<double>(geometry.volume);
     slot.radial_integral_error = radial.error_estimate;
     slot.lookback_integral_error = clock.error_estimate;
   }
