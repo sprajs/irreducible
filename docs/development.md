@@ -2,7 +2,9 @@
 
 Start with [AGENTS.md](../AGENTS.md), [architecture](architecture.md) and [scientific contracts](scientific-contracts.md). Use [getting started](getting-started.md) to prepare the toolchain.
 
-## A coherent slice
+## Build for a scientific use
+
+Start with a calculation an agent needs. Add a physical model, reader or numerical operation with explicit inputs and machine-readable results. Keep repeated work in compiled batches. External fitters and samplers can call the tool; implement internal fitting only for a named consumer that needs it. A broad roadmap does not require implementing every analysis method.
 
 1. Identify the consumer and qualified prerequisites. State the equation, semantics, domain and error budget.
 2. Design an independent comparison and adversarial cases. Check reference ancestry and terms.
@@ -22,7 +24,7 @@ Use `irred` for generic C++ namespaces and `irred_core` for the native library. 
 
 ## Publishing
 
-Use small commits with explicit paths. Review `git diff --cached`; generated data and local plans/receipts must not enter the index. Keep `Cargo.lock`, source, tests, schemas and documentation in Git. See [repository maintenance](maintenance.md).
+Use small commits with explicit paths, respect `.gitignore`, and review `git diff --cached`. Keep the docs current with changes to public behavior.
 
-The integration owner coordinates shared workers and publishes validated milestones under the repository's standing authorization. Other contributors submit PRs. Do not merge old pre-cleanup history or force-push without explicit authorization.
+The integration owner coordinates shared workers and publishes validated milestones under the repository's standing authorization. Other contributors submit PRs. Do not force-push without explicit authorization.
 

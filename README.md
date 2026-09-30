@@ -1,57 +1,46 @@
 # Irreducible
 
-**Ask a harder question. Keep the calculation honest.**
+I want to set my agents to work on cosmology. I'm writing Irreducible to give them a fast, shared implementation of the physics and physical models they need.
 
-Cosmology begins with a deceptively simple question: what does the universe actually tell us? Answering it can mean navigating a stack of scripts, conventions, fitted summaries and inherited assumptions before reaching the calculation you wanted to inspect.
+I think of it as something an agent can reach for in the way it reaches for a computer algebra system when doing mathematics. Here the job is to read observations, evaluate physical models and work out what follows from different assumptions. The agent decides what to investigate; Irreducible provides the calculations.
 
-Irreducible is being built to bring that work into one coherent scientific tool. An agent can discover its capabilities, prepare a bounded request and run compiled calculations through a single executable, **`irred`**. A researcher can follow the same path back through the equations, inputs and tests. Changing a physical hypothesis means changing an explicit model, rebuilding it and testing what follows.
+It's built for non-interactive use through **`irred`**, a CLI with explicit requests and machine-readable results. Long commands and detailed request files are fine. The interface should let an agent say exactly what it wants to calculate, with which data, model and configuration.
 
-The name is a design ambition: reduce the machinery until what remains earns its place. Shared equations, reusable numerical kernels, a small command interface and as little repeated work as possible. Speed matters because a question worth asking once is often worth asking a million times—with different parameters, assumptions or data.
+I want one shared implementation of each equation and convention, with different physical models built on top. When an agent needs a new data reader or wants to try different physics, it should be able to add it, test it, rebuild and use it in the same way. Rust handles the interface and data; C++ handles the physics and numerical work. Repeated calculations should stay in compiled code and run in batches.
 
-> **Agents: start with [AGENTS.md](AGENTS.md), then [docs/README.md](docs/README.md).**
-> `docs/` is the canonical, agent-first documentation: task routes, executable commands, scientific contracts and known limits. Discover your actual build with `irred describe --json` before attempting an analysis.
+This doesn't need to contain every part of an analysis. An agent can use an external fitter or sampler and call Irreducible for model predictions. Some calculations may need fitting internally, and that's fine when there's a reason for it. The aim is to build the parts that make the science possible and make them fast.
 
-## What you might do with it
+It's early. The current implementation has numerical foundations, quantity conversions, observation preparation and run records; the physical models are still being built. See [what exists today](docs/capabilities.md).
 
-Imagine taking a published result and asking which part came from observations and which part came from the model. Then changing one assumption, keeping the rest fixed, and rerunning the calculation with a record of exactly what changed.
+## Using it
 
-That is the workflow Irreducible is working toward:
+**Agents: read [AGENTS.md](AGENTS.md), then [docs/README.md](docs/README.md).** The docs describe the available commands, inputs, tests and limitations.
 
-- **Investigate an assumption.** Change a compiled physical model and compare its consequences against a stated numerical budget.
-- **Reproduce a calculation.** Identify original inputs, conventions and dependencies, and say plainly when a reproduction is exact, approximate, conditional or blocked.
-- **Explore efficiently.** Reuse prepared data and send batches into native code instead of launching a process for each likelihood evaluation.
-- **Work with agents.** Let an agent handle orchestration while explicit schemas, native tests and qualification rules constrain what its results can mean.
-
-These are the intended uses, not a claim that every step is available today. Irreducible is in early development. The current public executable provides strict JSON requests, immutable local run records, checked integer fixtures, tagged quantity conversions and a small scalar numerical interface, and typed local ASCII observation preparation. The C++ library contains additional numerical building blocks. End-to-end cosmological models, likelihood workflows and inference are still being developed. See [capabilities and limits](docs/capabilities.md).
-
-## Try the foundation
-
-The current build profile targets a Linux CPU toolchain with Rust, a C++20 compiler, Python and CMake. Follow [getting started](docs/getting-started.md) for the complete setup, including dependency preparation. Once prepared:
+After the [build setup](docs/getting-started.md):
 
 ```sh
 python3 tools/build.py
 target/debug/irred describe --json
-target/debug/irred run tests/fixtures/exact-add.json runs/first-run
+target/debug/irred run tests/fixtures/exact-add.json runs/example
 ```
 
-The last command runs an exact integer fixture and writes a local result and receipt. It is a quick way to inspect the interface before doing scientific work. Scientific requests currently return **exit 6** when a calculation completes but the required numerical qualification has not been registered. Read the receipt as well as the process status; a finite answer alone is not an accepted scientific result.
+That last command is a small infrastructure example. For scientific work, check the operation and qualification status reported by your build.
 
-## One tool, explicit responsibilities
+## Contributing
 
-Rust handles commands, request parsing, data movement and run records. C++20 owns physical definitions, numerical kernels and the developing scientific engine. The boundary carries coarse batches; the C++ library can also be used independently. Physical hypotheses live in small compiled modules with explicit identities.
-
-Performance work follows measurement at matched numerical quality. Portable CPU execution is the baseline; wider SIMD, GPU and distributed execution are future work. There is no claim of a demonstrated speed advantage yet.
-
-The project is open to questioning a model—including an established one. That freedom comes with a practical obligation: make the assumptions visible, preserve failed comparisons, and test the replacement. Agreement with another package is useful evidence; it is not a substitute for understanding the calculation.
-
-## Join in
-
-PRs, questions, counterexamples and better tests are welcome. **All AI tools are welcome**, including agent-written contributions. Contributors remain responsible for what they submit. Read [CONTRIBUTING.md](CONTRIBUTING.md) and our short [code of conduct](CODE_OF_CONDUCT.md): be nice to each other, and argue about the work.
-
-- [Documentation](docs/README.md) — the source of truth, written for agents first and readable by humans.
-- [GitHub Wiki](https://github.com/sprajs/irreducible/wiki) — an entry point to the documentation.
-- [Issues](https://github.com/sprajs/irreducible/issues) — bugs, ideas and scientific counterexamples.
+PRs are welcome, including agent-written ones. Thanks for helping. [Contributing](CONTRIBUTING.md).
 
 ## License and citation
 
-Irreducible is available under the permissive [BSD 3-Clause license](LICENSE). You can use, modify and redistribute it, including commercially, under those terms. If it contributes to research, please cite the software and the exact commit or release you used; [CITATION.cff](CITATION.cff) provides citation metadata. Scientific citation is requested separately from the license conditions. Data and third-party assets retain their own terms.
+[BSD 3-Clause](LICENSE).
+
+If you use Irreducible in research, please cite it and include the commit or release you used:
+
+```bibtex
+@software{irreducible,
+  author = {Prajs, Szymon},
+  title = {Irreducible},
+  year = {2026},
+  url = {https://github.com/sprajs/irreducible}
+}
+```

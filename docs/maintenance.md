@@ -1,17 +1,7 @@
-# Repository maintenance
+# Maintaining the docs
 
-The public repository contains the tool, schemas, tests, small intentional fixtures and documentation. Keep private planning, bulk evidence, run stores, acquired datasets and environments local. `.gitignore` prevents accidental additions; `tools/check_docs.py` also rejects those roots if someone force-adds them.
+`docs/README.md` is the agent entry point. Keep commands, inputs, output semantics and build instructions current with the code. README introduces the project; detailed contracts belong in the guides.
 
-## Documentation ownership
+Wiki navigation is maintained in `docs/wiki/`. Copy those files into a checkout of `https://github.com/sprajs/irreducible.wiki.git`, commit and push when the links change.
 
-`docs/README.md` is the agent-first entry point. Update relevant guides with public behavior changes, especially operation IDs, exit codes, qualification status and build requirements. README tells the story and links to the guides. AGENTS provides working rules. Avoid maintaining a second detailed command reference in the Wiki.
-
-Wiki entry pages live under `docs/wiki/`. After a reviewed docs change, copy those Markdown files to a checkout of `https://github.com/sprajs/irreducible.wiki.git`, commit and push. The Wiki's first page must be initialized through GitHub before its Git repository can be cloned. Its pages link to canonical docs in the main repository.
-
-## Checks and releases
-
-The repository hygiene workflow checks the tracked public tree and relative file links on pushes and PRs. It is not a scientific qualification workflow. Run the native and Rust tests for code changes and record the tested scope in the PR or handoff.
-
-Before a release, build/test the exact revision, document toolchain/domain limits and verify the distributable from a clean checkout. Add an actual release version and date to `CITATION.cff` only when that release exists. A package manifest's development version is not evidence of a published release. Consider a research archive/DOI when a citable release is ready; do not invent one.
-
-Preserve third-party notices and record data licenses separately. The BSD license covers original repository contributions; it does not grant rights to every dataset a user might supply.
+Run `python3 tools/check_docs.py` to check tracked files and relative Markdown links. For code changes, run the relevant native and Rust tests too. Keep citation information at the bottom of README; add a release or paper citation when one actually exists.

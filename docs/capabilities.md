@@ -16,7 +16,7 @@ The scientific qualification list in CLI discovery is currently empty. Native co
 
 ## Direction of travel
 
-The intended progression is physical definitions and numerical contracts; observation/data semantics and source adapters; probability and likelihood building blocks; physical models; inference; and reproducible end-to-end scientific analyses. Each consumer needs qualified prerequisites and its own error budget. Work in progress is not a promise that its CLI already exists.
+Development follows the calculations agents need for cosmology: shared physics, physical models and the readers/numerical operations they depend on. Each new consumer needs validated prerequisites and an error budget. Fitting and orchestration can stay in external tools; internal statistical methods are added when a particular calculation needs them. This is not a checklist for a complete analysis suite.
 
 GPU/distributed execution, broad cosmological analyses and a demonstrated performance advantage remain future work. Historical research results are not established merely by importing their ideas or documenting them.
 

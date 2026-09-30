@@ -4,4 +4,4 @@ Durable verification lives in C++ tests and Rust ABI, wrapper, CLI and build-ide
 
 The exact rational Gaussian cases and handcrafted FITS fixtures here are intentional native test inputs, independent of production implementations. Their derivations and conventions belong with the headers and in [fixture provenance](../../cpp/tests/fixtures/README.md). A prepared fixture is not evidence that a future scientific consumer has been accepted.
 
-Temporary oracle generators and bulk comparison outputs stay local. Ordinary public tests must not depend on private planning/evidence directories or an external comparison environment. Historical research assets remain local originals.
+The committed fixtures contain the expected values and derivations needed to run the native tests without external comparison software.

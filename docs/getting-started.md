@@ -45,4 +45,4 @@ python3 tools/check_docs.py
 
 The source/flag mutation test is ignored by ordinary Cargo test runs and has a separate exclusive procedure in [testing](testing.md). Coordinate shared builds; do not run a second build or a source-mutation test in an active build tree.
 
-`build/`, `target/`, `.build-tools/` and `runs/` are generated locally. Private `Plan/` and `evidence/` directories, if present, stay local too. No command above requires them. Keep datasets and full run records in suitable local or archival storage.
+`build/`, `target/`, `.build-tools/` and `runs/` are generated locally.

@@ -1,6 +1,8 @@
 # Architecture
 
-Irreducible has one executable and an independently usable native scientific library.
+Irreducible supplies compiled physics and model calculations through a non-interactive CLI and an independently usable C++ library. Agents handle the investigation: they can compose requests, drive external fitting tools and extend the source with new readers or models.
+
+The core shares equations and conventions across models. It needs statistical or fitting kernels only when a concrete calculation requires them; providing every analysis method is not an architectural goal.
 
 | Layer | Responsibility | Source |
 | --- | --- | --- |

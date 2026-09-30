@@ -6,7 +6,7 @@ target/debug/irred version --json
 target/debug/irred run tests/fixtures/exact-add.json runs/example
 ```
 
-`describe` and `version` currently return the same metadata document. `run` takes exactly a request-file path and a local store-directory path. There is no implicit interactive session, expression evaluator, inference command or automatic replay command.
+`describe` and `version` currently return the same metadata document. `run` takes exactly a request-file path and a local store-directory path. Requests are non-interactive and explicit. An agent can construct them in a script or an external fitting loop; use batches when available to avoid one process per evaluation. A request file configures compiled capabilities and cannot inject executable expressions.
 
 ## Requests
 

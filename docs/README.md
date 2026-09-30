@@ -1,29 +1,18 @@
-# Irreducible documentation
+# Documentation
 
-**Agents start here.** These files are the canonical documentation shipped with the source. Read [AGENTS.md](../AGENTS.md), choose a task below, then discover the executable you will actually run. The public checkout is self-contained; private plans and development receipts are not prerequisites.
+Irreducible provides physics and numerical calculations for agents working on cosmology. Its interface is non-interactive: discover a capability, supply a complete request, run it and inspect the result. Agents can extend the source when a scientific question needs a new model or reader, and use external tools for fitting or orchestration.
 
-| Task | Read first | Then inspect |
-| --- | --- | --- |
-| Build the development executable | [Getting started](getting-started.md) | [Testing](testing.md) |
-| Find out what exists | [Capabilities and limits](capabilities.md) | `target/debug/irred describe --json` |
-| Run JSON requests | [CLI contract](cli.md) | [Run records](run-records.md) |
-| Change an equation or model | [Scientific contracts](scientific-contracts.md) | [Development](development.md) and affected tests |
-| Understand the source layout | [Architecture](architecture.md) | [ABI schema](../schema/abi.json) |
-| Add or review a fixture | [Testing](testing.md) | [Fixture provenance](../cpp/tests/fixtures/README.md) |
-| Submit a change | [Contributing](../CONTRIBUTING.md) | [Development](development.md) |
-| Maintain public documentation | [Repository maintenance](maintenance.md) | [Wiki source](wiki/Home.md) |
+Read [AGENTS.md](../AGENTS.md) first, then choose a guide:
 
-## First actions
+| Task | Guide |
+| --- | --- |
+| Build and run | [Getting started](getting-started.md) |
+| See what is implemented | [Capabilities](capabilities.md), then `irred describe --json` |
+| Make a request | [CLI contract](cli.md) |
+| Interpret an output | [Run records](run-records.md) |
+| Add a model, reader or calculation | [Development](development.md) and [architecture](architecture.md) |
+| Check scientific assumptions | [Scientific contracts](scientific-contracts.md) |
+| Run tests or add a fixture | [Testing](testing.md) and [fixture provenance](../cpp/tests/fixtures/README.md) |
+| Maintain these docs | [Maintenance](maintenance.md) |
 
-```sh
-# After the dependency preparation in getting-started.md:
-python3 tools/build.py
-target/debug/irred describe --json
-target/debug/irred run tests/fixtures/exact-add.json runs/agent-smoke
-```
-
-Inspect operation IDs, build identity, qualification state, receipt and exit code. Do not infer an operation from a roadmap or filename. If a capability is absent, report the gap or develop it with its prerequisites.
-
-Keep four questions separate: did the run execute, is the numerical calculation qualified for this use, is the inference adequate, and what interpretation follows under the assumptions? A passing fixture answers only the question it actually tests.
-
-This documentation travels with the code. Read the version at the commit you use and update it when a public contract changes. The [Wiki](https://github.com/sprajs/irreducible/wiki) points here so that instructions do not diverge.
+These docs travel with the source. Read the version for your commit and check the actual build's capabilities and qualification state before using a result.

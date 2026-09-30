@@ -22,8 +22,8 @@ for name in sorted(tracked):
     if name == "tests/verification/reference_oracles.py":
         errors.append(f"temporary oracle tooling is tracked: {name}")
 
-required = {"README.md", "AGENTS.md", "LICENSE", "CITATION.cff", "CONTRIBUTING.md",
-            "CODE_OF_CONDUCT.md", "SECURITY.md", "docs/README.md"}
+required = {"README.md", "AGENTS.md", "LICENSE", "CONTRIBUTING.md",
+            "SECURITY.md", "docs/README.md"}
 for name in sorted(required - tracked):
     errors.append(f"missing tracked repository file: {name}")
 

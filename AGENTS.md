@@ -1,55 +1,49 @@
 # Working in Irreducible
 
-**Read [docs/README.md](docs/README.md) at the start of every task.** It is the canonical agent-first entry point. Public documentation must be sufficient to build and work on a fresh clone. Discover actual executable capabilities before making scientific claims.
+**Irreducible is a tool for agents doing physics, starting with cosmology.** Build a fast, shared implementation of equations and physical models that agents can call, inspect and extend. The primary interface is a **non-interactive CLI** with explicit inputs and machine-readable outputs. Long commands, detailed request files and bounded batches are welcome; interactive prompts and a GUI are not the intended workflow.
 
-## Start every task
+Agents should be able to add data readers, process new observations, introduce physical models, change configurations and build other tools on top. Keep one implementation of each shared equation and convention; alternative physical models can use those same foundations. Let concrete scientific questions determine what gets built.
 
-1. Read the documentation index, [capabilities](docs/capabilities.md), and the relevant task guide. Identify development versus analysis, the equation/model, input product, numerical domain and affected consumers. Read existing code and local instructions before editing.
-2. If a local `Plan/` directory exists, read its `STATUS.md`, `README.md` and `BUILD-ORDER.md`. Its build order owns local implementation sequencing; topic plans own detailed contracts. Historical reviews and reference snapshots are evidence, not new requirements. Public contributors do not need this private planning package.
-3. Preserve unrelated work and original inputs. Coordinate with the integration owner before builds or shared edits. Use explicit paths when staging. Scientific statuses begin unqualified; implementation and passing tests alone do not change that.
+**A complete fitting or inference framework is not a project requirement.** External fitters, samplers and orchestration are valid consumers. Add internal fitting only when a specific calculation needs it. Do not delay a useful physics capability to build unrelated analysis machinery, or treat a broad roadmap as a feature checklist.
 
-## Development
+## Start here
 
-Implement the smallest coherent slice whose prerequisites have qualified. Follow [development](docs/development.md) and [scientific contracts](docs/scientific-contracts.md). Do not jump to headline fits before the mathematical and statistical contracts exist.
+Read [docs/README.md](docs/README.md), [capabilities](docs/capabilities.md) and the relevant guide. Inspect existing code and discover the actual executable before claiming a capability exists. Identify the equation/model, data semantics, numerical domain and affected consumers. Preserve unrelated work and coordinate shared edits and builds.
 
-Rust owns CLI/configuration, structural parsing, acquisition and run records. C++20 owns physical definitions/conversions, models, numerical kernels, likelihoods and inference loops. CUDA is a future optional C++ backend. Use coarse batches, one ABI schema source, explicit ownership, no cross-language unwinding and no per-row FFI. Keep the C++ library independently usable.
+## Implementation
 
-Add hypotheses directly in source as small compiled modules with explicit model IDs. Rebuild and rerun. Do not introduce a runtime physics plugin framework or duplicate shared equations across analyses. A changed model changes scientific identity; it must not inherit stale cached results or qualification. Preserve immutable historical results locally.
+Rust owns CLI/configuration, structural parsing, acquisition and run records. C++20 owns physical definitions, models and numerical calculations, including statistical kernels needed by their consumers. Keep the C++ library independently usable. Use coarse batches, one ABI schema source, explicit buffer ownership and no cross-language unwinding or per-row FFI.
 
-Identify equations and assumptions, build the comparison case and justify the consumer error budget before optimizing. Own physical/statistical definitions. Reuse justified general infrastructure; do not import an astronomy or inference package as the production scientific engine. Review actual licenses and attribution before copying code or assets.
+Add hypotheses in source as small compiled modules with explicit model IDs, then rebuild and test. Do not execute expressions from data files or introduce a runtime physics plugin framework. Changed models need new scientific identities and cannot inherit stale results or qualification.
 
-Measure hotspots and total wall time/memory at matched numerical quality. Improve algorithms, layout and batching before selecting vectorization, multicore, SIMD or accelerator work. Maintain a portable baseline, explicit precision/ISA contracts and one resource budget for Rust and C++. More threads or wider vectors are not automatically faster.
+State equations, assumptions and the consumer error budget before implementation or optimization. Reuse justified infrastructure; keep production physical definitions in the shared core. External scientific software can provide independent comparisons or drive an analysis. Review licenses and attribution before copying code or assets.
 
-Tests must challenge the contract using analytic limits, independent algorithms, high precision, refinement and invalid cases. Shared ancestry is not independent evidence. Before changing an expected result, preserve the old result locally and explain whether the cause is a defect, convention, input or intentional theory change. Never hide discrepancies with jitter, dropped rows or weakened tolerances.
+Measure performance at matched numerical quality. Start with algorithms, layout and batching; use vectorization, multicore or accelerators when measurements justify them. Retain a portable baseline and explicit precision/ISA contracts. Rust and C++ share a resource budget.
 
-Keep durable C++ tests and Rust ABI/wrapper/CLI tests wired into the real build. Keep small necessary fixture provenance with the tests: sources, derivations, input conventions, uncertainty and tolerance rationale. Developer-only oracle environments, bulk outputs and receipts belong locally. After migration, native tests must run without external comparison software or local evidence folders. See [testing](docs/testing.md).
+## Scientific checks
 
-Review shared kernels against affected consumers at observable, log-likelihood and estimand levels. A failed gate withholds the affected claim. Preserve its cause and reconstructibility locally, add a durable discrepancy regression, and continue independent work. Neither an established package nor this repository is automatically right.
+Tests must challenge the contract: analytic limits, independent algorithms, high precision, refinement and adversarial inputs. Shared ancestry is not independent evidence. Keep durable C++ tests and Rust boundary/CLI tests in the real build, with concise fixture sources, derivations, conventions and tolerance rationale.
 
-## Analysis
+Preserve a failed comparison and explain its cause before changing an expected value. Never hide a discrepancy with jitter, dropped rows or weaker tolerances. Add a regression and review affected consumers at observable, likelihood or estimand level as applicable. A failed gate withholds the affected claim; independent work can continue.
 
-Use `irred describe --json` from the actual build to discover operations and schemas. Read [the CLI contract](docs/cli.md); proposed commands are not executable capabilities. Check source identities, units, frames, calibrations and required qualifications before a bounded run. Prefer prepared data and coarse batches over per-evaluation processes.
+Keep observations, fitted summaries, calibration/training assets, assumptions and synthetic truth distinct. Preserve source identities, units, frames, covariance ordering, overlap, shared calibrators and selection. Unknown dependence remains unknown. A posterior summary is not an independent measurement.
 
-Keep observations, fitted summaries, empirical training/model assets, assumptions and synthetic truth distinct. Track repeated sources, survey overlap, covariance ordering, shared calibrators and selection. Posterior summaries are not independent measurements. Unknown dependence or unavailable original assets limits the inference; it is not silently assumed absent.
+Record source/build/model/data identities, resolved requests, resource/RNG policy, numerical settings and diagnostics. Report execution, numerical, inference and interpretation status separately where applicable. A completed calculation is not automatically accepted science. Label reproductions exact, approximate, conditional or blocked, with reasons.
 
-Record exact source/build/model/data identities, resolved configuration, resource allocation, RNG policy, numerical settings, output hashes and diagnostics. Report execution, numerical, inference and interpretation statuses separately. Completion is not acceptance. Do not infer scientific certainty from code reuse or reference agreement.
+## Interface and documentation
 
-If an equation/model is missing, switch to development, qualify the new compiled capability and rebuild before analysis. Never execute agent-generated expressions from data files. Source adapters must preserve scientific object semantics.
+Use `irred describe --json` to discover implemented operations and [docs/cli.md](docs/cli.md) for their contract. Return structured results and explicit failures; never silently substitute inputs or change the requested physical meaning. If a capability is missing, implement and validate the required slice before using it.
 
-Label reproduction exact, approximate, conditional or blocked, with reasons. Do not claim historical research was rerun here without actual runs. Check the estimand's error, support and sensitivity before posterior claims; weak reweighting or an unresolved numerical screen is insufficient.
+Public documentation lives in **`docs/` and is written for agents first**. Update it and executable discovery when behavior changes. Keep README as a short introduction and the Wiki as navigation. Distinguish current behavior from intended design.
 
-## Repository and publication
+Generic C++ code uses `irred`, `cpp/include/irred/` and `irred_core`. Actual cosmological models may use `irred::cosmology`. Existing C ABI symbols and scientific/schema IDs keep their identities unless their contracts change.
 
-- Product: **Irreducible**. Executable: **`irred`**. Generic C++ code uses the `irred` namespace, `cpp/include/irred/` and the `irred_core` library. A future `irred::cosmology` module is reserved for actual cosmological models. Legacy `cosmo_*` C ABI names, `COSMO_*` tags and scientific/schema IDs remain wire identifiers; product naming does not rewrite scientific identity.
-- **`docs/` is canonical and agent-first.** Update it with every public command, contract or workflow change. Keep README and executable discovery consistent. The Wiki is a navigation layer linking to `docs/`.
-- **Never commit `Plan/`, `evidence/`, run stores, acquired datasets, local environments or scratch output.** They stay local and ignored. Do not force-add them. Retain concise provenance and small intentional fixtures under the public tests/docs instead.
-- Do not erase original research, local planning reviews or immutable accepted records as routine cleanup. Ignore/untrack local material without deleting it. Git is for the tool, tests and documentation; users retain scientific run records separately.
-- The integration owner makes small coherent commits at validated milestones and before handoff, coordinates stable snapshots, stages explicit related paths, then pushes `origin main` and verifies the remote SHA. This is standing user authorization for this repository. Workers do not independently commit or push. Never force-push without explicit user authorization for that specific rewrite.
+## Validation and publication
 
-## Validation and handoff
+Follow [testing](docs/testing.md). Shared builds use at most four jobs. Run the source/flag mutation test only in an isolated checkout, directly through its compiled binary, with no competing build there.
 
-Use the commands in [getting started](docs/getting-started.md) and [testing](docs/testing.md). Shared builds use at most four jobs. The source/flag mutation test is exclusive: use an isolated checkout and run its compiled binary directly while no other build operates there.
+Commit source, tests and documentation; respect `.gitignore`. Do not force-add ignored material or delete original research and immutable records as routine cleanup. Keep small coherent commits, stage explicit paths and preserve unfinished work.
 
-Update public capability/contract documentation when behavior changes; retain detailed receipts locally. A handoff records implemented scope, commands actually run, comparisons, failures, unresolved decisions and the next dependency. If local plans exist, update their status and link their local receipts.
+The integration owner coordinates workers, commits validated milestones and pushes `origin main`, verifying the remote SHA. This is standing user authorization for this repository. Workers do not independently commit or push. Force-pushes require explicit authorization for the specific rewrite.
 
-Report changed files, actual validation and material limits. Documentation alone establishes no implementation, speedup, scientific agreement or exhaustive coverage.
+Report what changed, checks actually run, limitations and the next useful step. Passing tests or documentation work alone establishes no new scientific result or speedup.

@@ -1,6 +1,6 @@
 # Testing
 
-Tests are the durable verification interface. They must run from a public source checkout without local plans, comparison receipts or external astronomy/oracle environments.
+The native tests run from a source checkout using the fixtures included in the repository. External comparison software is not required.
 
 ## Ordinary checks
 
