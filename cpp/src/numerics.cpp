@@ -264,7 +264,7 @@ struct FactorAccess {
       const auto i = k - 1;
       long double sum = x[i];
       for (std::size_t j = i + 1; j < n; ++j)
-        sum -= static_cast<long double>(l[j * n + i]) * x[j];
+        sum -= static_cast<long double>(l[i * n + j]) * x[j];
       x[i] = static_cast<Real>(sum / l[i * n + i]);
       if constexpr (!std::is_same_v<Real, double>)
         if (std::fpclassify(x[i]) == FP_SUBNORMAL)
@@ -419,6 +419,12 @@ struct FactorAccess {
         }
       }
     }
+    // Reuse the already allocated upper triangle as the transpose of L.
+    // Back substitution keeps identical operands and ascending j order while
+    // reading contiguous rows; both arithmetic policies share this layout.
+    for (std::size_t i = 0; i < n; ++i)
+      for (std::size_t j = i + 1; j < n; ++j)
+        l[i * n + j] = l[j * n + i];
     f.norm_inf_ = norm;
     f.wide_norm_inf_ = wide_norm;
     f.log_determinant_ = static_cast<double>(logdet);

@@ -95,3 +95,7 @@ The supernova ABI/CLI fixtures are generated release-profile-shaped transport co
 ### Native CPL comparisons
 
 The radiation-free flat CPL density uses `a^(-3(1+w0+wa))*exp(-3*wa*(1-a))`. Required parameters are H0, omega_m, w0 and wa; legacy preparation rejects model 2. Owner scale-factor quadrature and independent composite eight-point Gauss-Legendre integration in redshift challenge distance/clock integrals, Lambda/constant-w limits, derivative diagnostics, refinement, corners and invalid inputs. Native owner 1508 and peer 1184 checks passed; transport is deliberately unchanged. These are bounded numerical cases, not early-universe or observational interpretation claims.
+
+### Triangular layout compatibility
+
+`test_numerics_mirror_hostile` challenges prescribed Gram matrices, both arithmetic policies, solves and failure/allocation behavior. The optional layout transcript target emits hexadecimal results for controlled baseline/candidate comparisons; it is not an independent scientific oracle. Accepted compatibility checks included every retained vector, diagnostic, status and callback count for seven original-data points at three refinements, all bit-identical. The optional benchmark separates retained preparation from batches and requires verified original assets.

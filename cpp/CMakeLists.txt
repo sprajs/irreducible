@@ -143,3 +143,13 @@ add_test(NAME background_cpl_contract COMMAND test_background_cpl)
 add_executable(test_background_cpl_hostile tests/test_background_cpl_hostile.cpp)
 target_link_libraries(test_background_cpl_hostile PRIVATE irred_core)
 add_test(NAME background_cpl_hostile_contract COMMAND test_background_cpl_hostile)
+
+add_executable(test_numerics_mirror_hostile tests/test_numerics_mirror_hostile.cpp)
+target_link_libraries(test_numerics_mirror_hostile PRIVATE irred_core)
+add_test(NAME numerics_mirror_hostile_contract COMMAND test_numerics_mirror_hostile)
+
+add_executable(test_numerics_layout_parity EXCLUDE_FROM_ALL tests/test_numerics_layout_parity.cpp)
+target_link_libraries(test_numerics_layout_parity PRIVATE irred_core)
+
+add_executable(benchmark_w01 EXCLUDE_FROM_ALL tests/benchmark_w01.cpp)
+target_link_libraries(benchmark_w01 PRIVATE irred_core)
