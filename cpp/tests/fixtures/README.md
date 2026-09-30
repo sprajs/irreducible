@@ -99,3 +99,7 @@ The radiation-free flat CPL density uses `a^(-3(1+w0+wa))*exp(-3*wa*(1-a))`. Req
 ### Triangular layout compatibility
 
 `test_numerics_mirror_hostile` challenges prescribed Gram matrices, both arithmetic policies, solves and failure/allocation behavior. The optional layout transcript target emits hexadecimal results for controlled baseline/candidate comparisons; it is not an independent scientific oracle. Accepted compatibility checks included every retained vector, diagnostic, status and callback count for seven original-data points at three refinements, all bit-identical. The optional benchmark separates retained preparation from batches and requires verified original assets.
+
+### Native BAO comparisons
+
+`bao_reference.hpp` pins the original DESI DR2 ALL GCcomb13 mean/covariance hashes and eleven derived reference points. Independent a-variable composite Gauss-Legendre/refinement and unit-LDLT checks retain observable, quadratic, log-determinant and normalization terms separately. The named assembled log-density allocation is `1e-8`; failed coarser candidate refinements were preserved and the accepted stricter calculation retained the budget. Inputs are released fitted summaries with declared covariance ordering, not raw detections or an independent cross-probe likelihood. The optional SHA2 Rust guard verifies exact original bytes before and after the native test; no Rust scientific equations or external data are required for ordinary tests.

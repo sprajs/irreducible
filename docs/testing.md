@@ -86,3 +86,14 @@ cargo test --locked --offline -j4 --test w01_reference -- --ignored --nocapture
 The Rust wrapper verifies raw hashes before running C++; it contains no physical equations. The native harness compares the frozen direct/stable historical scores separately from the approximate compressed route. This is a named fixed-input comparison, not parameter fitting or cosmological inference. The supernova C ABI/CLI remains unavailable until its separate interface gate.
 
 The retained supernova interface has a durable native allocation/ownership suite (`test_supernova_abi_hostile`) and Rust CLI suite (`cargo test --locked --offline -j4 --test supernova_cli`). Its generated transport controls use analytic de Sitter/profile limits and intentionally invalid unselected covariance entries. They are separate from the optional SHA-verified original seven-point regression. Native Debug and Release suites exercise the same checks; the interface also has actual Release CLI coverage. A passing transport regression does not qualify arbitrary source/model requests.
+
+For the optional native BAO eleven-point comparison, explicitly acquire the assets pinned by `cpp/tests/fixtures/bao_reference.hpp`. The guard rejects changed bytes and checks them again after execution:
+
+```bash
+IRRED_BAO_MEAN=/path/to/desi_gaussian_bao_ALL_GCcomb_mean.txt \
+IRRED_BAO_COVARIANCE=/path/to/desi_gaussian_bao_ALL_GCcomb_cov.txt \
+IRRED_BAO_NATIVE_HARNESS="$PWD/build/native-release/test_bao" \
+cargo test --release --locked --offline -j4 --test bao_reference -- --ignored --nocapture
+```
+
+This is native fixed-case numerical coverage; it supplies no BAO CLI, posterior or joint-probe qualification.

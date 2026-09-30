@@ -1,0 +1,118 @@
+#pragma once
+#include "irred/background.hpp"
+#include "irred/statistics.hpp"
+#include <cstddef>
+#include <cstdint>
+#include <span>
+#include <string_view>
+#include <vector>
+namespace irred::bao {
+// Flat late-time distance ratios. Ruler is an empirically free scale, not a
+// computed drag-epoch or last-scattering sound horizon.
+enum class Observable : std::uint32_t {
+  transverse_over_ruler = 0,
+  hubble_over_ruler = 1,
+  volume_over_ruler = 2
+};
+struct Query {
+  double z;
+  Observable observable;
+};
+struct Ruler {
+  double h0_rd_km_s;
+  explicit Ruler(double product_km_s) : h0_rd_km_s(product_km_s) {}
+};
+struct Policy {
+  cosmology::Policy background;
+  std::size_t maximum_queries = 4096;
+  // Conservative dynamic payload peak: returned slots + admitted queries +
+  // index map + Background slots; excludes caller input and allocator overhead.
+  std::size_t maximum_native_bytes = 1048576;
+};
+struct Slot {
+  Query source{};
+  cosmology::Status status = cosmology::Status::invalid_input;
+  numerics::Status numerical_status = numerics::Status::invalid_input;
+  // Meaningful only when status==ok; exact transverse/volume zero at z0 valid.
+  double dimensionless_value = 0;
+  std::size_t evaluations = 0;
+};
+struct Batch {
+  cosmology::Status status = cosmology::Status::invalid_input;
+  std::size_t evaluations = 0;
+  std::vector<Slot> slots;
+};
+inline constexpr std::string_view equation_id = "P01/flat-free-ruler-BAO/v1";
+inline constexpr std::string_view ruler_convention_id =
+    "P01/free-H0rd-km-s-no-early-physics/v1";
+// z[0,5], H0rd[5000,15000] km/s; owned Background's existing model domain and
+// all-observable representability limits apply. Its computational H0 cancels.
+// One background callback cap applies across the whole batch. No likelihood,
+// joint-probe independence, automatic qualification or runtime CPL ABI claim.
+Batch evaluate(const cosmology::Background &, Ruler, std::span<const Query>,
+               Policy);
+
+enum class RowRole : std::uint32_t {
+  released_fitted_distance_summary = 0,
+  synthetic_control = 1
+};
+enum class CovarianceUnit : std::uint32_t { dimensionless_ratio_squared = 0 };
+struct DensityInput {
+  std::vector<Query> queries;
+  std::vector<double> observed, covariance;
+  std::vector<std::string> ordered_ids;
+  RowRole role;
+  CovarianceUnit covariance_unit;
+  std::string table_identity, covariance_identity, ordering_provenance,
+      calibration_provenance, dependence_provenance;
+};
+struct DensityPolicy {
+  Policy observables;
+  std::size_t maximum_models, maximum_matrix_elements, maximum_string_bytes,
+      maximum_native_bytes;
+  double maximum_forward_sensitivity;
+  numerics::Arithmetic arithmetic;
+};
+struct ModelQuery {
+  cosmology::Background background;
+  Ruler ruler;
+};
+struct DensitySlot {
+  cosmology::Parameters attempted_model;
+  double attempted_h0_rd_km_s;
+  std::string model_id, equation_id, arithmetic_id;
+  cosmology::Status background_status = cosmology::Status::invalid_input;
+  numerics::Status numerical_status = numerics::Status::invalid_input;
+  statistics::GaussianResult result;
+  std::vector<double> predictions, residuals;
+  std::size_t evaluations = 0;
+};
+struct DensityBatch {
+  statistics::DensityStatus status = statistics::DensityStatus::invalid_input;
+  numerics::Status numerical_status = numerics::Status::invalid_input;
+  std::vector<DensitySlot> slots;
+  std::size_t evaluations = 0;
+};
+class PreparedDensity {
+public:
+  statistics::DensityStatus status() const noexcept { return status_; }
+  numerics::Status numerical_status() const noexcept {
+    return numerical_status_;
+  }
+  const DensityInput &source() const noexcept { return source_; }
+  const statistics::Metadata &metadata() const noexcept {
+    return gaussian_.metadata();
+  }
+  DensityBatch evaluate(std::span<const ModelQuery>, DensityPolicy) const;
+
+private:
+  DensityInput source_;
+  statistics::Gaussian gaussian_;
+  statistics::DensityStatus status_ = statistics::DensityStatus::invalid_input;
+  numerics::Status numerical_status_ = numerics::Status::invalid_input;
+  friend PreparedDensity prepare_density(const DensityInput &, DensityPolicy);
+};
+// Original full covariance/order retained. Units and identity declarations are
+// mandatory; unknown provenance remains unknown. No source covariance repair.
+PreparedDensity prepare_density(const DensityInput &, DensityPolicy);
+} // namespace irred::bao
