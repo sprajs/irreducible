@@ -49,6 +49,21 @@ typedef struct cosmo_result cosmo_result;
 #define COSMO_QUANTITY_STATUS_CONSTANT_SET_MISMATCH 9u
 #define COSMO_QUANTITY_STATUS_INVALID_DOMAIN 10u
 #define COSMO_QUANTITY_STATUS_INVALID_BATCH 11u
+#define COSMO_MAX_BATCH_ELEMENTS 1000000u
+#define COSMO_NUMERICAL_OPERATION_COMPENSATED_SUM 1u
+#define COSMO_NUMERICAL_OPERATION_LOG_SUM_EXP 2u
+#define COSMO_NUMERICAL_OPERATION_LOG1P 3u
+#define COSMO_NUMERICAL_OPERATION_EXPM1 4u
+#define COSMO_NUMERICAL_OPERATION_LOG_GAMMA_POSITIVE 5u
+#define COSMO_NUMERICAL_STATUS_OK 0u
+#define COSMO_NUMERICAL_STATUS_INVALID_INPUT 1u
+#define COSMO_NUMERICAL_STATUS_NONFINITE_INPUT 2u
+#define COSMO_NUMERICAL_STATUS_OVERFLOW 3u
+#define COSMO_NUMERICAL_STATUS_WORK_LIMIT 4u
+#define COSMO_NUMERICAL_STATUS_OUTSIDE_DOMAIN 5u
+#define COSMO_NUMERICAL_STATUS_SINGULAR 6u
+#define COSMO_NUMERICAL_STATUS_NOT_POSITIVE_DEFINITE 7u
+#define COSMO_NUMERICAL_STATUS_CONDITIONING_BUDGET_EXCEEDED 8u
 typedef struct { uint32_t struct_size; uint32_t abi_version; uint32_t element_type; uint32_t reserved; const int64_t* data; uint64_t length; uint64_t byte_length; } cosmo_i64_buffer;
 typedef struct { uint32_t struct_size; uint32_t abi_version; uint32_t element_type; uint32_t reserved; const double* data; uint64_t length; uint64_t byte_length; } cosmo_f64_buffer;
 typedef struct { uint32_t struct_size; uint32_t abi_version; uint32_t unit; uint32_t role; uint32_t frame; uint32_t convention; uint32_t constant_set; uint32_t reserved; } cosmo_quantity_metadata;
@@ -57,6 +72,15 @@ uint32_t cosmo_result_view(const cosmo_result* r, const int64_t** data, uint64_t
 uint32_t cosmo_result_destroy(cosmo_result* r);
 uint32_t cosmo_convert_quantities(const cosmo_f64_buffer* values, const cosmo_quantity_metadata* source, const cosmo_quantity_metadata* target, cosmo_result** out);
 uint32_t cosmo_result_f64_view(const cosmo_result* r, const double** data, const uint32_t** status, uint64_t* n);
+uint32_t cosmo_numerics_evaluate(uint32_t operation, const cosmo_f64_buffer* values, cosmo_result** out);
+uint32_t cosmo_result_numerics_view(const cosmo_result* r, const double** data, const uint32_t** status, const double** error_estimate, const uint64_t** evaluations, uint64_t* n);
+static inline uint64_t cosmo_numerics_output_length(uint32_t operation,uint64_t input) {switch(operation) {
+case COSMO_NUMERICAL_OPERATION_COMPENSATED_SUM:return 1;
+case COSMO_NUMERICAL_OPERATION_LOG_SUM_EXP:return 1;
+case COSMO_NUMERICAL_OPERATION_LOG1P:return input;
+case COSMO_NUMERICAL_OPERATION_EXPM1:return input;
+case COSMO_NUMERICAL_OPERATION_LOG_GAMMA_POSITIVE:return input;
+default:return UINT64_MAX;}}
 #ifdef __cplusplus
 }
 #endif

@@ -35,3 +35,12 @@ static_assert(static_cast<uint32_t>(cosmology::QuantityStatus::underflow) == COS
 static_assert(static_cast<uint32_t>(cosmology::QuantityStatus::constant_set_mismatch) == COSMO_QUANTITY_STATUS_CONSTANT_SET_MISMATCH);
 static_assert(static_cast<uint32_t>(cosmology::QuantityStatus::invalid_domain) == COSMO_QUANTITY_STATUS_INVALID_DOMAIN);
 static_assert(static_cast<uint32_t>(cosmology::QuantityStatus::invalid_batch) == COSMO_QUANTITY_STATUS_INVALID_BATCH);
+static_assert(static_cast<uint32_t>(cosmology::numerics::Status::ok) == COSMO_NUMERICAL_STATUS_OK);
+static_assert(static_cast<uint32_t>(cosmology::numerics::Status::invalid_input) == COSMO_NUMERICAL_STATUS_INVALID_INPUT);
+static_assert(static_cast<uint32_t>(cosmology::numerics::Status::nonfinite_input) == COSMO_NUMERICAL_STATUS_NONFINITE_INPUT);
+static_assert(static_cast<uint32_t>(cosmology::numerics::Status::overflow) == COSMO_NUMERICAL_STATUS_OVERFLOW);
+static_assert(static_cast<uint32_t>(cosmology::numerics::Status::work_limit) == COSMO_NUMERICAL_STATUS_WORK_LIMIT);
+static_assert(static_cast<uint32_t>(cosmology::numerics::Status::outside_domain) == COSMO_NUMERICAL_STATUS_OUTSIDE_DOMAIN);
+static_assert(static_cast<uint32_t>(cosmology::numerics::Status::singular) == COSMO_NUMERICAL_STATUS_SINGULAR);
+static_assert(static_cast<uint32_t>(cosmology::numerics::Status::not_positive_definite) == COSMO_NUMERICAL_STATUS_NOT_POSITIVE_DEFINITE);
+static_assert(static_cast<uint32_t>(cosmology::numerics::Status::conditioning_budget_exceeded) == COSMO_NUMERICAL_STATUS_CONDITIONING_BUDGET_EXCEEDED);

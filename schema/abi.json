@@ -264,6 +264,80 @@
           "u64_ptr"
         ]
       ]
+    },
+    {
+      "name": "cosmo_numerics_evaluate",
+      "args": [
+        [
+          "operation",
+          "u32"
+        ],
+        [
+          "values",
+          "const_F64Buffer_ptr"
+        ],
+        [
+          "out",
+          "result_out"
+        ]
+      ]
+    },
+    {
+      "name": "cosmo_result_numerics_view",
+      "args": [
+        [
+          "r",
+          "const_result"
+        ],
+        [
+          "data",
+          "const_f64_out"
+        ],
+        [
+          "status",
+          "const_u32_out"
+        ],
+        [
+          "error_estimate",
+          "const_f64_out"
+        ],
+        [
+          "evaluations",
+          "const_u64_out"
+        ],
+        [
+          "n",
+          "u64_ptr"
+        ]
+      ]
     }
-  ]
+  ],
+  "max_batch_elements": 1000000,
+  "numerical_tags": {
+    "operation": {
+      "compensated_sum": 1,
+      "log_sum_exp": 2,
+      "log1p": 3,
+      "expm1": 4,
+      "log_gamma_positive": 5
+    },
+    "status": {
+      "ok": 0,
+      "invalid_input": 1,
+      "nonfinite_input": 2,
+      "overflow": 3,
+      "work_limit": 4,
+      "outside_domain": 5,
+      "singular": 6,
+      "not_positive_definite": 7,
+      "conditioning_budget_exceeded": 8
+    }
+  },
+  "numerical_output_shapes": {
+    "compensated_sum": "scalar",
+    "log_sum_exp": "scalar",
+    "log1p": "per_input",
+    "expm1": "per_input",
+    "log_gamma_positive": "per_input"
+  }
 }

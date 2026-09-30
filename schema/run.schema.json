@@ -7,6 +7,9 @@
     },
     {
       "$ref": "#/$defs/quantity"
+    },
+    {
+      "$ref": "#/$defs/numerics"
     }
   ],
   "$defs": {
@@ -146,6 +149,40 @@
           "enum": [
             "SI-IAU-definitions-v1"
           ]
+        }
+      }
+    },
+    "numerics": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema_version",
+        "operation",
+        "method",
+        "values"
+      ],
+      "properties": {
+        "schema_version": {
+          "const": 1
+        },
+        "operation": {
+          "const": "numerics.scalar_batch.v1"
+        },
+        "method": {
+          "enum": [
+            "compensated_sum",
+            "log_sum_exp",
+            "log1p",
+            "expm1",
+            "log_gamma_positive"
+          ]
+        },
+        "values": {
+          "type": "array",
+          "maxItems": 1000000,
+          "items": {
+            "type": "number"
+          }
         }
       }
     }

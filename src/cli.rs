@@ -1,5 +1,7 @@
 use crate::{
-    bridge::{ABI_VERSION, Metadata, add, convert_quantities},
+    bridge::{
+        ABI_VERSION, MAX_BATCH_ELEMENTS, Metadata, add, convert_quantities, numerics_evaluate,
+    },
     records::{hash, publish, runtime_libraries},
 };
 use serde::Deserialize;
@@ -25,6 +27,14 @@ struct QuantityRequest {
     target: Metadata,
 }
 #[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct NumericalRequest {
+    schema_version: u32,
+    operation: String,
+    method: String,
+    values: Vec<f64>,
+}
+#[derive(Deserialize)]
 struct OperationHeader {
     operation: String,
 }
@@ -36,7 +46,7 @@ pub(crate) fn execute() -> Result<(), String> {
         Some("describe") | Some("version") if args.len() == 3 && args[2] == "--json" => {
             println!(
                 "{}",
-                json!({"schema_version":1,"version":env!("CARGO_PKG_VERSION"),"abi_version":ABI_VERSION,"build":manifest,"capabilities":[{"id":"fixture.checked_i64_add.v1","implementation":"implemented","qualification":"unqualified","scientific":false},{"id":"quantity.convert.v1","implementation":"implemented","qualification":"unqualified","scientific":true}],"quantity_schema":serde_json::from_str::<Value>(include_str!("../schema/abi.json")).map_err(|e|e.to_string())?,"commands":["describe --json","version --json","run REQUEST STORE"],"scientific_qualifications":[]})
+                json!({"schema_version":1,"product":"Irreducible","executable":"irred","version":env!("CARGO_PKG_VERSION"),"abi_version":ABI_VERSION,"build":manifest,"capabilities":[{"id":"fixture.checked_i64_add.v1","implementation":"implemented","qualification":"unqualified","scientific":false},{"id":"quantity.convert.v1","implementation":"implemented","qualification":"unqualified","scientific":true},{"id":"numerics.scalar_batch.v1","implementation":"implemented","qualification":"unqualified","scientific":true}],"quantity_schema":serde_json::from_str::<Value>(include_str!("../schema/abi.json")).map_err(|e|e.to_string())?,"commands":["describe --json","version --json","run REQUEST STORE"],"scientific_qualifications":[]})
             );
             Ok(())
         }
@@ -103,6 +113,28 @@ pub(crate) fn execute() -> Result<(), String> {
                                 "source_values":request.values,"source":request.source,
                                 "target":request.target,"evaluations":evaluations}))
                         },
+                        "numerics.scalar_batch.v1" => {
+                            let request: NumericalRequest = serde_json::from_slice(&input).map_err(|e|e.to_string())?;
+                            if request.schema_version!=1 {return Err("UNSUPPORTED_SPECIFICATION".into());}
+                            resolved=Some(json!({"schema_version":1,"operation":request.operation,"method":request.method,
+                                "equation_id":format!("F02/scalar/{}/v1",request.method),"values":request.values,
+                                "requested_outputs":[{"id":"evaluations","required":true,"numerical_gate":"required","inference_gate":"not_applicable"}]}));
+                            if std::env::var_os("COSMOLOGY_TEST_PANIC").is_some(){panic!("injected Rust panic");}
+                            let slots=numerics_evaluate(&request.method,&request.values)?;
+                            let failed=slots.iter().any(|slot|slot.value.is_none());
+                            let evaluations:Vec<_>=slots.into_iter().map(|slot| {
+                                let result=match slot.value {
+                                    Some(value)=>json!({"kind":"finite","value":value}),
+                                    None=>json!({"kind":"failure","error_id":slot.status})
+                                };
+                                json!({"result":result,"diagnostics":{"error_estimate":slot.error_estimate,
+                                    "error_estimate_kind":"empirical_or_arithmetic_diagnostic_not_certified_bound",
+                                    "evaluations":slot.evaluations}})
+                            }).collect();
+                            Ok(json!({"kind":if failed {"failure"}else{"finite"},
+                                "error_id":if failed {Some("NUMERICAL_EVALUATION_FAILURE")}else{None},
+                                "method":request.method,"source_values":request.values,"evaluations":evaluations}))
+                        },
                         _ => Err("UNSUPPORTED_SPECIFICATION".into()),
                     }
                 },
@@ -118,18 +150,26 @@ pub(crate) fn execute() -> Result<(), String> {
             if std::env::var_os("COSMOLOGY_TEST_ABORT_AFTER_OUTPUT").is_some() {
                 std::process::abort()
             }
+            let is_numerical = resolved
+                .as_ref()
+                .is_some_and(|spec| spec["operation"] == "numerics.scalar_batch.v1");
             let is_quantity = resolved
                 .as_ref()
                 .is_some_and(|spec| spec["operation"] == "quantity.convert.v1");
             let mut final_record = initial;
-            final_record["precision"] = json!(if is_quantity {
+            final_record["precision"] = json!(if is_numerical {
+                "binary64_storage_method_declared_intermediate"
+            } else if is_quantity {
                 "binary64_storage_host_long_double_intermediate"
             } else {
                 "exact_i64"
             });
-            final_record["accepted"] = json!(success && !is_quantity);
-            if is_quantity {
-                final_record["outputs"] = json!([{"id":"converted","required":true,"numerical":"not_assessed","inference":"not_applicable","evidence":[]}]);
+            final_record["accepted"] = json!(success && !is_quantity && !is_numerical);
+            if is_numerical {
+                final_record["resource_budget"]["max_batch_elements"] = json!(MAX_BATCH_ELEMENTS);
+            }
+            if is_quantity || is_numerical {
+                final_record["outputs"] = json!([{"id":if is_numerical {"evaluations"} else {"converted"},"required":true,"numerical":"not_assessed","inference":"not_applicable","evidence":[]}]);
             }
             if let Some(spec) = resolved {
                 let spec_bytes = serde_json::to_vec(&spec).unwrap();
@@ -149,7 +189,7 @@ pub(crate) fn execute() -> Result<(), String> {
                 &serde_json::to_vec(&final_record).unwrap(),
             )?;
             println!("{}", json!({"receipt":final_record,"result":output}));
-            if success && is_quantity {
+            if success && (is_quantity || is_numerical) {
                 Err("NUMERICAL_QUALIFICATION_REQUIRED".into())
             } else if success {
                 Ok(())
@@ -160,6 +200,6 @@ pub(crate) fn execute() -> Result<(), String> {
                     .to_string())
             }
         }
-        _ => Err("usage: cosmology describe --json | version --json | run REQUEST STORE".into()),
+        _ => Err("usage: irred describe --json | version --json | run REQUEST STORE".into()),
     }
 }

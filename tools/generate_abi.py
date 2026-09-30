@@ -3,7 +3,7 @@
 import json,pathlib,re,subprocess
 root=pathlib.Path(__file__).resolve().parents[1]
 s=json.loads((root/'schema/abi.json').read_text())
-types={'u32':('uint32_t','u32'),'u64':('uint64_t','u64'),'const_i64_ptr':('const int64_t*','*const i64'),'const_f64_ptr':('const double*','*const f64'),'const_i64_out':('const int64_t**','*mut *const i64'),'const_f64_out':('const double**','*mut *const f64'),'const_u32_out':('const uint32_t**','*mut *const u32'),'u64_ptr':('uint64_t*','*mut u64'),'result':('cosmo_result*','*mut std::ffi::c_void'),'const_result':('const cosmo_result*','*const std::ffi::c_void'),'result_out':('cosmo_result**','*mut *mut std::ffi::c_void')}
+types={'u32':('uint32_t','u32'),'u64':('uint64_t','u64'),'const_i64_ptr':('const int64_t*','*const i64'),'const_f64_ptr':('const double*','*const f64'),'const_i64_out':('const int64_t**','*mut *const i64'),'const_f64_out':('const double**','*mut *const f64'),'const_u32_out':('const uint32_t**','*mut *const u32'),'const_u64_out':('const uint64_t**','*mut *const u64'),'u64_ptr':('uint64_t*','*mut u64'),'result':('cosmo_result*','*mut std::ffi::c_void'),'const_result':('const cosmo_result*','*const std::ffi::c_void'),'result_out':('cosmo_result**','*mut *mut std::ffi::c_void')}
 for structure in s['structures']:
  types['const_'+structure['rust_name']+'_ptr']=('const '+structure['c_name']+'*','*const '+structure['rust_name'])
 def macro(name):return re.sub('[^A-Za-z0-9_]','_',name).upper()
@@ -13,6 +13,10 @@ for name,value in s['statuses'].items():
  c.append(f'#define COSMO_{name} {value}u');r.append(f'pub const {name}:u32={value};')
 for group,tags in s['quantity_tags'].items():
  for name,value in tags.items():c.append(f'#define COSMO_{macro(group)}_{macro(name)} {value}u')
+c.append(f'#define COSMO_MAX_BATCH_ELEMENTS {s["max_batch_elements"]}u')
+r.append(f'pub const MAX_BATCH_ELEMENTS:u64={s["max_batch_elements"]};')
+for group,tags in s['numerical_tags'].items():
+ for name,value in tags.items():c.append(f'#define COSMO_NUMERICAL_{macro(group)}_{macro(name)} {value}u')
 for structure in s['structures']:
  c.append('typedef struct { '+' '.join(f'{types[t][0]} {n};' for n,t in structure['fields'])+' } '+structure['c_name']+';')
  r.append('#[repr(C)]\npub struct '+structure['rust_name']+' { '+', '.join(f'pub {n}:{types[t][1]}' for n,t in structure['fields'])+' }')
@@ -29,11 +33,24 @@ r.append('_=>None,}}')
 r.append('pub fn quantity_status_name(value:u32)->Option<&\'static str> {match value {')
 for name,value in s['quantity_tags']['quantity_status'].items():r.append(f'{value}=>Some("{name}"),')
 r.append('_=>None,}}')
+r.append('pub fn numerical_operation_id(label:&str)->Option<u32> {match label {')
+for name,value in s['numerical_tags']['operation'].items():r.append(f'"{name}"=>Some({value}),')
+r.append('_=>None,}}')
+r.append('pub fn numerical_status_name(value:u32)->Option<&\'static str> {match value {')
+for name,value in s['numerical_tags']['status'].items():r.append(f'{value}=>Some("{name}"),')
+r.append('_=>None,}}')
+r.append('pub fn numerical_output_length(method:&str,input:usize)->Option<usize> {match method {')
+for name,shape in s['numerical_output_shapes'].items():r.append(f'"{name}"=>Some('+('1' if shape=='scalar' else 'input')+'),')
+r.append('_=>None,}}')
+c.append('static inline uint64_t cosmo_numerics_output_length(uint32_t operation,uint64_t input) {switch(operation) {')
+for name,shape in s['numerical_output_shapes'].items():c.append(f'case COSMO_NUMERICAL_OPERATION_{macro(name)}:return '+('1' if shape=='scalar' else 'input')+';')
+c.append('default:return UINT64_MAX;}}')
 c+=['#ifdef __cplusplus','}','#endif']
 (root/'cpp/include/cosmology/abi.h').write_text('\n'.join(c)+'\n');(root/'src/abi_generated.rs').write_text('\n'.join(r)+'\n')
 checks=[]
 for group,enum in [('unit','Unit'),('role','Role'),('frame','Frame'),('convention','LengthConvention'),('quantity_status','QuantityStatus')]:
  for name in s['quantity_tags'][group]:checks.append(f'static_assert(static_cast<uint32_t>(cosmology::{enum}::{name}) == COSMO_{macro(group)}_{macro(name)});')
+for name in s['numerical_tags']['status']:checks.append(f'static_assert(static_cast<uint32_t>(cosmology::numerics::Status::{name}) == COSMO_NUMERICAL_STATUS_{macro(name)});')
 (root/'cpp/include/cosmology/quantity_enum_checks.inc').write_text('// Generated structural ID agreement; physical semantics owned by quantities.cpp.\n'+'\n'.join(checks)+'\n')
 subprocess.run(['rustfmt',str(root/'src/abi_generated.rs')],check=True)
 
@@ -43,5 +60,6 @@ existing=json.loads(run_path.read_text())
 fixture=existing.get('$defs',{}).get('fixture',existing)
 metadata={'type':'object','additionalProperties':False,'required':[g for g in s['quantity_tags'] if g!='quantity_status'],'properties':{g:{'type':'string','enum':list(tags)} for g,tags in s['quantity_tags'].items() if g!='quantity_status'}}
 quantity={'type':'object','additionalProperties':False,'required':['schema_version','operation','values','source','target'],'properties':{'schema_version':{'const':1},'operation':{'const':'quantity.convert.v1'},'values':{'type':'array','items':{'type':'number'}},'source':{'$ref':'#/$defs/quantity_metadata'},'target':{'$ref':'#/$defs/quantity_metadata'}}}
-run={'$schema':'https://json-schema.org/draft/2020-12/schema','$id':'cosmology.run.v1','oneOf':[{'$ref':'#/$defs/fixture'},{'$ref':'#/$defs/quantity'}],'$defs':{'fixture':fixture,'quantity':quantity,'quantity_metadata':metadata},'description':'Structural generated view. C++ owns scientific admissibility, conversions and per-row statuses; successful execution without qualification remains unaccepted.'}
+numerics={'type':'object','additionalProperties':False,'required':['schema_version','operation','method','values'],'properties':{'schema_version':{'const':1},'operation':{'const':'numerics.scalar_batch.v1'},'method':{'enum':list(s['numerical_tags']['operation'])},'values':{'type':'array','maxItems':s['max_batch_elements'],'items':{'type':'number'}}}}
+run={'$schema':'https://json-schema.org/draft/2020-12/schema','$id':'cosmology.run.v1','oneOf':[{'$ref':'#/$defs/fixture'},{'$ref':'#/$defs/quantity'},{'$ref':'#/$defs/numerics'}],'$defs':{'fixture':fixture,'quantity':quantity,'quantity_metadata':metadata,'numerics':numerics},'description':'Structural generated view. C++ owns scientific admissibility, conversions and per-row statuses; successful execution without qualification remains unaccepted.'}
 run_path.write_text(json.dumps(run,indent=2)+'\n')

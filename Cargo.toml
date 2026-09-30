@@ -1,7 +1,11 @@
 [package]
-name = "cosmology"
+name = "irreducible"
 version = "0.1.0"
 edition = "2024"
+[[bin]]
+name = "irred"
+path = "src/main.rs"
+
 [dependencies]
 serde = { version = "=1.0.229", features = ["derive"] }
 serde_json = "=1.0.151"

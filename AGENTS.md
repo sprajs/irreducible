@@ -1,4 +1,4 @@
-# Working in Cosmology
+# Working in Irreducible
 
 This repository is both a software-development project and, once implemented, an analysis tool. Choose the appropriate track below. The repository contains a reviewed planning package and a tested minimal infrastructure executable. Discover the actual built capabilities; scientific calculations remain unqualified unless their own evidence says otherwise. Do not turn proposed commands into claims that they have run.
 
@@ -36,7 +36,7 @@ Record exact source/build/model/data identities, resolved configuration, resourc
 
 If the requested equation or model is missing, switch to development: add the compiled capability, compare it, update qualification and rebuild before analysis. Do not execute agent-generated expressions from data files. New readers are narrow source adapters and must preserve the same scientific object semantics.
 
-Reproduction must be labelled exact, approximate, blocked or conditional with reasons. Use [R01](Plan/07-reproduction/R01-migration-map.md) and [R02](Plan/07-reproduction/R02-acceptance-cases.md) for old-research cases. Do not claim the original repo's historical validation was rerun in Cosmology. For posterior claims check the specific estimand's error, support and sensitivity; do not promote a weakly supported reweighting or an unresolved numerical screen.
+Reproduction must be labelled exact, approximate, blocked or conditional with reasons. Use [R01](Plan/07-reproduction/R01-migration-map.md) and [R02](Plan/07-reproduction/R02-acceptance-cases.md) for old-research cases. Do not claim the original repo's historical validation was rerun in Irreducible. For posterior claims check the specific estimand's error, support and sensitivity; do not promote a weakly supported reweighting or an unresolved numerical screen.
 
 ## Commands that exist now
 
@@ -54,8 +54,8 @@ Implemented and verified S00 commands ([receipt](Plan/08-delivery/implementation
 python3 tools/build.py
 .build-tools/bin/ctest --test-dir build/native --output-on-failure
 cargo test --locked --offline -j4
-target/debug/cosmology describe --json
-target/debug/cosmology run tests/fixtures/exact-add.json runs/example
+target/debug/irred describe --json
+target/debug/irred run tests/fixtures/exact-add.json runs/example
 ```
 
 The exclusive native source/flag mutation suite is compiled with `cargo test --locked --offline -j4 --test build_identity --no-run`, then its emitted binary is run directly with `--ignored --exact source_receipt_flags_and_cache_identity` while no other build is running. These commands verify infrastructure and bounded native tests; they do not establish cosmological inference. The implemented `quantity.convert.v1` request in `tests/fixtures/quantity-length.json` also produces ordered tagged conversion results with preserved source metadata. Until matching numerical evidence is registered, its completed finite run returns exit 6 and `accepted=false`; no execution success implies numerical qualification. The build uses four jobs; coordinate shared builds before running it. Add further production commands only after actual implementation and verification.
@@ -65,3 +65,9 @@ The exclusive native source/flag mutation suite is compiled with `cargo test --l
 Update status/manifests when evidence changes, linking the receipt rather than merely marking a checkbox. A handoff records the exact stage, implemented slice, actual commands, comparisons, failures, unresolved decisions and next dependency. Keep one authoritative main plan and build order; put review findings in the review ledger and integrate accepted corrections into their owner documents.
 
 Report changed files, validation actually performed and material limitations. No claim of implementation, acceleration, scientific agreement or exhaustive software coverage follows from completing documentation alone.
+
+## Product identity and validated publication
+
+The product is **Irreducible** and its executable is **irred**. The checkout path remains `cosmology`; C++ scientific namespaces, schema/scientific IDs and immutable historical receipts keep their original identities. Public repository: https://github.com/sprajs/irreducible ; remote `origin`.
+
+The integration owner makes small coherent commits at validated milestones and before handoff, stages explicit related paths and coordinates a stable snapshot with workers before committing. Preserve unrelated and unfinished work. Push validated milestone commits with `git push origin main` once initial publication ownership is released; never force-push. Report actual build/test and qualification state, including failures and pending gates. Workers do not independently commit or push.

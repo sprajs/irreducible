@@ -6,6 +6,7 @@ pub const INVALID_INPUT: u32 = 2;
 pub const OVERFLOW: u32 = 3;
 pub const ALLOCATION_FAILURE: u32 = 4;
 pub const EXCEPTION: u32 = 5;
+pub const MAX_BATCH_ELEMENTS: u64 = 1000000;
 #[repr(C)]
 pub struct Buffer {
     pub struct_size: u32,
@@ -57,6 +58,19 @@ unsafe extern "C" {
         r: *const std::ffi::c_void,
         data: *mut *const f64,
         status: *mut *const u32,
+        n: *mut u64,
+    ) -> u32;
+    pub fn cosmo_numerics_evaluate(
+        operation: u32,
+        values: *const F64Buffer,
+        out: *mut *mut std::ffi::c_void,
+    ) -> u32;
+    pub fn cosmo_result_numerics_view(
+        r: *const std::ffi::c_void,
+        data: *mut *const f64,
+        status: *mut *const u32,
+        error_estimate: *mut *const f64,
+        evaluations: *mut *const u64,
         n: *mut u64,
     ) -> u32;
 }
@@ -125,6 +139,40 @@ pub fn quantity_status_name(value: u32) -> Option<&'static str> {
         9 => Some("constant_set_mismatch"),
         10 => Some("invalid_domain"),
         11 => Some("invalid_batch"),
+        _ => None,
+    }
+}
+pub fn numerical_operation_id(label: &str) -> Option<u32> {
+    match label {
+        "compensated_sum" => Some(1),
+        "log_sum_exp" => Some(2),
+        "log1p" => Some(3),
+        "expm1" => Some(4),
+        "log_gamma_positive" => Some(5),
+        _ => None,
+    }
+}
+pub fn numerical_status_name(value: u32) -> Option<&'static str> {
+    match value {
+        0 => Some("ok"),
+        1 => Some("invalid_input"),
+        2 => Some("nonfinite_input"),
+        3 => Some("overflow"),
+        4 => Some("work_limit"),
+        5 => Some("outside_domain"),
+        6 => Some("singular"),
+        7 => Some("not_positive_definite"),
+        8 => Some("conditioning_budget_exceeded"),
+        _ => None,
+    }
+}
+pub fn numerical_output_length(method: &str, input: usize) -> Option<usize> {
+    match method {
+        "compensated_sum" => Some(1),
+        "log_sum_exp" => Some(1),
+        "log1p" => Some(input),
+        "expm1" => Some(input),
+        "log_gamma_positive" => Some(input),
         _ => None,
     }
 }

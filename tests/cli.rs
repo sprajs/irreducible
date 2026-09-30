@@ -11,7 +11,7 @@ fn files(dir:&Path)->BTreeMap<String,Vec<u8>> {
 }
 fn run(request:&Path,store:&Path,flag:Option<&str>)->Output {
  // Shell only disables core files for the deliberately aborting child.
- let mut cmd=Command::new("sh");cmd.args(["-c","ulimit -c 0; exec \"$@\"","verifier",env!("CARGO_BIN_EXE_cosmology"),"run"]);cmd.arg(request).arg(store);
+ let mut cmd=Command::new("sh");cmd.args(["-c","ulimit -c 0; exec \"$@\"","verifier",env!("CARGO_BIN_EXE_irred"),"run"]);cmd.arg(request).arg(store);
  if let Some(f)=flag {cmd.env(f,"1");} cmd.output().unwrap()
 }
 fn decode(out:&Output)->Value {serde_json::from_slice(&out.stdout).unwrap()}
@@ -26,7 +26,7 @@ fn independent_records_adversarial() {
  let old=files(&store);let second=run(&request,&store,None);assert!(second.status.success());let second=decode(&second);assert_ne!(receipt["attempt_id"],second["receipt"]["attempt_id"]);
  for (name,bytes) in old {assert_eq!(fs::read(store.join(name)).unwrap(),bytes,"duplicate run overwrote immutable bytes");}
  for key in ["input_digest","output_digest"] {let name=receipt[key].as_str().unwrap();assert_eq!(digest(&fs::read(store.join("objects").join(name)).unwrap()),name);}
- assert_eq!(digest(&fs::read(env!("CARGO_BIN_EXE_cosmology")).unwrap()),receipt["executable_digest"]);
+ assert_eq!(digest(&fs::read(env!("CARGO_BIN_EXE_irred")).unwrap()),receipt["executable_digest"]);
  let before=fs::read(&request).unwrap();payload["a"][1]=json!(2);fs::write(&request,serde_json::to_vec(&payload).unwrap()).unwrap();assert_eq!(before.len(),fs::read(&request).unwrap().len());
  let changed=decode(&run(&request,&store,None));assert_ne!(receipt["input_digest"],changed["receipt"]["input_digest"]);assert_eq!(changed["result"]["values"][1],1);
  for fault in [1,2] {payload["fault"]=json!(fault);fs::write(&request,serde_json::to_vec(&payload).unwrap()).unwrap();let out=run(&request,&store,None);assert!(!out.status.success());let v=decode(&out);assert_eq!(v["receipt"]["execution"],"failed");assert_eq!(v["result"]["kind"],"failure");}
@@ -61,7 +61,7 @@ fn scientific_identity_strict_parse_and_late_abort() {
   fs::write(&request,invalid).unwrap();let out=run(&request,&store,None);assert!(!out.status.success());let v=decode(&out);assert_eq!(v["receipt"]["execution"],"failed");assert_eq!(v["result"]["kind"],"failure");
  }
  for args in [vec!["describe"],vec!["describe","--json","extra"],vec!["version","--unknown"],vec!["run","x","y","extra"]] {
-  let out=Command::new(env!("CARGO_BIN_EXE_cosmology")).args(args).output().unwrap();assert!(!out.status.success());assert!(out.stdout.is_empty());
+  let out=Command::new(env!("CARGO_BIN_EXE_irred")).args(args).output().unwrap();assert!(!out.status.success());assert!(out.stdout.is_empty());
  }
  fs::write(&request,bytes).unwrap();let late_store=dir.0.join("late-store");let out=run(&request,&late_store,Some("COSMOLOGY_TEST_ABORT_AFTER_OUTPUT"));assert!(!out.status.success());let records=files(&late_store);let attempts:Vec<_>=records.keys().filter(|k|k.starts_with("attempts/")).collect();assert_eq!(attempts.len(),1);assert!(attempts[0].ends_with(".incomplete.json"));assert_eq!(records.keys().filter(|k|k.starts_with("objects/")).count(),2,"input and output retained without final receipt");
 }

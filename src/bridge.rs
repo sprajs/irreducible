@@ -1,8 +1,8 @@
 #[allow(dead_code)]
 #[path = "abi_generated.rs"]
 mod generated;
-pub use generated::ABI_VERSION;
 use generated::*;
+pub use generated::{ABI_VERSION, MAX_BATCH_ELEMENTS};
 use std::ptr;
 struct Owned(*mut std::ffi::c_void);
 impl Drop for Owned {
@@ -137,6 +137,92 @@ pub(crate) fn convert_quantities(
             Ok(QuantitySlot {
                 status: name,
                 value: (status == 0).then_some(value),
+            })
+        })
+        .collect()
+}
+
+pub(crate) struct NumericalSlot {
+    pub status: &'static str,
+    pub value: Option<f64>,
+    pub error_estimate: Option<f64>,
+    pub evaluations: u64,
+}
+pub(crate) fn numerics_evaluate(
+    method: &str,
+    values: &[f64],
+) -> Result<Vec<NumericalSlot>, String> {
+    let operation = numerical_operation_id(method).ok_or("UNKNOWN_NUMERICAL_METHOD")?;
+    let buffer = F64Buffer {
+        struct_size: std::mem::size_of::<F64Buffer>() as u32,
+        abi_version: ABI_VERSION,
+        element_type: 2,
+        reserved: 0,
+        data: values.as_ptr(),
+        length: values.len() as u64,
+        byte_length: std::mem::size_of_val(values) as u64,
+    };
+    let mut raw = ptr::null_mut();
+    // One synchronous compiled batch; no Rust numerical inner loop.
+    let status = unsafe { cosmo_numerics_evaluate(operation, &buffer, &mut raw) };
+    if status != OK {
+        return Err(format!("CORE_STATUS_{status}"));
+    }
+    if raw.is_null() {
+        return Err("NULL_RESULT".into());
+    }
+    let owner = Owned(raw);
+    let mut data = ptr::null();
+    let mut statuses = ptr::null();
+    let mut errors = ptr::null();
+    let mut evaluations = ptr::null();
+    let mut length = 0;
+    let status = unsafe {
+        cosmo_result_numerics_view(
+            owner.0,
+            &mut data,
+            &mut statuses,
+            &mut errors,
+            &mut evaluations,
+            &mut length,
+        )
+    };
+    let expected =
+        numerical_output_length(method, values.len()).ok_or("UNKNOWN_NUMERICAL_METHOD")?;
+    if status != OK
+        || length != expected as u64
+        || (length > 0
+            && (data.is_null()
+                || statuses.is_null()
+                || errors.is_null()
+                || evaluations.is_null()
+                || (data as usize) % 8 != 0
+                || (errors as usize) % 8 != 0
+                || (statuses as usize) % 4 != 0
+                || (evaluations as usize) % 8 != 0))
+    {
+        return Err("INVALID_NUMERICAL_RESULT_VIEW".into());
+    }
+    if length == 0 {
+        return Ok(vec![]);
+    }
+    // All four immutable views have matched lengths and remain live until owner drops.
+    let data = unsafe { std::slice::from_raw_parts(data, length as usize) };
+    let statuses = unsafe { std::slice::from_raw_parts(statuses, length as usize) };
+    let errors = unsafe { std::slice::from_raw_parts(errors, length as usize) };
+    let evaluations = unsafe { std::slice::from_raw_parts(evaluations, length as usize) };
+    (0..expected)
+        .map(|i| {
+            let name = numerical_status_name(statuses[i]).ok_or("UNKNOWN_NUMERICAL_STATUS")?;
+            if statuses[i] == 0 && !data[i].is_finite() {
+                return Err("INVALID_FINITE_RESULT".into());
+            }
+            // Diagnostics are not certified error bounds. Missing finite diagnostics stay absent.
+            Ok(NumericalSlot {
+                status: name,
+                value: (statuses[i] == 0).then_some(data[i]),
+                error_estimate: errors[i].is_finite().then_some(errors[i]),
+                evaluations: evaluations[i],
             })
         })
         .collect()

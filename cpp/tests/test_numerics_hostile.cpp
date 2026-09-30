@@ -1,0 +1,34 @@
+#include "cosmology/numerics.hpp"
+#include <array>
+#include <cstdint>
+#include <cmath>
+#include <cstdio>
+#include <limits>
+#include <stdexcept>
+using namespace cosmology::numerics;
+static unsigned checks=0;static void check(bool ok,const char* name){++checks;if(!ok)throw std::runtime_error(name);}
+static long double log2_series(){long double total=0,term=1.L/3;for(unsigned k=1;k<105;k+=2){total+=term/k;term/=9;}return 2*total;}
+static double cancellation(double x,const void*){const double xx=x*x;return xx*xx*xx-1./7;}
+static double one(double,const void*){return 1;}
+static double invalid(double,const void*){return INFINITY;}
+static long double binet_kernel(long double t,long double x){if(t==0)return 1.L/12;long double ratio;if(t<.1L){const long double t2=t*t;ratio=1.L/12-t2/720+t2*t2/30240-t2*t2*t2/1209600+t2*t2*t2*t2/47900160;}else ratio=(1/std::expm1(t)-1/t+.5L)/t;return std::exp(-x*t)*ratio;}
+static long double gamma_binet(long double x,unsigned panels){const long double width=400.L/panels;long double sum=binet_kernel(0,x)+binet_kernel(400,x);for(unsigned i=1;i<panels;++i)sum+=(i%2?4:2)*binet_kernel(i*width,x);constexpr long double pi=3.1415926535897932384626433832795028841971693993751L;return (x-.5L)*std::log(x)-x+.5L*std::log(2*pi)+sum*width/3;}
+int main(){try{
+ const auto cancelled=integrate(cancellation,nullptr,0,1,{1e-12,.1,10000,30});const long double exact=1.L/7-static_cast<long double>(1./7);check(cancelled.status==Status::ok,"cancellation integration completed");check(std::abs(cancelled.value-exact)<=1e-12L+.1L*std::abs(exact),"final-value relative budget not initial coarse");check(cancelled.error_estimate<=1e-12+.1*std::abs(cancelled.value),"reported empirical error meets requested final allowance");
+ check(integrate(one,nullptr,1,0,{1e-8,0,100,20}).status==Status::invalid_input,"reverse interval rejected");check(integrate(one,nullptr,2,2,{1e-8,0,100,20}).value==0,"zero interval");check(integrate(invalid,nullptr,0,1,{1e-8,0,100,20}).status==Status::nonfinite_input,"nonfinite callback");check(integrate(one,nullptr,0,1,{1e-8,0,3,20}).status==Status::work_limit,"resource exhaustion distinct from finite result");
+ for(const std::array<double,3> input: {std::array<double,3>{1e100,1,-1e100},std::array<double,3>{-1e100,-1,1e100}}){const auto r=compensated_sum(input);check(r.status==Status::ok&&r.value==input[1],"exact adversarial cancellation sum");}
+ const std::array<double,4> overflow_cancel{std::numeric_limits<double>::max(),std::numeric_limits<double>::max(),-std::numeric_limits<double>::max(),-std::numeric_limits<double>::max()};check(compensated_sum(overflow_cancel).value==0,"sum finite after large partial total");
+ const std::array<double,2> lse{0,0};check(std::abs(log_sum_exp(lse).value-log2_series())<1e-14,"logsumexp independent log2 series");
+ Factorization absent;const std::array<double,1> rhs1{1};check(solve(absent,rhs1,1e-8).status==Status::invalid_input,"opaque invalid default factor rejected");
+ for(double a:{std::numeric_limits<double>::min(),1.,std::numeric_limits<double>::max()}){std::array<double,1> matrix{a},rhs{a/2};auto factor=cholesky(matrix,1,1);check(factor.status()==Status::ok,"n1 varied finite scale factor");auto solved=solve(factor,rhs,1e-10);check(solved.status==Status::ok&&std::abs(solved.value[0]-.5)<=2e-15,"n1 independent exact solve");}
+ // Rational Householder rotation of diag(1,4,16), independently multiplied by x=(2,-1,3).
+ const std::array<double,9> rotated{41./9,52./9,4./9,52./9,116./9,-16./9,4./9,-16./9,32./9};const std::array<double,3> rhs{14./3,-20./3,40./3},answer{2,-1,3};
+ auto factor=cholesky(rotated,3,9);check(factor.status()==Status::ok,"rational rotated n3 SPD");auto solved=solve(factor,rhs,1e-10);check(solved.status==Status::ok,"conditioned rotated n3 solve");for(unsigned i=0;i<3;i++)check(std::abs(solved.value[i]-answer[i])<1e-12,"rational rotated independent answer");check(std::abs(factor.log_determinant()-6*log2_series())<1e-12,"rotated determinant64 independent log2 series");
+ std::array<double,256> diagonal{};std::array<double,16> rhs16{},answer16{};for(unsigned i=0;i<16;i++){diagonal[i*16+i]=std::ldexp(1.,int(i)-8);answer16[i]=i%2?-2:3;rhs16[i]=diagonal[i*16+i]*answer16[i];}auto f16=cholesky(diagonal,16,256);check(f16.status()==Status::ok,"n16 diagonal varied dyadic scales");auto s16=solve(f16,rhs16,1e-8);check(s16.status==Status::ok,"n16 explicit consumer sensitivity budget");for(unsigned i=0;i<16;i++)check(std::abs(s16.value[i]-answer16[i])<2e-14,"n16 exact independent dyadic answer");check(std::abs(f16.log_determinant()+8*log2_series())<1e-12,"n16 determinant2^-8");
+ const std::array<double,4> weak{1,0,0,1e-14};const std::array<double,2> weakrhs{1,1e-14};auto wf=cholesky(weak,2,4);auto ws=solve(wf,weakrhs,1e-8);check(ws.status==Status::conditioning_budget_exceeded&&ws.backward_residual<1e-14&&ws.estimated_forward_sensitivity>1e-8,"tiny residual never overrides sensitivity gate");
+ check(cholesky(rotated,3,8).status()==Status::work_limit,"matrix resource limit");check(cholesky({},0,0).status()==Status::invalid_input,"n0 policy");check(cholesky({},SIZE_MAX,SIZE_MAX).status()==Status::invalid_input,"shape multiplication overflow guarded");auto asym=rotated;asym[1]=std::nextafter(asym[1],INFINITY);check(cholesky(asym,3,9).status()==Status::invalid_input,"one-ULP asymmetry no silent repair");check(solve(factor,rhs1,1e-8).status==Status::invalid_input,"rhs shape mismatch");
+ const auto g1=gamma_binet(.125L,40000),g2=gamma_binet(.125L,80000),g3=gamma_binet(.125L,160000);const auto diff12=std::abs(g1-g2),diff23=std::abs(g2-g3);check(diff23<1e-12L&&diff12>8*diff23,"independent Binet fixed-Simpson refinement");auto gamma=log_gamma_positive(.125);check(gamma.status==Status::ok&&std::abs(gamma.value-g3)<1e-11L,"lgamma .125 independent Binet route");long double logfactorial=0;for(unsigned n=1;n<100;++n)logfactorial+=std::log(static_cast<long double>(n));gamma=log_gamma_positive(100);check(gamma.status==Status::ok&&std::abs(gamma.value-logfactorial)<1e-11L,"lgamma100 independent log99factorial");
+ for(double x:{.125,.25,.5,1.,5.,20.,99.}){auto a=log_gamma_positive(x),b=log_gamma_positive(x+1);check(a.status==Status::ok&&b.status==Status::ok&&std::abs((b.value-a.value)-std::log(static_cast<long double>(x)))<1e-11L,"gamma recurrence challenge");}
+ check(log_gamma_positive(std::nextafter(.125,0.)).status==Status::outside_domain,"below gamma endpoint");check(log_gamma_positive(std::nextafter(100.,INFINITY)).status==Status::outside_domain,"above gamma endpoint");
+ std::printf("{\"suite\":\"independent_numerics_hostile\",\"checks\":%u,\"passed\":true,\"Binet_refinement_difference\":%.21Lg,\"lgamma_endpoint_difference\":%.21Lg,\"scope\":\"explicit scalar, polynomial, SPD1/3/16 fixtures\"}\n",checks,diff23,std::abs(log_gamma_positive(.125).value-g3));return 0;
+ }catch(const std::exception& e){std::fprintf(stderr,"%s\n",e.what());return 1;}}
