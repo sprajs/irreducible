@@ -43,6 +43,15 @@ int main() {
     auto s = source();
     auto p = prepare(s, {8, 64, 4096});
     check(p.status() == Status::ok);
+    const auto small_bytes=retained_source_payload_bound(p);
+    check(small_bytes.has_value());
+    auto capacity_source=source();
+    capacity_source.uncertainty_matrix.reserve(2048);
+    auto capacity_owner=prepare(std::move(capacity_source),{8,64,4096});
+    check(capacity_owner.status()==Status::ok);
+    const auto capacity_bytes=retained_source_payload_bound(capacity_owner);
+    check(capacity_bytes && *capacity_bytes>=2048*sizeof(double));
+    check(*capacity_bytes>*small_bytes);
     check(p.source().profile == Profile::typed_magnitude_covariance);
     check(p.source().calibration == Calibration::unknown);
     check(p.select(Selection::pantheon_zhd_gt_001).status ==
@@ -120,6 +129,9 @@ int main() {
     check(cosmo_prepare_observations(&d, &policy, &raw, &status) == COSMO_OK &&
           status == 0 && raw);
     auto retained = shared_native_observations(raw);
+    uint64_t retained_bytes=0;
+    check(cosmo_observation_retained_bytes(raw,&retained_bytes)==COSMO_OK);
+    check(retained_bytes>=*retained_source_payload_bound(*retained));
     check(retained.get() == native_observations(raw));
     check(retained.use_count() == 2);
     const auto *address = retained.get();

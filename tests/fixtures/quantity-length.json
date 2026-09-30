@@ -1,1 +1,24 @@
-{"schema_version":1,"operation":"quantity.convert.v1","values":[0,1,-3,1500],"source":{"unit":"metre","role":"physical_length","frame":"none","convention":"physical","constant_set":"SI-IAU-definitions-v1"},"target":{"unit":"kilometre","role":"physical_length","frame":"none","convention":"physical","constant_set":"SI-IAU-definitions-v1"}}
+{
+  "schema_version": 2,
+  "operation": "quantity.convert.v1",
+  "values": [
+    0,
+    1,
+    -3,
+    1500
+  ],
+  "source": {
+    "unit": "metre",
+    "role": "physical_length",
+    "frame": "none",
+    "convention": "physical",
+    "constant_set": "SI-IAU-definitions-v1"
+  },
+  "target": {
+    "unit": "kilometre",
+    "role": "physical_length",
+    "frame": "none",
+    "convention": "physical",
+    "constant_set": "SI-IAU-definitions-v1"
+  }
+}

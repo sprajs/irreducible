@@ -236,8 +236,8 @@ Geometry geometry(double z, const std::array<double, 5> &q) {
   }
   return {E, radial};
 }
-I predict(bao::Query query, const bao::PiecewiseModelPoint &p) {
-  auto g = geometry(query.z, p.q);
+I predict(bao::Query query, const bao::ModelPoint &p) {
+  auto g = geometry(query.z, std::get<cosmology::FixedFiveBinQ>(p.expansion).q);
   const I scale(mpq_class(299792458L) / 1000 / exact(p.ruler.h0_rd_km_s));
   auto dm = scale * g.radial, dh = scale / g.E;
   switch (query.observable) {
@@ -393,10 +393,9 @@ struct Saved {
   I canonical, ideal, background;
   std::vector<I> predictions;
 };
-std::vector<Saved>
-references(const bao::DensityInput &in, const Matrix &m,
-           const std::vector<bao::PiecewiseModelPoint> &models,
-           const bao::PiecewiseDensityBatch &batch) {
+std::vector<Saved> references(const bao::DensityInput &in, const Matrix &m,
+                              const std::vector<bao::ModelPoint> &models,
+                              const bao::DensityBatch &batch) {
   std::vector<Saved> out;
   for (size_t k = 0; k < models.size(); ++k) {
     std::vector<I> p, r;
@@ -413,8 +412,8 @@ references(const bao::DensityInput &in, const Matrix &m,
 }
 void original(const char *mean, const char *cov) {
   auto in = read(mean, cov);
-  bao::DensityPolicy prep;
-  prep.maximum_models = 24;
+  bao::PreparationPolicy prep;
+  prep.maximum_queries = 13;
   prep.maximum_matrix_elements = 169;
   prep.maximum_string_bytes = 10000;
   prep.maximum_native_bytes = 10000000;
@@ -423,20 +422,27 @@ void original(const char *mean, const char *cov) {
   auto owner = bao::prepare_density(in, prep);
   check(owner.status() == statistics::DensityStatus::finite,
         "source factor qualified guard");
-  std::vector<bao::PiecewiseModelPoint> models;
+  std::vector<bao::ModelPoint> models;
   for (auto q : grid)
     for (double r : {5000., 10000., 15000.})
-      models.emplace_back(q, bao::Ruler(r));
-  bao::PiecewiseDensityPolicy policy;
+      models.emplace_back(cosmology::FixedFiveBinQ(q), cosmology::FlatFLRW{},
+                          bao::Ruler(r));
+  bao::DensityPolicy policy;
   policy.maximum_models = 24;
   policy.maximum_native_bytes = 10000000;
   policy.maximum_forward_sensitivity = 1e-10;
   policy.arithmetic = prep.arithmetic;
+  policy.requested = 7;
+  policy.observables.maximum_queries = 13;
+  policy.observables.maximum_native_bytes = 10000000;
+  policy.observables.background.maximum_queries = 13;
+  policy.observables.background.maximum_native_bytes = 10000000;
   policy.observables.background.maximum_segment_visits = 2000;
-  auto batch = owner.evaluate_piecewise(models, policy);
+  auto batch = owner.evaluate(models, policy);
   check(batch.slots.size() == 24, "all24 returned");
   for (const auto &s : batch.slots)
-    check(s.result.density.status == statistics::DensityStatus::finite,
+    check(s.result &&
+              s.result->density.status == statistics::DensityStatus::finite,
           "finite candidate");
   Matrix m(in.covariance);
   precision = 256;
@@ -454,9 +460,9 @@ void original(const char *mean, const char *cov) {
       check(contains(coarse[i].predictions[j], f.predictions[j]),
             "precision nesting prediction");
     auto factor =
-             absmax(I(batch.slots[i].result.density.log_value) - f.canonical),
+             absmax(I(batch.slots[i].result->density.log_value) - f.canonical),
          bg = absmax(f.background),
-         full = absmax(I(batch.slots[i].result.density.log_value) - f.ideal);
+         full = absmax(I(batch.slots[i].result->density.log_value) - f.ideal);
     bool ref = within(width(f.canonical), "1/500000000") &&
                within(width(f.ideal), "1/500000000") &&
                within(width(f.background), "1/500000000");
@@ -494,16 +500,21 @@ void original(const char *mean, const char *cov) {
         "s\",\"reference_width\":\"%s\",\"reference_pass\":%s,\"factor_pass\":%"
         "s,\"background_pass\":%s,\"full_pass\":%s,\"observable_pass\":%s,"
         "\"observable_fraction\":\"%s\"}\n",
-        i, models[i].q[0], models[i].q[1], models[i].q[2], models[i].q[3],
-        models[i].q[4], models[i].ruler.h0_rd_km_s, text(factor).c_str(),
-        text(bg).c_str(), text(full).c_str(), text(width(f.ideal)).c_str(),
+        i, std::get<cosmology::FixedFiveBinQ>(models[i].expansion).q[0],
+        std::get<cosmology::FixedFiveBinQ>(models[i].expansion).q[1],
+        std::get<cosmology::FixedFiveBinQ>(models[i].expansion).q[2],
+        std::get<cosmology::FixedFiveBinQ>(models[i].expansion).q[3],
+        std::get<cosmology::FixedFiveBinQ>(models[i].expansion).q[4],
+        models[i].ruler.h0_rd_km_s, text(factor).c_str(), text(bg).c_str(),
+        text(full).c_str(), text(width(f.ideal)).c_str(),
         ref ? "true" : "false", fp ? "true" : "false", bp ? "true" : "false",
         ap ? "true" : "false", observable_pass ? "true" : "false",
         text(observable_fraction).c_str());
   }
   std::printf("{\"suite\":\"piecewise_BAO_directed_original24\",\"failed\":%u,"
               "\"segments\":%zu,\"gmp\":\"%s\",\"mpfr\":\"%s\"}\n",
-              failures, batch.segment_visits, gmp_version, mpfr_get_version());
+              failures, batch.work.segment_visits, gmp_version,
+              mpfr_get_version());
   check(failures == 0, "allocated directed gates");
 }
 } // namespace

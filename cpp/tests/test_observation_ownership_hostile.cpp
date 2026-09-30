@@ -1,6 +1,7 @@
 #include "../src/observation_internal.hpp"
 #include "irred/observations.hpp"
 #include <cstdlib>
+#include <cstddef>
 #include <iostream>
 #include <new>
 #include <stdexcept>
@@ -8,6 +9,8 @@
 using namespace irred::observations;
 namespace {
 long countdown = -1, live = 0;
+struct alignas(std::max_align_t) Allocation { size_t bytes; };
+size_t live_bytes = 0, peak_bytes = 0;
 unsigned checks = 0;
 void check(bool x, const char *why) {
   ++checks;
@@ -65,16 +68,21 @@ void *operator new(size_t n) {
     throw std::bad_alloc();
   if (countdown > 0)
     --countdown;
-  void *p = std::malloc(n ? n : 1);
+  void *p = std::malloc(sizeof(Allocation) + (n ? n : 1));
   if (!p)
     throw std::bad_alloc();
   ++live;
-  return p;
+  auto header = new(p) Allocation{n};
+  live_bytes += n;
+  peak_bytes = std::max(peak_bytes, live_bytes);
+  return header + 1;
 }
 void operator delete(void *p) noexcept {
   if (p) {
     --live;
-    std::free(p);
+    auto header = static_cast<Allocation *>(p) - 1;
+    live_bytes -= header->bytes;
+    std::free(header);
   }
 }
 void operator delete(void *p, size_t) noexcept { ::operator delete(p); }
@@ -86,13 +94,37 @@ int main() {
     Fixture f;
     cosmo_prepared *raw = nullptr;
     uint32_t semantic = 99;
+    uint64_t compact_bound = 0, reserved_bound = 0;
+    check(cosmo_observation_preparation_bytes(&f.d, &compact_bound) == COSMO_OK,
+          "compact borrowed descriptor bound");
+    f.b.reserve(2048);
+    f.ids[1] = f.events[1] = bytes(f.b);
+    check(cosmo_observation_preparation_bytes(&f.d, &reserved_bound) == COSMO_OK &&
+              compact_bound == reserved_bound,
+          "borrowed caller reserve does not become transferred source storage");
     for (auto role : {Role::observed_measurement, Role::released_fitted_summary,
                       Role::synthetic_control}) {
       f.d.role = static_cast<uint32_t>(role);
+      uint64_t preparation_bound = 0, retained_bound = 0;
+      check(cosmo_observation_preparation_bytes(&f.d, &preparation_bound) ==
+                COSMO_OK && preparation_bound > 0,
+            "descriptor preparation capacity bound");
+      const auto baseline_bytes = live_bytes;
+      peak_bytes = live_bytes;
       check(cosmo_prepare_observations(&f.d, &f.policy, &raw, &semantic) ==
                     COSMO_OK &&
                 raw && semantic == 0,
             "explicit role admission");
+      const auto observed_peak = peak_bytes - baseline_bytes;
+      check(observed_peak <= preparation_bound,
+            "actual COSMO preparation allocation peak within envelope");
+      check(cosmo_observation_retained_bytes(raw, &retained_bound) == COSMO_OK &&
+                live_bytes - baseline_bytes <= retained_bound,
+            "actual retained allocations within authoritative source charge");
+      std::cout << "role " << (unsigned)role << " preparation observed "
+                << observed_peak << " bound " << preparation_bound
+                << " retained observed " << live_bytes - baseline_bytes
+                << " bound " << retained_bound << '\n';
       auto owner = shared_native_observations(raw);
       auto second = shared_native_observations(raw);
       const auto *address = native_observations(raw);

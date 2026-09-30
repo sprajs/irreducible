@@ -1,1 +1,10 @@
-{"schema_version":1,"operation":"numerics.scalar_batch.v1","method":"compensated_sum","values":[1e16,1,-1e16]}
+{
+  "schema_version": 2,
+  "operation": "numerics.scalar_batch.v1",
+  "method": "compensated_sum",
+  "values": [
+    1e+16,
+    1,
+    -1e+16
+  ]
+}

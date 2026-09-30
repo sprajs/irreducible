@@ -1,26 +1,17 @@
 #pragma once
-#include "irred/piecewise_background.hpp"
+#include "irred/background.hpp"
 namespace irred::cosmology::detail {
-// Internal precision-preserving projection inputs. Same validation/work as the
-// public geometry provider; no public slot/storage or derivative contract
-// change.
-struct PiecewiseRadialSlot {
-  Query source{};
-  Status status = Status::invalid_input;
-  numerics::Status numerical_status = numerics::Status::invalid_input;
-  std::size_t segments_processed = 0;
-  long double expansion_E = 0, radial_integral = 0;
-};
-struct PiecewiseRadialBatch {
-  Status status = Status::invalid_input;
-  std::vector<PiecewiseRadialSlot> slots;
-  std::size_t segments_processed = 0;
-};
-struct PiecewiseRadialAccess {
-  template <bool RadialOnly>
-  static auto evaluate(const PiecewiseBackground &, std::span<const Query>,
-                       PiecewisePolicy);
-  static PiecewiseRadialBatch radial(const PiecewiseBackground &,
-                                     std::span<const Query>, PiecewisePolicy);
+// Same evaluated kernel, pre-cast projection; no second integration or public
+// long-double precision promise. BAO combines these before its final F64 cast.
+struct RadialAccess {
+  static long double expansion(const ExpansionValue &r) noexcept {
+    return r.precise_E_;
+  }
+  static long double expansion(const Radial &r) noexcept {
+    return r.precise_E_;
+  }
+  static long double integral(const Radial &r) noexcept {
+    return r.precise_integral_;
+  }
 };
 } // namespace irred::cosmology::detail

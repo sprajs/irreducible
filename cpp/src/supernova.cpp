@@ -1,113 +1,149 @@
 #include "irred/supernova.hpp"
+#include "payload_accounting.hpp"
 #include <algorithm>
 #include <cmath>
-#include <type_traits>
-#include <utility>
+#include <limits>
 namespace irred::supernova {
-Consumer prepare(observations::Prepared observations, Policy policy) {
-  const auto &source = observations.source();
-  if (source.values.size() > policy.background.maximum_queries) {
-    Consumer failed;
-    failed.status_ = Status::work_limit;
-    return failed;
+std::optional<size_t> Consumer::retained_payload_bound() const noexcept {
+  detail::PayloadAccounting b(sizeof(*this));
+  b.vector(selected_.source_indices);
+  b.strings(selected_.ordered_ids);
+  b.vector(selected_.coordinates);
+  b.vector(observed_);
+  b.embedded(profile_.retained_payload_bound(), sizeof(profile_));
+  return b.result();
+}
+namespace {
+bool normal(long double v) {
+  return std::isfinite(v) &&
+         std::abs(v) <= std::numeric_limits<double>::max() &&
+         (v == 0 ||
+          ((double)v != 0 && std::fpclassify((double)v) == FP_NORMAL));
+}
+constexpr auto score_bit = (std::uint32_t)Output::score,
+               geometry_bit = (std::uint32_t)Output::geometric_shape,
+               effect_bit = (std::uint32_t)Output::magnitude_effect,
+               corrected_bit = (std::uint32_t)Output::corrected_residuals,
+               profiled_bit = (std::uint32_t)Output::profiled_residuals,
+               diagnostic_bit = (std::uint32_t)Output::diagnostics;
+} // namespace
+std::optional<size_t>
+preparation_payload_bound(const observations::Prepared &source, size_t selected,
+                          numerics::Arithmetic arithmetic) noexcept {
+  if (arithmetic > numerics::Arithmetic::longdouble_cpu_v1 ||
+      (selected && selected > SIZE_MAX / selected))
+    return {};
+  detail::PayloadAccounting b(sizeof(Consumer));
+  // Supported vector implementation: push-grown complement metadata capacity
+  // below twice raw rows; fixed metadata text envelope 4096 bytes.
+  const auto &s = source.source();
+  b.add(selected,
+        sizeof(size_t) + sizeof(MagnitudeCoordinate) + sizeof(std::string));
+  b.add(s.values.size(), 4 * sizeof(std::string) + sizeof(uint8_t));
+  for (const auto &id : s.measurement_ids) {
+    if (id.capacity() == SIZE_MAX)
+      return {};
+    b.add(id.capacity() + 1, 3);
   }
-  std::vector<cosmology::Query> queries;
-  if (source.zhd.size() == source.values.size() &&
-      source.zhel.size() == source.values.size())
-    for (std::size_t i = 0; i < source.values.size(); ++i)
-      queries.push_back({source.zhd[i], source.zhel[i],
-                         cosmology::Convention::released_zhd_zhel});
-  auto ids = source.measurement_ids;
-  return Consumer::prepare_common(std::move(observations), ids, queries, false,
-                                  policy);
+  for (const auto *t :
+       {&s.table_sha256, &s.uncertainty_sha256, &s.ordering_provenance,
+        &s.calibration_provenance, &s.dependence_provenance})
+    b.string(*t);
+  b.add(1, 4096);
+  // Simultaneous local selected block, Gaussian covariance, canonical factor
+  // original, lower storage (both policies conservatively admitted), plus
+  // serial basis solve/profile buffers. No inverse matrix is retained here.
+  b.add(selected * selected, 4 * sizeof(double) + sizeof(long double));
+  b.add(selected, 16 * sizeof(double) + 16 * sizeof(long double));
+  return b.result();
 }
-Consumer prepare_synthetic(observations::Prepared observations,
-                           std::span<const std::string> ids,
-                           std::span<const cosmology::Query> queries,
-                           Policy policy) {
-  return Consumer::prepare_common(std::move(observations), ids, queries, true,
-                                  policy);
-}
-Consumer Consumer::prepare_common(observations::Prepared observations,
-                                  std::span<const std::string> ids,
-                                  std::span<const cosmology::Query> queries,
-                                  bool synthetic, Policy policy) {
+Consumer prepare(SelectedMagnitudeSource input, PreparationPolicy p) {
   Consumer out;
-  if (!(policy.maximum_forward_sensitivity > 0) ||
-      !std::isfinite(policy.maximum_forward_sensitivity))
+  if (!input.source || input.source->status() != observations::Status::ok ||
+      p.arithmetic > numerics::Arithmetic::longdouble_cpu_v1 ||
+      !std::isfinite(p.maximum_forward_sensitivity) ||
+      !(p.maximum_forward_sensitivity > 0))
     return out;
-  out.synthetic_ = synthetic;
-  out.observations_ = std::move(observations);
-  const auto &source = out.observations_.source();
-  const auto profile = synthetic
-                           ? observations::Profile::gaussian_fixture_v1
-                           : observations::Profile::pantheon_plus_released_v1;
-  const auto role = synthetic ? observations::Role::synthetic_control
-                              : observations::Role::released_fitted_summary;
-  if (out.observations_.status() != observations::Status::ok ||
-      source.profile != profile || source.role != role ||
-      source.unit != observations::Unit::magnitude ||
-      source.uncertainty != observations::Uncertainty::covariance ||
-      ids.size() != source.measurement_ids.size() ||
-      !std::equal(ids.begin(), ids.end(), source.measurement_ids.begin()) ||
-      queries.size() != source.values.size()) {
+  const auto n = input.source_indices.size();
+  if (!n || n > p.maximum_selected_rows || n > p.maximum_matrix_elements / n) {
+    out.status_ = Status::work_limit;
+    out.preparation_numerical_status_ = numerics::Status::work_limit;
+    return out;
+  }
+  const auto &s = input.source->source();
+  if (s.unit != observations::Unit::magnitude ||
+      s.uncertainty != observations::Uncertainty::covariance ||
+      s.uncertainty_unit != observations::UncertaintyUnit::magnitude_squared ||
+      (s.role != observations::Role::observed_measurement &&
+       s.role != observations::Role::released_fitted_summary &&
+       s.role != observations::Role::synthetic_control) ||
+      input.coordinates.size() != n || input.ordered_ids.size() != n) {
     out.status_ = Status::incompatible_metadata;
     return out;
   }
-  if (queries.size() > policy.background.maximum_queries) {
-    out.status_ = Status::work_limit;
-    return out;
-  }
-  out.source_queries_.assign(queries.begin(), queries.end());
-  if (!synthetic) {
-    auto selected =
-        out.observations_.select(observations::Selection::pantheon_zhd_gt_001);
-    if (selected.status != observations::Status::ok)
-      return out;
-    out.indices_ = std::move(selected.source_indices);
-  } else {
-    for (std::size_t i = 0; i < queries.size(); ++i) {
-      if (!source.source_selection.empty() && !source.source_selection[i])
-        continue;
-      if (!std::isfinite(queries[i].z_expansion))
-        return out;
-      if (queries[i].z_expansion > .01)
-        out.indices_.push_back(i);
-    }
-  }
-  if (out.indices_.empty())
-    return out;
-  if (out.indices_.size() > policy.background.maximum_queries) {
-    out.status_ = Status::work_limit;
-    return out;
-  }
-  for (auto i : out.indices_) {
-    if (queries[i].convention != cosmology::Convention::released_zhd_zhel ||
-        !std::isfinite(queries[i].z_observer) ||
-        !(queries[i].z_observer > -1)) {
+  for (size_t k = 0; k < n; ++k) {
+    const auto i = input.source_indices[k];
+    const auto &q = input.coordinates[k];
+    if (i >= s.values.size() || (k && i <= input.source_indices[k - 1]) ||
+        (!s.source_selection.empty() && !s.source_selection[i]) ||
+        s.missing[i] || !std::isfinite(s.values[i]) ||
+        input.ordered_ids[k] != s.measurement_ids[i] ||
+        !std::isfinite(q.z_expansion) || !std::isfinite(q.observer.redshift) ||
+        q.observer.redshift <= -1 ||
+        (q.observer.convention != cosmology::Convention::released_zhd_zhel &&
+         q.observer.convention !=
+             cosmology::Convention::geometric_same_redshift) ||
+        (q.observer.convention ==
+             cosmology::Convention::geometric_same_redshift &&
+         q.observer.redshift != q.z_expansion)) {
       out.status_ = Status::incompatible_metadata;
       return out;
     }
-    out.observed_.push_back(source.values[i]);
-    out.ones_.push_back(1);
-    out.queries_.push_back(queries[i]);
   }
-  // Shared selected-observation kernel: no consumer covariance repair/math.
-  auto gaussian = statistics::prepare_selected_observations(
-      out.observations_, out.indices_, policy.maximum_matrix_elements,
-      policy.maximum_forward_sensitivity, policy.arithmetic);
-  out.preparation_status_ = gaussian.status();
-  out.preparation_numerical_status_ = gaussian.numerical_status();
-  if (gaussian.status() != statistics::DensityStatus::finite) {
+  const auto peak = preparation_payload_bound(*input.source, n, p.arithmetic);
+  detail::PayloadAccounting required(peak.value_or(0));
+  // Account reserve-heavy transferred descriptor capacities above the
+  // deterministic n-element envelope before any factor allocation.
+  if (input.source_indices.capacity() > n)
+    required.add(input.source_indices.capacity() - n, sizeof(size_t));
+  if (input.coordinates.capacity() > n)
+    required.add(input.coordinates.capacity() - n, sizeof(MagnitudeCoordinate));
+  if (input.ordered_ids.capacity() > n)
+    required.add(input.ordered_ids.capacity() - n, sizeof(std::string));
+  for (size_t k = 0; k < n; ++k) {
+    const auto &actual = input.ordered_ids[k];
+    const auto &base = s.measurement_ids[input.source_indices[k]];
+    if (actual.capacity() > base.capacity())
+      required.add(actual.capacity() - base.capacity(), 1);
+  }
+  const auto payload = required.result();
+  if (!peak || !payload || *payload > p.maximum_native_bytes) {
+    out.status_ = Status::work_limit;
+    out.preparation_numerical_status_ = numerics::Status::work_limit;
+    return out;
+  }
+  // Retain the admitted selection even if factor/profile preparation fails.
+  // Moving its descriptor does not duplicate the immutable source or matrix.
+  out.selected_ = std::move(input);
+  const auto &selected = out.selected_;
+  auto g = statistics::prepare_selected_observations(
+      *selected.source, selected.source_indices, p.maximum_matrix_elements,
+      p.maximum_forward_sensitivity, p.arithmetic);
+  out.preparation_status_ = g.status();
+  out.preparation_numerical_status_ = g.numerical_status();
+  if (g.status() != statistics::DensityStatus::finite) {
     out.status_ = Status::numerical_failure;
     return out;
   }
-  out.ids_ = gaussian.metadata().ordered_ids;
-  out.profile_ = std::move(gaussian).prepare_offset_profile(
-      out.ones_, out.ids_, policy.maximum_forward_sensitivity);
+  out.observed_.reserve(n);
+  for (auto i : selected.source_indices)
+    out.observed_.push_back(s.values[i]);
+  std::vector<double> ones(n, 1);
+  out.profile_ = std::move(g).prepare_offset_profile(
+      ones, selected.ordered_ids, p.maximum_forward_sensitivity);
   out.preparation_status_ = out.profile_.status();
   out.preparation_numerical_status_ = out.profile_.numerical_status();
-  if (out.profile_.status() != statistics::DensityStatus::finite) {
+  if (out.preparation_status_ != statistics::DensityStatus::finite) {
     out.status_ = Status::numerical_failure;
     return out;
   }
@@ -115,261 +151,308 @@ Consumer Consumer::prepare_common(observations::Prepared observations,
   return out;
 }
 BatchResult Consumer::evaluate_batch(std::span<const ModelPoint> points,
-                                     Policy policy) const {
-  return evaluate_common<ModelPoint, BatchResult>(points, policy);
-}
-BatchResultV2 Consumer::evaluate_batch_v2(std::span<const ModelPointV2> points,
-                                          Policy policy) const {
-  return evaluate_common<ModelPointV2, BatchResultV2>(points, policy);
-}
-GreyMagnitudeBatchResult Consumer::evaluate_grey_magnitude_batch(
-    std::span<const GreyMagnitudePoint> points,
-    GreyMagnitudePolicy policy) const {
-  return evaluate_common<GreyMagnitudePoint, GreyMagnitudeBatchResult>(points,
-                                                                       policy);
-}
-PiecewiseBatchResult
-Consumer::evaluate_piecewise_batch(std::span<const PiecewiseModelPoint> points,
-                                   PiecewiseEvaluationPolicy policy) const {
-  return evaluate_common<PiecewiseModelPoint, PiecewiseBatchResult>(points,
-                                                                    policy);
-}
-template <class Point, class Result, class EvaluationPolicy>
-Result Consumer::evaluate_common(std::span<const Point> points,
-                                 EvaluationPolicy policy) const {
-  Result out;
-  const auto &evaluation_policy = [&]() -> const auto & {
-    if constexpr (std::is_same_v<Point, GreyMagnitudePoint>)
-      return policy.evaluation;
-    else
-      return policy;
-  }();
-  if (!(evaluation_policy.maximum_forward_sensitivity > 0) ||
-      !std::isfinite(evaluation_policy.maximum_forward_sensitivity))
+                                     Policy p) const {
+  BatchResult out;
+  if (!p.requested || (p.requested & ~63u) ||
+      p.arithmetic > numerics::Arithmetic::longdouble_cpu_v1 ||
+      !std::isfinite(p.maximum_forward_sensitivity) ||
+      !(p.maximum_forward_sensitivity > 0))
     return out;
   if (status_ != Status::ok) {
     out.status = status_;
     return out;
   }
-  if (evaluation_policy.arithmetic != profile_.arithmetic()) {
+  if (p.arithmetic != profile_.arithmetic()) {
     out.status = Status::incompatible_metadata;
     return out;
   }
-  if (points.size() > evaluation_policy.maximum_models) {
+  const bool needs_residual =
+      p.requested & (score_bit | corrected_bit | profiled_bit | diagnostic_bit);
+  const bool needs_geometry = needs_residual || (p.requested & geometry_bit);
+  const bool needs_effect = needs_residual || (p.requested & effect_bit);
+  const auto n = selected_.coordinates.size();
+  auto bytes = p.maximum_native_bytes;
+  auto fit = [&](size_t count, size_t width) {
+    if (count > bytes / width)
+      return false;
+    bytes -= count * width;
+    return true;
+  };
+  if (points.size() > p.maximum_models || !fit(points.size(), sizeof(Slot))) {
     out.status = Status::work_limit;
     return out;
   }
-  if constexpr (std::is_same_v<Point, GreyMagnitudePoint>) {
-    auto remaining_bytes = policy.maximum_native_bytes;
-    auto fits_bytes = [&](std::size_t count, std::size_t width) {
-      if (count > remaining_bytes / width)
-        return false;
-      remaining_bytes -= count * width;
-      return true;
-    };
-    const auto n = queries_.size();
-    // Five retained double vectors per row: geometry, B, base residual,
-    // adjusted residual, and ProfileResult's canonical adjusted residual.
-    // Workspace bounds are deliberately conservative, not measured allocation.
-    bool fits = fits_bytes(points.size(), sizeof(GreyMagnitudeSlot));
-    for (int k = 0; k < 5 && fits; ++k) {
-      if (n && points.size() > remaining_bytes / sizeof(double) / n)
-        fits = false;
-      else
-        fits = fits_bytes(points.size() * n, sizeof(double));
+  if (n && points.size() > std::numeric_limits<size_t>::max() / n) {
+    out.status = Status::work_limit;
+    return out;
+  }
+  const auto elements = points.size() * n;
+  const unsigned arrays =
+      bool(p.requested & geometry_bit) + bool(p.requested & effect_bit) +
+      bool(p.requested & corrected_bit) + bool(p.requested & profiled_bit);
+  for (unsigned k = 0; k < arrays; ++k) {
+    if (n && points.size() > bytes / sizeof(double) / n) {
+      out.status = Status::work_limit;
+      return out;
     }
-    fits = fits && fits_bytes(n, sizeof(cosmology::Slot) + 16 * sizeof(double) +
-                                     8 * sizeof(long double));
-    if (!fits) {
+    if (!fit(elements, sizeof(double))) {
       out.status = Status::work_limit;
       return out;
     }
   }
+  if ((p.requested & diagnostic_bit) &&
+      (!fit(points.size(), sizeof(statistics::ProfileResult)) ||
+       !fit(elements, sizeof(size_t)))) {
+    out.status = Status::work_limit;
+    return out;
+  }
+  if (needs_geometry) {
+    const auto bg = cosmology::Expansion::workspace_payload_bound(n);
+    if (!bg || !fit(*bg, 1) || !fit(n, sizeof(cosmology::Request))) {
+      out.status = Status::work_limit;
+      return out;
+    }
+  }
+  const bool needs_profile =
+      p.requested & (score_bit | profiled_bit | diagnostic_bit);
+  const size_t scratch_doubles = bool(needs_geometry) + bool(needs_effect) +
+                                 bool(needs_residual) +
+                                 (needs_profile ? 12 : 0);
+  const size_t scratch_wide = needs_profile ? 8 : 0;
+  if (!fit(n, scratch_doubles * sizeof(double) +
+                  scratch_wide * sizeof(long double))) {
+    out.status = Status::work_limit;
+    return out;
+  }
   out.status = Status::ok;
   out.slots.reserve(points.size());
-  auto remaining_evaluations = [&]() {
-    if constexpr (std::is_same_v<Point, PiecewiseModelPoint>)
-      return evaluation_policy.background.maximum_segment_visits;
-    else
-      return evaluation_policy.background.maximum_total_evaluations;
-  }();
+  auto callbacks = p.background.maximum_callbacks,
+       segments = p.background.maximum_segment_visits;
   for (const auto &point : points) {
-    const auto &physical_point = [&]() -> const auto & {
-      if constexpr (std::is_same_v<Point, GreyMagnitudePoint>)
-        return point.background;
-      else
-        return point;
-    }();
-    auto row = [&]() {
-      if constexpr (std::is_same_v<Point, PiecewiseModelPoint>)
-        return PiecewiseSlot{point};
-      else if constexpr (std::is_same_v<Point, ModelPoint>)
-        return Slot{};
-      else if constexpr (std::is_same_v<Point, GreyMagnitudePoint>)
-        return GreyMagnitudeSlot{point, Slot{}, {}};
-      else
-        return SlotV2{point, Slot{}};
-    }();
-    auto &slot = [&]() -> auto & {
-      if constexpr (std::is_same_v<Point, ModelPoint> ||
-                    std::is_same_v<Point, PiecewiseModelPoint>)
-        return row;
-      else
-        return row.calculation;
-    }();
-    if constexpr (!std::is_same_v<Point, PiecewiseModelPoint>)
-      slot.source = {physical_point.model, physical_point.omega_m,
-                     physical_point.constant_q};
-    if constexpr (std::is_same_v<Point, ModelPointV2> ||
-                  std::is_same_v<Point, GreyMagnitudePoint>)
-      if (physical_point.model == cosmology::Model::flat_cpl_late_v1 &&
-          physical_point.constant_q != 0) {
-        out.slots.push_back(std::move(row));
-        continue;
-      }
-    if constexpr (std::is_same_v<Point, GreyMagnitudePoint>) {
-      if (!std::isfinite(point.epsilon_mag) || point.epsilon_mag < -.5 ||
-          point.epsilon_mag > .5) {
-        out.slots.push_back(std::move(row));
-        continue;
-      }
-    }
-    auto background = [&]() {
-      if constexpr (std::is_same_v<Point, PiecewiseModelPoint>) {
-        return cosmology::prepare_piecewise_q(
-            {computational_h0_km_s_mpc, point.q});
-      } else if constexpr (std::is_same_v<Point, ModelPointV2> ||
-                           std::is_same_v<Point, GreyMagnitudePoint>) {
-        if (physical_point.model == cosmology::Model::flat_cpl_late_v1)
-          return cosmology::prepare_cpl({computational_h0_km_s_mpc,
-                                         physical_point.omega_m,
-                                         physical_point.w0, physical_point.wa});
-        // Keep attempted inactive fields: legacy prepare rejects noncanonical
-        // values instead of silently replacing them with defaults.
-        return cosmology::prepare(
-            {physical_point.model, computational_h0_km_s_mpc,
-             physical_point.omega_m, physical_point.constant_q,
-             physical_point.w0, physical_point.wa});
-      } else {
-        // The existing entry remains strict: prepare does not admit model 2.
-        return cosmology::prepare(
-            {physical_point.model, computational_h0_km_s_mpc,
-             physical_point.omega_m, physical_point.constant_q});
-      }
-    }();
-    slot.background_status = background.status();
-    if (background.status() != cosmology::Status::ok) {
-      out.slots.push_back(std::move(row));
+    out.slots.emplace_back(point);
+    auto &s = out.slots.back();
+    auto requested_state = [](OutputState &state) {
+      state.availability = cosmology::Availability::failed;
+    };
+    if (p.requested & geometry_bit)
+      requested_state(s.geometry);
+    if (p.requested & effect_bit)
+      requested_state(s.effect);
+    if (p.requested & corrected_bit)
+      requested_state(s.corrected);
+    if (p.requested & (score_bit | profiled_bit | diagnostic_bit))
+      requested_state(s.profile);
+    std::array<bool, 4> assessed{};
+    auto assess_index = [&](OutputState *state) {
+      return state == &s.geometry    ? 0u
+             : state == &s.effect    ? 1u
+             : state == &s.corrected ? 2u
+                                     : 3u;
+    };
+    auto fail_pending = [&](Status status, numerics::Status cause) {
+      s.status = status;
+      s.numerical_status = cause;
+      for (auto *state : {&s.geometry, &s.effect, &s.corrected, &s.profile})
+        if (state->availability == cosmology::Availability::failed &&
+            !assessed[assess_index(state)]) {
+          state->status = status;
+          state->numerical_status = cause;
+          assessed[assess_index(state)] = true;
+        }
+    };
+    const auto *grey = std::get_if<GreyLog1pMagnitude>(&point.source_effect);
+    s.hypothesis_id = grey ? "W01/grey-log1p-zhd-magnitude/v1"
+                           : "W01/no-additive-magnitude-effect/v1";
+    if (grey && (!std::isfinite(grey->epsilon_mag) || grey->epsilon_mag < -.5 ||
+                 grey->epsilon_mag > .5)) {
+      fail_pending(Status::invalid_input,
+                   std::isfinite(grey->epsilon_mag)
+                       ? numerics::Status::outside_domain
+                       : numerics::Status::nonfinite_input);
       continue;
     }
-    if (remaining_evaluations <
-        (std::is_same_v<Point, PiecewiseModelPoint> ? 1 : 3)) {
-      slot.status = Status::work_limit;
-      slot.background_status = cosmology::Status::work_limit;
-      slot.numerical_status = numerics::Status::work_limit;
-      out.slots.push_back(std::move(row));
+    auto expansion = cosmology::prepare(point.expansion, point.geometry);
+    s.model_id = expansion.model_id();
+    if (expansion.status() != cosmology::Status::ok) {
+      s.background_status = expansion.status();
+      fail_pending(Status::invalid_input,
+                   expansion.status() == cosmology::Status::unsupported_domain
+                       ? numerics::Status::outside_domain
+                       : numerics::Status::nonfinite_input);
       continue;
     }
-    auto background_policy = evaluation_policy.background;
-    if constexpr (std::is_same_v<Point, PiecewiseModelPoint>)
-      background_policy.maximum_segment_visits = remaining_evaluations;
-    else
-      background_policy.maximum_total_evaluations = remaining_evaluations;
-    auto prediction = background.evaluate_batch(queries_, background_policy);
-    slot.background_status = prediction.status;
-    if constexpr (std::is_same_v<Point, PiecewiseModelPoint>) {
-      slot.segment_visits = prediction.segments_processed;
-      out.segment_visits += slot.segment_visits;
-      remaining_evaluations -= slot.segment_visits;
-    } else {
-      for (const auto &value : prediction.slots)
-        slot.background_evaluations += value.evaluations;
-      remaining_evaluations -= slot.background_evaluations;
-    }
-    if (prediction.status != cosmology::Status::ok) {
-      if (prediction.status == cosmology::Status::work_limit)
-        slot.numerical_status = numerics::Status::work_limit;
-      slot.status = prediction.status == cosmology::Status::work_limit
-                        ? Status::work_limit
-                        : Status::numerical_failure;
-      out.slots.push_back(std::move(row));
+    auto local = p.background;
+    local.maximum_callbacks = callbacks;
+    local.maximum_segment_visits = segments;
+    std::vector<cosmology::Request> requests;
+    if (needs_geometry)
+      requests.reserve(n);
+    if (needs_geometry)
+      for (const auto &q : selected_.coordinates)
+        requests.emplace_back(
+            q.z_expansion,
+            (std::uint32_t)cosmology::Observable::luminosity_shape, q.observer);
+    cosmology::BatchResult predicted;
+    predicted.status = expansion.status();
+    if (needs_geometry)
+      predicted = expansion.evaluate(requests, local);
+    s.background_status = predicted.status;
+    s.work = predicted.work;
+    if (s.work.callbacks > callbacks || s.work.segment_visits > segments) {
+      fail_pending(Status::work_limit, numerics::Status::work_limit);
       continue;
     }
-    if constexpr (std::is_same_v<Point, GreyMagnitudePoint>) {
-      slot.shape_magnitudes.reserve(queries_.size());
-      slot.base_residuals.reserve(queries_.size());
-      row.magnitude_shifts.reserve(queries_.size());
+    callbacks -= s.work.callbacks;
+    segments -= s.work.segment_visits;
+    out.work.callbacks += s.work.callbacks;
+    out.work.segment_visits += s.work.segment_visits;
+    const bool background_valid =
+        predicted.status == cosmology::Status::ok &&
+        (!needs_geometry || predicted.slots.size() == n);
+    if (!background_valid) {
+      s.status = predicted.status == cosmology::Status::work_limit
+                     ? Status::work_limit
+                     : Status::numerical_failure;
+      s.numerical_status = predicted.status == cosmology::Status::work_limit
+                               ? numerics::Status::work_limit
+                               : numerics::Status::invalid_input;
     }
-    bool failed = false;
-    for (std::size_t i = 0; i < prediction.slots.size(); ++i) {
-      const auto &value = prediction.slots[i];
-      slot.numerical_status = value.numerical_status;
-      slot.background_status = value.status;
-      const double luminosity_shape = [&]() {
-        if constexpr (std::is_same_v<Point, PiecewiseModelPoint>)
-          return value.geometry.dimensionless_luminosity_shape;
-        else
-          return value.dimensionless_luminosity_shape;
-      }();
-      if (value.status != cosmology::Status::ok || !(luminosity_shape > 0)) {
-        slot.status = value.status == cosmology::Status::work_limit
-                          ? Status::work_limit
-                          : Status::numerical_failure;
-        failed = true;
-        break;
-      }
-      const auto shape = 5 * std::log10(luminosity_shape);
-      slot.shape_magnitudes.push_back(shape);
-      if constexpr (std::is_same_v<Point, GreyMagnitudePoint>) {
-        // +/-0 intentionally preserves the existing arithmetic exactly.
-        const long double shift_wide =
-            point.epsilon_mag == 0
-                ? 0
-                : (long double)point.epsilon_mag *
-                      std::log1p((long double)queries_[i].z_expansion) /
-                      std::log(2.L);
-        const double shift = static_cast<double>(shift_wide);
-        if (!std::isfinite(shift) ||
-            (point.epsilon_mag != 0 && (!(shift_wide != 0) || shift == 0 ||
-                                        std::fpclassify(shift) != FP_NORMAL))) {
-          slot.status = Status::numerical_failure;
-          slot.numerical_status = !std::isfinite(shift)
-                                      ? numerics::Status::overflow
-                                      : numerics::Status::outside_domain;
-          failed = true;
+    auto mark = [&](OutputState &state, bool ok, numerics::Status cause) {
+      assessed[assess_index(&state)] = true;
+      state.availability = ok ? cosmology::Availability::available
+                              : cosmology::Availability::failed;
+      state.status = ok ? Status::ok : Status::numerical_failure;
+      state.numerical_status = cause;
+    };
+    std::vector<double> geometry, effects, base;
+    bool valid = true, geometry_ok = true, effect_ok = true;
+    if (needs_geometry) {
+      valid = background_valid;
+      geometry.reserve(n);
+      if (p.requested & diagnostic_bit)
+        s.background_node_indices.reserve(n);
+      for (size_t i = 0; valid && i < n; ++i) {
+        const auto &value = predicted.slots[i].luminosity_shape;
+        if (!value.value || !(*value.value > 0)) {
+          s.background_status =
+              value.value ? cosmology::Status::numerical_failure : value.status;
+          s.numerical_status = value.value ? numerics::Status::outside_domain
+                                           : value.numerical_status;
+          valid = false;
           break;
         }
-        row.magnitude_shifts.push_back(shift);
-        slot.base_residuals.push_back(point.epsilon_mag == 0
-                                          ? observed_[i] - shape
-                                          : observed_[i] - shape - shift);
-      } else
-        slot.base_residuals.push_back(observed_[i] - shape);
+        const auto shape = 5 * std::log10((long double)*value.value);
+        if (!normal(shape)) {
+          s.numerical_status = numerics::Status::outside_domain;
+          valid = false;
+          break;
+        }
+        geometry.push_back((double)shape);
+        if (p.requested & diagnostic_bit)
+          s.background_node_indices.push_back(*predicted.slots[i].node_index);
+      }
+      if (p.requested & geometry_bit) {
+        mark(s.geometry, valid,
+             valid ? numerics::Status::ok : s.numerical_status);
+        if (valid)
+          s.geometric_shape = geometry;
+      }
+      geometry_ok = valid;
+      if (!valid)
+        s.background_node_indices.clear();
     }
-    if (!failed) {
-      const auto profile =
-          profile_.evaluate(slot.base_residuals, ids_,
-                            evaluation_policy.maximum_forward_sensitivity);
-      slot.solve_diagnostics = profile;
-      slot.profile_status = profile.status;
-      slot.numerical_status = profile.numerical_status;
-      if (profile.status == statistics::DensityStatus::finite) {
-        slot.offset_coefficient = profile.coefficient;
-        slot.quadratic = profile.quadratic;
-        slot.relative_profile_score = -.5 * profile.quadratic;
-        slot.profiled_residuals = profile.adjusted_residuals;
-        slot.status = Status::ok;
-      } else
-        slot.status = Status::numerical_failure;
+    if (needs_effect) {
+      valid = true;
+      effects.reserve(n);
+      for (size_t i = 0; i < n; ++i) {
+        const auto z = selected_.coordinates[i].z_expansion;
+        const auto zmax =
+            std::holds_alternative<cosmology::FixedFiveBinQ>(point.expansion)
+                ? 2.5
+                : 5.;
+        if (z < 0 || z > zmax) {
+          s.numerical_status = numerics::Status::outside_domain;
+          valid = false;
+          break;
+        }
+        double B = 0;
+        if (grey && grey->epsilon_mag != 0) {
+          const auto b =
+              (long double)grey->epsilon_mag *
+              std::log1p((long double)selected_.coordinates[i].z_expansion) /
+              std::log(2.L);
+          if (!normal(b)) {
+            s.numerical_status = numerics::Status::outside_domain;
+            valid = false;
+            break;
+          }
+          B = (double)b;
+        }
+        effects.push_back(B);
+      }
+      if (p.requested & effect_bit) {
+        mark(s.effect, valid,
+             valid ? numerics::Status::ok : s.numerical_status);
+        if (valid)
+          s.magnitude_shifts = effects;
+      }
+      effect_ok = valid;
     }
-    if (slot.status != Status::ok) {
-      slot.shape_magnitudes.clear();
-      slot.base_residuals.clear();
-      slot.profiled_residuals.clear();
-      if constexpr (std::is_same_v<Point, GreyMagnitudePoint>)
-        row.magnitude_shifts.clear();
+    if (!geometry_ok || !effect_ok) {
+      fail_pending(s.numerical_status == numerics::Status::work_limit
+                       ? Status::work_limit
+                       : Status::numerical_failure,
+                   s.numerical_status);
+      continue;
     }
-    out.slots.push_back(std::move(row));
+    if (needs_residual) {
+      base.reserve(n);
+      for (size_t i = 0; i < n; ++i) {
+        const auto residual = (!grey || grey->epsilon_mag == 0)
+                                  ? observed_[i] - geometry[i]
+                                  : observed_[i] - geometry[i] - effects[i];
+        if (!std::isfinite(residual)) {
+          s.numerical_status = numerics::Status::overflow;
+          valid = false;
+          break;
+        }
+        base.push_back(residual);
+      }
+      if (p.requested & corrected_bit)
+        mark(s.corrected, valid,
+             valid ? numerics::Status::ok : s.numerical_status);
+      if (!valid) {
+        fail_pending(Status::numerical_failure, s.numerical_status);
+        continue;
+      }
+    }
+    s.has_predictions = true;
+    if (p.requested & (score_bit | profiled_bit | diagnostic_bit)) {
+      auto result = profile_.evaluate(base, selected_.ordered_ids,
+                                      p.maximum_forward_sensitivity);
+      s.profile_status = result.status;
+      mark(s.profile, result.status == statistics::DensityStatus::finite,
+           result.numerical_status);
+      s.numerical_status = result.numerical_status;
+      if (result.status != statistics::DensityStatus::finite) {
+        s.status = Status::numerical_failure;
+        if (p.requested & corrected_bit)
+          s.corrected_residuals = std::move(base);
+        continue;
+      }
+      if (p.requested & score_bit)
+        s.score =
+            Score{result.coefficient, result.quadratic, -result.quadratic / 2};
+      if (p.requested & profiled_bit)
+        s.profiled_residuals = std::move(result.adjusted_residuals);
+      std::vector<double>{}.swap(result.adjusted_residuals);
+      if (p.requested & diagnostic_bit)
+        s.diagnostics = std::move(result);
+    }
+    if (p.requested & corrected_bit)
+      s.corrected_residuals = std::move(base);
+    s.status = Status::ok;
+    s.numerical_status = numerics::Status::ok;
   }
   return out;
 }

@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "abi_version": 1,
+  "abi_version": 2,
   "statuses": {
     "OK": 0,
     "ABI_MISMATCH": 1,
@@ -421,6 +421,10 @@
         [
           "maximum_forward_sensitivity",
           "f64"
+        ],
+        [
+          "maximum_native_bytes",
+          "u64"
         ]
       ]
     },
@@ -643,45 +647,15 @@
       ]
     },
     {
-      "c_name": "cosmo_background_parameters",
-      "rust_name": "BackgroundParameters",
+      "rust_name": "BaoQuery",
+      "c_name": "cosmo_bao_query",
       "fields": [
         [
-          "model",
-          "u32"
-        ],
-        [
-          "reserved",
-          "u32"
-        ],
-        [
-          "h0_km_s_mpc",
+          "z",
           "f64"
         ],
         [
-          "omega_m",
-          "f64"
-        ],
-        [
-          "constant_q",
-          "f64"
-        ]
-      ]
-    },
-    {
-      "c_name": "cosmo_background_query",
-      "rust_name": "BackgroundQuery",
-      "fields": [
-        [
-          "z_expansion",
-          "f64"
-        ],
-        [
-          "z_observer",
-          "f64"
-        ],
-        [
-          "convention",
+          "observable",
           "u32"
         ],
         [
@@ -691,8 +665,8 @@
       ]
     },
     {
-      "c_name": "cosmo_background_policy",
-      "rust_name": "BackgroundPolicy",
+      "rust_name": "ExpansionSpec",
+      "c_name": "cosmo_expansion_spec",
       "fields": [
         [
           "struct_size",
@@ -703,7 +677,7 @@
           "u32"
         ],
         [
-          "maximum_depth",
+          "model",
           "u32"
         ],
         [
@@ -711,7 +685,87 @@
           "u32"
         ],
         [
-          "maximum_parameters",
+          "parameters",
+          "F64Buffer"
+        ]
+      ]
+    },
+    {
+      "rust_name": "ExpansionRequest",
+      "c_name": "cosmo_expansion_request",
+      "fields": [
+        [
+          "struct_size",
+          "u32"
+        ],
+        [
+          "abi_version",
+          "u32"
+        ],
+        [
+          "requested",
+          "u32"
+        ],
+        [
+          "presence_flags",
+          "u32"
+        ],
+        [
+          "z_expansion",
+          "f64"
+        ],
+        [
+          "observer_redshift",
+          "f64"
+        ],
+        [
+          "observer_convention",
+          "u32"
+        ],
+        [
+          "reserved",
+          "u32"
+        ],
+        [
+          "h0_km_s_mpc",
+          "f64"
+        ]
+      ]
+    },
+    {
+      "rust_name": "ExpansionPolicy",
+      "c_name": "cosmo_expansion_policy",
+      "fields": [
+        [
+          "struct_size",
+          "u32"
+        ],
+        [
+          "abi_version",
+          "u32"
+        ],
+        [
+          "has_integration",
+          "u32"
+        ],
+        [
+          "max_depth",
+          "u32"
+        ],
+        [
+          "absolute_tolerance",
+          "f64"
+        ],
+        [
+          "relative_tolerance",
+          "f64"
+        ],
+        [
+          "integration_max_evaluations",
+          "u64"
+        ],
+        [
+          "maximum_models",
           "u64"
         ],
         [
@@ -723,30 +777,22 @@
           "u64"
         ],
         [
-          "maximum_native_output_bytes",
+          "maximum_callbacks",
           "u64"
         ],
         [
-          "maximum_total_evaluations",
+          "maximum_segment_visits",
           "u64"
         ],
         [
-          "maximum_evaluations_per_integral",
+          "maximum_native_bytes",
           "u64"
-        ],
-        [
-          "absolute_tolerance",
-          "f64"
-        ],
-        [
-          "relative_tolerance",
-          "f64"
         ]
       ]
     },
     {
-      "c_name": "cosmo_background_batch",
-      "rust_name": "BackgroundBatch",
+      "rust_name": "ExpansionBatch",
+      "c_name": "cosmo_expansion_batch",
       "fields": [
         [
           "struct_size",
@@ -757,20 +803,28 @@
           "u32"
         ],
         [
-          "parameters",
-          "const_BackgroundParameters_ptr"
+          "geometry",
+          "u32"
         ],
         [
-          "parameter_count",
+          "reserved",
+          "u32"
+        ],
+        [
+          "models",
+          "const_ExpansionSpec_ptr"
+        ],
+        [
+          "model_count",
           "u64"
         ],
         [
-          "parameter_byte_length",
+          "model_byte_length",
           "u64"
         ],
         [
           "queries",
-          "const_BackgroundQuery_ptr"
+          "const_ExpansionRequest_ptr"
         ],
         [
           "query_count",
@@ -783,24 +837,12 @@
       ]
     },
     {
-      "c_name": "cosmo_background_slot",
-      "rust_name": "BackgroundSlot",
+      "rust_name": "OutputState",
+      "c_name": "cosmo_output_state",
       "fields": [
         [
-          "parameter_index",
-          "u64"
-        ],
-        [
-          "query_index",
-          "u64"
-        ],
-        [
-          "parameters",
-          "BackgroundParameters"
-        ],
-        [
-          "query",
-          "BackgroundQuery"
+          "availability",
+          "u32"
         ],
         [
           "status",
@@ -811,36 +853,94 @@
           "u32"
         ],
         [
-          "model_id",
-          "Bytes"
+          "reserved",
+          "u32"
+        ]
+      ]
+    },
+    {
+      "rust_name": "ScalarOutcome",
+      "c_name": "cosmo_scalar_outcome",
+      "fields": [
+        [
+          "state",
+          "OutputState"
         ],
         [
-          "constants_id",
-          "Bytes"
+          "value",
+          "f64"
+        ]
+      ]
+    },
+    {
+      "rust_name": "ExpansionOutcome",
+      "c_name": "cosmo_expansion_outcome",
+      "fields": [
+        [
+          "state",
+          "OutputState"
         ],
         [
-          "radial_equation_id",
-          "Bytes"
-        ],
-        [
-          "luminosity_equation_id",
-          "Bytes"
-        ],
-        [
-          "shape_equation_id",
-          "Bytes"
-        ],
-        [
-          "expansion_e",
+          "E",
           "f64"
         ],
         [
-          "h_km_s_mpc",
+          "H_km_s_mpc",
+          "ScalarOutcome"
+        ]
+      ]
+    },
+    {
+      "rust_name": "RadialOutcome",
+      "c_name": "cosmo_radial_outcome",
+      "fields": [
+        [
+          "state",
+          "OutputState"
+        ],
+        [
+          "E",
           "f64"
         ],
         [
-          "radial_integral",
+          "integral",
           "f64"
+        ],
+        [
+          "error_estimate",
+          "f64"
+        ]
+      ]
+    },
+    {
+      "rust_name": "ClockOutcome",
+      "c_name": "cosmo_clock_outcome",
+      "fields": [
+        [
+          "state",
+          "OutputState"
+        ],
+        [
+          "integral",
+          "f64"
+        ],
+        [
+          "error_estimate",
+          "f64"
+        ],
+        [
+          "lookback_seconds",
+          "ScalarOutcome"
+        ]
+      ]
+    },
+    {
+      "rust_name": "PhysicalOutcome",
+      "c_name": "cosmo_physical_outcome",
+      "fields": [
+        [
+          "state",
+          "OutputState"
         ],
         [
           "radial_mpc",
@@ -859,19 +959,21 @@
           "f64"
         ],
         [
-          "dimensionless_luminosity_shape",
-          "f64"
-        ],
-        [
-          "lookback_seconds",
-          "f64"
-        ],
-        [
           "volume_mpc3_per_sr_per_redshift",
           "f64"
+        ]
+      ]
+    },
+    {
+      "rust_name": "KinematicOutcome",
+      "c_name": "cosmo_kinematic_outcome",
+      "fields": [
+        [
+          "state",
+          "OutputState"
         ],
         [
-          "deceleration_q",
+          "q",
           "f64"
         ],
         [
@@ -879,25 +981,145 @@
           "f64"
         ],
         [
-          "radial_integral_error",
+          "q0_within_piecewise_model",
           "f64"
         ],
         [
-          "lookback_integral_error",
-          "f64"
+          "has_jerk",
+          "u32"
         ],
         [
-          "evaluations",
+          "has_q0",
+          "u32"
+        ],
+        [
+          "q_convention",
+          "u32"
+        ],
+        [
+          "jerk_availability",
+          "u32"
+        ],
+        [
+          "bin",
           "u64"
         ]
       ]
     },
     {
-      "rust_name": "SupernovaModel",
-      "c_name": "cosmo_supernova_model",
+      "rust_name": "ExpansionRow",
+      "c_name": "cosmo_expansion_row",
       "fields": [
         [
-          "model",
+          "struct_size",
+          "u32"
+        ],
+        [
+          "abi_version",
+          "u32"
+        ],
+        [
+          "model_index",
+          "u64"
+        ],
+        [
+          "query_index",
+          "u64"
+        ],
+        [
+          "node_index",
+          "u64"
+        ],
+        [
+          "has_node",
+          "u32"
+        ],
+        [
+          "admission_status",
+          "u32"
+        ],
+        [
+          "expansion",
+          "ExpansionOutcome"
+        ],
+        [
+          "radial",
+          "RadialOutcome"
+        ],
+        [
+          "luminosity_shape",
+          "ScalarOutcome"
+        ],
+        [
+          "clock",
+          "ClockOutcome"
+        ],
+        [
+          "physical",
+          "PhysicalOutcome"
+        ],
+        [
+          "kinematics",
+          "KinematicOutcome"
+        ]
+      ]
+    },
+    {
+      "rust_name": "ExpansionNode",
+      "c_name": "cosmo_expansion_node",
+      "fields": [
+        [
+          "struct_size",
+          "u32"
+        ],
+        [
+          "abi_version",
+          "u32"
+        ],
+        [
+          "model_index",
+          "u64"
+        ],
+        [
+          "z_expansion",
+          "f64"
+        ],
+        [
+          "callbacks",
+          "u64"
+        ],
+        [
+          "segment_visits",
+          "u64"
+        ]
+      ]
+    },
+    {
+      "rust_name": "ExpansionModelView",
+      "c_name": "cosmo_expansion_model_view",
+      "fields": [
+        [
+          "struct_size",
+          "u32"
+        ],
+        [
+          "abi_version",
+          "u32"
+        ],
+        [
+          "model_index",
+          "u64"
+        ],
+        [
+          "preparation_status",
+          "u32"
+        ],
+        [
+          "evaluation_status",
+          "u32"
+        ],
+        [
+          "numerical_status",
           "u32"
         ],
         [
@@ -905,18 +1127,204 @@
           "u32"
         ],
         [
-          "omega_m",
-          "f64"
+          "row_offset",
+          "u64"
         ],
         [
-          "constant_q",
-          "f64"
+          "row_count",
+          "u64"
+        ],
+        [
+          "source",
+          "ExpansionSpec"
+        ],
+        [
+          "model_id",
+          "Bytes"
+        ],
+        [
+          "constants_id",
+          "Bytes"
+        ],
+        [
+          "radial_equation_id",
+          "Bytes"
         ]
       ]
     },
     {
-      "rust_name": "SupernovaPolicy",
-      "c_name": "cosmo_supernova_policy",
+      "rust_name": "ProjectionPolicy",
+      "c_name": "cosmo_projection_policy",
+      "fields": [
+        [
+          "struct_size",
+          "u32"
+        ],
+        [
+          "abi_version",
+          "u32"
+        ],
+        [
+          "has_integration",
+          "u32"
+        ],
+        [
+          "maximum_depth",
+          "u32"
+        ],
+        [
+          "absolute_tolerance",
+          "f64"
+        ],
+        [
+          "relative_tolerance",
+          "f64"
+        ],
+        [
+          "maximum_evaluations_per_integral",
+          "u64"
+        ],
+        [
+          "maximum_queries",
+          "u64"
+        ],
+        [
+          "maximum_callbacks",
+          "u64"
+        ],
+        [
+          "maximum_segment_visits",
+          "u64"
+        ]
+      ]
+    },
+    {
+      "rust_name": "SourceEffectSpec",
+      "c_name": "cosmo_source_effect_spec",
+      "fields": [
+        [
+          "struct_size",
+          "u32"
+        ],
+        [
+          "abi_version",
+          "u32"
+        ],
+        [
+          "effect",
+          "u32"
+        ],
+        [
+          "reserved",
+          "u32"
+        ],
+        [
+          "parameters",
+          "F64Buffer"
+        ]
+      ]
+    },
+    {
+      "rust_name": "CurrentSupernovaModel",
+      "c_name": "cosmo_current_supernova_model",
+      "fields": [
+        [
+          "struct_size",
+          "u32"
+        ],
+        [
+          "abi_version",
+          "u32"
+        ],
+        [
+          "geometry",
+          "u32"
+        ],
+        [
+          "reserved",
+          "u32"
+        ],
+        [
+          "expansion",
+          "ExpansionSpec"
+        ],
+        [
+          "source_effect",
+          "SourceEffectSpec"
+        ]
+      ]
+    },
+    {
+      "rust_name": "MagnitudeCoordinate",
+      "c_name": "cosmo_magnitude_coordinate",
+      "fields": [
+        [
+          "struct_size",
+          "u32"
+        ],
+        [
+          "abi_version",
+          "u32"
+        ],
+        [
+          "z_expansion",
+          "f64"
+        ],
+        [
+          "observer_redshift",
+          "f64"
+        ],
+        [
+          "observer_convention",
+          "u32"
+        ],
+        [
+          "reserved",
+          "u32"
+        ]
+      ]
+    },
+    {
+      "rust_name": "MagnitudeSelection",
+      "c_name": "cosmo_magnitude_selection",
+      "fields": [
+        [
+          "struct_size",
+          "u32"
+        ],
+        [
+          "abi_version",
+          "u32"
+        ],
+        [
+          "kind",
+          "u32"
+        ],
+        [
+          "reserved",
+          "u32"
+        ],
+        [
+          "source_indices",
+          "U64Buffer"
+        ],
+        [
+          "coordinates",
+          "const_MagnitudeCoordinate_ptr"
+        ],
+        [
+          "coordinate_count",
+          "u64"
+        ],
+        [
+          "coordinate_byte_length",
+          "u64"
+        ]
+      ]
+    },
+    {
+      "rust_name": "CurrentSupernovaPreparationPolicy",
+      "c_name": "cosmo_current_supernova_preparation_policy",
       "fields": [
         [
           "struct_size",
@@ -931,15 +1339,11 @@
           "u32"
         ],
         [
-          "include_residual_arrays",
+          "reserved",
           "u32"
         ],
         [
-          "maximum_models",
-          "u64"
-        ],
-        [
-          "maximum_source_rows",
+          "maximum_selected_rows",
           "u64"
         ],
         [
@@ -947,36 +1351,12 @@
           "u64"
         ],
         [
-          "maximum_array_elements",
+          "maximum_string_bytes",
           "u64"
         ],
         [
-          "maximum_native_output_bytes",
+          "maximum_native_bytes",
           "u64"
-        ],
-        [
-          "maximum_total_evaluations",
-          "u64"
-        ],
-        [
-          "maximum_evaluations_per_integral",
-          "u64"
-        ],
-        [
-          "maximum_depth",
-          "u32"
-        ],
-        [
-          "reserved",
-          "u32"
-        ],
-        [
-          "absolute_tolerance",
-          "f64"
-        ],
-        [
-          "relative_tolerance",
-          "f64"
         ],
         [
           "maximum_forward_sensitivity",
@@ -985,8 +1365,50 @@
       ]
     },
     {
-      "rust_name": "SupernovaBatch",
-      "c_name": "cosmo_supernova_batch",
+      "rust_name": "CurrentSupernovaEvaluationPolicy",
+      "c_name": "cosmo_current_supernova_evaluation_policy",
+      "fields": [
+        [
+          "struct_size",
+          "u32"
+        ],
+        [
+          "abi_version",
+          "u32"
+        ],
+        [
+          "arithmetic",
+          "u32"
+        ],
+        [
+          "requested",
+          "u32"
+        ],
+        [
+          "projection",
+          "ProjectionPolicy"
+        ],
+        [
+          "maximum_models",
+          "u64"
+        ],
+        [
+          "maximum_array_elements",
+          "u64"
+        ],
+        [
+          "maximum_native_bytes",
+          "u64"
+        ],
+        [
+          "maximum_forward_sensitivity",
+          "f64"
+        ]
+      ]
+    },
+    {
+      "rust_name": "CurrentSupernovaBatch",
+      "c_name": "cosmo_current_supernova_batch",
       "fields": [
         [
           "struct_size",
@@ -998,7 +1420,7 @@
         ],
         [
           "models",
-          "const_SupernovaModel_ptr"
+          "const_CurrentSupernovaModel_ptr"
         ],
         [
           "model_count",
@@ -1011,8 +1433,8 @@
       ]
     },
     {
-      "rust_name": "SupernovaView",
-      "c_name": "cosmo_supernova_view",
+      "rust_name": "CurrentSupernovaView",
+      "c_name": "cosmo_current_supernova_view",
       "fields": [
         [
           "struct_size",
@@ -1039,12 +1461,12 @@
           "u32"
         ],
         [
-          "matrix_validation_scope",
-          "u32"
+          "retained_bytes",
+          "u64"
         ],
         [
-          "matrix_validation_assessed",
-          "u32"
+          "source",
+          "ObservationDescriptor"
         ],
         [
           "ordered_ids",
@@ -1055,7 +1477,15 @@
           "U64Buffer"
         ],
         [
-          "source_row_count",
+          "coordinates",
+          "const_MagnitudeCoordinate_ptr"
+        ],
+        [
+          "coordinate_count",
+          "u64"
+        ],
+        [
+          "coordinate_byte_length",
           "u64"
         ],
         [
@@ -1064,14 +1494,6 @@
         ],
         [
           "score_id",
-          "Bytes"
-        ],
-        [
-          "constant_set_id",
-          "Bytes"
-        ],
-        [
-          "radial_equation_id",
           "Bytes"
         ],
         [
@@ -1081,56 +1503,92 @@
         [
           "offset_convention",
           "Bytes"
-        ],
-        [
-          "query_provenance",
-          "Bytes"
-        ],
-        [
-          "table_identity",
-          "Bytes"
-        ],
-        [
-          "uncertainty_identity",
-          "Bytes"
-        ],
-        [
-          "ordering_provenance",
-          "Bytes"
-        ],
-        [
-          "calibration_provenance",
-          "Bytes"
-        ],
-        [
-          "dependence_provenance",
-          "Bytes"
-        ],
-        [
-          "source_semantics",
-          "Bytes"
-        ],
-        [
-          "selected_z_expansion",
-          "F64Buffer"
-        ],
-        [
-          "selected_z_observer",
-          "F64Buffer"
         ]
       ]
     },
     {
-      "rust_name": "SupernovaSlot",
-      "c_name": "cosmo_supernova_slot",
+      "rust_name": "ProfilePayload",
+      "c_name": "cosmo_profile_payload",
       "fields": [
+        [
+          "state",
+          "OutputState"
+        ],
+        [
+          "offset_coefficient",
+          "f64"
+        ],
+        [
+          "quadratic",
+          "f64"
+        ],
+        [
+          "relative_profile_score",
+          "f64"
+        ]
+      ]
+    },
+    {
+      "rust_name": "ProfileDiagnostics",
+      "c_name": "cosmo_profile_diagnostics",
+      "fields": [
+        [
+          "state",
+          "OutputState"
+        ],
+        [
+          "backward_residual",
+          "f64"
+        ],
+        [
+          "estimated_forward_sensitivity",
+          "f64"
+        ],
+        [
+          "coefficient_backward_residual",
+          "f64"
+        ],
+        [
+          "coefficient_forward_sensitivity",
+          "f64"
+        ],
+        [
+          "residual_l1",
+          "f64"
+        ],
+        [
+          "solution_norm_inf",
+          "f64"
+        ],
+        [
+          "adjusted_residual_l1",
+          "f64"
+        ],
+        [
+          "adjusted_solution_norm_inf",
+          "f64"
+        ]
+      ]
+    },
+    {
+      "rust_name": "CurrentSupernovaRow",
+      "c_name": "cosmo_current_supernova_row",
+      "fields": [
+        [
+          "struct_size",
+          "u32"
+        ],
+        [
+          "abi_version",
+          "u32"
+        ],
         [
           "model_index",
           "u64"
         ],
         [
-          "source_parameters",
-          "SupernovaModel"
+          "source",
+          "CurrentSupernovaModel"
         ],
         [
           "status",
@@ -1149,448 +1607,74 @@
           "u32"
         ],
         [
-          "model_id",
-          "Bytes"
+          "geometry_state",
+          "OutputState"
         ],
         [
-          "arithmetic_id",
-          "Bytes"
+          "effect_state",
+          "OutputState"
         ],
         [
-          "score_id",
-          "Bytes"
+          "corrected_state",
+          "OutputState"
         ],
         [
-          "radial_equation_id",
-          "Bytes"
+          "profiled_state",
+          "OutputState"
         ],
         [
-          "offset_coefficient",
-          "f64"
+          "score",
+          "ProfilePayload"
         ],
         [
-          "quadratic",
-          "f64"
+          "diagnostics",
+          "ProfileDiagnostics"
         ],
         [
-          "relative_profile_score",
-          "f64"
-        ],
-        [
-          "backward_residual",
-          "f64"
-        ],
-        [
-          "estimated_forward_sensitivity",
-          "f64"
-        ],
-        [
-          "coefficient_solve_backward_residual",
-          "f64"
-        ],
-        [
-          "coefficient_solve_forward_sensitivity",
-          "f64"
-        ],
-        [
-          "residual_l1",
-          "f64"
-        ],
-        [
-          "solution_norm_inf",
-          "f64"
-        ],
-        [
-          "adjusted_residual_l1",
-          "f64"
-        ],
-        [
-          "adjusted_solution_norm_inf",
-          "f64"
-        ],
-        [
-          "background_evaluations",
-          "u64"
-        ],
-        [
-          "shape_magnitudes",
+          "geometric_shape",
           "F64Buffer"
         ],
         [
-          "base_residuals",
+          "magnitude_effect",
+          "F64Buffer"
+        ],
+        [
+          "corrected_residuals",
           "F64Buffer"
         ],
         [
           "profiled_residuals",
           "F64Buffer"
-        ]
-      ]
-    },
-    {
-      "c_name": "cosmo_background_parameters_v2",
-      "rust_name": "BackgroundParametersV2",
-      "fields": [
-        [
-          "model",
-          "u32"
         ],
         [
-          "reserved",
-          "u32"
+          "background_node_indices",
+          "U64Buffer"
         ],
         [
-          "h0_km_s_mpc",
-          "f64"
-        ],
-        [
-          "omega_m",
-          "f64"
-        ],
-        [
-          "constant_q",
-          "f64"
-        ],
-        [
-          "w0",
-          "f64"
-        ],
-        [
-          "wa",
-          "f64"
-        ]
-      ]
-    },
-    {
-      "c_name": "cosmo_background_batch_v2",
-      "rust_name": "BackgroundBatchV2",
-      "fields": [
-        [
-          "struct_size",
-          "u32"
-        ],
-        [
-          "abi_version",
-          "u32"
-        ],
-        [
-          "parameters",
-          "const_BackgroundParametersV2_ptr"
-        ],
-        [
-          "parameter_count",
+          "callbacks",
           "u64"
         ],
         [
-          "parameter_byte_length",
+          "segment_visits",
           "u64"
-        ],
-        [
-          "queries",
-          "const_BackgroundQuery_ptr"
-        ],
-        [
-          "query_count",
-          "u64"
-        ],
-        [
-          "query_byte_length",
-          "u64"
-        ]
-      ]
-    },
-    {
-      "c_name": "cosmo_background_slot_v2",
-      "rust_name": "BackgroundSlotV2",
-      "fields": [
-        [
-          "parameter_index",
-          "u64"
-        ],
-        [
-          "query_index",
-          "u64"
-        ],
-        [
-          "parameters",
-          "BackgroundParametersV2"
-        ],
-        [
-          "query",
-          "BackgroundQuery"
-        ],
-        [
-          "status",
-          "u32"
-        ],
-        [
-          "numerical_status",
-          "u32"
         ],
         [
           "model_id",
           "Bytes"
         ],
         [
-          "constants_id",
-          "Bytes"
-        ],
-        [
-          "radial_equation_id",
-          "Bytes"
-        ],
-        [
-          "luminosity_equation_id",
-          "Bytes"
-        ],
-        [
-          "shape_equation_id",
-          "Bytes"
-        ],
-        [
-          "expansion_e",
-          "f64"
-        ],
-        [
-          "h_km_s_mpc",
-          "f64"
-        ],
-        [
-          "radial_integral",
-          "f64"
-        ],
-        [
-          "radial_mpc",
-          "f64"
-        ],
-        [
-          "transverse_mpc",
-          "f64"
-        ],
-        [
-          "angular_diameter_mpc",
-          "f64"
-        ],
-        [
-          "luminosity_mpc",
-          "f64"
-        ],
-        [
-          "dimensionless_luminosity_shape",
-          "f64"
-        ],
-        [
-          "lookback_seconds",
-          "f64"
-        ],
-        [
-          "volume_mpc3_per_sr_per_redshift",
-          "f64"
-        ],
-        [
-          "deceleration_q",
-          "f64"
-        ],
-        [
-          "jerk",
-          "f64"
-        ],
-        [
-          "radial_integral_error",
-          "f64"
-        ],
-        [
-          "lookback_integral_error",
-          "f64"
-        ],
-        [
-          "evaluations",
-          "u64"
-        ]
-      ]
-    },
-    {
-      "rust_name": "SupernovaModelV2",
-      "c_name": "cosmo_supernova_model_v2",
-      "fields": [
-        [
-          "model",
-          "u32"
-        ],
-        [
-          "reserved",
-          "u32"
-        ],
-        [
-          "omega_m",
-          "f64"
-        ],
-        [
-          "constant_q",
-          "f64"
-        ],
-        [
-          "w0",
-          "f64"
-        ],
-        [
-          "wa",
-          "f64"
-        ]
-      ]
-    },
-    {
-      "rust_name": "SupernovaBatchV2",
-      "c_name": "cosmo_supernova_batch_v2",
-      "fields": [
-        [
-          "struct_size",
-          "u32"
-        ],
-        [
-          "abi_version",
-          "u32"
-        ],
-        [
-          "models",
-          "const_SupernovaModelV2_ptr"
-        ],
-        [
-          "model_count",
-          "u64"
-        ],
-        [
-          "model_byte_length",
-          "u64"
-        ]
-      ]
-    },
-    {
-      "rust_name": "SupernovaSlotV2",
-      "c_name": "cosmo_supernova_slot_v2",
-      "fields": [
-        [
-          "model_index",
-          "u64"
-        ],
-        [
-          "source_parameters",
-          "SupernovaModelV2"
-        ],
-        [
-          "status",
-          "u32"
-        ],
-        [
-          "background_status",
-          "u32"
-        ],
-        [
-          "numerical_status",
-          "u32"
-        ],
-        [
-          "profile_status",
-          "u32"
-        ],
-        [
-          "model_id",
+          "hypothesis_id",
           "Bytes"
         ],
         [
           "arithmetic_id",
           "Bytes"
-        ],
-        [
-          "score_id",
-          "Bytes"
-        ],
-        [
-          "radial_equation_id",
-          "Bytes"
-        ],
-        [
-          "offset_coefficient",
-          "f64"
-        ],
-        [
-          "quadratic",
-          "f64"
-        ],
-        [
-          "relative_profile_score",
-          "f64"
-        ],
-        [
-          "backward_residual",
-          "f64"
-        ],
-        [
-          "estimated_forward_sensitivity",
-          "f64"
-        ],
-        [
-          "coefficient_solve_backward_residual",
-          "f64"
-        ],
-        [
-          "coefficient_solve_forward_sensitivity",
-          "f64"
-        ],
-        [
-          "residual_l1",
-          "f64"
-        ],
-        [
-          "solution_norm_inf",
-          "f64"
-        ],
-        [
-          "adjusted_residual_l1",
-          "f64"
-        ],
-        [
-          "adjusted_solution_norm_inf",
-          "f64"
-        ],
-        [
-          "background_evaluations",
-          "u64"
-        ],
-        [
-          "shape_magnitudes",
-          "F64Buffer"
-        ],
-        [
-          "base_residuals",
-          "F64Buffer"
-        ],
-        [
-          "profiled_residuals",
-          "F64Buffer"
         ]
       ]
     },
     {
-      "rust_name": "BaoQuery",
-      "c_name": "cosmo_bao_query",
-      "fields": [
-        [
-          "z",
-          "f64"
-        ],
-        [
-          "observable",
-          "u32"
-        ],
-        [
-          "reserved",
-          "u32"
-        ]
-      ]
-    },
-    {
-      "rust_name": "BaoPolicy",
-      "c_name": "cosmo_bao_policy",
+      "rust_name": "CurrentBaoModel",
+      "c_name": "cosmo_current_bao_model",
       "fields": [
         [
           "struct_size",
@@ -1601,31 +1685,45 @@
           "u32"
         ],
         [
-          "background",
-          "BackgroundPolicy"
+          "geometry",
+          "u32"
+        ],
+        [
+          "reserved",
+          "u32"
+        ],
+        [
+          "expansion",
+          "ExpansionSpec"
+        ],
+        [
+          "h0_rd_km_s",
+          "f64"
+        ]
+      ]
+    },
+    {
+      "rust_name": "CurrentBaoPreparationPolicy",
+      "c_name": "cosmo_current_bao_preparation_policy",
+      "fields": [
+        [
+          "struct_size",
+          "u32"
+        ],
+        [
+          "abi_version",
+          "u32"
         ],
         [
           "arithmetic",
           "u32"
         ],
         [
-          "include_predictions",
-          "u32"
-        ],
-        [
-          "include_residuals",
-          "u32"
-        ],
-        [
           "reserved",
           "u32"
         ],
         [
-          "maximum_models",
-          "u64"
-        ],
-        [
-          "maximum_rows",
+          "maximum_queries",
           "u64"
         ],
         [
@@ -1641,11 +1739,45 @@
           "u64"
         ],
         [
+          "maximum_forward_sensitivity",
+          "f64"
+        ]
+      ]
+    },
+    {
+      "rust_name": "CurrentBaoEvaluationPolicy",
+      "c_name": "cosmo_current_bao_evaluation_policy",
+      "fields": [
+        [
+          "struct_size",
+          "u32"
+        ],
+        [
+          "abi_version",
+          "u32"
+        ],
+        [
+          "arithmetic",
+          "u32"
+        ],
+        [
+          "requested",
+          "u32"
+        ],
+        [
+          "projection",
+          "ProjectionPolicy"
+        ],
+        [
+          "maximum_models",
+          "u64"
+        ],
+        [
           "maximum_array_elements",
           "u64"
         ],
         [
-          "maximum_native_output_bytes",
+          "maximum_native_bytes",
           "u64"
         ],
         [
@@ -1655,8 +1787,34 @@
       ]
     },
     {
-      "rust_name": "BaoDescriptor",
-      "c_name": "cosmo_bao_descriptor",
+      "rust_name": "CurrentBaoBatch",
+      "c_name": "cosmo_current_bao_batch",
+      "fields": [
+        [
+          "struct_size",
+          "u32"
+        ],
+        [
+          "abi_version",
+          "u32"
+        ],
+        [
+          "models",
+          "const_CurrentBaoModel_ptr"
+        ],
+        [
+          "model_count",
+          "u64"
+        ],
+        [
+          "model_byte_length",
+          "u64"
+        ]
+      ]
+    },
+    {
+      "rust_name": "BaoSource",
+      "c_name": "cosmo_bao_source",
       "fields": [
         [
           "struct_size",
@@ -1729,56 +1887,12 @@
         [
           "ruler_convention",
           "Bytes"
-        ],
-        [
-          "computational_h0_convention",
-          "Bytes"
         ]
       ]
     },
     {
-      "rust_name": "BaoModel",
-      "c_name": "cosmo_bao_model",
-      "fields": [
-        [
-          "parameters",
-          "SupernovaModelV2"
-        ],
-        [
-          "h0_rd_km_s",
-          "f64"
-        ]
-      ]
-    },
-    {
-      "rust_name": "BaoBatch",
-      "c_name": "cosmo_bao_batch",
-      "fields": [
-        [
-          "struct_size",
-          "u32"
-        ],
-        [
-          "abi_version",
-          "u32"
-        ],
-        [
-          "models",
-          "const_BaoModel_ptr"
-        ],
-        [
-          "model_count",
-          "u64"
-        ],
-        [
-          "model_byte_length",
-          "u64"
-        ]
-      ]
-    },
-    {
-      "rust_name": "BaoSourceView",
-      "c_name": "cosmo_bao_source_view_t",
+      "rust_name": "CurrentBaoView",
+      "c_name": "cosmo_current_bao_view",
       "fields": [
         [
           "struct_size",
@@ -1797,49 +1911,7 @@
           "u32"
         ],
         [
-          "source",
-          "BaoDescriptor"
-        ],
-        [
-          "prepare_policy",
-          "BaoPolicy"
-        ],
-        [
-          "arithmetic_id",
-          "Bytes"
-        ],
-        [
-          "equation_id",
-          "Bytes"
-        ],
-        [
-          "constants_id",
-          "Bytes"
-        ]
-      ]
-    },
-    {
-      "rust_name": "BaoRow",
-      "c_name": "cosmo_bao_row",
-      "fields": [
-        [
-          "model_index",
-          "u64"
-        ],
-        [
-          "source_parameters",
-          "BaoModel"
-        ],
-        [
-          "status",
-          "u32"
-        ],
-        [
-          "background_status",
-          "u32"
-        ],
-        [
-          "numerical_status",
+          "arithmetic",
           "u32"
         ],
         [
@@ -1847,11 +1919,19 @@
           "u32"
         ],
         [
-          "model_id",
-          "Bytes"
+          "retained_bytes",
+          "u64"
+        ],
+        [
+          "source",
+          "BaoSource"
         ],
         [
           "arithmetic_id",
+          "Bytes"
+        ],
+        [
+          "density_id",
           "Bytes"
         ],
         [
@@ -1861,14 +1941,16 @@
         [
           "ruler_convention_id",
           "Bytes"
-        ],
+        ]
+      ]
+    },
+    {
+      "rust_name": "DensityPayload",
+      "c_name": "cosmo_density_payload",
+      "fields": [
         [
-          "computational_h0_convention_id",
-          "Bytes"
-        ],
-        [
-          "log_density",
-          "f64"
+          "state",
+          "OutputState"
         ],
         [
           "quadratic",
@@ -1879,750 +1961,62 @@
           "f64"
         ],
         [
-          "normalization",
+          "log_normalization",
           "f64"
-        ],
-        [
-          "backward_residual",
-          "f64"
-        ],
-        [
-          "estimated_forward_sensitivity",
-          "f64"
-        ],
-        [
-          "evaluations",
-          "u64"
-        ],
-        [
-          "predictions",
-          "F64Buffer"
-        ],
-        [
-          "residuals",
-          "F64Buffer"
-        ],
-        [
-          "ordered_ids",
-          "Strings"
-        ],
-        [
-          "queries",
-          "const_BaoQuery_ptr"
-        ],
-        [
-          "query_count",
-          "u64"
-        ],
-        [
-          "query_byte_length",
-          "u64"
-        ]
-      ]
-    },
-    {
-      "c_name": "cosmo_piecewise_parameters",
-      "rust_name": "PiecewiseParameters",
-      "fields": [
-        [
-          "h0_km_s_mpc",
-          "f64"
-        ],
-        [
-          "q",
-          "FiveCoefficients"
-        ]
-      ]
-    },
-    {
-      "c_name": "cosmo_piecewise_batch",
-      "rust_name": "PiecewiseBatch",
-      "fields": [
-        [
-          "struct_size",
-          "u32"
-        ],
-        [
-          "abi_version",
-          "u32"
-        ],
-        [
-          "parameters",
-          "const_PiecewiseParameters_ptr"
-        ],
-        [
-          "parameter_count",
-          "u64"
-        ],
-        [
-          "parameter_bytes",
-          "u64"
-        ],
-        [
-          "queries",
-          "const_BackgroundQuery_ptr"
-        ],
-        [
-          "query_count",
-          "u64"
-        ],
-        [
-          "query_bytes",
-          "u64"
-        ]
-      ]
-    },
-    {
-      "c_name": "cosmo_piecewise_policy",
-      "rust_name": "PiecewisePolicy",
-      "fields": [
-        [
-          "struct_size",
-          "u32"
-        ],
-        [
-          "abi_version",
-          "u32"
-        ],
-        [
-          "reserved",
-          "u64"
-        ],
-        [
-          "maximum_parameters",
-          "u64"
-        ],
-        [
-          "maximum_queries",
-          "u64"
-        ],
-        [
-          "maximum_slots",
-          "u64"
-        ],
-        [
-          "maximum_native_output_bytes",
-          "u64"
-        ],
-        [
-          "maximum_total_segment_visits",
-          "u64"
-        ]
-      ]
-    },
-    {
-      "c_name": "cosmo_piecewise_slot",
-      "rust_name": "PiecewiseSlot",
-      "fields": [
-        [
-          "struct_size",
-          "u32"
-        ],
-        [
-          "abi_version",
-          "u32"
-        ],
-        [
-          "parameter_index",
-          "u64"
-        ],
-        [
-          "query_index",
-          "u64"
-        ],
-        [
-          "parameters",
-          "PiecewiseParameters"
-        ],
-        [
-          "query",
-          "BackgroundQuery"
-        ],
-        [
-          "status",
-          "u32"
-        ],
-        [
-          "numerical_status",
-          "u32"
-        ],
-        [
-          "has_geometry",
-          "u32"
-        ],
-        [
-          "has_q",
-          "u32"
-        ],
-        [
-          "has_jerk",
-          "u32"
-        ],
-        [
-          "has_q0",
-          "u32"
-        ],
-        [
-          "q_convention",
-          "u32"
-        ],
-        [
-          "jerk_availability",
-          "u32"
-        ],
-        [
-          "bin",
-          "u64"
-        ],
-        [
-          "segments_processed",
-          "u64"
-        ],
-        [
-          "expansion_E",
-          "f64"
-        ],
-        [
-          "h_km_s_mpc",
-          "f64"
-        ],
-        [
-          "radial_integral",
-          "f64"
-        ],
-        [
-          "radial_mpc",
-          "f64"
-        ],
-        [
-          "transverse_mpc",
-          "f64"
-        ],
-        [
-          "angular_diameter_mpc",
-          "f64"
-        ],
-        [
-          "luminosity_mpc",
-          "f64"
-        ],
-        [
-          "dimensionless_luminosity_shape",
-          "f64"
-        ],
-        [
-          "lookback_seconds",
-          "f64"
-        ],
-        [
-          "volume_mpc3_per_sr_per_redshift",
-          "f64"
-        ],
-        [
-          "assigned_q",
-          "f64"
-        ],
-        [
-          "jerk",
-          "f64"
-        ],
-        [
-          "q0_within_piecewise_model",
-          "f64"
-        ],
-        [
-          "model_id",
-          "Bytes"
-        ],
-        [
-          "radial_equation_id",
-          "Bytes"
-        ],
-        [
-          "luminosity_equation_id",
-          "Bytes"
-        ],
-        [
-          "shape_equation_id",
-          "Bytes"
-        ],
-        [
-          "constant_set_id",
-          "Bytes"
-        ]
-      ]
-    },
-    {
-      "c_name": "cosmo_supernova_piecewise_model",
-      "rust_name": "SupernovaPiecewiseModel",
-      "fields": [
-        [
-          "q",
-          "FiveCoefficients"
-        ]
-      ]
-    },
-    {
-      "c_name": "cosmo_supernova_piecewise_batch",
-      "rust_name": "SupernovaPiecewiseBatch",
-      "fields": [
-        [
-          "struct_size",
-          "u32"
-        ],
-        [
-          "abi_version",
-          "u32"
-        ],
-        [
-          "models",
-          "const_SupernovaPiecewiseModel_ptr"
-        ],
-        [
-          "model_count",
-          "u64"
-        ],
-        [
-          "model_bytes",
-          "u64"
-        ]
-      ]
-    },
-    {
-      "c_name": "cosmo_supernova_piecewise_policy",
-      "rust_name": "SupernovaPiecewisePolicy",
-      "fields": [
-        [
-          "struct_size",
-          "u32"
-        ],
-        [
-          "abi_version",
-          "u32"
-        ],
-        [
-          "arithmetic",
-          "u32"
-        ],
-        [
-          "include_residual_arrays",
-          "u32"
-        ],
-        [
-          "maximum_models",
-          "u64"
-        ],
-        [
-          "maximum_source_rows",
-          "u64"
-        ],
-        [
-          "maximum_matrix_elements",
-          "u64"
-        ],
-        [
-          "maximum_queries",
-          "u64"
-        ],
-        [
-          "maximum_array_elements",
-          "u64"
-        ],
-        [
-          "maximum_native_output_bytes",
-          "u64"
-        ],
-        [
-          "maximum_total_segment_visits",
-          "u64"
-        ],
-        [
-          "maximum_forward_sensitivity",
-          "f64"
-        ]
-      ]
-    },
-    {
-      "c_name": "cosmo_supernova_piecewise_slot",
-      "rust_name": "SupernovaPiecewiseSlot",
-      "fields": [
-        [
-          "struct_size",
-          "u32"
-        ],
-        [
-          "abi_version",
-          "u32"
-        ],
-        [
-          "model_index",
-          "u64"
-        ],
-        [
-          "source_parameters",
-          "SupernovaPiecewiseModel"
-        ],
-        [
-          "status",
-          "u32"
-        ],
-        [
-          "background_status",
-          "u32"
-        ],
-        [
-          "numerical_status",
-          "u32"
-        ],
-        [
-          "profile_status",
-          "u32"
-        ],
-        [
-          "model_id",
-          "Bytes"
-        ],
-        [
-          "arithmetic_id",
-          "Bytes"
-        ],
-        [
-          "score_id",
-          "Bytes"
-        ],
-        [
-          "radial_equation_id",
-          "Bytes"
-        ],
-        [
-          "offset_coefficient",
-          "f64"
-        ],
-        [
-          "quadratic",
-          "f64"
-        ],
-        [
-          "relative_profile_score",
-          "f64"
-        ],
-        [
-          "backward_residual",
-          "f64"
-        ],
-        [
-          "estimated_forward_sensitivity",
-          "f64"
-        ],
-        [
-          "coefficient_solve_backward_residual",
-          "f64"
-        ],
-        [
-          "coefficient_solve_forward_sensitivity",
-          "f64"
-        ],
-        [
-          "residual_l1",
-          "f64"
-        ],
-        [
-          "solution_norm_inf",
-          "f64"
-        ],
-        [
-          "adjusted_residual_l1",
-          "f64"
-        ],
-        [
-          "adjusted_solution_norm_inf",
-          "f64"
-        ],
-        [
-          "segment_visits",
-          "u64"
-        ],
-        [
-          "shape_magnitudes",
-          "F64Buffer"
-        ],
-        [
-          "base_residuals",
-          "F64Buffer"
-        ],
-        [
-          "profiled_residuals",
-          "F64Buffer"
-        ],
-        [
-          "has_profile_payload",
-          "u32"
-        ],
-        [
-          "reserved",
-          "u32"
-        ],
-        [
-          "ordered_ids",
-          "Strings"
-        ],
-        [
-          "selected_source_indices",
-          "const_u64_ptr"
-        ],
-        [
-          "selected_count",
-          "u64"
-        ],
-        [
-          "selected_index_bytes",
-          "u64"
-        ],
-        [
-          "expansion_z",
-          "F64Buffer"
-        ],
-        [
-          "observer_z",
-          "F64Buffer"
-        ]
-      ]
-    },
-    {
-      "rust_name": "BaoPiecewiseModel",
-      "c_name": "cosmo_bao_piecewise_model",
-      "fields": [
-        [
-          "q",
-          "FiveCoefficients"
-        ],
-        [
-          "h0_rd_km_s",
-          "f64"
-        ]
-      ]
-    },
-    {
-      "rust_name": "BaoPiecewisePolicy",
-      "c_name": "cosmo_bao_piecewise_policy",
-      "fields": [
-        [
-          "struct_size",
-          "u32"
-        ],
-        [
-          "abi_version",
-          "u32"
-        ],
-        [
-          "arithmetic",
-          "u32"
-        ],
-        [
-          "include_predictions",
-          "u32"
-        ],
-        [
-          "include_residuals",
-          "u32"
-        ],
-        [
-          "reserved",
-          "u32"
-        ],
-        [
-          "maximum_models",
-          "u64"
-        ],
-        [
-          "maximum_rows",
-          "u64"
-        ],
-        [
-          "maximum_matrix_elements",
-          "u64"
-        ],
-        [
-          "maximum_string_bytes",
-          "u64"
-        ],
-        [
-          "maximum_native_bytes",
-          "u64"
-        ],
-        [
-          "maximum_array_elements",
-          "u64"
-        ],
-        [
-          "maximum_native_output_bytes",
-          "u64"
-        ],
-        [
-          "maximum_queries",
-          "u64"
-        ],
-        [
-          "maximum_total_segment_visits",
-          "u64"
-        ],
-        [
-          "maximum_forward_sensitivity",
-          "f64"
-        ]
-      ]
-    },
-    {
-      "rust_name": "BaoPiecewiseBatch",
-      "c_name": "cosmo_bao_piecewise_batch",
-      "fields": [
-        [
-          "struct_size",
-          "u32"
-        ],
-        [
-          "abi_version",
-          "u32"
-        ],
-        [
-          "models",
-          "const_BaoPiecewiseModel_ptr"
-        ],
-        [
-          "model_count",
-          "u64"
-        ],
-        [
-          "model_byte_length",
-          "u64"
-        ]
-      ]
-    },
-    {
-      "rust_name": "BaoPiecewiseSourceView",
-      "c_name": "cosmo_bao_piecewise_source_view_t",
-      "fields": [
-        [
-          "struct_size",
-          "u32"
-        ],
-        [
-          "abi_version",
-          "u32"
-        ],
-        [
-          "status",
-          "u32"
-        ],
-        [
-          "numerical_status",
-          "u32"
-        ],
-        [
-          "source",
-          "BaoDescriptor"
-        ],
-        [
-          "prepare_policy",
-          "BaoPiecewisePolicy"
-        ],
-        [
-          "arithmetic_id",
-          "Bytes"
-        ],
-        [
-          "equation_id",
-          "Bytes"
-        ],
-        [
-          "constants_id",
-          "Bytes"
-        ]
-      ]
-    },
-    {
-      "rust_name": "BaoPiecewiseRow",
-      "c_name": "cosmo_bao_piecewise_row",
-      "fields": [
-        [
-          "struct_size",
-          "u32"
-        ],
-        [
-          "abi_version",
-          "u32"
-        ],
-        [
-          "model_index",
-          "u64"
-        ],
-        [
-          "source_parameters",
-          "BaoPiecewiseModel"
-        ],
-        [
-          "status",
-          "u32"
-        ],
-        [
-          "background_status",
-          "u32"
-        ],
-        [
-          "numerical_status",
-          "u32"
-        ],
-        [
-          "reserved",
-          "u32"
-        ],
-        [
-          "model_id",
-          "Bytes"
-        ],
-        [
-          "arithmetic_id",
-          "Bytes"
-        ],
-        [
-          "equation_id",
-          "Bytes"
-        ],
-        [
-          "ruler_convention_id",
-          "Bytes"
-        ],
-        [
-          "computational_h0_convention_id",
-          "Bytes"
         ],
         [
           "log_density",
           "f64"
         ],
         [
-          "quadratic",
-          "f64"
-        ],
-        [
-          "log_determinant",
-          "f64"
-        ],
-        [
-          "normalization",
-          "f64"
-        ],
-        [
           "backward_residual",
           "f64"
         ],
         [
           "estimated_forward_sensitivity",
           "f64"
+        ]
+      ]
+    },
+    {
+      "rust_name": "CurrentBaoRow",
+      "c_name": "cosmo_current_bao_row",
+      "fields": [
+        [
+          "struct_size",
+          "u32"
         ],
         [
-          "segment_visits",
+          "abi_version",
+          "u32"
+        ],
+        [
+          "model_index",
           "u64"
+        ],
+        [
+          "source",
+          "CurrentBaoModel"
+        ],
+        [
+          "background_status",
+          "u32"
+        ],
+        [
+          "numerical_status",
+          "u32"
+        ],
+        [
+          "predictions_state",
+          "OutputState"
+        ],
+        [
+          "residuals_state",
+          "OutputState"
+        ],
+        [
+          "density",
+          "DensityPayload"
         ],
         [
           "predictions",
@@ -2633,20 +2027,24 @@
           "F64Buffer"
         ],
         [
-          "ordered_ids",
-          "Strings"
+          "background_node_indices",
+          "U64Buffer"
         ],
         [
-          "queries",
-          "const_BaoQuery_ptr"
-        ],
-        [
-          "query_count",
+          "callbacks",
           "u64"
         ],
         [
-          "query_byte_length",
+          "segment_visits",
           "u64"
+        ],
+        [
+          "model_id",
+          "Bytes"
+        ],
+        [
+          "arithmetic_id",
+          "Bytes"
         ]
       ]
     }
@@ -2898,6 +2296,10 @@
         [
           "semantic",
           "u32_ptr"
+        ],
+        [
+          "numerical_status",
+          "u32_ptr"
         ]
       ]
     },
@@ -2922,6 +2324,10 @@
         ],
         [
           "semantic",
+          "u32_ptr"
+        ],
+        [
+          "numerical_status",
           "u32_ptr"
         ]
       ]
@@ -3030,302 +2436,32 @@
       ]
     },
     {
-      "name": "cosmo_background_evaluate",
+      "name": "cosmo_expansion_evaluate",
       "args": [
         [
           "batch",
-          "const_BackgroundBatch_ptr"
+          "const_ExpansionBatch_ptr"
         ],
         [
           "policy",
-          "const_BackgroundPolicy_ptr"
+          "const_ExpansionPolicy_ptr"
         ],
         [
           "out",
-          "background_result_out"
+          "expansion_result_out"
         ]
       ]
     },
     {
-      "name": "cosmo_background_result_view",
+      "name": "cosmo_expansion_result_view",
       "args": [
         [
           "result",
-          "const_background_result"
-        ],
-        [
-          "slots",
-          "const_background_slot_out"
-        ],
-        [
-          "length",
-          "u64_ptr"
-        ]
-      ]
-    },
-    {
-      "name": "cosmo_background_result_destroy",
-      "args": [
-        [
-          "result",
-          "background_result"
-        ]
-      ]
-    },
-    {
-      "name": "cosmo_supernova_prepare",
-      "args": [
-        [
-          "observations",
-          "const_prepared"
-        ],
-        [
-          "policy",
-          "const_SupernovaPolicy_ptr"
-        ],
-        [
-          "out",
-          "supernova_out"
-        ]
-      ]
-    },
-    {
-      "name": "cosmo_supernova_source_view",
-      "args": [
-        [
-          "owner",
-          "const_supernova"
-        ],
-        [
-          "out",
-          "SupernovaView_ptr"
-        ]
-      ]
-    },
-    {
-      "name": "cosmo_supernova_evaluate",
-      "args": [
-        [
-          "owner",
-          "const_supernova"
-        ],
-        [
-          "batch",
-          "const_SupernovaBatch_ptr"
-        ],
-        [
-          "policy",
-          "const_SupernovaPolicy_ptr"
-        ],
-        [
-          "out",
-          "supernova_result_out"
-        ]
-      ]
-    },
-    {
-      "name": "cosmo_supernova_result_view",
-      "args": [
-        [
-          "owner",
-          "const_supernova_result"
+          "const_expansion_result"
         ],
         [
           "rows",
-          "const_supernova_slot_out"
-        ],
-        [
-          "count",
-          "u64_ptr"
-        ],
-        [
-          "status",
-          "u32_ptr"
-        ]
-      ]
-    },
-    {
-      "name": "cosmo_supernova_destroy",
-      "args": [
-        [
-          "owner",
-          "supernova"
-        ]
-      ]
-    },
-    {
-      "name": "cosmo_supernova_result_destroy",
-      "args": [
-        [
-          "owner",
-          "supernova_result"
-        ]
-      ]
-    },
-    {
-      "name": "cosmo_background_evaluate_v2",
-      "args": [
-        [
-          "batch",
-          "const_BackgroundBatchV2_ptr"
-        ],
-        [
-          "policy",
-          "const_BackgroundPolicy_ptr"
-        ],
-        [
-          "out",
-          "background_result_v2_out"
-        ]
-      ]
-    },
-    {
-      "name": "cosmo_background_result_v2_view",
-      "args": [
-        [
-          "result",
-          "const_background_result_v2"
-        ],
-        [
-          "slots",
-          "const_background_slot_v2_out"
-        ],
-        [
-          "length",
-          "u64_ptr"
-        ]
-      ]
-    },
-    {
-      "name": "cosmo_background_result_v2_destroy",
-      "args": [
-        [
-          "result",
-          "background_result_v2"
-        ]
-      ]
-    },
-    {
-      "name": "cosmo_supernova_evaluate_v2",
-      "args": [
-        [
-          "owner",
-          "const_supernova"
-        ],
-        [
-          "batch",
-          "const_SupernovaBatchV2_ptr"
-        ],
-        [
-          "policy",
-          "const_SupernovaPolicy_ptr"
-        ],
-        [
-          "out",
-          "supernova_result_v2_out"
-        ]
-      ]
-    },
-    {
-      "name": "cosmo_supernova_result_v2_view",
-      "args": [
-        [
-          "owner",
-          "const_supernova_result_v2"
-        ],
-        [
-          "rows",
-          "const_supernova_slot_v2_out"
-        ],
-        [
-          "count",
-          "u64_ptr"
-        ],
-        [
-          "status",
-          "u32_ptr"
-        ]
-      ]
-    },
-    {
-      "name": "cosmo_supernova_result_v2_destroy",
-      "args": [
-        [
-          "owner",
-          "supernova_result_v2"
-        ]
-      ]
-    },
-    {
-      "name": "cosmo_bao_prepare",
-      "args": [
-        [
-          "descriptor",
-          "const_BaoDescriptor_ptr"
-        ],
-        [
-          "policy",
-          "const_BaoPolicy_ptr"
-        ],
-        [
-          "out",
-          "bao_out"
-        ]
-      ]
-    },
-    {
-      "name": "cosmo_bao_source_view",
-      "args": [
-        [
-          "owner",
-          "const_bao"
-        ],
-        [
-          "out",
-          "BaoSourceView_ptr"
-        ]
-      ]
-    },
-    {
-      "name": "cosmo_bao_destroy",
-      "args": [
-        [
-          "owner",
-          "bao"
-        ]
-      ]
-    },
-    {
-      "name": "cosmo_bao_evaluate",
-      "args": [
-        [
-          "owner",
-          "const_bao"
-        ],
-        [
-          "batch",
-          "const_BaoBatch_ptr"
-        ],
-        [
-          "policy",
-          "const_BaoPolicy_ptr"
-        ],
-        [
-          "out",
-          "bao_result_out"
-        ]
-      ]
-    },
-    {
-      "name": "cosmo_bao_result_view",
-      "args": [
-        [
-          "owner",
-          "const_bao_result"
-        ],
-        [
-          "rows",
-          "const_bao_row_out"
+          "const_ExpansionRow_out"
         ],
         [
           "count",
@@ -3340,208 +2476,161 @@
           "u32_ptr"
         ],
         [
-          "evaluations",
+          "callbacks",
+          "u64_ptr"
+        ],
+        [
+          "segment_visits",
           "u64_ptr"
         ]
       ]
     },
     {
-      "name": "cosmo_bao_result_destroy",
-      "args": [
-        [
-          "owner",
-          "bao_result"
-        ]
-      ]
-    },
-    {
-      "name": "cosmo_piecewise_evaluate",
-      "args": [
-        [
-          "batch",
-          "const_PiecewiseBatch_ptr"
-        ],
-        [
-          "policy",
-          "const_PiecewisePolicy_ptr"
-        ],
-        [
-          "out",
-          "piecewise_result_out"
-        ]
-      ]
-    },
-    {
-      "name": "cosmo_piecewise_result_view",
+      "name": "cosmo_expansion_result_models",
       "args": [
         [
           "result",
-          "const_piecewise_result"
+          "const_expansion_result"
         ],
         [
-          "slots",
-          "const_piecewise_slot_out"
+          "models",
+          "const_ExpansionModelView_out"
         ],
         [
           "count",
           "u64_ptr"
         ],
         [
-          "status",
+          "available",
           "u32_ptr"
+        ]
+      ]
+    },
+    {
+      "name": "cosmo_expansion_result_queries",
+      "args": [
+        [
+          "result",
+          "const_expansion_result"
         ],
         [
-          "numerical_status",
-          "u32_ptr"
+          "queries",
+          "const_ExpansionRequest_out"
         ],
         [
-          "segments_processed",
+          "count",
+          "u64_ptr"
+        ],
+        [
+          "available",
+          "u32_ptr"
+        ]
+      ]
+    },
+    {
+      "name": "cosmo_expansion_result_nodes",
+      "args": [
+        [
+          "result",
+          "const_expansion_result"
+        ],
+        [
+          "nodes",
+          "const_ExpansionNode_out"
+        ],
+        [
+          "count",
           "u64_ptr"
         ]
       ]
     },
     {
-      "name": "cosmo_piecewise_result_destroy",
+      "name": "cosmo_expansion_result_destroy",
       "args": [
         [
           "result",
-          "piecewise_result"
+          "expansion_result"
         ]
       ]
     },
     {
-      "name": "cosmo_supernova_piecewise_prepare",
+      "name": "cosmo_observation_retained_bytes",
       "args": [
         [
           "source",
           "const_prepared"
         ],
         [
-          "policy",
-          "const_SupernovaPiecewisePolicy_ptr"
-        ],
-        [
-          "out",
-          "supernova_out"
-        ]
-      ]
-    },
-    {
-      "name": "cosmo_supernova_piecewise_evaluate",
-      "args": [
-        [
-          "owner",
-          "const_supernova"
-        ],
-        [
-          "batch",
-          "const_SupernovaPiecewiseBatch_ptr"
-        ],
-        [
-          "policy",
-          "const_SupernovaPiecewisePolicy_ptr"
-        ],
-        [
-          "out",
-          "supernova_piecewise_result_out"
-        ]
-      ]
-    },
-    {
-      "name": "cosmo_supernova_piecewise_result_view",
-      "args": [
-        [
-          "owner",
-          "const_supernova_piecewise_result"
-        ],
-        [
-          "rows",
-          "const_supernova_piecewise_slot_out"
-        ],
-        [
-          "count",
-          "u64_ptr"
-        ],
-        [
-          "status",
-          "u32_ptr"
-        ],
-        [
-          "segment_visits",
+          "bytes",
           "u64_ptr"
         ]
       ]
     },
     {
-      "name": "cosmo_supernova_piecewise_result_destroy",
+      "name": "cosmo_current_supernova_prepare",
       "args": [
         [
-          "owner",
-          "supernova_piecewise_result"
-        ]
-      ]
-    },
-    {
-      "name": "cosmo_bao_piecewise_prepare",
-      "args": [
+          "source",
+          "const_prepared"
+        ],
         [
-          "descriptor",
-          "const_BaoDescriptor_ptr"
+          "selection",
+          "const_MagnitudeSelection_ptr"
         ],
         [
           "policy",
-          "const_BaoPiecewisePolicy_ptr"
+          "const_CurrentSupernovaPreparationPolicy_ptr"
         ],
         [
           "out",
-          "bao_piecewise_out"
+          "current_supernova_out"
         ]
       ]
     },
     {
-      "name": "cosmo_bao_piecewise_source_view",
+      "name": "cosmo_current_supernova_source_view",
       "args": [
         [
-          "owner",
-          "const_bao_piecewise"
+          "source",
+          "const_current_supernova"
         ],
         [
-          "out",
-          "BaoPiecewiseSourceView_ptr"
+          "view",
+          "CurrentSupernovaView_ptr"
         ]
       ]
     },
     {
-      "name": "cosmo_bao_piecewise_evaluate",
+      "name": "cosmo_current_supernova_evaluate",
       "args": [
         [
-          "owner",
-          "const_bao_piecewise"
+          "source",
+          "const_current_supernova"
         ],
         [
           "batch",
-          "const_BaoPiecewiseBatch_ptr"
+          "const_CurrentSupernovaBatch_ptr"
         ],
         [
           "policy",
-          "const_BaoPiecewisePolicy_ptr"
+          "const_CurrentSupernovaEvaluationPolicy_ptr"
         ],
         [
           "out",
-          "bao_piecewise_result_out"
+          "current_supernova_result_out"
         ]
       ]
     },
     {
-      "name": "cosmo_bao_piecewise_result_view",
+      "name": "cosmo_current_supernova_result_view",
       "args": [
         [
-          "owner",
-          "const_bao_piecewise_result"
+          "result",
+          "const_current_supernova_result"
         ],
         [
           "rows",
-          "const_bao_piecewise_row_out"
+          "const_CurrentSupernovaRow_out"
         ],
         [
           "count",
@@ -3556,26 +2645,179 @@
           "u32_ptr"
         ],
         [
-          "segment_visits",
+          "callbacks",
+          "u64_ptr"
+        ],
+        [
+          "segments",
           "u64_ptr"
         ]
       ]
     },
     {
-      "name": "cosmo_bao_piecewise_result_destroy",
+      "name": "cosmo_current_supernova_result_source_view",
       "args": [
         [
-          "owner",
-          "bao_piecewise_result"
+          "result",
+          "const_current_supernova_result"
+        ],
+        [
+          "view",
+          "CurrentSupernovaView_ptr"
+        ],
+        [
+          "available",
+          "u32_ptr"
         ]
       ]
     },
     {
-      "name": "cosmo_bao_piecewise_destroy",
+      "name": "cosmo_current_supernova_destroy",
       "args": [
         [
-          "owner",
-          "bao_piecewise"
+          "source",
+          "current_supernova"
+        ]
+      ]
+    },
+    {
+      "name": "cosmo_current_supernova_result_destroy",
+      "args": [
+        [
+          "result",
+          "current_supernova_result"
+        ]
+      ]
+    },
+    {
+      "name": "cosmo_current_bao_prepare",
+      "args": [
+        [
+          "source",
+          "const_BaoSource_ptr"
+        ],
+        [
+          "policy",
+          "const_CurrentBaoPreparationPolicy_ptr"
+        ],
+        [
+          "out",
+          "current_bao_out"
+        ]
+      ]
+    },
+    {
+      "name": "cosmo_current_bao_source_view",
+      "args": [
+        [
+          "source",
+          "const_current_bao"
+        ],
+        [
+          "view",
+          "CurrentBaoView_ptr"
+        ]
+      ]
+    },
+    {
+      "name": "cosmo_current_bao_evaluate",
+      "args": [
+        [
+          "source",
+          "const_current_bao"
+        ],
+        [
+          "batch",
+          "const_CurrentBaoBatch_ptr"
+        ],
+        [
+          "policy",
+          "const_CurrentBaoEvaluationPolicy_ptr"
+        ],
+        [
+          "out",
+          "current_bao_result_out"
+        ]
+      ]
+    },
+    {
+      "name": "cosmo_current_bao_result_view",
+      "args": [
+        [
+          "result",
+          "const_current_bao_result"
+        ],
+        [
+          "rows",
+          "const_CurrentBaoRow_out"
+        ],
+        [
+          "count",
+          "u64_ptr"
+        ],
+        [
+          "status",
+          "u32_ptr"
+        ],
+        [
+          "numerical_status",
+          "u32_ptr"
+        ],
+        [
+          "callbacks",
+          "u64_ptr"
+        ],
+        [
+          "segments",
+          "u64_ptr"
+        ]
+      ]
+    },
+    {
+      "name": "cosmo_current_bao_result_source_view",
+      "args": [
+        [
+          "result",
+          "const_current_bao_result"
+        ],
+        [
+          "view",
+          "CurrentBaoView_ptr"
+        ],
+        [
+          "available",
+          "u32_ptr"
+        ]
+      ]
+    },
+    {
+      "name": "cosmo_current_bao_destroy",
+      "args": [
+        [
+          "source",
+          "current_bao"
+        ]
+      ]
+    },
+    {
+      "name": "cosmo_current_bao_result_destroy",
+      "args": [
+        [
+          "result",
+          "current_bao_result"
+        ]
+      ]
+    },
+    {
+      "name": "cosmo_observation_preparation_bytes",
+      "args": [
+        [
+          "descriptor",
+          "const_ObservationDescriptor_ptr"
+        ],
+        [
+          "bytes",
+          "u64_ptr"
         ]
       ]
     }
@@ -3682,10 +2924,6 @@
     }
   },
   "background_tags": {
-    "model": {
-      "flat_lcdm_late_v1": 0,
-      "constant_q_flat_v1": 1
-    },
     "convention": {
       "geometric_same_redshift": 0,
       "released_zhd_zhel": 1
@@ -3712,62 +2950,6 @@
       "work_limit": 4
     }
   },
-  "supernova_contract": {
-    "implementation_state": "implemented",
-    "cli_available": true,
-    "ownership": "borrowed synchronous inputs; owned Consumer/result; borrowed views live to owner destruction",
-    "failed_payload_policy": "no finite scientific payload on failed preparation/slot; structural failures have no invented numerical cause",
-    "resource_interpretation": {
-      "maximum_array_elements": "four native ordered arrays per model; export may omit three arrays",
-      "maximum_native_output_bytes": "owned native slot/array payload plus wire rows; allocator overhead and prepared-factor storage separately bounded by source/matrix caps"
-    },
-    "interface_gate": "bounded_native_and_cli_passed"
-  },
-  "background_v2_contract": {
-    "implementation_state": "implemented",
-    "cli_available": true,
-    "model_ids": {
-      "flat_lcdm_late_v1": 0,
-      "constant_q_flat_v1": 1,
-      "flat_cpl_late_v1": 2
-    },
-    "required_fields": [
-      "model",
-      "h0_km_s_mpc",
-      "omega_m",
-      "constant_q",
-      "w0",
-      "wa"
-    ],
-    "inactive_fields": "LCDM/CPL constant_q=0; constant-q omega_m=0; legacy w0=-1,wa=0",
-    "ordering": "parameter-major Cartesian; one global callback budget",
-    "compatibility": "v1 layouts and model 0/1 admission unchanged",
-    "interface_gate": "bounded_native_and_cli_passed",
-    "qualification": "unqualified"
-  },
-  "supernova_v2_contract": {
-    "implementation_state": "implemented",
-    "cli_available": true,
-    "required_fields": [
-      "model",
-      "omega_m",
-      "constant_q",
-      "w0",
-      "wa"
-    ],
-    "source_policy": "full attempted fields retained even on failed slots",
-    "ordering": "one ordered mixed-model batch; no grouping or budget reset",
-    "compatibility": "v1 layouts and model 0/1 admission unchanged",
-    "interface_gate": "bounded_native_and_cli_passed",
-    "qualification": "unqualified"
-  },
-  "background_v2_tags": {
-    "model": {
-      "flat_lcdm_late_v1": 0,
-      "constant_q_flat_v1": 1,
-      "flat_cpl_late_v1": 2
-    }
-  },
   "bao_tags": {
     "observable": {
       "DM_over_rs": 0,
@@ -3782,28 +2964,49 @@
       "ratio_squared": 0
     }
   },
-  "bao_contract": {
-    "operation": "bao.gaussian_batch.v1",
-    "implementation_state": "implemented",
-    "cli_available": true,
-    "qualification": "unqualified",
-    "computational_h0_km_s_mpc": 70,
-    "conventions": [
-      "P01/released-effective-redshift/v1",
-      "P01/free-H0rd-km-s-no-early-physics/v1",
-      "P01/computational-H0-fixed-70-km-s-Mpc/v1"
-    ],
-    "ownership": "synchronous inputs copied into retained owner; independently owned result; borrowed views valid until their owner destruction",
-    "policy": "explicit separate prep/evaluation policies; no automatic request qualification",
-    "interface_gate": "bounded_native_and_cli_passed"
-  },
-  "piecewise_tags": {
+  "expansion_tags": {
+    "model": {
+      "lcdm": 0,
+      "constant_q": 1,
+      "cpl": 2,
+      "fixed_q5": 3
+    },
+    "geometry": {
+      "flat_flrw": 0
+    },
+    "observable": {
+      "radial": 1,
+      "luminosity_shape": 2,
+      "clock": 4,
+      "physical": 8,
+      "kinematics": 16,
+      "expansion": 32
+    },
+    "availability": {
+      "not_requested": 0,
+      "available": 1,
+      "unavailable": 2,
+      "failed": 3
+    },
+    "status": {
+      "ok": 0,
+      "invalid_input": 1,
+      "unsupported_domain": 2,
+      "incompatible_convention": 3,
+      "numerical_failure": 4,
+      "work_limit": 5
+    },
+    "observer_convention": {
+      "geometric_same_redshift": 0,
+      "released_zhd_zhel": 1
+    },
     "q_convention": {
       "not_assessed": 0,
       "interior_constant_bin": 1,
       "right_limit_at_internal_jump": 2,
       "right_limit_at_zero": 3,
-      "left_limit_at_final_endpoint": 4
+      "left_limit_at_final_endpoint": 4,
+      "ordinary_smooth_model": 5
     },
     "jerk_availability": {
       "not_assessed": 0,
@@ -3812,118 +3015,51 @@
       "unavailable_at_jump": 3
     }
   },
-  "piecewise_contract": {
-    "operation": "background.piecewise_query_batch.v1",
-    "implementation_state": "implemented",
-    "cli_available": true,
-    "qualification": "unqualified",
-    "input": "required H0 and five ordered q coefficients; fixed native edges; existing query convention tags",
-    "ownership": "synchronous borrowed inputs; independently owned result; borrowed views valid until result destruction",
-    "limits": "parameters/queries <=4096, product <=1048576, native output<=536870912 bytes; guard retained input and output aggregate bytes before copying",
-    "work": "one global analytic segment budget across parameter-major/query-minor rows, including failed partial work; no quadrature callbacks or epsilons",
-    "failure_payload": "has_geometry/has_q/has_jerk/has_q0 explicit; absent optional values zero-initialized storage never interpreted as values; derivative assessment not_assessed on failure",
-    "count_cap_failure": "owned empty result with background and numerical work_limit, structural malformed descriptors return ABI failure and null out",
-    "interface_gate": "bounded_native_and_cli_passed"
+  "opaque_types": {
+    "expansion_result": "cosmo_expansion_result",
+    "current_supernova": "cosmo_current_supernova",
+    "current_supernova_result": "cosmo_current_supernova_result",
+    "current_bao": "cosmo_current_bao",
+    "current_bao_result": "cosmo_current_bao_result"
   },
-  "supernova_piecewise_contract": {
-    "operation": "supernova.piecewise_profile_batch.v1",
-    "implementation_state": "implemented",
-    "cli_available": true,
-    "qualification": "unqualified",
-    "parameters": "required five ordered q values; no model-tag widening or inferred H0",
-    "ownership": "same retained supernova owner/source view/destroy; independently owned result with copied selected IDs/indices/z and native arrays, borrowed views valid until result destruction",
-    "policy": "source rows/matrix caps separately bound preparation; evaluation native-output-byte cap conservatively includes retained result, copied IDs/model rows/native slots and native query scratch, plus fourPn f64 arrays even when export suppressed; excludes caller input/allocator overhead",
-    "work": "maximum_queries limits selected queries; one global analytic segment-visits budget across attempted model rows, including admitted failed work; no quadrature eps/callback fields",
-    "semantics": "explicit arithmetic/sensitivity; valid evaluation arithmetic mismatch delegates to native owned empty incompatible_metadata with zero work; requested q retained in resolved specification; tighter cached-solve failure cause retained; relative offset-profile score, normalized density/evidence not applicable",
-    "failure": "has_profile_payload false and empty arrays on failed rows; full q attempts retained; optional outputs flags interpreted before scalar storage",
-    "hard_caps": {
-      "models": 64,
-      "source_rows": 4096,
-      "matrix_elements": 16777216,
-      "queries": 4096,
-      "array_elements": 1000000,
-      "native_output_bytes": 536870912
+  "current_expansion_contract": {
+    "operation": "background.evaluate",
+    "state": "unpublished transition; obsolete families removed before coherent publication",
+    "active_counts": {
+      "lcdm": 1,
+      "constant_q": 1,
+      "cpl": 3,
+      "fixed_q5": 5
     },
-    "matrix_cap": "maximum_matrix_elements checks full source N*N before preparation copying; selected factor validation scope remains explicit and separate",
-    "resource_failure_ownership": "Existing prepare/source/full-N*N rejection remains transport INVALID_INPUT/null. Source/matrix caps apply only to preparation. New well-formed evaluation exceeding configured models/array/aggregate native-byte caps yields owned empty status work_limit, zero segments; bounded diagnostic owner allocation allowed even bytecap0. Malformed policy/hardcaps/storage/alignment/overflow => INVALID_INPUT/null; version mismatch => ABI_MISMATCH/null. Native selected-query/segment failures retain row causes."
+    "presence_flags": {
+      "observer": 1,
+      "physical_scale": 2
+    },
+    "ownership": "borrowed synchronous inputs; all result models/parameters/queries/rows/nodes owned until destroy",
+    "revision": "only ABI2; no old support after migration",
+    "nodes": "exact-bit z within each model batch, model-indexed node work; no cross-model cache",
+    "resource": "maximum_native_bytes combined wrapper/native inputs/rows/nodes/metadata/scratch; allocator overhead/caller input excluded",
+    "failure": "structural descriptor/version/alignment/overflow/hard limits null transport error; configured model/query/slot/byte exhaustion owned empty work_limit and unavailable source views; scientific model/query/group failures owned typed outcomes",
+    "partial": "Requested failed group, explicit-scale H, or explicit-scale clock seconds prevents required assurance; independent E/radial/clock integral retained. Clock seconds and H have nested typed outcomes.",
+    "model_failure": "Valid supported tag with invalid active domain retains model source and preparation status; native empty evaluation is preserved, not synthesized query rows. Model failure makes required outputs unsatisfied.",
+    "model_accounting": "Each attempted model owns active bits/status and row_offset/row_count; all original queries retained. Rejected nonempty model has zero rows but fails every dependent requested group. Mixed valid model rows retained. Zero models/queries are explicit empty requests, never confused with model rejection."
   },
-  "bao_piecewise_contract": {
-    "operation": "bao.piecewise_gaussian_batch.v1",
-    "state": "implemented",
-    "owner": "distinct analytic cosmo_bao_piecewise opaque handle, shared private templated preparation/view/evaluation core; existing concrete legacy owner layout preserved",
-    "cross_family": "compile-time C++ pointer type separation; valid matching handle caller contract; forged casts outside contract, no runtime forged-handle detection promise",
-    "source": "reuse existing exact13 mean/cov adapter and descriptor; released family declaration distinct from actual asset hashes; declared axes not verified; free ruler/fixed computational H0=70 conventions retained",
-    "model_packet": {
-      "bytes": 48,
-      "fields": [
-        "q[5] required f64",
-        "h0_rd_km_s required f64"
-      ]
+  "current_consumer_contract": {
+    "state": "unpublished current ABI2; obsolete opaque types/functions removed at coherent migration",
+    "supernova_operation": "supernova.profile",
+    "bao_operation": "bao.density",
+    "selection": "explicit ascending indices plus declared observer coordinates; IDs derived from exact retained source axes. Named Pantheon preset1 is separate from generic type0; preset ignores no supplied coordinates: explicit buffers must be zero for named preset",
+    "source_effect_counts": {
+      "none": 0,
+      "grey_log1p_magnitude": 1
     },
-    "policy_packet": {
-      "proposed_bytes": 104,
-      "fields": [
-        "header two u32",
-        "arithmetic u32",
-        "include_predictions u32",
-        "include_residuals u32",
-        "reserved0 u32",
-        "maximum_models u64",
-        "maximum_rows u64",
-        "maximum_matrix_elements u64",
-        "maximum_string_bytes u64",
-        "maximum_native_bytes u64",
-        "maximum_array_elements u64",
-        "maximum_native_output_bytes u64",
-        "maximum_queries u64",
-        "maximum_total_segment_visits u64",
-        "maximum_forward_sensitivity f64"
-      ]
-    },
-    "policies": "separately retain actual preparation and evaluation analytic policy; no quadrature fields or fabricated quadrature provenance",
-    "source_view": "distinct analytic source view reports actual preparation policy; legacy view unchanged",
-    "result": "distinct analytic row q/ruler plus normalized density/quadratic/logdet/normalization/diagnostics/segments; owned copied IDs/source queries/predictions/residuals independent of source owner; failed finite payload absent",
-    "resources": "hard bounds checked before copy/allocation; preparation source/matrix/native caps separately interpreted; evaluation accounts retained result/model/identity arrays/native scratch and internal arrays even export suppressed; caller input/allocator overhead excluded; malformed/version dedicated transport failure, native semantic empty/status/cause preserved",
-    "acceptance": [
-      "old BAO API/layout/source-policy parity",
-      "distinct typed families; valid matching-handle caller contract, null/default/failedowner",
-      "native exact normalized terms and query/order/arrays parity",
-      "bad_alloc cleanup/lifetimes/caps/globalsegments/failure causes",
-      "CLI strict q5/ruler/noquadrature fields/immutable source identities",
-      "original24 matching current native transcript separate independent assembled reference allocations; runtime remains unqualified"
-    ],
-    "hypotheses": "no sound horizon prediction, joint SNBAO, priors or sampler",
-    "phase_scope": {
-      "preparation_only": [
-        "maximum_rows",
-        "maximum_matrix_elements",
-        "maximum_string_bytes",
-        "maximum_native_bytes"
-      ],
-      "evaluation_only": [
-        "maximum_models",
-        "maximum_queries",
-        "maximum_array_elements",
-        "maximum_native_output_bytes",
-        "maximum_total_segment_visits",
-        "include_predictions",
-        "include_residuals"
-      ],
-      "both_phases": [
-        "arithmetic",
-        "maximum_forward_sensitivity"
-      ],
-      "notes": "Preparation nativebytes bounds wrapper/source/factor copies. Evaluation nativeoutputbytes bounds the entire wrapper/native/scratch aggregate, including suppressed arrays; not two independent promised budgets. Caller input and allocator overhead excluded."
-    },
-    "failure_ownership_proposal": {
-      "malformed": "hard policy/descriptor/alignment/count arithmetic overflow => transport INVALID_INPUT/null",
-      "prepare": "same existing structural source descriptor/cap guards as old wrapper; valid copied native preparation failure publishes typed owner with exact native status/cause/source",
-      "configured_eval_quota": "well-formed wrapper count/array/aggregate-byte exhaustion should return owned empty DensityStatus::invalid_input with numerical::work_limit, matching existing native budget classification; zero segments; bounded diagnostic owner permitted independently of data bytecap",
-      "native_semantics": "delegate to existing native result exactly, including valid precision mismatch empty invalid_input/numericalinvalid_input currently; no fabricated rows/cause",
-      "version": "dedicated ABI_MISMATCH and reset output"
-    },
-    "owner_layout_probe": "Current x86_64 old/variant both1520; distinct type chosen for clean representation/portable design, not confirmed current cap defect; old threshold tested on actual supported build",
-    "cli_available": true,
-    "qualification": "unqualified; named native24 and bounded interface evidence do not establish request applicability"
+    "phase": "preparation source/selected rows, full/selected matrix, strings and preparation peak bytes; evaluation requested arrays/models/queries and combined wrapper/native/workspace bytes. No evaluation reread or factorization",
+    "retention": "same immutable shared observation owner for SN, moved owned DensityInput for BAO; owner payload getter provides charge, shared observation source charged once separately",
+    "semantic": "valid prepared/precision failure preserved native EMPTY owned batch; admitted row states gate values independently; optional density/profile object presence never substitutes for finite/OK status",
+    "source_views": "source retained by result after prepared handle destruction, explicit availability0 if configured quota diagnostics omit snapshot",
+    "quotas": "Malformed descriptor/tag/version/count/overflow/hard limit or preparation structural/resource rows/matrix/string/peak exhaustion -> null transport rejection and no retained handle. Admitted numerical preparation failure may publish owned diagnostic/source under admitted bounds. Valid configured evaluation model/f64-array/combined-byte exhaustion -> bounded empty work_limit with zero work.",
+    "arrays": "maximum_array_elements counts scientific f64 vector payloads only: SN geometry/effect/corrected/profiled and BAO predictions/residuals. Fixed diagnostics and u64 node maps are charged in aggregate bytes; node maps are independently bounded by selected-query/model hard caps. Only requested vectors exported; dependencies/workspace still charged in combined bytes; no fabricated zero arrays.",
+    "limitations": "exact-z reuse within each model batch, shared global callback/segment budget; no cross-model geometry cache",
+    "gaussian_preparation_bytes": "GaussianPolicy.maximum_native_bytes bounds combined owned Gaussian/wrapper payload and phase scratch for prepare, proper-prior preparation or evaluation. Rust exposes separate requested preparation/evaluation caps; shared Prepared charged separately in fixed aggregate context ceiling."
   }
 }

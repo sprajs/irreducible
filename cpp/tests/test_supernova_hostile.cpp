@@ -16,7 +16,7 @@ int main() {
       if (!v)
         throw std::runtime_error("consumer hostile contract");
     };
-    observations::Input s;
+    observations::Input s{};
     s.profile = observations::Profile::gaussian_fixture_v1;
     s.role = observations::Role::synthetic_control;
     s.unit = observations::Unit::magnitude;
@@ -37,35 +37,62 @@ int main() {
     s.uncertainty_matrix = {2, 0, 99, 0, 2, 99, -99, -99, -1};
     auto data = observations::prepare(s, {3, 9, 4096});
     check(data.status() == observations::Status::ok);
-    std::array<cosmology::Query, 3> q{
-        {{1, 1, cosmology::Convention::released_zhd_zhel},
-         {2, 2, cosmology::Convention::released_zhd_zhel},
-         {.01, .01, cosmology::Convention::released_zhd_zhel}}};
-    supernova::Policy p;
-    p.maximum_forward_sensitivity = 1e-10;
-    auto c = supernova::prepare_synthetic(data, s.measurement_ids, q, p);
+    auto shared =
+        std::make_shared<const observations::Prepared>(std::move(data));
+    supernova::SelectedMagnitudeSource selected{
+        shared,
+        {0, 1},
+        {"first", "second"},
+        {{1, {1, cosmology::Convention::released_zhd_zhel}},
+         {2, {2, cosmology::Convention::released_zhd_zhel}}}};
+    supernova::PreparationPolicy preparation;
+    preparation.arithmetic = numerics::Arithmetic::longdouble_cpu_v1;
+    preparation.maximum_selected_rows = 3;
+    preparation.maximum_matrix_elements = 9;
+    preparation.maximum_forward_sensitivity = 1e-10;
+    preparation.maximum_native_bytes = 1 << 20;
+    auto c = supernova::prepare(selected, preparation);
     check(c.status() == supernova::Status::ok);
-    check(c.selected_source_indices().size() == 2);
+    check(c.selected_source().source_indices.size() == 2);
+    check(c.selected_source().source.get() == shared.get());
     check(c.probability_metadata().matrix_validation_scope ==
           statistics::MatrixValidationScope::selected_covariance_only);
+    supernova::Policy p;
+    p.arithmetic = preparation.arithmetic;
+    p.maximum_forward_sensitivity = 1e-10;
+    p.maximum_models = 3;
+    p.maximum_native_bytes = 1 << 20;
+    p.requested = 63;
+    p.background.maximum_queries = 3;
+    p.background.maximum_callbacks = 200000;
+    p.background.maximum_segment_visits = 100;
+    p.background.maximum_native_bytes = 1 << 20;
+    p.background.integration =
+        numerics::IntegrationPolicy{1e-14, 1e-14, 100000, 30};
+    // Unsupported active parameter replaces obsolete unknown Model enum;
+    // this intentionally tests the current scientific admission contract.
     std::array<supernova::ModelPoint, 3> models{
-        {{cosmology::Model::constant_q_flat_v1, 0, -1},
-         {static_cast<cosmology::Model>(999), 0, 0},
-         {cosmology::Model::constant_q_flat_v1, 0, -1}}};
+        supernova::ModelPoint{cosmology::ConstantQ{-1}, cosmology::FlatFLRW{},
+                              supernova::NoMagnitudeEffect{}},
+        supernova::ModelPoint{cosmology::ConstantQ{99}, cosmology::FlatFLRW{},
+                              supernova::NoMagnitudeEffect{}},
+        supernova::ModelPoint{cosmology::ConstantQ{-1}, cosmology::FlatFLRW{},
+                              supernova::NoMagnitudeEffect{}}};
     auto result = c.evaluate_batch(models, p);
     check(result.slots.size() == 3);
     check(result.slots[0].status == supernova::Status::ok);
     check(result.slots[1].status != supernova::Status::ok);
-    check(result.slots[1].shape_magnitudes.empty() &&
+    check(result.slots[1].geometric_shape.empty() &&
           result.slots[1].profiled_residuals.empty());
     check(result.slots[2].status == supernova::Status::ok);
     long double r0 = 3 - 5 * std::log10(2.L), r1 = 7 - 5 * std::log10(6.L);
-    check(std::abs(result.slots[0].quadratic - (r0 - r1) * (r0 - r1) / 4) <
-          1e-10L);
-    auto wrong = q;
-    wrong[0].convention = cosmology::Convention::geometric_same_redshift;
-    check(supernova::prepare_synthetic(data, s.measurement_ids, wrong, p)
-              .status() == supernova::Status::incompatible_metadata);
+    check(std::abs(result.slots[0].score->quadratic -
+                   (r0 - r1) * (r0 - r1) / 4) < 1e-10L);
+    auto wrong = selected;
+    wrong.coordinates[0].observer = {
+        1.1, cosmology::Convention::geometric_same_redshift};
+    check(supernova::prepare(std::move(wrong), preparation).status() ==
+          supernova::Status::incompatible_metadata);
     auto tighter = p;
     tighter.maximum_forward_sensitivity =
         c.profile_operator().cached_response_forward_sensitivity() / 2;
@@ -74,7 +101,10 @@ int main() {
     check(failed.slots[0].status == supernova::Status::numerical_failure);
     check(failed.slots[0].numerical_status ==
           numerics::Status::conditioning_budget_exceeded);
-    check(failed.slots[0].base_residuals.empty() &&
+    // Independent requested geometry/corrected residual survive profile
+    // failure.
+    check(failed.slots[0].geometric_shape.size() == 2 &&
+          failed.slots[0].corrected_residuals.size() == 2 &&
           failed.slots[0].profiled_residuals.empty());
     std::printf("{\"suite\":\"supernova_independent_consumer_contract\","
                 "\"checks\":%d,\"passed\":true}\n",

@@ -1,6 +1,6 @@
 //! Synchronous coarse prepared-object bridge. Native scientific semantics only.
 pub(crate) use super::generated::ObservationMetadataFields as ObservationMetadata;
-use super::{generated::*, Owned};
+use super::generated::*;
 use std::{ffi::c_void, ptr};
 pub(crate) struct ObservationInput {
     pub metadata: ObservationMetadata,
@@ -25,12 +25,72 @@ pub(crate) struct ObservationInput {
     pub source_selection: Vec<u8>,
     pub quality: Vec<u64>,
 }
-pub(super) struct Prepared(pub(super) *mut c_void);
+pub(crate) struct Prepared(pub(crate) *mut c_void);
 impl Drop for Prepared {
     fn drop(&mut self) {
         unsafe {
             cosmo_observation_destroy(self.0);
         }
+    }
+}
+impl Prepared {
+    pub(crate) fn retained_bytes(&self) -> Result<usize, String> {
+        let mut bytes = 0;
+        let transport = unsafe { cosmo_observation_retained_bytes(self.0, &mut bytes) };
+        if transport != OK {
+            return Err(format!("CORE_STATUS_{transport}"));
+        }
+        usize::try_from(bytes).map_err(|_| "RETAINED_BYTES_OVERFLOW".into())
+    }
+    pub(crate) fn source_view(&self) -> Result<SourceView<'_>, String> {
+        let mut raw = std::mem::MaybeUninit::<ObservationDescriptor>::uninit();
+        if unsafe { cosmo_observation_source_view(self.0, raw.as_mut_ptr()) } != OK {
+            return Err("INVALID_SOURCE_VIEW".into());
+        }
+        let descriptor = unsafe { raw.assume_init() };
+        if descriptor.struct_size != std::mem::size_of::<ObservationDescriptor>() as u32
+            || descriptor.abi_version != ABI_VERSION
+        {
+            return Err("INVALID_SOURCE_VIEW".into());
+        }
+        Ok(SourceView {
+            descriptor,
+            _owner: std::marker::PhantomData,
+        })
+    }
+}
+pub(crate) struct SourceView<'a> {
+    pub(crate) descriptor: ObservationDescriptor,
+    _owner: std::marker::PhantomData<&'a Prepared>,
+}
+impl SourceView<'_> {
+    // Borrow for hashing/export only. No full-matrix readback Vec or repeated
+    // preparation is needed by a retained consumer evaluation.
+    pub(crate) fn values(&self) -> Result<&[f64], String> {
+        self.doubles(&self.descriptor.values)
+    }
+    pub(crate) fn covariance(&self) -> Result<&[f64], String> {
+        self.doubles(&self.descriptor.uncertainty_matrix)
+    }
+    fn doubles<'a>(&'a self, buffer: &F64Buffer) -> Result<&'a [f64], String> {
+        let n = usize::try_from(buffer.length).map_err(|_| "INVALID_SOURCE_LENGTH")?;
+        if buffer.struct_size != std::mem::size_of::<F64Buffer>() as u32
+            || buffer.abi_version != ABI_VERSION
+            || buffer.element_type != 2
+            || buffer.reserved != 0
+            || n > isize::MAX as usize / std::mem::size_of::<f64>()
+            || buffer.byte_length != n as u64 * 8
+            || (n > 0
+                && (buffer.data.is_null()
+                    || (buffer.data as usize) % std::mem::align_of::<f64>() != 0))
+        {
+            return Err("INVALID_SOURCE_VIEW".into());
+        }
+        Ok(if n == 0 {
+            &[]
+        } else {
+            unsafe { std::slice::from_raw_parts(buffer.data, n) }
+        })
     }
 }
 pub(super) fn bytes(s: &str) -> Bytes {
@@ -88,17 +148,11 @@ pub(super) fn copied<T: Copy>(p: *const T, n: u64, cap: usize) -> Result<Vec<T>,
         unsafe { std::slice::from_raw_parts(p, n) }.to_vec()
     })
 }
-pub(crate) struct ObservationSelection {
-    pub mask: Vec<u8>,
-    pub source_indices: Vec<u64>,
-    pub source_values: Vec<f64>,
-    pub retained_matrix: Vec<f64>,
-}
-pub(super) fn prepare_retained(
+pub(crate) fn prepare_shared_bounded(
     s: &ObservationInput,
-    selection: &str,
     policy: [u64; 3],
-) -> Result<(Prepared, ObservationSelection), String> {
+    maximum_native_bytes: usize,
+) -> Result<Prepared, String> {
     let tag = |g: &str, v: &str| {
         observation_tag_id(g, v).ok_or_else(|| format!("UNKNOWN_OBSERVATION_TAG_{g}:{v}"))
     };
@@ -147,6 +201,14 @@ pub(super) fn prepare_retained(
         maximum_matrix_elements: policy[1],
         maximum_string_bytes: policy[2],
     };
+    let mut preparation_bytes = 0;
+    let preflight = unsafe { cosmo_observation_preparation_bytes(&d, &mut preparation_bytes) };
+    if preflight != OK {
+        return Err(format!("CORE_STATUS_{preflight}"));
+    }
+    if preparation_bytes > maximum_native_bytes as u64 {
+        return Err("PREPARATION_BYTE_LIMIT".into());
+    }
     let mut raw = ptr::null_mut();
     let mut status = u32::MAX;
     let transport = unsafe { cosmo_prepare_observations(&d, &p, &mut raw, &mut status) };
@@ -159,75 +221,5 @@ pub(super) fn prepare_retained(
     if owned.0.is_null() {
         return Err("NULL_PREPARED".into());
     }
-    let mut view = std::mem::MaybeUninit::<ObservationDescriptor>::uninit();
-    if unsafe { cosmo_observation_source_view(owned.0, view.as_mut_ptr()) } != OK {
-        return Err("INVALID_SOURCE_VIEW".into());
-    }
-    let view = unsafe { view.assume_init() };
-    if view.struct_size != std::mem::size_of::<ObservationDescriptor>() as u32
-        || view.abi_version != ABI_VERSION
-    {
-        return Err("INVALID_SOURCE_VIEW".into());
-    }
-    if view.values.length != s.values.len() as u64
-        || view.uncertainty_matrix.length != s.uncertainty_matrix.len() as u64
-    {
-        return Err("INVALID_SOURCE_VIEW_LENGTH".into());
-    }
-    let source_values = copied(view.values.data, view.values.length, s.values.len())?;
-    let retained_matrix = copied(
-        view.uncertainty_matrix.data,
-        view.uncertainty_matrix.length,
-        s.uncertainty_matrix.len(),
-    )?;
-    let mut raw = ptr::null_mut();
-    let transport = unsafe {
-        cosmo_observation_select(owned.0, tag("selection", selection)?, &mut raw, &mut status)
-    };
-    let selection = Owned(raw);
-    if transport != OK {
-        return Err(format!("CORE_STATUS_{transport}"));
-    }
-    semantic(status)?;
-    if selection.0.is_null() {
-        return Err("NULL_SELECTION".into());
-    }
-    let mut mask_ptr = ptr::null();
-    let mut indices_ptr = ptr::null();
-    let mut n = 0;
-    let mut k = 0;
-    if unsafe {
-        cosmo_result_selection_view(selection.0, &mut mask_ptr, &mut n, &mut indices_ptr, &mut k)
-    } != OK
-        || n != s.values.len() as u64
-    {
-        return Err("INVALID_SELECTION_VIEW".into());
-    }
-    let mask = copied(mask_ptr, n, s.values.len())?;
-    let source_indices = copied(indices_ptr, k, s.values.len())?;
-    if mask.iter().any(|x| *x > 1)
-        || source_indices.windows(2).any(|w| w[0] >= w[1])
-        || source_indices.iter().any(|i| *i >= n)
-        || source_indices.len() != mask.iter().filter(|x| **x == 1).count()
-        || source_indices.iter().any(|i| mask[*i as usize] != 1)
-    {
-        return Err("INVALID_SELECTION_VIEW".into());
-    }
-    Ok((
-        owned,
-        ObservationSelection {
-            mask,
-            source_indices,
-            source_values,
-            retained_matrix,
-        },
-    ))
-}
-
-pub(crate) fn prepare_observations(
-    s: &ObservationInput,
-    selection: &str,
-    policy: [u64; 3],
-) -> Result<ObservationSelection, String> {
-    prepare_retained(s, selection, policy).map(|(_, selection)| selection)
+    Ok(owned)
 }

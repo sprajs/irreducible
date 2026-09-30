@@ -1,9 +1,9 @@
 {
-  "schema_version": 1,
-  "operation": "statistics.gaussian_batch.v1",
+  "schema_version": 2,
+  "operation": "statistics.gaussian",
   "observations": {
-    "schema_version": 1,
-    "operation": "observations.prepare.v1",
+    "schema_version": 2,
+    "operation": "observations.prepare",
     "table": "tests/fixtures/observations-gaussian-table.txt",
     "uncertainty": "tests/fixtures/observations-gaussian-covariance.txt",
     "metadata": {
@@ -15,14 +15,22 @@
       "uncertainty_unit": "magnitude_squared",
       "component": "unknown"
     },
-    "selection": "all",
     "ordering_provenance": "Synthetic declared row order r0,r1; unlabeled matrix axes supplied by that convention",
     "resources": {
       "maximum_asset_bytes": 1048576,
       "maximum_rows": 16,
       "maximum_matrix_elements": 256,
-      "maximum_string_bytes": 4096
-    }
+      "maximum_string_bytes": 4096,
+      "maximum_preparation_bytes": 16777216
+    },
+    "exports": [],
+    "source_selection": [
+      1,
+      1
+    ],
+    "calibration_provenance": "unknown supplied calibration",
+    "dependence_provenance": "unknown overlap",
+    "quality_dictionary": "unavailable"
   },
   "mode": "normalized_density",
   "residual_unit": "magnitude",
@@ -44,5 +52,8 @@
   "response": null,
   "proper_prior": null,
   "maximum_batch_elements": 256,
-  "maximum_forward_sensitivity": 1e-08
+  "maximum_forward_sensitivity": 1e-08,
+  "selection": "all",
+  "maximum_preparation_bytes": 16777216,
+  "maximum_evaluation_bytes": 16777216
 }

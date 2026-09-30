@@ -26,7 +26,7 @@ fn scratch() -> Scratch {
     s
 }
 fn request(s: &Scratch) -> Value {
-    json!({"schema_version":1,"operation":"observations.prepare.v1","table":s.0.join("table.dat"),"uncertainty":s.0.join("cov.dat"),"metadata":{"profile":"pantheon_plus_released_v1","role":"released_fitted_summary","unit":"magnitude","calibration":"unknown","uncertainty":"covariance","uncertainty_unit":"magnitude_squared","component":"total"},"selection":"pantheon_zhd_gt_001","ordering_provenance":"supplied release table row order; not independently verified","resources":{"maximum_asset_bytes":10000,"maximum_rows":3,"maximum_matrix_elements":9,"maximum_string_bytes":4096}})
+    json!({"schema_version":2,"operation":"observations.prepare","table":s.0.join("table.dat"),"uncertainty":s.0.join("cov.dat"),"metadata":{"profile":"pantheon_plus_released_v1","role":"released_fitted_summary","unit":"magnitude","calibration":"unknown","uncertainty":"covariance","uncertainty_unit":"magnitude_squared","component":"total"},"exports":["source_values","covariance","original_fields"],"source_selection":[1,1,1],"calibration_provenance":"unknown supplied calibration","dependence_provenance":"unknown overlap","quality_dictionary":"unavailable","ordering_provenance":"supplied release table row order; not independently verified","resources":{"maximum_asset_bytes":10000,"maximum_rows":3,"maximum_matrix_elements":9,"maximum_string_bytes":4096,"maximum_preparation_bytes":16777216}})
 }
 fn fixture(s: &Scratch) {
     fs::write(s.0.join("table.dat"),"CID IDSURVEY zHD zCMB zHEL m_b_corr EXTRA\nA 51 .009 .02 .03 17 keep\nA 52 .020 .03 .04 18 keep2\nB 51 .010 .04 .05 19 keep3\n").unwrap();
@@ -38,7 +38,8 @@ fn run(s: &Scratch, v: &Value) -> (Value, i32) {
     let out = Command::new(env!("CARGO_BIN_EXE_irred"))
         .arg("run")
         .arg(path)
-        .arg(s.0.join("store")).args(["--assurance","qualified"])
+        .arg(s.0.join("store"))
+        .args(["--assurance", "qualified"])
         .output()
         .unwrap();
     (
@@ -58,8 +59,8 @@ fn released_semantics_order_masks_and_raw_retention() {
     assert_eq!(o["values"], json!([17., 18., 19.]));
     assert_eq!(o["event_ids"], json!(["A", "A", "B"]));
     assert_ne!(o["measurement_ids"][0], o["measurement_ids"][1]);
-    assert_eq!(o["selected_mask"], json!([0, 1, 0]));
-    assert_eq!(o["selected_source_indices"], json!([1]));
+    assert!(o.get("selected_mask").is_none());
+    assert!(o.get("selected_source_indices").is_none()); // selection belongs to consumers
     let matrix_digest = o["full_uncertainty_matrix"]["object_digest"]
         .as_str()
         .unwrap();
@@ -76,8 +77,8 @@ fn released_semantics_order_masks_and_raw_retention() {
     assert_eq!(matrix["axis_ids"], o["measurement_ids"]);
     assert_eq!(matrix["source_asset_digest"], o["uncertainty_digest"]);
     assert_eq!(o["full_uncertainty_matrix"]["elements"], 9);
-    assert_eq!(o["uncertainty_axis_ids"], o["measurement_ids"]);
-    assert_eq!(o["metadata"], req["metadata"]);
+    assert_eq!(o["covariance_axis_ids"], o["measurement_ids"]);
+    assert_eq!(o["source_type"], req["metadata"]);
     assert_eq!(o["original_fields"][1][6], "keep2");
     assert_eq!(o["quality_flags_available"], false);
     assert_eq!(o["ordering_verified_from_unlabeled_matrix"], false);
@@ -195,14 +196,14 @@ fn unused_nonfinite_source_is_distinct_from_missing_and_selected_failure() {
     fs::write(&path, &text).unwrap();
     let (r, exit) = run(&s, &req);
     assert_eq!(exit, 6);
-    assert_eq!(r["result"]["selected_source_indices"], json!([1]));
+    assert!(r["result"].get("selected_source_indices").is_none());
     assert_eq!(
         r["result"]["source_nonfinite"]["values"],
-        json!([true, false, false])
+        json!([1, 0, 0])
     );
     assert_eq!(
         r["result"]["source_nonfinite"]["zcmb"],
-        json!([true, false, false])
+        json!([1, 0, 0])
     );
     assert_eq!(r["result"]["source_missing"]["values"], json!([0, 0, 0]));
     assert_eq!(r["result"]["original_fields"][0][5], "NaN");

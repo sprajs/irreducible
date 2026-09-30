@@ -4,7 +4,7 @@ set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
-add_library(irred_core STATIC src/abi.cpp src/quantities.cpp src/numerics.cpp src/observations.cpp src/fits_reader.cpp src/observation_abi.cpp src/statistics.cpp src/statistics_abi.cpp src/background.cpp src/background_abi.cpp src/supernova.cpp src/supernova_abi.cpp src/bao.cpp src/bao_abi.cpp src/piecewise_background.cpp src/piecewise_abi.cpp)
+add_library(irred_core STATIC src/abi.cpp src/quantities.cpp src/numerics.cpp src/observations.cpp src/fits_reader.cpp src/observation_abi.cpp src/statistics.cpp src/statistics_abi.cpp src/background.cpp src/expansion_abi.cpp src/supernova.cpp src/current_supernova_abi.cpp src/supernova_preset.cpp src/bao.cpp src/current_bao_abi.cpp src/piecewise_background.cpp)
 target_include_directories(irred_core PUBLIC include)
 target_compile_options(irred_core PRIVATE -Wall -Wextra -Wpedantic -fno-fast-math -ffp-contract=off)
 add_executable(test_abi tests/test_abi.cpp)
@@ -98,10 +98,6 @@ add_executable(test_profile_operator_hostile tests/test_profile_operator_hostile
 target_link_libraries(test_profile_operator_hostile PRIVATE irred_core)
 add_test(NAME profile_operator_hostile_contract COMMAND test_profile_operator_hostile)
 
-add_executable(test_background_abi_hostile tests/test_background_abi_hostile.cpp)
-target_link_libraries(test_background_abi_hostile PRIVATE irred_core)
-add_test(NAME background_abi_hostile_contract COMMAND test_background_abi_hostile)
-
 add_executable(test_ldlt_reference tests/test_ldlt_reference.cpp)
 target_compile_options(test_ldlt_reference PRIVATE -Wall -Wextra -Wpedantic -fno-fast-math -ffp-contract=off)
 add_test(NAME ldlt_reference_contract COMMAND test_ldlt_reference)
@@ -123,19 +119,6 @@ add_executable(test_supernova tests/test_supernova.cpp)
 target_link_libraries(test_supernova PRIVATE irred_core)
 add_test(NAME supernova_contract COMMAND test_supernova)
 
-add_executable(test_supernova_hostile tests/test_supernova_hostile.cpp)
-target_link_libraries(test_supernova_hostile PRIVATE irred_core)
-add_test(NAME supernova_hostile_contract COMMAND test_supernova_hostile)
-
-add_executable(test_w01_scores EXCLUDE_FROM_ALL tests/test_w01_scores.cpp)
-target_include_directories(test_w01_scores PRIVATE include)
-target_link_libraries(test_w01_scores PRIVATE irred_core)
-target_compile_options(test_w01_scores PRIVATE -Wall -Wextra -Wpedantic -fno-fast-math -ffp-contract=off)
-
-add_executable(test_supernova_abi_hostile tests/test_supernova_abi_hostile.cpp)
-target_link_libraries(test_supernova_abi_hostile PRIVATE irred_core)
-add_test(NAME supernova_abi_hostile_contract COMMAND test_supernova_abi_hostile)
-
 add_executable(test_background_cpl tests/test_background_cpl.cpp)
 target_link_libraries(test_background_cpl PRIVATE irred_core)
 add_test(NAME background_cpl_contract COMMAND test_background_cpl)
@@ -151,28 +134,9 @@ add_test(NAME numerics_mirror_hostile_contract COMMAND test_numerics_mirror_host
 add_executable(test_numerics_layout_parity EXCLUDE_FROM_ALL tests/test_numerics_layout_parity.cpp)
 target_link_libraries(test_numerics_layout_parity PRIVATE irred_core)
 
-add_executable(benchmark_w01 EXCLUDE_FROM_ALL tests/benchmark_w01.cpp)
-target_link_libraries(benchmark_w01 PRIVATE irred_core)
-
-add_executable(test_supernova_cpl tests/test_supernova_cpl.cpp)
-target_link_libraries(test_supernova_cpl PRIVATE irred_core)
-add_test(NAME supernova_cpl_contract COMMAND test_supernova_cpl)
-
-add_executable(test_supernova_cpl_hostile tests/test_supernova_cpl_hostile.cpp)
-target_link_libraries(test_supernova_cpl_hostile PRIVATE irred_core)
-add_test(NAME supernova_cpl_hostile_contract COMMAND test_supernova_cpl_hostile)
-
 add_executable(test_bao tests/test_bao.cpp)
 target_link_libraries(test_bao PRIVATE irred_core)
 add_test(NAME bao_contract COMMAND test_bao)
-
-add_executable(test_bao_hostile tests/test_bao_hostile.cpp)
-target_link_libraries(test_bao_hostile PRIVATE irred_core)
-add_test(NAME bao_hostile_contract COMMAND test_bao_hostile)
-
-add_executable(test_cpl_v2_abi_hostile tests/test_cpl_v2_abi_hostile.cpp)
-target_link_libraries(test_cpl_v2_abi_hostile PRIVATE irred_core)
-add_test(NAME cpl_v2_abi_hostile_contract COMMAND test_cpl_v2_abi_hostile)
 
 add_executable(test_piecewise_background tests/test_piecewise_background.cpp)
 target_link_libraries(test_piecewise_background PRIVATE irred_core)
@@ -182,35 +146,9 @@ add_executable(test_piecewise_background_hostile tests/test_piecewise_background
 target_link_libraries(test_piecewise_background_hostile PRIVATE irred_core)
 add_test(NAME piecewise_background_hostile_contract COMMAND test_piecewise_background_hostile)
 
-add_executable(test_supernova_piecewise tests/test_supernova_piecewise.cpp)
-target_link_libraries(test_supernova_piecewise PRIVATE irred_core)
-add_test(NAME supernova_piecewise_contract COMMAND test_supernova_piecewise)
-
-add_executable(test_supernova_piecewise_hostile tests/test_supernova_piecewise_hostile.cpp)
-target_link_libraries(test_supernova_piecewise_hostile PRIVATE irred_core)
-add_test(NAME supernova_piecewise_hostile_contract COMMAND test_supernova_piecewise_hostile)
-
-add_executable(test_bao_abi_hostile tests/test_bao_abi_hostile.cpp)
-target_link_libraries(test_bao_abi_hostile PRIVATE irred_core)
-add_test(NAME bao_abi_hostile_contract COMMAND test_bao_abi_hostile)
-
-add_executable(test_piecewise_abi_hostile tests/test_piecewise_abi_hostile.cpp)
-target_link_libraries(test_piecewise_abi_hostile PRIVATE irred_core)
-add_test(NAME piecewise_abi_hostile_contract COMMAND test_piecewise_abi_hostile)
-
-add_executable(test_supernova_piecewise_abi_hostile tests/test_supernova_piecewise_abi_hostile.cpp)
-target_link_libraries(test_supernova_piecewise_abi_hostile PRIVATE irred_core)
-add_test(NAME supernova_piecewise_abi_hostile_contract COMMAND test_supernova_piecewise_abi_hostile)
-
-add_executable(test_bao_piecewise tests/test_bao_piecewise.cpp)
-target_link_libraries(test_bao_piecewise PRIVATE irred_core)
-add_test(NAME bao_piecewise_contract COMMAND test_bao_piecewise)
 add_executable(test_bao_piecewise_hostile tests/test_bao_piecewise_hostile.cpp)
 target_link_libraries(test_bao_piecewise_hostile PRIVATE irred_core)
 add_test(NAME bao_piecewise_hostile_contract COMMAND test_bao_piecewise_hostile)
-add_executable(test_bao_piecewise_abi_hostile tests/test_bao_piecewise_abi_hostile.cpp)
-target_link_libraries(test_bao_piecewise_abi_hostile PRIVATE irred_core)
-add_test(NAME bao_piecewise_abi_hostile_contract COMMAND test_bao_piecewise_abi_hostile)
 
 # Reference arithmetic only; never a production dependency or default test.
 option(IRRED_REFERENCE_GMP_MPFR "Enable optional directed-interval BAO reference test" OFF)
@@ -243,9 +181,6 @@ else()
   message(STATUS "Directed interval reference not enabled; normal production build has no GMP/MPFR reference dependency")
 endif()
 
-add_executable(test_supernova_grey_magnitude tests/test_supernova_grey_magnitude.cpp)
-target_link_libraries(test_supernova_grey_magnitude PRIVATE irred_core)
-add_test(NAME supernova_grey_magnitude_contract COMMAND test_supernova_grey_magnitude)
 add_executable(test_supernova_grey_magnitude_hostile tests/test_supernova_grey_magnitude_hostile.cpp)
 target_link_libraries(test_supernova_grey_magnitude_hostile PRIVATE irred_core)
 add_test(NAME supernova_grey_magnitude_hostile_contract COMMAND test_supernova_grey_magnitude_hostile)
@@ -257,6 +192,14 @@ add_executable(test_observation_ownership_hostile tests/test_observation_ownersh
 target_link_libraries(test_observation_ownership_hostile PRIVATE irred_core)
 add_test(NAME observation_ownership_hostile_contract COMMAND test_observation_ownership_hostile)
 
-add_executable(test_payload_accounting_hostile tests/test_payload_accounting_hostile.cpp)
-target_link_libraries(test_payload_accounting_hostile PRIVATE irred_core)
-add_test(NAME payload_accounting_hostile_contract COMMAND test_payload_accounting_hostile)
+# Obsolete wire-only tests are not registered. Mathematical source fixtures in
+# test_supernova_{cpl,piecewise,grey_magnitude}, test_bao_piecewise,
+# test_supernova_hostile and test_bao_hostile remain preserved, but their old
+# API adapters are retired. Current shared-path peers and optional original
+# named29/11/directed24 retain unique mathematical fixtures and budgets; this
+# does not claim assertion-count parity with obsolete wire contracts.
+foreach(current_test IN ITEMS current_expansion_abi_hostile current_supernova_abi_hostile current_bao_abi_hostile supernova_hostile payload_accounting payload_accounting_hostile preparation_payload_hostile)
+  add_executable(test_${current_test} tests/test_${current_test}.cpp)
+  target_link_libraries(test_${current_test} PRIVATE irred_core)
+  add_test(NAME ${current_test}_contract COMMAND test_${current_test})
+endforeach()

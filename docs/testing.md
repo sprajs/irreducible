@@ -83,53 +83,8 @@ cargo test --locked --offline -j4 --test profile_identity -- --ignored
 
 This checks each executable's describe/version manifest, identical source digests with distinct profile/build/native-archive identities, and a deliberately wrong native fixture compiled with NDEBUG. That fixture must fail, proving its required checks were executed. It compiles one temporary native test, cleans it after success, and never mutates production source.
 
-## Optional original-input supernova comparison
+## Current native and public regression suites
 
-The native consumer and independent synthetic/LDLT checks run in ordinary tests. The original released-input comparison is explicit and potentially expensive; acquire the exact assets pinned by `cpp/tests/fixtures/w01_historical.hpp` before invoking it. No dataset is bundled. Build its optional target in the chosen profile:
+Ordinary CTest includes the current expansion, retained supernova, BAO and Gaussian boundary suites, independent analytic/quadrature/cofactor controls, ownership/allocation failures and payload accounting. Ordinary Cargo tests include current one-shot and retained-stream requests, source identities, quota failures and immutable run records. Request schema is 2; physical operation identifiers can retain their `.v1` suffix. Scientific qualification remains bounded to named tested cases.
 
-```sh
-.build-tools/bin/cmake --build build/native --target test_w01_scores --parallel 4
-```
-
-Set `IRRED_W01_TABLE`, `IRRED_W01_COVARIANCE` and `IRRED_W01_NATIVE_HARNESS` to the original files and built `test_w01_scores` executable, then run:
-
-```sh
-cargo test --locked --offline -j4 --test w01_reference -- --ignored --nocapture
-```
-
-The Rust wrapper verifies raw hashes before running C++; it contains no physical equations. The native harness compares the frozen direct/stable historical scores separately from the approximate compressed route. This is a named fixed-input comparison, not parameter fitting or cosmological inference. The implemented supernova interface has separate native and CLI transport gates.
-
-The retained supernova interface has a durable native allocation/ownership suite (`test_supernova_abi_hostile`) and Rust CLI suite (`cargo test --locked --offline -j4 --test supernova_cli`). Its generated transport controls use analytic de Sitter/profile limits and intentionally invalid unselected covariance entries. They are separate from the optional SHA-verified original seven-point regression. Native Debug and Release suites exercise the same checks; the interface also has actual Release CLI coverage. A passing transport regression does not qualify arbitrary source/model requests.
-
-For the optional native BAO eleven-point comparison, explicitly acquire the assets pinned by `cpp/tests/fixtures/bao_reference.hpp`. The guard rejects changed bytes and checks them again after execution:
-
-```bash
-IRRED_BAO_MEAN=/path/to/desi_gaussian_bao_ALL_GCcomb_mean.txt \
-IRRED_BAO_COVARIANCE=/path/to/desi_gaussian_bao_ALL_GCcomb_cov.txt \
-IRRED_BAO_NATIVE_HARNESS="$PWD/build/native-release/test_bao" \
-cargo test --release --locked --offline -j4 --test bao_reference -- --ignored --nocapture
-```
-
-This is native fixed-case numerical coverage; it supplies no BAO CLI, posterior or joint-probe qualification.
-
-Explicit mixed-model v2 transport has native `test_cpl_v2_abi_hostile` and Rust `cpl_v2_cli` suites. For the optional original four-point CPL CLI comparison, set the same exact `IRRED_W01_TABLE` and `IRRED_W01_COVARIANCE` assets and run:
-
-```sh
-cargo test --release --locked --offline -j4 --test w01_reference released_assets_and_cli_cpl_four_points -- --ignored --nocapture
-```
-
-This verifies source hashes before/after execution, full attempted parameter identities and immutable result records against the pinned native relative-profile fixture. It contains no Rust physical equations and does not qualify arbitrary requests.
-
-## Original BAO CLI transport check
-
-With the exact assets pinned in `cpp/tests/fixtures/bao_reference.hpp`, set `IRRED_BAO_MEAN` and `IRRED_BAO_COVARIANCE`, then run:
-
-```sh
-cargo test --release --locked --offline -j4 --test bao_reference released_assets_and_cli_eleven_points -- --ignored --nocapture
-```
-
-The guard verifies raw hashes before and after execution and compares eleven ordered outputs to the independent GL8/long-double LDLT fixture. Exact direct native/ABI parity is a separate ordinary hostile test. Optional `IRRED_BAO_CLI_RECORD_DIRECTORY` captures the executable and discovery before execution plus the request, output and immutable store. No dataset is bundled or required by ordinary CI.
-
-Analytic BAO transport has native `test_bao_piecewise_abi_hostile` and Rust `bao_piecewise_cli` tests. They challenge source/result ownership, allocation failures, strict packet/layout rules, preparation/evaluation phase separation and aggregate quota boundaries, including suppressed arrays. They reuse native equations and do not replace the directed original-input scientific certificate. Use `python3 tools/check_install.py --profile release` for a fresh installed consumer against an explicitly selected Release build; omitting the profile preserves Debug behavior. The helper never chooses a build merely because it is present.
-
-The ordinary native grey-magnitude tests cover the shared retained profile consumer, zero-shift parity and independent controls. The optional `test_supernova_grey_magnitude COV TABLE --verified-original-assets` mode uses the existing SHA-guarded W01 native-harness test to compare twelve fixed current-input cases and migrated historical-class facts. Original assets remain optional. `python3 tools/check_install.py --profile release` checks a fresh install from `build/native-release`; the default profile is debug.
+`test_w01_reference` is an optional independent LDLT condition/reconstruction control, not a retired consumer interface. Existing native fixtures retain historical direct/stable and compressed-route discrepancies separately. No expected values are regenerated during builds.

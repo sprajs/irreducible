@@ -23,11 +23,13 @@ void near(long double value, long double expected, long double absolute,
   check(std::abs(value - expected) <= absolute + relative * std::abs(expected),
         why);
 }
-std::array<Query, 9> queries() {
-  std::array<Query, 9> out{};
+std::vector<Request> queries(double h0 = 70) {
+  std::vector<Request> out;
   const double z[] = {0, 1e-10, 1e-4, .01, .1, .5, 1, 2, 5};
-  for (std::size_t i = 0; i < out.size(); ++i)
-    out[i] = {z[i], z[i], Convention::geometric_same_redshift};
+  for (double value : z)
+    out.emplace_back(value, 63,
+                     Observer{value, Convention::geometric_same_redshift},
+                     PhysicalScale{h0});
   return out;
 }
 long double q_integral(long double z, long double q) {
@@ -42,64 +44,80 @@ template <class F> long double fixed(F f, long double z, unsigned panels) {
 }
 void check_slot(const Slot &slot, long double integral, long double clock,
                 double h0, long double expected_q, long double expected_jerk) {
-  check(slot.status == Status::ok, "valid query bundle");
+  check(slot.radial.value && slot.clock.value && slot.physical.value &&
+            slot.kinematics.value,
+        "requested groups available");
   const auto dh = 299792.458L / h0; // exact SI c, explicit km/s/Mpc scaling
   // Pinned independent Machin/Decimal SI-IAU reference, generated before core.
   const auto ht =
       (70.L / h0) / 2.2685455026110555162663814014470700829931485893862e-18L;
-  maximum_integral_error = std::max(
-      maximum_integral_error,
-      std::abs(static_cast<long double>(slot.radial_integral) - integral));
-  near(slot.radial_integral, integral, 2e-15L, 2e-10L,
+  maximum_integral_error =
+      std::max(maximum_integral_error,
+               std::abs(static_cast<long double>(slot.radial.value->integral) -
+                        integral));
+  near(slot.radial.value->integral, integral, 2e-15L, 2e-10L,
        "radial integral budget");
-  near(slot.radial_mpc, dh * integral, dh * 2e-15L, 2e-10L,
+  near(slot.physical.value->radial_mpc, dh * integral, dh * 2e-15L, 2e-10L,
        "distance unit and budget");
-  near(slot.lookback_seconds, ht * clock, ht * 2e-15L, 2e-10L,
+  near(*slot.clock.value->lookback_seconds.value, ht * clock, ht * 2e-15L, 2e-10L,
        "clock units and budget");
-  near(slot.deceleration_q, expected_q, 2e-14L, 2e-14L, "q definition");
-  near(slot.jerk, expected_jerk, 2e-14L, 2e-14L, "jerk definition");
-  near(slot.luminosity_mpc,
-       slot.angular_diameter_mpc * std::pow(1 + slot.source.z_expansion, 2),
+  near(slot.kinematics.value->q, expected_q, 2e-14L, 2e-14L, "q definition");
+  near(*slot.kinematics.value->jerk, expected_jerk, 2e-14L, 2e-14L,
+       "jerk definition");
+  near(slot.physical.value->luminosity_mpc,
+       slot.physical.value->angular_diameter_mpc *
+           std::pow(1 + slot.source.z_expansion, 2),
        dh * 2e-15L, 2e-10L, "same-redshift reciprocity");
   if (slot.source.z_expansion >= 1e-4) {
-    const auto target = dh * integral * (1 + slot.source.z_observer);
+    const auto target = dh * integral * (1 + slot.source.observer->redshift);
     const auto error = std::abs(
         5 / std::log(10.L) *
-        std::log(static_cast<long double>(slot.luminosity_mpc) / target));
+        std::log(static_cast<long double>(slot.physical.value->luminosity_mpc) /
+                 target));
     maximum_mu_error = std::max(maximum_mu_error, error);
     check(error <= 1e-8, "magnitude-consumer error budget");
   }
   if (slot.source.z_expansion == 0)
-    check(slot.radial_mpc == 0 && slot.luminosity_mpc == 0 &&
-              slot.angular_diameter_mpc == 0 && slot.lookback_seconds == 0 &&
-              slot.volume_mpc3_per_sr_per_redshift == 0 &&
-              slot.evaluations == 0,
+    check(slot.physical.value->radial_mpc == 0 &&
+              slot.physical.value->luminosity_mpc == 0 &&
+              slot.physical.value->angular_diameter_mpc == 0 &&
+              *slot.clock.value->lookback_seconds.value == 0 &&
+              slot.physical.value->volume_mpc3_per_sr_per_redshift == 0,
           "z0 valid exact zeros, no log or quadrature");
 }
 } // namespace
 int main() {
-  const auto grid = queries();
+  EvaluationPolicy policy;
+  policy.integration =
+      irred::numerics::IntegrationPolicy{1e-12, 1e-12, 100000, 30};
+  policy.maximum_queries = 100;
+  policy.maximum_callbacks = 2000000;
+  policy.maximum_segment_visits = 1000;
+  policy.maximum_native_bytes = 1 << 20;
+  auto grid = queries();
   for (double h0 : {40., 70., 100.}) {
+    grid = queries(h0);
     for (double q :
          {-2., -1.0000000001, -1., -.9999999999, -1e-10, 0., 1e-10, .5, 2.}) {
-      const auto background = prepare({Model::constant_q_flat_v1, h0, 0, q});
+      const auto background = prepare(ConstantQ{q}, FlatFLRW{});
       check(background.status() == Status::ok, "constant-q preparation");
-      const auto batch = background.evaluate_batch(grid, {});
+      const auto batch = background.evaluate(grid, policy);
       check(batch.status == Status::ok && batch.slots.size() == grid.size(),
             "coarse stable order");
       for (std::size_t i = 0; i < grid.size(); ++i) {
         const auto z = grid[i].z_expansion;
         check_slot(batch.slots[i], q_integral(z, q), q_integral(z, 1 + q), h0,
                    q, q * (2 * q + 1));
-        near(batch.slots[i].expansion_E,
+        near(batch.slots[i].expansion.value->expansion_E,
              std::pow(1 + static_cast<long double>(z), 1 + q), 2e-14, 2e-14,
              "constant-q E");
       }
     }
   }
+  grid = queries(70);
   for (double omega : {0., .3, 1.}) {
-    const auto background = prepare({Model::flat_lcdm_late_v1, 70, omega, 0});
-    const auto batch = background.evaluate_batch(grid, {});
+    const auto background = prepare(LCDM{omega}, FlatFLRW{});
+    const auto batch = background.evaluate(grid, policy);
     check(batch.status == Status::ok, "LCDM batch");
     for (std::size_t i = 0; i < grid.size(); ++i) {
       const auto z = grid[i].z_expansion;
@@ -127,60 +145,74 @@ int main() {
              2e-10, "EdS distance");
     }
   }
-  const auto background = prepare({Model::flat_lcdm_late_v1, 70, .3, 0});
-  std::array<Query, 3> mixed{{{.2, .3, Convention::released_zhd_zhel},
-                              {.2, .3, Convention::geometric_same_redshift},
-                              {0, 0, Convention::geometric_same_redshift}}};
-  const auto batch = background.evaluate_batch(mixed, {});
-  check(batch.slots[0].status == Status::ok &&
-            batch.slots[1].status == Status::incompatible_convention &&
-            batch.slots[2].status == Status::ok,
-        "mixed conventions stable failure slots");
-  near(batch.slots[0].luminosity_mpc / batch.slots[0].transverse_mpc, 1.3L,
-       2e-14, 2e-14, "released observer prefactor");
-  near(batch.slots[0].angular_diameter_mpc / batch.slots[0].transverse_mpc,
-       1 / 1.2L, 2e-14, 2e-14, "DA uses expansion redshift");
-  check(batch.slots[0].luminosity_equation_id !=
-                batch.slots[2].luminosity_equation_id &&
-            batch.slots[0].shape_equation_id !=
-                batch.slots[2].shape_equation_id,
-        "convention-specific equations");
-  Policy cap;
+  const auto background = prepare(LCDM{.3}, FlatFLRW{});
+  std::array<Request, 3> mixed{
+      {Request{.2, 63, Observer{.3, Convention::released_zhd_zhel},
+               PhysicalScale{70}},
+       Request{.2, 63, Observer{.3, Convention::geometric_same_redshift},
+               PhysicalScale{70}},
+       Request{0, 63, Observer{0, Convention::geometric_same_redshift},
+               PhysicalScale{70}}}};
+  const auto batch = background.evaluate(mixed, policy);
+  check(batch.slots[0].physical.value &&
+            batch.slots[1].physical.status == Status::incompatible_convention &&
+            batch.slots[1].radial.value && batch.slots[2].physical.value,
+        "observer failure isolated from radial");
+  near(batch.slots[0].physical.value->luminosity_mpc /
+           batch.slots[0].physical.value->transverse_mpc,
+       1.3L, 2e-14, 2e-14, "released observer prefactor");
+  near(batch.slots[0].physical.value->angular_diameter_mpc /
+           batch.slots[0].physical.value->transverse_mpc,
+       1 / 1.2L, 2e-14, 2e-14, "DA expansion redshift");
+  // Old copied per-slot equation string checks replaced by explicit typed
+  // observer convention provenance, with the same distance formula controls.
+  check(batch.slots[0].source.observer->convention !=
+            batch.slots[2].source.observer->convention,
+        "convention retained in source");
+  auto cap = policy;
   cap.maximum_queries = 2;
-  check(background.evaluate_batch(grid, cap).status == Status::work_limit &&
-            background.evaluate_batch(grid, cap).slots.empty(),
+  check(background.evaluate(grid, cap).status == Status::work_limit &&
+            background.evaluate(grid, cap).slots.empty(),
         "batch limit before slot allocation");
-  cap = {};
-  cap.maximum_total_evaluations = 3;
-  const auto limited = background.evaluate_batch(grid, cap);
-  std::size_t used = 0;
-  for (const auto &slot : limited.slots)
-    used += slot.evaluations;
-  check(used <= 3 && limited.slots[0].status == Status::ok &&
-            limited.slots.back().status == Status::work_limit,
-        "shared radial-clock work budget");
-  check(prepare({Model::flat_lcdm_late_v1, 70, .3, 1}).status() ==
-            Status::invalid_input,
-        "inactive model field rejects");
-  check(prepare({Model::flat_lcdm_late_v1, -70, .3, 0}).status() ==
-            Status::invalid_input,
-        "positive expansion H0");
-  std::array<Query, 3> extremes{
-      {{1e-300, 1e-300, Convention::geometric_same_redshift},
-       {1e-100, 1e-100, Convention::geometric_same_redshift},
-       {std::numeric_limits<double>::denorm_min(),
-        std::numeric_limits<double>::denorm_min(),
-        Convention::geometric_same_redshift}}};
-  const auto extreme = background.evaluate_batch(extremes, {});
-  check(extreme.slots[0].status == Status::numerical_failure,
-        "nonzero physical volume underflow fails bundle");
-  check(extreme.slots[1].status == Status::ok,
-        "tiny but normal physical bundle accepted");
-  check(extreme.slots[2].status == Status::work_limit &&
-            extreme.slots[2].numerical_status ==
+  cap = policy;
+  cap.maximum_callbacks = 3;
+  const auto limited = background.evaluate(grid, cap);
+  check(limited.work.callbacks <= 3 && limited.slots[0].radial.value &&
+            limited.slots.back().radial.status == Status::work_limit,
+        "global radial-clock budget");
+  // Inactive fields no longer exist in the active model variant. Domain safety
+  // remains tested on active parameters, while H0 is a projection-only input.
+  check(prepare(LCDM{-.1}, FlatFLRW{}).status() == Status::unsupported_domain,
+        "active LCDM domain");
+  std::array<Request, 1> invalid_h{
+      {Request{.5, 63, Observer{.5, Convention::geometric_same_redshift},
+               PhysicalScale{-70}}}};
+  auto h = background.evaluate(invalid_h, policy);
+  check(h.slots[0].radial.value &&
+            h.slots[0].physical.status == Status::invalid_input,
+        "invalid physical scale does not poison dimensionless integral");
+  std::array<Request, 3> extremes{
+      {Request{1e-300, 63,
+               Observer{1e-300, Convention::geometric_same_redshift},
+               PhysicalScale{70}},
+       Request{1e-100, 63,
+               Observer{1e-100, Convention::geometric_same_redshift},
+               PhysicalScale{70}},
+       Request{std::numeric_limits<double>::denorm_min(), 63,
+               Observer{std::numeric_limits<double>::denorm_min(),
+                        Convention::geometric_same_redshift},
+               PhysicalScale{70}}}};
+  const auto extreme = background.evaluate(extremes, policy);
+  check(extreme.slots[0].physical.status == Status::numerical_failure &&
+            extreme.slots[0].radial.value,
+        "physical volume underflow isolated");
+  check(extreme.slots[1].physical.value.has_value(),
+        "tiny normal physical output accepted");
+  check(extreme.slots[2].radial.status == Status::work_limit &&
+            extreme.slots[2].radial.numerical_status ==
                 irred::numerics::Status::work_limit &&
-            extreme.slots[2].evaluations == 3,
-        "smallest positive interval reports actual quadrature work failure");
+            extreme.nodes[*extreme.slots[2].node_index].work.callbacks == 6,
+        "smallest interval truthful failed radial+clock work");
   std::printf("{\"suite\":\"background_owner\",\"checks\":%d,\"max_integral_"
               "error\":%.17Lg,\"max_mu_error\":%.17Lg,\"passed\":true}\n",
               checks, maximum_integral_error, maximum_mu_error);

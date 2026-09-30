@@ -229,68 +229,17 @@ pub(crate) fn numerics_evaluate(
 }
 
 #[path = "observation_bridge.rs"]
-mod observations;
-pub(crate) use observations::{ObservationInput, ObservationMetadata, prepare_observations};
+pub(crate) mod observations;
+pub(crate) use observations::{ObservationInput, ObservationMetadata};
 
 #[path = "statistics_bridge.rs"]
 mod statistics;
 
 pub(crate) use statistics::{ProperPrior, gaussian_batch};
 
-#[macro_use]
-#[path = "background_transport.rs"]
-mod background_transport;
-
-#[path = "background_bridge.rs"]
-mod background;
-pub(crate) use background::{
-    Parameters as BackgroundParametersRequest, Policy as BackgroundPolicyRequest,
-    Query as BackgroundQueryRequest, evaluate as background_evaluate,
-};
-
-#[macro_use]
-#[path = "supernova_transport.rs"]
-mod supernova_transport;
-
-#[path = "supernova_bridge.rs"]
-mod supernova;
-pub(crate) use supernova::{
-    Model as SupernovaModelRequest, Policy as SupernovaPolicyRequest,
-    evaluate as supernova_evaluate,
-};
-
-#[path = "background_v2_bridge.rs"]
-mod background_v2;
-pub(crate) use background_v2::{
-    Parameters as BackgroundParametersV2Request, Policy as BackgroundPolicyV2Request,
-    Query as BackgroundQueryV2Request, evaluate as background_v2_evaluate,
-};
-#[path = "supernova_v2_bridge.rs"]
-mod supernova_v2;
-pub(crate) use supernova_v2::{
-    Model as SupernovaModelV2Request, Policy as SupernovaPolicyV2Request,
-    evaluate as supernova_v2_evaluate,
-};
-
-#[path = "bao_bridge.rs"]
-mod bao;
-pub(crate) use bao::{
-    Model as BaoModelRequest, Policy as BaoPolicyRequest, evaluate as bao_evaluate,
-};
-
-#[path = "piecewise_bridge.rs"]
-pub(crate) mod piecewise;
-
-#[path = "supernova_piecewise_bridge.rs"]
-mod supernova_piecewise;
-pub(crate) use supernova_piecewise::{
-    Model as SupernovaPiecewiseModelRequest, Policy as SupernovaPiecewisePolicyRequest,
-    evaluate as supernova_piecewise_evaluate,
-};
-
-#[path = "bao_piecewise_bridge.rs"]
-mod bao_piecewise;
-pub(crate) use bao_piecewise::{
-    Model as BaoPiecewiseModelRequest, Policy as BaoPiecewisePolicyRequest,
-    evaluate as bao_piecewise_evaluate,
-};
+#[path = "current_bao_bridge.rs"]
+pub(crate) mod current_bao;
+#[path = "current_supernova_bridge.rs"]
+pub(crate) mod current_supernova;
+#[path = "expansion_bridge.rs"]
+pub(crate) mod expansion;

@@ -25,13 +25,13 @@ void near(long double x, long double y, long double budget, const char *s) {
   check(std::abs(x - y) <= budget, s);
   maximum_fraction = std::max(maximum_fraction, std::abs(x - y) / budget);
 }
-long double density_a(CplParameters p, long double a) {
+long double density_a(CPL p, long double a) {
   return p.omega_m / (a * a * a) +
          (1 - static_cast<long double>(p.omega_m)) *
              std::pow(a, -3 * (1 + static_cast<long double>(p.w0) + p.wa)) *
              std::exp(-3 * p.wa * (1 - a));
 }
-long double panels(CplParameters p, double z, bool clock, unsigned n) {
+long double panels(CPL p, double z, bool clock, unsigned n) {
   auto lower = 1 / (1 + static_cast<long double>(z));
   auto h = (1 - lower) / n;
   auto f = [&](long double a) {
@@ -42,65 +42,81 @@ long double panels(CplParameters p, double z, bool clock, unsigned n) {
     sum += (i % 2 ? 4 : 2) * f(lower + i * h);
   return h * sum / 3;
 }
-Slot slot(Background b, double z, Policy p = {}) {
-  std::array<Query, 1> queries{{{z, z, Convention::geometric_same_redshift}}};
-  auto batch = b.evaluate_batch(queries, p);
+EvaluationPolicy policy() {
+  EvaluationPolicy p;
+  p.integration = irred::numerics::IntegrationPolicy{1e-12, 1e-12, 100000, 30};
+  p.maximum_queries = 100;
+  p.maximum_callbacks = 1000000;
+  p.maximum_segment_visits = 1000;
+  p.maximum_native_bytes = 1 << 20;
+  return p;
+}
+Slot slot(Expansion b, double z, EvaluationPolicy p = policy(),
+          double h0 = 70) {
+  std::array<Request, 1> requests{
+      {Request{z, 63, Observer{z, Convention::geometric_same_redshift},
+               PhysicalScale{h0}}}};
+  auto batch = b.evaluate(requests, p);
   check(batch.status == Status::ok && batch.slots.size() == 1, "batch");
   return batch.slots[0];
 }
 } // namespace
 int main() {
   try {
-    static_assert(!std::is_default_constructible_v<CplParameters>);
+    static_assert(!std::is_default_constructible_v<CPL>);
     for (double w : {-2., -1. - 1e-7, -1., -1. + 1e-7, -1. / 3 - 1e-7, -1. / 3,
                      -1. / 3 + 1e-7, 0.})
       for (double z : {0., 1e-4, .1, 1., 5.}) {
-        auto s = slot(prepare_cpl({70, 0, w, 0}), z);
-        check(s.status == Status::ok, "constantw finite");
+        auto s = slot(prepare(CPL{0, w, 0}, FlatFLRW{}), z);
+        check(s.radial.status == Status::ok, "constantw finite");
         auto L = std::log1p(static_cast<long double>(z)),
              power = 1.5L * (1 + static_cast<long double>(w));
         auto I = power == 1 ? L : std::expm1((1 - power) * L) / (1 - power);
         auto J = power == 0 ? L : -std::expm1(-power * L) / power;
-        near(s.radial_integral, I, 2e-15L + 2e-10L * std::abs(I),
+        near(s.radial.value->integral, I, 2e-15L + 2e-10L * std::abs(I),
              "constantw radial");
         // Clock's H0 factor recovered from independently related Hubble
         // distance/c.
-        auto time = s.radial_integral == 0
+        auto time = s.radial.value->integral == 0
                         ? 0.L
-                        : s.radial_mpc / s.radial_integral *
+                        : s.physical.value->radial_mpc /
+                              s.radial.value->integral *
                               irred::parsec_in_metres() * 1e6L /
                               irred::speed_of_light_m_per_s;
         if (z > 0)
-          near(s.lookback_seconds / time, J, 2e-15L + 2e-10L * std::abs(J),
-               "constantw clock");
-        near(s.expansion_E, std::exp(power * L),
+          near(*s.clock.value->lookback_seconds.value / time, J,
+               2e-15L + 2e-10L * std::abs(J), "constantw clock");
+        near(s.expansion.value->expansion_E, std::exp(power * L),
              2e-13L + 2e-12L * std::exp(power * L), "constantw E");
-        near(s.deceleration_q, power - 1, 2e-13L + 2e-12L * std::abs(power - 1),
-             "constantw q");
-        near(s.jerk, (power - 1) * (2 * power - 1),
+        near(s.kinematics.value->q, power - 1,
+             2e-13L + 2e-12L * std::abs(power - 1), "constantw q");
+        near(s.kinematics.value->jerk.value(), (power - 1) * (2 * power - 1),
              2e-13L + 2e-12L * std::abs((power - 1) * (2 * power - 1)),
              "constantw jerk");
       }
     for (double om : {0., .3, 1.})
       for (double z : {0., 1e-4, .1, 1., 5.}) {
-        auto c = slot(prepare_cpl({70, om, -1, 0}), z),
-             l = slot(prepare({Model::flat_lcdm_late_v1, 70, om, 0}), z);
-        check(c.status == Status::ok && l.status == Status::ok,
+        auto c = slot(prepare(CPL{om, -1, 0}, FlatFLRW{}), z),
+             l = slot(prepare(LCDM{om}, FlatFLRW{}), z);
+        check(c.radial.status == Status::ok &&
+                  l.radial.status == Status::ok,
               "Lambda limit finite");
-        check(c.radial_integral == l.radial_integral &&
-                  c.luminosity_mpc == l.luminosity_mpc &&
-                  c.lookback_seconds == l.lookback_seconds,
+        check(c.radial.value->integral == l.radial.value->integral &&
+                  c.physical.value->luminosity_mpc ==
+                      l.physical.value->luminosity_mpc &&
+                  *c.clock.value->lookback_seconds.value ==
+                      *l.clock.value->lookback_seconds.value,
               "Lambda distances bit parity");
-        near(c.deceleration_q, l.deceleration_q, 2e-13L, "Lambda q");
-        near(c.jerk, 1, 2e-13L, "Lambda jerk");
+        near(c.kinematics.value->q, l.kinematics.value->q, 2e-13L, "Lambda q");
+        near(c.kinematics.value->jerk.value(), 1, 2e-13L, "Lambda jerk");
       }
     for (double om : {0., 1e-12, .3, 1 - 1e-12, 1.})
       for (double w : {-2., -.9, 0.})
         for (double wa : {-2., .7, 2.})
           for (double z : {.1, 1., 5.}) {
-            CplParameters p{70, om, w, wa};
-            auto s = slot(prepare_cpl(p), z);
-            check(s.status == Status::ok, "CPL grid finite");
+            CPL p{om, w, wa};
+            auto s = slot(prepare(p, FlatFLRW{}), z);
+            check(s.radial.status == Status::ok, "CPL grid finite");
             auto i1 = panels(p, z, false, 8192),
                  i2 = panels(p, z, false, 16384), j1 = panels(p, z, true, 8192),
                  j2 = panels(p, z, true, 16384);
@@ -108,22 +124,23 @@ int main() {
                  bj = 2e-15L + 2e-10L * std::abs(j2);
             near(i1, i2, bi / 10, "reference radial refinement");
             near(j1, j2, bj / 10, "reference clock refinement");
-            near(s.radial_integral, i2, bi, "CPL a radial");
-            auto time = s.radial_mpc / s.radial_integral *
-                        irred::parsec_in_metres() * 1e6L /
-                        irred::speed_of_light_m_per_s;
-            near(s.lookback_seconds / time, j2, bj, "CPL a clock");
-            near(5 / std::log(10.L) * std::log(s.radial_integral / i2), 0,
-                 1e-8L, "CPL magnitude");
+            near(s.radial.value->integral, i2, bi, "CPL a radial");
+            auto time = s.physical.value->radial_mpc /
+                        s.radial.value->integral * irred::parsec_in_metres() *
+                        1e6L / irred::speed_of_light_m_per_s;
+            near(*s.clock.value->lookback_seconds.value / time, j2, bj,
+                 "CPL a clock");
+            near(5 / std::log(10.L) * std::log(s.radial.value->integral / i2),
+                 0, 1e-8L, "CPL magnitude");
             if (om == 1) {
-              near(s.deceleration_q, .5L, 2e-13L, "allmatter q");
-              near(s.jerk, 1, 2e-13L, "allmatter jerk");
+              near(s.kinematics.value->q, .5L, 2e-13L, "allmatter q");
+              near(s.kinematics.value->jerk.value(), 1, 2e-13L,
+                   "allmatter jerk");
             }
           }
-    for (auto p : {CplParameters{70, .3, -.9, .7}, CplParameters{70, 0, -2, 2},
-                   CplParameters{70, .8, 0, -2}})
+    for (auto p : {CPL{.3, -.9, .7}, CPL{0, -2, 2}, CPL{.8, 0, -2}})
       for (double z : {.25, 1., 3., 4.9}) {
-        auto candidate = slot(prepare_cpl(p), z);
+        auto candidate = slot(prepare(p, FlatFLRW{}), z);
         auto derivatives = [&](long double h) {
           auto S = [&](long double zz) { return density_a(p, 1 / (1 + zz)); };
           const long double zz = z, sm2 = S(zz - 2 * h), sm = S(zz - h),
@@ -139,100 +156,116 @@ int main() {
         near(coarse[0], medium[0], 2e-6L, "derivative coarse q convergence");
         near(medium[0], fine[0], 2e-6L, "derivative fine q convergence");
         near(medium[1], fine[1], 2e-6L, "derivative fine jerk convergence");
-        near(candidate.deceleration_q, fine[0], 2e-6L,
+        near(candidate.kinematics.value->q, fine[0], 2e-6L,
              "CPL q independent derivatives");
-        near(candidate.jerk, fine[1], 2e-6L,
+        near(candidate.kinematics.value->jerk.value(), fine[1], 2e-6L,
              "CPL jerk independent derivatives");
-        Policy refined{};
-        refined.integration = {1e-14, 1e-13, 100000, 30};
-        auto second = slot(prepare_cpl(p), z, refined);
-        refined.integration = {1e-15, 1e-14, 100000, 30};
-        auto third = slot(prepare_cpl(p), z, refined);
-        near(candidate.radial_integral, third.radial_integral,
-             2e-15L + 2e-10L * third.radial_integral,
+        auto refined = policy();
+        refined.integration =
+            irred::numerics::IntegrationPolicy{1e-14, 1e-13, 100000, 30};
+        auto second = slot(prepare(p, FlatFLRW{}), z, refined);
+        refined.integration =
+            irred::numerics::IntegrationPolicy{1e-15, 1e-14, 100000, 30};
+        auto third = slot(prepare(p, FlatFLRW{}), z, refined);
+        near(candidate.radial.value->integral, third.radial.value->integral,
+             2e-15L + 2e-10L * third.radial.value->integral,
              "production integral refinement");
         near(5 / std::log(10.L) *
-                 std::log(second.radial_integral / third.radial_integral),
+                 std::log(second.radial.value->integral /
+                          third.radial.value->integral),
              0, 1e-8L, "production magnitude refinement");
       }
-    auto zero = slot(prepare_cpl({70, .3, -.9, .7}), 0);
-    check(zero.status == Status::ok && zero.expansion_E == 1 &&
-              zero.h_km_s_mpc == 70,
+    auto zero = slot(prepare(CPL{.3, -.9, .7}, FlatFLRW{}), 0);
+    check(zero.radial.status == Status::ok &&
+              zero.expansion.value->expansion_E == 1 &&
+              zero.expansion.value->h_km_s_mpc.value.value() == 70,
           "z0 expansion valid");
-    check(zero.radial_mpc == 0 && zero.luminosity_mpc == 0 &&
-              zero.lookback_seconds == 0 &&
-              zero.volume_mpc3_per_sr_per_redshift == 0,
+    check(zero.physical.value->radial_mpc == 0 &&
+              zero.physical.value->luminosity_mpc == 0 &&
+              *zero.clock.value->lookback_seconds.value == 0 &&
+              zero.physical.value->volume_mpc3_per_sr_per_redshift == 0,
           "z0 analytic zeros");
-    auto background = prepare_cpl({70, .3, -.9, .7});
-    std::array<Query, 2> observer_queries{
-        {{1, 1, Convention::geometric_same_redshift},
-         {1, .3, Convention::released_zhd_zhel}}};
-    auto observers = background.evaluate_batch(observer_queries, {});
-    check(observers.slots[0].status == Status::ok &&
-              observers.slots[1].status == Status::ok,
-          "observer modes finite");
-    near(observers.slots[1].luminosity_mpc / observers.slots[0].luminosity_mpc,
-         .65L, 2e-13L, "released observer prefactor");
-    check(observers.slots[0].angular_diameter_mpc ==
-              observers.slots[1].angular_diameter_mpc,
-          "angular expansion redshift retained");
-    check(observers.slots[0].luminosity_equation_id !=
-              observers.slots[1].luminosity_equation_id,
-          "convention identity distinct");
-    Policy capped{};
+    auto background = prepare(CPL{.3, -.9, .7}, FlatFLRW{});
+    std::array<Request, 2> observer_queries{
+        {Request{.5, 63, Observer{.5, Convention::geometric_same_redshift},
+                 PhysicalScale{70}},
+         Request{.5, 63, Observer{.7, Convention::released_zhd_zhel},
+                 PhysicalScale{70}}}};
+    auto observers = background.evaluate(observer_queries, policy());
+    check(observers.slots[0].physical.value &&
+              observers.slots[1].physical.value,
+          "observer geometry finite");
+    near(observers.slots[1].physical.value->luminosity_mpc /
+             observers.slots[0].physical.value->luminosity_mpc,
+         1.7L / 1.5L, 2e-13L, "observer prefactor");
+    check(observers.slots[0].physical.value->angular_diameter_mpc ==
+              observers.slots[1].physical.value->angular_diameter_mpc,
+          "DA observer invariant");
+    check(observers.slots[0].source.observer->convention !=
+              observers.slots[1].source.observer->convention,
+          "explicit equation convention identity");
+    auto capped = policy();
     capped.maximum_queries = 1;
-    auto cap_failure = background.evaluate_batch(observer_queries, capped);
+    auto cap_failure = background.evaluate(observer_queries, capped);
     check(cap_failure.status == Status::work_limit && cap_failure.slots.empty(),
-          "batch cap before output allocation");
-    observer_queries[0] = {-1, -1, Convention::geometric_same_redshift};
-    observer_queries[1] = {5.0001, 5.0001, Convention::geometric_same_redshift};
-    auto domains = background.evaluate_batch(observer_queries, {});
-    check(domains.slots[0].status == Status::unsupported_domain &&
-              domains.slots[1].status == Status::unsupported_domain,
-          "z domain boundaries");
-    check(prepare_cpl({70, -1e-15, -1, 0}).status() ==
+          "query cap before output");
+    observer_queries[0].z_expansion = -.1;
+    observer_queries[1].z_expansion = 5.0001;
+    auto domains = background.evaluate(observer_queries, policy());
+    check(domains.slots[0].radial.status == Status::unsupported_domain &&
+              domains.slots[1].radial.status == Status::unsupported_domain,
+          "redshift domain");
+    check(prepare(CPL{-1e-15, -1, 0}, FlatFLRW{}).status() ==
               Status::unsupported_domain,
           "matter lower bound");
-    check(prepare_cpl({70, 1 + 1e-15, -1, 0}).status() ==
+    check(prepare(CPL{1 + 1e-15, -1, 0}, FlatFLRW{}).status() ==
               Status::unsupported_domain,
           "matter upper bound");
-    check(prepare_cpl({std::numeric_limits<double>::infinity(), .3, -1, 0})
-                  .status() == Status::invalid_input,
-          "H0 infinity");
-    check(
-        prepare_cpl({std::numeric_limits<double>::min(), .3, -1, 0}).status() ==
-            Status::numerical_failure,
-        "H0 extreme representation");
-    auto a = slot(prepare_cpl({40, .3, -.9, .7}), 1),
-         b = slot(prepare_cpl({100, .3, -.9, .7}), 1);
-    near(a.radial_mpc / b.radial_mpc, 2.5L, 2e-12L, "H0 distance");
-    near(a.lookback_seconds / b.lookback_seconds, 2.5L, 2e-12L, "H0 clock");
-    near(a.volume_mpc3_per_sr_per_redshift / b.volume_mpc3_per_sr_per_redshift,
+    auto valid = prepare(CPL{.3, -1, 0}, FlatFLRW{});
+    auto bad_scale =
+        slot(valid, 1, policy(), std::numeric_limits<double>::infinity());
+    check(bad_scale.radial.value &&
+              bad_scale.physical.status == Status::invalid_input,
+          "invalid H0 isolated from expansion");
+    auto tiny_scale =
+        slot(valid, 1, policy(), std::numeric_limits<double>::min());
+    check(tiny_scale.radial.value &&
+              tiny_scale.physical.status == Status::numerical_failure,
+          "tiny H0 representability failure belongs to physical projection");
+    auto a = slot(prepare(CPL{.3, -.9, .7}, FlatFLRW{}), 1, policy(), 40),
+         b = slot(prepare(CPL{.3, -.9, .7}, FlatFLRW{}), 1, policy(), 100);
+    near(a.physical.value->radial_mpc / b.physical.value->radial_mpc, 2.5L,
+         2e-12L, "H0 distance");
+    near(*a.clock.value->lookback_seconds.value /
+             *b.clock.value->lookback_seconds.value,
+         2.5L, 2e-12L, "H0 clock");
+    near(a.physical.value->volume_mpc3_per_sr_per_redshift /
+             b.physical.value->volume_mpc3_per_sr_per_redshift,
          15.625L, 2e-11L, "H0 volume");
-    auto attempted = prepare_cpl({70, .3, 1, 0});
+    auto attempted = prepare(CPL{.3, 1, 0}, FlatFLRW{});
     check(attempted.status() == Status::unsupported_domain &&
               attempted.model_id() == "P01/flat-cpl-radiation-free/v1" &&
-              attempted.parameters().w0 == 1,
+              std::get<CPL>(attempted.specification()).w0 == 1,
           "failed attempted identity");
-    check(prepare({Model::flat_cpl_late_v1, 70, .3, 0, -1, 0}).status() ==
-              Status::invalid_input,
-          "legacy cannot admit CPL");
-    check(prepare({Model::flat_lcdm_late_v1, 70, .3, 0, -.9, 0}).status() ==
-              Status::invalid_input,
-          "legacy inactive w rejected");
-    check(prepare_cpl({70, .3, std::numeric_limits<double>::quiet_NaN(), 0})
+    // Removed old model-number admission/inactive fields: active variants
+    // retain distinct hypotheses without compatibility projection packets.
+    static_assert(!std::is_default_constructible_v<CPL>);
+    check(prepare(CPL{.3, std::numeric_limits<double>::quiet_NaN(), 0},
+                  FlatFLRW{})
                   .status() == Status::invalid_input,
           "NaN w");
-    check(prepare_cpl({70, .3, -1, 2.0001}).status() ==
+    check(prepare(CPL{.3, -1, 2.0001}, FlatFLRW{}).status() ==
               Status::unsupported_domain,
           "wa range");
-    auto good = prepare_cpl({70, .3, -.9, .7});
-    Policy tiny{};
-    tiny.maximum_total_evaluations = 3;
+    auto good = prepare(CPL{.3, -.9, .7}, FlatFLRW{});
+    auto tiny = policy();
+    tiny.maximum_callbacks = 3;
     auto failed = slot(good, 1, tiny);
-    check(failed.status == Status::work_limit && failed.evaluations <= 3,
+    check(failed.radial.status == Status::work_limit &&
+              failed.radial.numerical_status ==
+                  irred::numerics::Status::work_limit,
           "global work limit");
-    check(slot(good, 1e-200).status == Status::numerical_failure,
+    check(slot(good, 1e-200).physical.status == Status::numerical_failure,
           "physical underflow");
     std::printf("CPL owner: %d checks PASS; max budget fraction %.9Lg\n",
                 checks, maximum_fraction);

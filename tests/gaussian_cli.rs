@@ -13,7 +13,24 @@ impl Drop for Scratch {
     }
 }
 fn request() -> Value {
-    serde_json::from_slice(&fs::read("tests/fixtures/gaussian-density.json").unwrap()).unwrap()
+    let mut request: Value =
+        serde_json::from_slice(&fs::read("tests/fixtures/gaussian-density.json").unwrap()).unwrap();
+    request["schema_version"] = json!(2);
+    request["operation"] = json!("statistics.gaussian");
+    request["selection"] = json!("all");
+    request["maximum_preparation_bytes"] = json!(16 * 1024 * 1024);
+    request["maximum_evaluation_bytes"] = json!(16 * 1024 * 1024);
+    let source = &mut request["observations"];
+    source["schema_version"] = json!(2);
+    source["operation"] = json!("observations.prepare");
+    source.as_object_mut().unwrap().remove("selection");
+    source["resources"]["maximum_preparation_bytes"] = json!(16 * 1024 * 1024);
+    source["exports"] = json!([]);
+    source["calibration_provenance"] = json!("");
+    source["dependence_provenance"] = json!("");
+    source["quality_dictionary"] = json!("");
+    source["source_selection"] = json!([1, 1]);
+    request
 }
 fn run(spec: &Value) -> (Value, i32, Option<Value>) {
     let scratch = Scratch(std::env::temp_dir().join(format!(
@@ -42,7 +59,7 @@ fn run(spec: &Value) -> (Value, i32, Option<Value>) {
     (response, out.status.code().unwrap(), resolved)
 }
 fn calc(r: &Value) -> &Value {
-    &r["result"]["calculation"]
+    &r["result"]
 }
 #[test]
 fn normalized_profile_and_proper_prior_modes() {
@@ -145,7 +162,7 @@ fn row_failures_no_sentinel_and_order_checks() {
 fn malformed_units_shapes_modes_and_priors() {
     let baseline = request();
     for (field, value) in [
-        ("schema_version", json!(2)),
+        ("schema_version", json!(3)),
         ("mode", json!("invented")),
         ("residual_unit", json!("metre")),
         ("response_unit", json!("magnitude")),
@@ -174,4 +191,56 @@ fn malformed_units_shapes_modes_and_priors() {
     let (r, exit, _) = run(&s);
     assert_ne!(exit, 0);
     assert_eq!(r["result"]["kind"], "failure");
+}
+#[test]
+fn admitted_preparation_causes_are_completed_failures_not_transport_errors() {
+    let scratch = Scratch(
+        std::env::temp_dir().join(format!(
+            "irred-gaussian-causes-{}-{}",
+            std::process::id(),
+            SystemTime::now()
+                .duration_since(UNIX_EPOCH)
+                .unwrap()
+                .as_nanos()
+        )),
+    );
+    fs::create_dir_all(&scratch.0).unwrap();
+    for leading in [0., -1.] {
+        let matrix = scratch.0.join("covariance.txt");
+        fs::write(&matrix, format!("2\n{leading} 0 0 9\n")).unwrap();
+        let mut spec = request();
+        spec["observations"]["uncertainty"] = json!(matrix);
+        let (reply, code, _) = run(&spec);
+        assert_eq!(code, 2);
+        assert_eq!(reply["receipt"]["execution"], "completed");
+        assert_eq!(reply["receipt"]["accepted"], false);
+        assert_eq!(calc(&reply)["phase"], "preparation");
+        assert_eq!(calc(&reply)["numerical_status"], "not_positive_definite");
+        assert_eq!(calc(&reply)["evaluations"], json!([]));
+        assert!(calc(&reply).get("log_density").is_none());
+    }
+    let mut precision = request();
+    precision["observations"]["metadata"]["uncertainty"] = json!("precision");
+    precision["observations"]["metadata"]["uncertainty_unit"] = json!("inverse_magnitude_squared");
+    precision["maximum_forward_sensitivity"] = json!(1e-20);
+    let (reply, code, _) = run(&precision);
+    assert_eq!(code, 2);
+    assert_eq!(reply["receipt"]["execution"], "completed");
+    assert_eq!(calc(&reply)["phase"], "preparation");
+    assert_eq!(
+        calc(&reply)["numerical_status"],
+        "conditioning_budget_exceeded"
+    );
+    let mut quota = request();
+    quota["maximum_preparation_bytes"] = json!(0);
+    let (reply, code, _) = run(&quota);
+    assert_eq!(code, 2);
+    assert_eq!(reply["receipt"]["execution"], "failed");
+    assert_eq!(reply["receipt"]["accepted"], false);
+    let mut evaluation_quota = request();
+    evaluation_quota["maximum_evaluation_bytes"] = json!(0);
+    let (reply, code, _) = run(&evaluation_quota);
+    assert_eq!(code, 2);
+    assert_eq!(reply["receipt"]["execution"], "failed");
+    assert_eq!(reply["receipt"]["accepted"], false);
 }

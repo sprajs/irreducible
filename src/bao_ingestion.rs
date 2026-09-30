@@ -23,7 +23,6 @@ pub(crate) enum Source {
         dependence_provenance: String,
         redshift_convention: String,
         ruler_convention: String,
-        computational_h0_convention: String,
     },
     #[serde(rename = "synthetic_inline_v1")]
     Synthetic {
@@ -35,7 +34,6 @@ pub(crate) enum Source {
         dependence_provenance: String,
         redshift_convention: String,
         ruler_convention: String,
-        computational_h0_convention: String,
     },
 }
 pub(crate) struct Decoded {
@@ -51,7 +49,6 @@ pub(crate) struct Decoded {
     pub dependence_provenance: String,
     pub redshift_convention: String,
     pub ruler_convention: String,
-    pub computational_h0_convention: String,
 }
 fn observable(s: &str) -> Result<(), String> {
     match s {
@@ -106,7 +103,6 @@ impl Source {
             dependence,
             redshift,
             ruler,
-            h0,
         ) = match self {
             Self::Released {
                 mean,
@@ -117,7 +113,6 @@ impl Source {
                 dependence_provenance,
                 redshift_convention,
                 ruler_convention,
-                computational_h0_convention,
             } => {
                 if maximum_rows < 13
                     || maximum_matrix_elements < 169
@@ -167,7 +162,6 @@ impl Source {
                     dependence_provenance,
                     redshift_convention,
                     ruler_convention,
-                    computational_h0_convention,
                 )
             }
             Self::Synthetic {
@@ -179,7 +173,6 @@ impl Source {
                 dependence_provenance,
                 redshift_convention,
                 ruler_convention,
-                computational_h0_convention,
             } => {
                 let count = rows.len();
                 let square = count.checked_mul(count).ok_or("RESOURCE_LIMIT")?;
@@ -213,7 +206,6 @@ impl Source {
                     dependence_provenance,
                     redshift_convention,
                     ruler_convention,
-                    computational_h0_convention,
                 )
             }
         };
@@ -230,7 +222,6 @@ impl Source {
             dependence_provenance: dependence.clone(),
             redshift_convention: redshift.clone(),
             ruler_convention: ruler.clone(),
-            computational_h0_convention: h0.clone(),
         })
     }
 }

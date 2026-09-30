@@ -1,20 +1,65 @@
 #pragma once
 #include "irred/numerics.hpp"
 #include "irred/quantities.hpp"
+#include <array>
 #include <cstddef>
 #include <cstdint>
+#include <optional>
 #include <span>
 #include <string_view>
+#include <variant>
 #include <vector>
 namespace irred::cosmology {
-enum class Model : std::uint32_t {
-  flat_lcdm_late_v1 = 0,
-  constant_q_flat_v1 = 1,
-  flat_cpl_late_v1 = 2
+struct FlatFLRW {};
+struct LCDM {
+  double omega_m;
+  explicit LCDM(double x) : omega_m(x) {}
 };
+struct ConstantQ {
+  double q;
+  explicit ConstantQ(double x) : q(x) {}
+};
+struct CPL {
+  double omega_m, w0, wa;
+  CPL(double m, double w, double a) : omega_m(m), w0(w), wa(a) {}
+};
+struct FixedFiveBinQ {
+  std::array<double, 5> q;
+  explicit FixedFiveBinQ(std::array<double, 5> x) : q(x) {}
+};
+using ExpansionSpec = std::variant<LCDM, ConstantQ, CPL, FixedFiveBinQ>;
+inline constexpr std::array<double, 6> piecewise_q_edges{0, .1, .3, .6, 1, 2.5};
 enum class Convention : std::uint32_t {
   geometric_same_redshift,
   released_zhd_zhel
+};
+struct Observer {
+  double redshift;
+  Convention convention;
+};
+struct PhysicalScale {
+  double h0_km_s_mpc;
+  explicit PhysicalScale(double h) : h0_km_s_mpc(h) {}
+};
+enum class Observable : std::uint32_t {
+  radial = 1,
+  luminosity_shape = 2,
+  clock = 4,
+  flat_distances_volume = 8,
+  kinematics = 16,
+  expansion = 32
+};
+constexpr std::uint32_t operator|(Observable a, Observable b) {
+  return (std::uint32_t)a | (std::uint32_t)b;
+}
+struct Request {
+  double z_expansion;
+  std::uint32_t requested;
+  std::optional<Observer> observer;
+  std::optional<PhysicalScale> physical_scale;
+  Request(double z, std::uint32_t outputs, std::optional<Observer> o = {},
+          std::optional<PhysicalScale> h = {})
+      : z_expansion(z), requested(outputs), observer(o), physical_scale(h) {}
 };
 enum class Status : std::uint32_t {
   ok,
@@ -24,78 +69,121 @@ enum class Status : std::uint32_t {
   numerical_failure,
   work_limit
 };
-struct Parameters {
-  Model model = Model::flat_lcdm_late_v1;
-  double h0_km_s_mpc = 70;
-  double omega_m = 0.3;  // active for LCDM/CPL; must be zero for constant-q
-  double constant_q = 0; // active only constant-q; zero for LCDM/CPL
-  double w0 = -1,
-         wa = 0; // CPL retained state; canonical inactive defaults otherwise
+enum class Availability : std::uint32_t {
+  not_requested,
+  available,
+  unavailable,
+  failed
 };
-// No default constructor: CPL admission requires all four explicit parameters.
-// Existing prepare(Parameters) accepts only the two legacy models.
-struct CplParameters {
-  double h0_km_s_mpc, omega_m, w0, wa;
-  CplParameters(double h0, double matter, double present_w, double evolution_w)
-      : h0_km_s_mpc(h0), omega_m(matter), w0(present_w), wa(evolution_w) {}
-};
-struct Query {
-  double z_expansion;
-  double z_observer;
-  Convention convention;
-};
-struct Policy {
-  numerics::IntegrationPolicy integration{1e-13, 1e-12, 100000, 30};
-  std::size_t maximum_queries = 4096;
-  std::size_t maximum_total_evaluations = 2000000;
-};
-// Values have scientific meaning only when status==ok. Integral error estimates
-// are empirical F02 diagnostics, not proven bounds or automatic qualification.
-struct Slot {
-  Query source{};
-  std::string_view luminosity_equation_id, shape_equation_id;
+template <class T> struct Outcome {
+  Availability availability = Availability::not_requested;
   Status status = Status::invalid_input;
-  double expansion_E = 0, h_km_s_mpc = 0;
-  double radial_integral = 0, radial_mpc = 0, transverse_mpc = 0;
-  double angular_diameter_mpc = 0, luminosity_mpc = 0;
-  double dimensionless_luminosity_shape =
-      0; // (1+z_observer)*I; no absolute H0 information
-  double lookback_seconds = 0, volume_mpc3_per_sr_per_redshift = 0;
-  double deceleration_q = 0, jerk = 0;
-  double radial_integral_error = 0, lookback_integral_error = 0;
-  std::size_t evaluations = 0;
   numerics::Status numerical_status = numerics::Status::invalid_input;
+  std::optional<T> value;
+};
+namespace detail {
+struct RadialAccess;
+}
+struct ExpansionValue {
+  double expansion_E = 0;
+  Outcome<double> h_km_s_mpc;
+
+private:
+  long double precise_E_ = 0;
+  friend class Expansion;
+  friend struct detail::RadialAccess;
+};
+struct Radial {
+  double expansion_E = 0, integral = 0, error_estimate = 0;
+
+private:
+  long double precise_E_ = 0, precise_integral_ = 0;
+  friend class Expansion;
+  friend struct detail::RadialAccess;
+};
+struct Clock {
+  double integral = 0, error_estimate = 0;
+  Outcome<double> lookback_seconds;
+};
+struct Distances {
+  double radial_mpc = 0, transverse_mpc = 0, angular_diameter_mpc = 0,
+         luminosity_mpc = 0, volume_mpc3_per_sr_per_redshift = 0;
+};
+enum class QConvention : std::uint32_t {
+  not_assessed,
+  interior_constant_bin,
+  right_limit_at_internal_jump,
+  right_limit_at_zero,
+  left_limit_at_final_endpoint,
+  ordinary_smooth_model
+};
+enum class JerkAvailability : std::uint32_t {
+  not_assessed,
+  ordinary_within_bin,
+  one_sided_endpoint,
+  unavailable_at_jump
+};
+struct Kinematics {
+  double q = 0;
+  std::optional<double> jerk, q0_within_piecewise_model;
+  QConvention q_convention = QConvention::not_assessed;
+  JerkAvailability jerk_availability = JerkAvailability::not_assessed;
+  std::size_t bin = 0;
+};
+struct Work {
+  std::size_t callbacks = 0, segment_visits = 0;
+};
+struct Slot {
+  Request source;
+  Status admission_status = Status::invalid_input;
+  std::optional<std::size_t> node_index;
+  Outcome<ExpansionValue> expansion;
+  Outcome<Radial> radial;
+  Outcome<double> luminosity_shape;
+  Outcome<Clock> clock;
+  Outcome<Distances> physical;
+  Outcome<Kinematics> kinematics;
+  explicit Slot(Request r) : source(r) {}
+};
+struct NodeWork {
+  double z_expansion;
+  Work work;
 };
 struct BatchResult {
   Status status = Status::invalid_input;
   std::vector<Slot> slots;
+  std::vector<NodeWork> nodes;
+  Work work;
 };
-class Background {
+struct EvaluationPolicy {
+  std::optional<numerics::IntegrationPolicy> integration;
+  std::size_t maximum_queries = 0, maximum_callbacks = 0,
+              maximum_segment_visits = 0, maximum_native_bytes = 0;
+};
+class Expansion {
 public:
   Status status() const noexcept { return status_; }
-  const Parameters &parameters() const noexcept { return parameters_; }
+  const ExpansionSpec &specification() const noexcept { return spec_; }
   std::string_view model_id() const noexcept;
   static constexpr std::string_view constants_id = irred::constant_set_id;
   static constexpr std::string_view radial_equation_id =
       "P01/flat-radial-comoving-distance/v1";
-  BatchResult evaluate_batch(std::span<const Query>, Policy) const;
+  // Conservative simultaneous dynamic payload for this supported container
+  // implementation, excluding borrowed inputs, stack headers, allocator
+  // metadata and RSS. Zero requests allocate nothing; overflow has no
+  // representable bound.
+  static std::optional<std::size_t>
+  workspace_payload_bound(std::size_t) noexcept;
+  BatchResult evaluate(std::span<const Request>, EvaluationPolicy) const;
 
 private:
+  explicit Expansion(ExpansionSpec s) : spec_(std::move(s)) {}
+  ExpansionSpec spec_;
   Status status_ = Status::invalid_input;
-  Parameters parameters_{};
-  double hubble_distance_mpc_ = 0, hubble_time_seconds_ = 0;
-  friend Background prepare(Parameters);
-  friend Background prepare_cpl(CplParameters);
+  std::array<long double, 5> start_E_{};
+  friend Expansion prepare(ExpansionSpec, FlatFLRW);
 };
-// Flat FLRW distance geometry. LCDM is radiation-free, nonnegative
-// matter/Lambda components normalized at z0; constant-q is kinematic, no
-// early-time assertion. Nonzero physical bundle outputs must be normal
-// binary64; underflow/overflow fails the bundle, separately from physical/model
-// domain. Analytic z0 zeros valid. First supported late-time interval z=[0,5];
-// H0 consumer qualification40..100 is separate from finite-positive arithmetic
-// representability. No age/rd/CMB.
-Background prepare(Parameters);
-// Radiation-free flat CPL, Om[0,1], w0[-2,0], wa[-2,2], z[0,5].
-// Background only: no dark-energy perturbation/crossing closure or early epoch.
-Background prepare_cpl(CplParameters);
+// Only these four compiled late-time hypotheses. No implicit inactive fields,
+// physical H0, curvature, expressions, priors or early-ruler physics.
+Expansion prepare(ExpansionSpec, FlatFLRW);
 } // namespace irred::cosmology

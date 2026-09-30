@@ -1,4 +1,5 @@
-// Bridge/status/ownership tests authored by the statistics core author: direct
+// Original bridge/status/ownership controls authored by statistics core owner;
+// current ABI2 cause/selection controls added by the independent verifier. Direct
 // parity is NOT independent scientific evidence. Native scientific reference
 // qualification lives in test_statistics_hostile. Structural descriptor fixture
 // follows test_observation_abi_hostile; no Rust/shared equation duplication.
@@ -6,6 +7,7 @@
 #include "irred/observations.hpp"
 #include "irred/statistics.hpp"
 #include <array>
+#include <algorithm>
 #include <cmath>
 #include <cstdio>
 #include <cstdlib>
@@ -15,21 +17,28 @@
 #include <string>
 static std::int64_t fail_after = -1, live = 0;
 static int checks = 0;
+struct alignas(std::max_align_t) AllocationHeader { size_t bytes; bool tracked; };
+static bool track_payload=false;
+static size_t payload=0,payload_peak=0;
 void *operator new(std::size_t n) {
   if (fail_after == 0)
     throw std::bad_alloc();
   if (fail_after > 0)
     --fail_after;
-  void *p = std::malloc(n ? n : 1);
+  void *p = std::malloc(sizeof(AllocationHeader)+(n ? n : 1));
   if (!p)
     throw std::bad_alloc();
   ++live;
-  return p;
+  auto h=new(p) AllocationHeader{n,track_payload};
+  if(track_payload) { payload+=n;payload_peak=std::max(payload_peak,payload); }
+  return h+1;
 }
 void operator delete(void *p) noexcept {
   if (p) {
     --live;
-    std::free(p);
+    auto h=static_cast<AllocationHeader*>(p)-1;
+    if(h->tracked) payload-=h->bytes;
+    std::free(h);
   }
 }
 void operator delete(void *p, std::size_t) noexcept { ::operator delete(p); }
@@ -88,7 +97,7 @@ int main() {
   try {
     Fixture f;
     cosmo_prepared *obs = nullptr;
-    uint32_t semantic = 99;
+    uint32_t semantic = 99, numerical = 99;
     CHECK(cosmo_prepare_observations(&f.d, &f.op, &obs, &semantic) ==
               COSMO_OK &&
           obs);
@@ -99,10 +108,87 @@ int main() {
                                  4,
                                  100,
                                  4096,
-                                 1e-10};
+                                 1e-10,
+                                 1000000};
     cosmo_gaussian *g = nullptr;
-    CHECK(cosmo_gaussian_prepare(obs, 0, &policy, &g, &semantic) == COSMO_OK &&
-          g && semantic == COSMO_GAUSSIAN_STATUS_FINITE);
+    CHECK(cosmo_gaussian_prepare(obs, 0, &policy, &g, &semantic, &numerical) == COSMO_OK &&
+          g && semantic == COSMO_GAUSSIAN_STATUS_FINITE &&
+          numerical == (uint32_t)irred::numerics::Status::ok);
+    // Finite typed matrices are structural observations even when Gaussian
+    // preparation cannot admit SPD. Preserve transport/semantic/cause layers.
+    for (double leading : {0., -1.}) {
+      Fixture invalid;
+      invalid.matrix[0] = leading;
+      invalid.matrix[1] = invalid.matrix[2] = 0;
+      cosmo_prepared *source = nullptr;
+      CHECK(cosmo_prepare_observations(&invalid.d, &invalid.op, &source,
+                                       &semantic) == COSMO_OK && source);
+      cosmo_gaussian *failed = nullptr;
+      CHECK(cosmo_gaussian_prepare(source, 0, &policy, &failed, &semantic,
+                                   &numerical) == COSMO_OK && !failed &&
+            semantic == COSMO_GAUSSIAN_STATUS_NUMERICAL_FAILURE &&
+            numerical == (uint32_t)irred::numerics::Status::not_positive_definite);
+      CHECK(cosmo_observation_destroy(source) == COSMO_OK);
+    }
+    auto tight_prepare = policy;
+    tight_prepare.maximum_forward_sensitivity = 1e-20;
+    Fixture precision_source;
+    precision_source.d.uncertainty = (uint32_t)Uncertainty::precision;
+    precision_source.d.uncertainty_unit =
+        (uint32_t)UncertaintyUnit::inverse_magnitude_squared;
+    cosmo_prepared *precision_observations = nullptr;
+    CHECK(cosmo_prepare_observations(&precision_source.d, &precision_source.op,
+                                     &precision_observations, &semantic) == COSMO_OK &&
+          precision_observations);
+    cosmo_gaussian *tight_failed = nullptr;
+    CHECK(cosmo_gaussian_prepare(precision_observations, 0, &tight_prepare, &tight_failed,
+                                 &semantic, &numerical) == COSMO_OK &&
+          !tight_failed && semantic == COSMO_GAUSSIAN_STATUS_NUMERICAL_FAILURE &&
+          numerical == (uint32_t)irred::numerics::Status::conditioning_budget_exceeded);
+    CHECK(cosmo_observation_destroy(precision_observations) == COSMO_OK);
+    for (bool precision : {false,true}) {
+      Fixture selected;
+      uint8_t selected_mask[2]{1,0};
+      selected.d.source_selection = {selected_mask,2,2};
+      selected.d.uncertainty = (uint32_t)(precision ? Uncertainty::precision
+                                                   : Uncertainty::covariance);
+      selected.d.uncertainty_unit = (uint32_t)(precision
+          ? UncertaintyUnit::inverse_magnitude_squared
+          : UncertaintyUnit::magnitude_squared);
+      if (!precision) selected.matrix[3] = -9;
+      cosmo_prepared *source = nullptr;
+      CHECK(cosmo_prepare_observations(&selected.d, &selected.op, &source,
+                                       &semantic) == COSMO_OK && source);
+      cosmo_gaussian *marginal = nullptr;
+      CHECK(cosmo_gaussian_prepare(source,0,&policy,&marginal,&semantic,
+                                   &numerical) == COSMO_OK && marginal &&
+            semantic == COSMO_GAUSSIAN_STATUS_FINITE &&
+            numerical == (uint32_t)irred::numerics::Status::ok);
+      cosmo_gaussian_view source_view{};
+      CHECK(cosmo_gaussian_source_view(marginal,&source_view) == COSMO_OK &&
+            source_view.ordered_ids.length == 1 &&
+            source_view.ordered_ids.data[0].data[0] == 'a' &&
+            source_view.matrix_validation_scope == (uint32_t)(precision
+              ? irred::statistics::MatrixValidationScope::full_precision_then_marginal
+              : irred::statistics::MatrixValidationScope::selected_covariance_only));
+      double residual = 2;
+      cosmo_gaussian_batch one{sizeof(one),COSMO_ABI_VERSION,
+          COSMO_GAUSSIAN_MODE_NORMALIZED_DENSITY,0,1,doubles(&residual,1),
+          {selected.ids,1,sizeof(cosmo_bytes)},doubles(nullptr,0)};
+      cosmo_gaussian_result *result = nullptr;
+      CHECK(cosmo_gaussian_evaluate(marginal,&one,&policy,&result) == COSMO_OK && result);
+      const cosmo_gaussian_row *row = nullptr;
+      uint64_t count = 0;
+      const double variance = precision ? 9./35 : 4.;
+      CHECK(cosmo_gaussian_result_view(result,&row,&count) == COSMO_OK && count == 1 &&
+            row[0].status == COSMO_GAUSSIAN_STATUS_FINITE &&
+            std::abs(row[0].quadratic-4/variance) < 4e-11 &&
+            std::abs(row[0].log_determinant-std::log(variance)) < 4e-11 &&
+            std::abs(row[0].normalization-std::log(2*std::acos(-1.))) < 4e-11);
+      CHECK(cosmo_gaussian_result_destroy(result) == COSMO_OK);
+      CHECK(cosmo_gaussian_destroy(marginal) == COSMO_OK);
+      CHECK(cosmo_observation_destroy(source) == COSMO_OK);
+    }
     bool prepared_success = false;
     int prepare_failures = 0;
     for (int point = 0; point < 300; ++point) {
@@ -110,7 +196,7 @@ int main() {
       cosmo_gaussian *temporary = nullptr;
       fail_after = point;
       auto status =
-          cosmo_gaussian_prepare(obs, 0, &policy, &temporary, &semantic);
+          cosmo_gaussian_prepare(obs, 0, &policy, &temporary, &semantic, &numerical);
       fail_after = -1;
       if (status == COSMO_OK) {
         CHECK(temporary);
@@ -127,12 +213,12 @@ int main() {
     invalid_policy.abi_version++;
     cosmo_gaussian *temporary = nullptr;
     CHECK(cosmo_gaussian_prepare(obs, 0, &invalid_policy, &temporary,
-                                 &semantic) == COSMO_ABI_MISMATCH &&
+                                 &semantic, &numerical) == COSMO_ABI_MISMATCH &&
           !temporary);
-    CHECK(cosmo_gaussian_prepare(nullptr, 0, &policy, &temporary, &semantic) ==
+    CHECK(cosmo_gaussian_prepare(nullptr, 0, &policy, &temporary, &semantic, &numerical) ==
               COSMO_INVALID_INPUT &&
           !temporary);
-    CHECK(cosmo_gaussian_prepare(obs, 99, &policy, &temporary, &semantic) ==
+    CHECK(cosmo_gaussian_prepare(obs, 99, &policy, &temporary, &semantic, &numerical) ==
               COSMO_OK &&
           !temporary);
     CHECK(cosmo_observation_destroy(obs) == COSMO_OK);
@@ -220,7 +306,7 @@ int main() {
                                {f.ids, 2, sizeof f.ids}};
     cosmo_gaussian *proper = nullptr;
     CHECK(cosmo_gaussian_proper_offset(g, &prior, &policy, &proper,
-                                       &semantic) == COSMO_OK &&
+                                       &semantic, &numerical) == COSMO_OK &&
           proper && semantic == COSMO_GAUSSIAN_STATUS_FINITE);
     cosmo_gaussian_prior pv{};
     CHECK(cosmo_gaussian_prior_view(proper, 0, &pv) == COSMO_OK &&
@@ -238,12 +324,12 @@ int main() {
     out = nullptr;
     cosmo_gaussian *badg = nullptr;
     CHECK(cosmo_gaussian_proper_offset(proper, &prior, &policy, &badg,
-                                       &semantic) == COSMO_OK &&
+                                       &semantic, &numerical) == COSMO_OK &&
           !badg && semantic != COSMO_GAUSSIAN_STATUS_FINITE);
     auto wrongprior = prior;
     wrongprior.ordered_ids = {reversed, 2, sizeof reversed};
     CHECK(cosmo_gaussian_proper_offset(g, &wrongprior, &policy, &badg,
-                                       &semantic) == COSMO_OK &&
+                                       &semantic, &numerical) == COSMO_OK &&
           !badg && semantic == COSMO_GAUSSIAN_STATUS_INCOMPATIBLE_METADATA);
     auto normalized = batch;
     normalized.mode = COSMO_GAUSSIAN_MODE_NORMALIZED_DENSITY;
@@ -256,6 +342,41 @@ int main() {
           std::abs(rows[0].log_determinant - std::log(57.)) < 4e-11);
     CHECK(cosmo_gaussian_result_destroy(out) == COSMO_OK);
     out = nullptr;
+    // Independently measure prepared native+wire owner and result/scratch
+    // overlap. Threshold discovery tests admission; observed allocations test
+    // that the declared payload envelope actually covers simultaneous storage.
+    cosmo_prepared *measurement_source=nullptr;
+    CHECK(cosmo_prepare_observations(&f.d,&f.op,&measurement_source,&semantic)==COSMO_OK && measurement_source);
+    for (bool profile : {false,true}) {
+      CHECK(payload==0);
+      track_payload=true;
+      cosmo_gaussian *measured=nullptr;
+      CHECK(cosmo_gaussian_prepare(measurement_source,0,&policy,&measured,&semantic,&numerical)==COSMO_OK && measured);
+      track_payload=false;
+      const auto retained_payload=payload;
+      auto probe=profile ? batch : normalized;
+      uint64_t lo=0,hi=policy.maximum_native_bytes;
+      while(lo<hi) {
+        auto limit=policy;limit.maximum_native_bytes=lo+(hi-lo)/2;
+        cosmo_gaussian_result *candidate=nullptr;
+        auto code=cosmo_gaussian_evaluate(measured,&probe,&limit,&candidate);
+        if(code==COSMO_OK) {cosmo_gaussian_result_destroy(candidate);hi=limit.maximum_native_bytes;}
+        else {CHECK(code==COSMO_INVALID_INPUT && !candidate);lo=limit.maximum_native_bytes+1;}
+      }
+      auto exact=policy;exact.maximum_native_bytes=lo;
+      payload_peak=payload;track_payload=true;
+      CHECK(cosmo_gaussian_evaluate(measured,&probe,&exact,&out)==COSMO_OK && out);
+      track_payload=false;
+      CHECK(payload_peak<=lo);
+      CHECK(cosmo_gaussian_result_destroy(out)==COSMO_OK);out=nullptr;
+      CHECK(payload==retained_payload);
+      --exact.maximum_native_bytes;
+      CHECK(cosmo_gaussian_evaluate(measured,&probe,&exact,&out)==COSMO_INVALID_INPUT && !out);
+      CHECK(payload==retained_payload);
+      std::printf("Gaussian wire evaluation profile %d observed %zu admitted_bound %llu\n",profile,payload_peak,(unsigned long long)lo);
+      CHECK(cosmo_gaussian_destroy(measured)==COSMO_OK && payload==0);
+    }
+    CHECK(cosmo_observation_destroy(measurement_source)==COSMO_OK);
     auto before_views = live;
     fail_after = 0;
     auto source_status = cosmo_gaussian_source_view(proper, &view);
@@ -298,6 +419,10 @@ int main() {
     CHECK(cosmo_gaussian_evaluate(g, &batch, &small, &out) ==
               COSMO_INVALID_INPUT &&
           !out);
+    small = policy;
+    small.maximum_native_bytes = 0;
+    CHECK(cosmo_gaussian_evaluate(g, &batch, &small, &out) ==
+              COSMO_INVALID_INPUT && !out);
     // Every malformed descriptor fails before borrowed buffers are touched.
     auto malformed = batch;
     malformed.abi_version++;
@@ -360,7 +485,7 @@ int main() {
       auto before = live;
       fail_after = point;
       auto status =
-          cosmo_gaussian_proper_offset(g, &prior, &policy, &badg, &semantic);
+          cosmo_gaussian_proper_offset(g, &prior, &policy, &badg, &semantic, &numerical);
       fail_after = -1;
       if (status == COSMO_OK) {
         CHECK(badg);

@@ -1,59 +1,47 @@
 #pragma once
 #include "irred/background.hpp"
-#include "irred/piecewise_background.hpp"
 #include "irred/statistics.hpp"
-#include <array>
-#include <cstddef>
-#include <cstdint>
+#include <optional>
 #include <span>
-#include <string_view>
+#include <string>
 #include <vector>
 namespace irred::bao {
-// Flat late-time distance ratios. Ruler is an empirically free scale, not a
-// computed drag-epoch or last-scattering sound horizon.
 enum class Observable : std::uint32_t {
-  transverse_over_ruler = 0,
-  hubble_over_ruler = 1,
-  volume_over_ruler = 2
+  transverse_over_ruler,
+  hubble_over_ruler,
+  volume_over_ruler
 };
 struct Query {
-  double z;
-  Observable observable;
+  double z = 0;
+  Observable observable = Observable::transverse_over_ruler;
 };
 struct Ruler {
   double h0_rd_km_s;
-  explicit Ruler(double product_km_s) : h0_rd_km_s(product_km_s) {}
+  explicit Ruler(double v) : h0_rd_km_s(v) {}
 };
 struct Policy {
-  cosmology::Policy background;
-  std::size_t maximum_queries = 4096;
-  // Conservative dynamic payload peak: returned slots + admitted queries +
-  // index map + Background slots; excludes caller input and allocator overhead.
-  std::size_t maximum_native_bytes = 1048576;
+  cosmology::EvaluationPolicy background;
+  size_t maximum_queries = 0, maximum_native_bytes = 0;
 };
 struct Slot {
-  Query source{};
+  Query source;
   cosmology::Status status = cosmology::Status::invalid_input;
   numerics::Status numerical_status = numerics::Status::invalid_input;
-  // Meaningful only when status==ok; exact transverse/volume zero at z0 valid.
-  double dimensionless_value = 0;
-  std::size_t evaluations = 0;
+  std::optional<double> value;
+  std::optional<size_t> node_index;
 };
 struct Batch {
   cosmology::Status status = cosmology::Status::invalid_input;
-  std::size_t evaluations = 0;
   std::vector<Slot> slots;
+  cosmology::Work work;
 };
 inline constexpr std::string_view equation_id = "P01/flat-free-ruler-BAO/v1";
 inline constexpr std::string_view ruler_convention_id =
     "P01/free-H0rd-km-s-no-early-physics/v1";
-// z[0,5], H0rd[5000,15000] km/s; owned Background's existing model domain and
-// all-observable representability limits apply. Its computational H0 cancels.
-// One background callback cap applies across the whole batch. No likelihood,
-// joint-probe independence, automatic qualification or runtime CPL ABI claim.
-Batch evaluate(const cosmology::Background &, Ruler, std::span<const Query>,
+// E/I only; no computational H0 or observer coordinate. All covariance rows
+// remain distinct while exact expansion-z nodes are reused by the provider.
+Batch evaluate(const cosmology::Expansion &, Ruler, std::span<const Query>,
                Policy);
-
 enum class RowRole : std::uint32_t {
   released_fitted_distance_summary = 0,
   synthetic_control = 1,
@@ -72,87 +60,69 @@ struct DensityInput {
   std::string table_identity, covariance_identity, ordering_provenance,
       calibration_provenance, dependence_provenance;
 };
-struct DensityPolicy {
-  Policy observables;
-  // Required density policy is unset until the caller supplies every field.
-  std::size_t maximum_models = 0, maximum_matrix_elements = 0,
-              maximum_string_bytes = 0, maximum_native_bytes = 0;
+// Transferred dynamic capacities, including conservative SSO string storage.
+// Excludes object headers, allocator bookkeeping and RSS; overflow is absent.
+std::optional<size_t>
+retained_source_payload_bound(const DensityInput &) noexcept;
+// Simultaneous preparation payload, including transferred source capacities
+// and copied ID/provenance storage. Excludes borrowed input, allocator/RSS.
+std::optional<size_t> preparation_payload_bound(
+    size_t rows, size_t source_payload_bytes,
+    size_t copied_identity_payload_bytes) noexcept;
+struct PreparationPolicy {
+  size_t maximum_queries = 0, maximum_matrix_elements = 0,
+         maximum_string_bytes = 0, maximum_native_bytes = 0;
   double maximum_forward_sensitivity = 0;
   numerics::Arithmetic arithmetic =
       static_cast<numerics::Arithmetic>(UINT32_MAX);
 };
-struct ModelQuery {
-  cosmology::Background background;
+struct ModelPoint {
+  cosmology::ExpansionSpec expansion;
+  cosmology::FlatFLRW geometry;
   Ruler ruler;
+  ModelPoint(cosmology::ExpansionSpec e, cosmology::FlatFLRW g, Ruler r)
+      : expansion(std::move(e)), geometry(g), ruler(r) {}
+};
+enum class Output : std::uint32_t {
+  normalized_density = 1,
+  predictions = 2,
+  residuals = 4
+};
+struct DensityPolicy {
+  Policy observables;
+  size_t maximum_models = 0, maximum_native_bytes = 0;
+  double maximum_forward_sensitivity = 0;
+  numerics::Arithmetic arithmetic =
+      static_cast<numerics::Arithmetic>(UINT32_MAX);
+  std::uint32_t requested = 0;
+};
+struct OutputState {
+  cosmology::Availability availability = cosmology::Availability::not_requested;
+  cosmology::Status status = cosmology::Status::invalid_input;
+  numerics::Status numerical_status = numerics::Status::invalid_input;
 };
 struct DensitySlot {
-  cosmology::Parameters attempted_model;
-  double attempted_h0_rd_km_s;
-  std::string model_id, equation_id, arithmetic_id;
+  ModelPoint source;
+  explicit DensitySlot(ModelPoint p) : source(std::move(p)) {}
+  std::string_view model_id;
   cosmology::Status background_status = cosmology::Status::invalid_input;
   numerics::Status numerical_status = numerics::Status::invalid_input;
-  statistics::GaussianResult result;
+  bool has_predictions = false;
+  OutputState predictions_state, residuals_state, density_state;
+  std::optional<statistics::GaussianResult> result;
   std::vector<double> predictions, residuals;
-  std::size_t evaluations = 0;
+  std::vector<size_t> node_indices;
+  cosmology::Work work;
 };
 struct DensityBatch {
   statistics::DensityStatus status = statistics::DensityStatus::invalid_input;
   numerics::Status numerical_status = numerics::Status::invalid_input;
   std::vector<DensitySlot> slots;
-  std::size_t evaluations = 0;
-};
-// Distinct analytic entry: fixed five-bin q and explicitly free H0*r_d.
-// The computational H0 used to construct geometry cancels from these ratios.
-inline constexpr double piecewise_computational_h0_km_s_mpc = 70;
-struct PiecewiseModelPoint {
-  std::array<double, 5> q;
-  Ruler ruler;
-  PiecewiseModelPoint(std::array<double, 5> values, Ruler scale)
-      : q(values), ruler(scale) {}
-};
-struct PiecewisePolicy {
-  cosmology::PiecewisePolicy background;
-  std::size_t maximum_queries = 4096, maximum_native_bytes = 1048576;
-};
-struct PiecewiseSlot {
-  Query source{};
-  cosmology::Status status = cosmology::Status::invalid_input;
-  numerics::Status numerical_status = numerics::Status::invalid_input;
-  double dimensionless_value = 0;
-  std::size_t segment_visits = 0;
-};
-struct PiecewiseBatch {
-  cosmology::Status status = cosmology::Status::invalid_input;
-  std::size_t segment_visits = 0;
-  std::vector<PiecewiseSlot> slots;
-};
-PiecewiseBatch evaluate_piecewise(const cosmology::PiecewiseBackground &, Ruler,
-                                  std::span<const Query>, PiecewisePolicy);
-struct PiecewiseDensityPolicy {
-  PiecewisePolicy observables;
-  std::size_t maximum_models = 0, maximum_native_bytes = 0;
-  double maximum_forward_sensitivity = 0;
-  numerics::Arithmetic arithmetic =
-      static_cast<numerics::Arithmetic>(UINT32_MAX);
-};
-struct PiecewiseDensitySlot {
-  PiecewiseModelPoint source;
-  explicit PiecewiseDensitySlot(PiecewiseModelPoint point) : source(point) {}
-  std::string model_id, equation_id, arithmetic_id;
-  cosmology::Status background_status = cosmology::Status::invalid_input;
-  numerics::Status numerical_status = numerics::Status::invalid_input;
-  statistics::GaussianResult result;
-  std::vector<double> predictions, residuals;
-  std::size_t segment_visits = 0;
-};
-struct PiecewiseDensityBatch {
-  statistics::DensityStatus status = statistics::DensityStatus::invalid_input;
-  numerics::Status numerical_status = numerics::Status::invalid_input;
-  std::vector<PiecewiseDensitySlot> slots;
-  std::size_t segment_visits = 0;
+  cosmology::Work work;
 };
 class PreparedDensity {
 public:
+  std::optional<std::size_t> retained_payload_bound() const noexcept;
   statistics::DensityStatus status() const noexcept { return status_; }
   numerics::Status numerical_status() const noexcept {
     return numerical_status_;
@@ -161,23 +131,15 @@ public:
   const statistics::Metadata &metadata() const noexcept {
     return gaussian_.metadata();
   }
-  DensityBatch evaluate(std::span<const ModelQuery>, DensityPolicy) const;
-  // z[0,2.5], finite q_i[-3,2], free H0rd[5000,15000]; no extrapolation,
-  // quadrature settings, priors or joint-probe independence claim. Derivative
-  // absence at q jumps does not invalidate these geometry-only observables.
-  PiecewiseDensityBatch evaluate_piecewise(std::span<const PiecewiseModelPoint>,
-                                           PiecewiseDensityPolicy) const;
+  DensityBatch evaluate(std::span<const ModelPoint>, DensityPolicy) const;
 
 private:
-  template <class Model, class Result, class EvaluationPolicy>
-  Result evaluate_common(std::span<const Model>, EvaluationPolicy) const;
   DensityInput source_;
   statistics::Gaussian gaussian_;
   statistics::DensityStatus status_ = statistics::DensityStatus::invalid_input;
   numerics::Status numerical_status_ = numerics::Status::invalid_input;
-  friend PreparedDensity prepare_density(const DensityInput &, DensityPolicy);
+  friend PreparedDensity prepare_density(DensityInput, PreparationPolicy);
 };
-// Original full covariance/order retained. Units and identity declarations are
-// mandatory; unknown provenance remains unknown. No source covariance repair.
-PreparedDensity prepare_density(const DensityInput &, DensityPolicy);
+// Explicit owning input transfer; same full normalized covariance measure.
+PreparedDensity prepare_density(DensityInput, PreparationPolicy);
 } // namespace irred::bao

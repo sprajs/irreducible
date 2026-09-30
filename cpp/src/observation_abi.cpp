@@ -94,3 +94,46 @@ std::shared_ptr<const irred::observations::Prepared>
 shared_native_observations(const cosmo_prepared *p) noexcept {
  return p ? p->prepared : nullptr;
 }
+extern "C" uint32_t cosmo_observation_retained_bytes(const cosmo_prepared *p,
+                                                    uint64_t *bytes) {
+ if(bytes)*bytes=0;
+ if(!p||!bytes)return COSMO_INVALID_INPUT;
+ const auto payload=irred::observations::retained_source_payload_bound(*p->prepared);
+ if(!payload)return COSMO_OVERFLOW;
+ uint64_t total=*payload;
+ auto add=[&](uint64_t n,uint64_t width){if(n>UINT64_MAX/width||n*width>UINT64_MAX-total)return false;total+=n*width;return true;};
+ // Conservatively retains the acquisition-view charge until all consumers
+ // release the shared source, even if the acquisition handle was released.
+ if(!add(1,sizeof(irred::observations::Prepared)+sizeof(cosmo_prepared))||
+    !add(p->measurement_ids.capacity(),sizeof(cosmo_bytes))||
+    !add(p->event_ids.capacity(),sizeof(cosmo_bytes))||
+    !add(p->axis_ids.capacity(),sizeof(cosmo_bytes)))return COSMO_OVERFLOW;
+ *bytes=total;
+ return COSMO_OK;
+}
+extern "C" uint32_t cosmo_observation_preparation_bytes(const cosmo_observation_descriptor *d,uint64_t *bytes) {
+ if(bytes)*bytes=0;
+ if(!d||!bytes)return COSMO_INVALID_INPUT;
+ if(d->abi_version!=COSMO_ABI_VERSION)return COSMO_ABI_MISMATCH;
+ if(d->struct_size!=sizeof(*d))return COSMO_INVALID_INPUT;
+ uint64_t total=sizeof(Prepared)+sizeof(cosmo_prepared)+4096;
+ auto add=[&](uint64_t n,uint64_t width){if(n>UINT64_MAX/width||n*width>UINT64_MAX-total)return false;total+=n*width;return true;};
+ uint64_t string_left=16*1024*1024;
+ for(const auto* s:{&d->table_sha256,&d->uncertainty_sha256,&d->calibration_provenance,&d->dependence_provenance,&d->quality_dictionary,&d->ordering_provenance}) {
+  if(!::bytes(*s,string_left)||!add(s->length+16,2))return COSMO_INVALID_INPUT;
+ }
+ for(const auto* v:{&d->measurement_ids,&d->event_ids,&d->uncertainty_axis_ids}) {
+  if(!strings(*v,10000,string_left)||!add(v->length,2*(sizeof(std::string)+sizeof(cosmo_bytes))))return COSMO_INVALID_INPUT;
+  for(uint64_t i=0;i<v->length;++i)if(!add(v->data[i].length+16,2))return COSMO_OVERFLOW;
+ }
+ for(const auto* v:{&d->values,&d->zhd,&d->zcmb,&d->zhel,&d->uncertainty_matrix}) {
+  if(!doubles(*v,25000000)||!add(v->length,2*sizeof(double)))return COSMO_INVALID_INPUT;
+ }
+ for(const auto* v:{&d->missing,&d->zhd_missing,&d->zcmb_missing,&d->zhel_missing,&d->source_selection}) {
+  if(!bounded(v->data,v->length,v->byte_length,10000)||!add(v->length,2))return COSMO_INVALID_INPUT;
+ }
+ if(!bounded(d->quality.data,d->quality.length,d->quality.byte_length,10000)||!add(d->quality.length,2*sizeof(uint64_t)))return COSMO_INVALID_INPUT;
+ // Conservative supported STL construction capacity envelope. Moves do not
+ // duplicate source buffers; caller input, allocator metadata and RSS excluded.
+ *bytes=total;return COSMO_OK;
+}

@@ -13,7 +13,7 @@ fn explicit_generic_source_preserves_role_axes_and_unknown_provenance() {
     )
     .unwrap();
     fs::write(&cov, "2\n3 .25 .25 2\n").unwrap();
-    let mut request = json!({"schema_version":1,"operation":"observations.prepare.v1","table":table,"uncertainty":cov,"metadata":{"profile":"typed_magnitude_covariance","role":"released_fitted_summary","unit":"magnitude","calibration":"unknown","uncertainty":"covariance","uncertainty_unit":"magnitude_squared","component":"unknown"},"selection":"all","ordering_provenance":"declared table row order; not independently verified","resources":{"maximum_asset_bytes":4096,"maximum_rows":8,"maximum_matrix_elements":64,"maximum_string_bytes":4096}});
+    let mut request = json!({"schema_version":2,"operation":"observations.prepare","table":table,"uncertainty":cov,"metadata":{"profile":"typed_magnitude_covariance","role":"released_fitted_summary","unit":"magnitude","calibration":"unknown","uncertainty":"covariance","uncertainty_unit":"magnitude_squared","component":"unknown"},"exports":["source_values","covariance","original_fields"],"source_selection":[1,1],"calibration_provenance":"unknown supplied calibration","dependence_provenance":"unknown overlap","quality_dictionary":"unavailable","ordering_provenance":"declared table row order; not independently verified","resources":{"maximum_asset_bytes":4096,"maximum_rows":8,"maximum_matrix_elements":64,"maximum_string_bytes":4096,"maximum_preparation_bytes":16777216}});
     let run = |v: &Value| {
         let path = root.join("request.json");
         fs::write(&path, serde_json::to_vec(v).unwrap()).unwrap();
@@ -31,10 +31,10 @@ fn explicit_generic_source_preserves_role_axes_and_unknown_provenance() {
     let (exit, response) = run(&request);
     assert_eq!(exit, 0);
     let result = &response["result"];
-    assert_eq!(result["metadata"], request["metadata"]);
+    assert_eq!(result["source_type"], request["metadata"]);
     assert_eq!(result["values"], json!([23., 21.]));
     assert_eq!(result["measurement_ids"], json!(["row-b", "row-a"]));
-    assert_eq!(result["selected_source_indices"], json!([0, 1]));
+    assert!(result.get("selected_source_indices").is_none());
     assert_eq!(
         response["receipt"]["outputs"][0]["check_kind"],
         "structural_source_contract"
@@ -47,7 +47,7 @@ fn explicit_generic_source_preserves_role_axes_and_unknown_provenance() {
         serde_json::from_slice(&fs::read(root.join("store/objects").join(matrix)).unwrap())
             .unwrap();
     assert_eq!(stored["axis_ids"], result["measurement_ids"]);
-    assert_eq!(stored["values"], json!([3.,0.25,0.25,2.]));
+    assert_eq!(stored["values"], json!([3., 0.25, 0.25, 2.]));
     request["metadata"]["role"] = json!("posterior_summary");
     assert_ne!(run(&request).0, 0);
     request["metadata"]["role"] = json!("released_fitted_summary");

@@ -6,7 +6,7 @@ use crate::{
 };
 use serde::Deserialize;
 use serde_json::{Value, json};
-use std::{fs, path::PathBuf};
+use std::{fs, io::Read, path::PathBuf};
 #[derive(Deserialize)]
 #[serde(deny_unknown_fields)]
 struct Request {
@@ -43,17 +43,39 @@ pub(crate) fn execute() -> Result<(), String> {
     let manifest: Value = serde_json::from_str(include_str!(env!("IRRED_BUILD_MANIFEST")))
         .map_err(|e| e.to_string())?;
     match args.get(1).map(String::as_str) {
+        Some("stream") if args.len() == 3 || args.len() == 4 => {
+            let store = PathBuf::from(&args[2]);
+            let limits = if let Some(path) = args.get(3) {
+                serde_json::from_slice(&fs::read(path).map_err(|_| "LIMITS_IO")?).map_err(|_| "INVALID_SESSION_LIMITS")?
+            } else { crate::retained_context::Limits::default() };
+            crate::current_session::run(&mut std::io::stdin().lock(), &mut std::io::stdout().lock(), &store, limits)
+        }
         Some("describe") | Some("version") if args.len() == 3 && args[2] == "--json" => {
             println!(
                 "{}",
-                json!({"schema_version":1,"product":"Irreducible","executable":"irred","version":env!("CARGO_PKG_VERSION"),"abi_version":ABI_VERSION,"build":manifest,"capabilities":[{"id":"fixture.checked_i64_add.v1","implementation":"implemented","qualification":"unqualified","scientific":false},{"id":"quantity.convert.v1","implementation":"implemented","qualification":"unqualified","scientific":true},{"id":"numerics.scalar_batch.v1","implementation":"implemented","qualification":"unqualified","scientific":true},{"id":"background.parameter_query_batch.v1","implementation":"implemented","qualification":"unqualified","scientific":true,"interface_gate":"bounded_native_and_cli_passed","models":["flat_lcdm_late_v1","constant_q_flat_v1"]},{"id":"supernova.profile_batch.v1","implementation":"implemented","qualification":"unqualified","scientific":true,"interface_gate":"bounded_native_and_cli_passed","models":["flat_lcdm_late_v1","constant_q_flat_v1"],"target":"relative single-offset profile score; density and evidence not applicable","validation_coverage":"named original-input seven-point native regression; request applicability not established"},{"id":"background.parameter_query_batch.v2","implementation":"implemented","qualification":"unqualified","scientific":true,"interface_gate":"bounded_native_and_cli_passed","models":["flat_lcdm_late_v1","constant_q_flat_v1","flat_cpl_late_v1"],"parameters":"all fields explicit; canonical inactive values required","validation_coverage":"bounded native model and synthetic interface fixtures; request applicability not established"},{"id":"supernova.profile_batch.v2","implementation":"implemented","qualification":"unqualified","scientific":true,"interface_gate":"bounded_native_and_cli_passed","models":["flat_lcdm_late_v1","constant_q_flat_v1","flat_cpl_late_v1"],"target":"relative single-offset profile score; density and evidence not applicable","validation_coverage":"named four-point original-input native comparison and synthetic interface cases; request applicability not established"},{"id":"background.piecewise_query_batch.v1","implementation":"implemented","qualification":"unqualified","scientific":true,"interface_gate":"bounded_native_and_cli_passed","parameters":"required H0 and five ordered q coefficients","work":"one global analytic segment budget; no quadrature callbacks","validation_coverage":"bounded native fixed-five-bin and hostile transport cases; request applicability not established"},{"id":"supernova.piecewise_profile_batch.v1","implementation":"implemented","qualification":"unqualified","scientific":true,"interface_gate":"bounded_native_and_cli_passed","parameters":"required five ordered q coefficients; explicit cached arithmetic and analytic segment policy","target":"relative single-offset profile score; density and evidence not applicable","validation_coverage":"named six-point original-input native comparison and synthetic interface cases; request applicability not established"},{"id":"bao.piecewise_gaussian_batch.v1","implementation":"implemented","qualification":"unqualified","scientific":true,"interface_gate":"bounded_native_and_cli_passed","parameters":"required five ordered q coefficients and free H0rd","target":"normalized conditional free-ruler Gaussian density","computational_h0_km_s_mpc":70,"work":"one global analytic segment budget; no quadrature callbacks","validation_coverage":"named native twenty-four-point original-input regression; request applicability not established"},{"id":"bao.gaussian_batch.v1","implementation":"implemented","qualification":"unqualified","scientific":true,"interface_gate":"bounded_native_and_cli_passed","target":"normalized conditional free-ruler Gaussian density","computational_h0_km_s_mpc":70,"validation_coverage":"named native eleven-point original-input regression; request applicability not established"},{"id":"statistics.gaussian_batch.v1","implementation":"implemented","qualification":"unqualified","scientific":true,"interface_gate":"bounded_native_and_cli_passed","modes":["normalized_density","profile_offset_score"]},{"id":"observations.prepare.v1","implementation":"implemented","qualification":"unqualified","scientific":true,"profiles":["pantheon_plus_released_v1","gaussian_fixture_v1"],"fits_codec":"unavailable_in_product"}],"abi_schema":serde_json::from_str::<Value>(include_str!("../schema/abi.json")).map_err(|e|e.to_string())?,"commands":["describe --json","version --json","run REQUEST STORE [--assurance numerical_contract|qualified]"],"scientific_qualifications":[]})
+                json!({"schema_version":2,"product":"Irreducible","executable":"irred","version":env!("CARGO_PKG_VERSION"),"abi_version":ABI_VERSION,"build":manifest,
+                    "capabilities":[
+                        {"id":"fixture.checked_i64_add.v1","implementation":"implemented","scientific":false,"qualification":"unqualified"},
+                        {"id":"quantity.convert.v1","implementation":"implemented","scientific":true,"qualification":"unqualified"},
+                        {"id":"numerics.scalar_batch.v1","implementation":"implemented","scientific":true,"qualification":"unqualified"},
+                        {"id":"background.evaluate","implementation":"implemented","scientific":true,"qualification":"unqualified","requested_groups":["radial","luminosity_shape","clock","physical","kinematics","expansion"],"models":["lcdm","constant_q","cpl","fixed_q5"],"node_reuse":"exact z bits within each model batch; no cross-model cache"},
+                        {"id":"observations.prepare","implementation":"implemented","scientific":true,"qualification":"unqualified","profiles":["pantheon_plus_released_v1","gaussian_fixture_v1","typed_magnitude_covariance"],"ownership":"immutable shared native source"},
+                        {"id":"statistics.gaussian","implementation":"implemented","scientific":true,"qualification":"unqualified","modes":["normalized_density","profile_offset_score"]},
+                        {"id":"supernova.profile","implementation":"implemented","scientific":true,"qualification":"unqualified","models":["lcdm","constant_q","cpl","fixed_q5"],"source_effects":["none","grey_log1p_magnitude"],"target":"conditional single-offset relative profile"},
+                        {"id":"bao.density","implementation":"implemented","scientific":true,"qualification":"unqualified","models":["lcdm","constant_q","cpl","fixed_q5"],"target":"conditional free-H0rd normalized Gaussian density"}],
+                    "abi_schema":serde_json::from_str::<Value>(include_str!("../schema/abi.json")).map_err(|e|e.to_string())?,
+                    "commands":["describe --json","version --json","run REQUEST STORE [--assurance numerical_contract|qualified]","stream STORE [LIMITS_JSON]"],
+                    "interface_policy":"one current ABI revision; no compatibility aliases",
+                    "scientific_qualifications":[]})
             );
             Ok(())
         }
         Some("run") if args.len()==4 || (args.len()==6 && args[4]=="--assurance" && matches!(args[5].as_str(),"numerical_contract"|"qualified")) => {
             let assurance=args.get(5).map(String::as_str).unwrap_or("numerical_contract");
-            let input =
-                fs::read(args.get(2).ok_or("missing request path")?).map_err(|e| e.to_string())?;
+            let mut input = Vec::new();
+            fs::File::open(args.get(2).ok_or("missing request path")?).map_err(|_| "INPUT_IO")?
+                .take((16 << 20) + 1).read_to_end(&mut input).map_err(|_| "INPUT_IO")?;
+            if input.len() > 16 << 20 { return Err("INPUT_BYTE_LIMIT".into()); }
             let store = PathBuf::from(args.get(3).ok_or("missing store path")?);
             fs::create_dir_all(store.join("objects")).map_err(|e| e.to_string())?;
             fs::create_dir_all(store.join("attempts")).map_err(|e| e.to_string())?;
@@ -87,9 +109,9 @@ pub(crate) fn execute() -> Result<(), String> {
                     match header.operation.as_str() {
                         "fixture.checked_i64_add.v1" => {
                             let request: Request = serde_json::from_slice(&input).map_err(|e|e.to_string())?;
-                            if request.schema_version != 1 { return Err("UNSUPPORTED_SPECIFICATION".into()); }
+                            if request.schema_version != 2 { return Err("UNSUPPORTED_SPECIFICATION".into()); }
                             fault = request.fault;
-                            resolved = Some(json!({"schema_version":1,"operation":request.operation,
+                            resolved = Some(json!({"schema_version":2,"operation":request.operation,
                                 "equation_id":"EQ-fixture.checked_i64_add.v1","a":request.a,"b":request.b,
                                 "requested_outputs":[{"id":"sum","required":true,"numerical_gate":"required","inference_gate":"not_applicable"}]}));
                             if std::env::var_os("COSMOLOGY_TEST_PANIC").is_some() {panic!("injected Rust panic");}
@@ -97,8 +119,8 @@ pub(crate) fn execute() -> Result<(), String> {
                         },
                         "quantity.convert.v1" => {
                             let request: QuantityRequest = serde_json::from_slice(&input).map_err(|e|e.to_string())?;
-                            if request.schema_version != 1 { return Err("UNSUPPORTED_SPECIFICATION".into()); }
-                            resolved = Some(json!({"schema_version":1,"operation":request.operation,
+                            if request.schema_version != 2 { return Err("UNSUPPORTED_SPECIFICATION".into()); }
+                            resolved = Some(json!({"schema_version":2,"operation":request.operation,
                                 "equation_id":"EQ-quantity-conversion-v1","values":request.values,
                                 "source":request.source,"target":request.target,
                                 "requested_outputs":[{"id":"converted","required":true,"numerical_gate":"required","inference_gate":"not_applicable"}]}));
@@ -117,8 +139,8 @@ pub(crate) fn execute() -> Result<(), String> {
                         },
                         "numerics.scalar_batch.v1" => {
                             let request: NumericalRequest = serde_json::from_slice(&input).map_err(|e|e.to_string())?;
-                            if request.schema_version!=1 {return Err("UNSUPPORTED_SPECIFICATION".into());}
-                            resolved=Some(json!({"schema_version":1,"operation":request.operation,"method":request.method,
+                            if request.schema_version!=2 {return Err("UNSUPPORTED_SPECIFICATION".into());}
+                            resolved=Some(json!({"schema_version":2,"operation":request.operation,"method":request.method,
                                 "equation_id":format!("F02/scalar/{}/v1",request.method),"values":request.values,
                                 "requested_outputs":[{"id":"evaluations","required":true,"numerical_gate":"required","inference_gate":"not_applicable"}]}));
                             if std::env::var_os("COSMOLOGY_TEST_PANIC").is_some(){panic!("injected Rust panic");}
@@ -138,36 +160,10 @@ pub(crate) fn execute() -> Result<(), String> {
                                 "method":request.method,"source_values":request.values,"evaluations":evaluations});
                             Ok(crate::outcome::Outcome::scientific(resolved.clone().unwrap(),output,"evaluations",json!(request.method),json!("binary64_storage_method_declared_intermediate"),json!({"max_batch_elements":MAX_BATCH_ELEMENTS}),"bounded native/interface checks; request applicability not established"))
                         },
-                        "background.piecewise_query_batch.v1" => {
-                            crate::piecewise_run::execute(&input,&store)
-                        }
-                        "bao.piecewise_gaussian_batch.v1" => {
-                            crate::bao_piecewise_run::execute(&input,&store)
-                        }
-                        "bao.gaussian_batch.v1" => {
-                            crate::bao_run::execute(&input,&store)
-                        }
-                        "background.parameter_query_batch.v2" => {
-                            crate::background_v2_run::execute(&input,&store)
-                        }
-                        "supernova.piecewise_profile_batch.v1" => {
-                            crate::supernova_piecewise_run::execute(&input,&store)
-                        }
-                        "supernova.profile_batch.v2" => {
-                            crate::supernova_v2_run::execute(&input,&store)
-                        }
-                        "background.parameter_query_batch.v1" => {
-                            crate::background_run::execute(&input,&store)
-                        }
-                        "supernova.profile_batch.v1" => {
-                            crate::supernova_run::execute(&input,&store)
-                        }
-                        "statistics.gaussian_batch.v1" => {
-                            crate::statistics_run::execute(&input,&store)
-                        }
-                        "observations.prepare.v1" => {
-                            crate::observation_run::execute(&input,&store)
-                        },
+                        "background.evaluate" => crate::current_background_run::execute(&input),
+                        "supernova.profile" | "bao.density" => crate::current_session::execute_once(&input,&store),
+                        "statistics.gaussian" => crate::statistics_run::execute(&input,&store),
+                        "observations.prepare" => crate::current_observation_run::execute(&input,&store),
                         _ => Err("UNSUPPORTED_SPECIFICATION".into()),
                     }
                 },

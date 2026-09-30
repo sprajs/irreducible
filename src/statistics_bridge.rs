@@ -1,7 +1,7 @@
 //! Coarse retained Gaussian calculation; all probability algebra lives in C++.
 use super::{
     generated::*,
-    observations::{ObservationInput, bytes, copied, doubles, prepare_retained, strings},
+    observations::{Prepared, bytes, copied, doubles, strings},
 };
 use serde_json::{Value, json};
 use std::{ffi::c_void, ptr};
@@ -46,8 +46,9 @@ fn semantic(transport: u32, status: u32, raw: *mut c_void) -> Result<Gaussian, S
     Ok(owner)
 }
 pub(crate) fn gaussian_batch(
-    source: &ObservationInput,
+    source: &Prepared,
     selection: &str,
+    residual_unit: &str,
     observation_policy: [u64; 3],
     residuals: &[Vec<f64>],
     ordered_ids: &[String],
@@ -55,6 +56,8 @@ pub(crate) fn gaussian_batch(
     prior: Option<ProperPrior<'_>>,
     maximum_batch_elements: u64,
     maximum_forward_sensitivity: f64,
+    maximum_preparation_bytes: u64,
+    maximum_evaluation_bytes: u64,
 ) -> Result<Value, String> {
     if response.is_some() && prior.is_some() {
         return Err("PROFILE_AND_PROPER_PRIOR_MUTUALLY_EXCLUSIVE".into());
@@ -67,8 +70,9 @@ pub(crate) fn gaussian_batch(
     {
         return Err("INVALID_BATCH_SHAPE".into());
     }
-    let (observations, selected) = prepare_retained(source, selection, observation_policy)?;
-    let policy = GaussianPolicy {
+    let source_rows = source.source_view()?.values()?.len();
+    let selected = selected_indices(source, selection, source_rows)?;
+    let mut policy = GaussianPolicy {
         struct_size: std::mem::size_of::<GaussianPolicy>() as u32,
         abi_version: ABI_VERSION,
         reserved: 0,
@@ -77,12 +81,28 @@ pub(crate) fn gaussian_batch(
         maximum_batch_elements,
         maximum_string_bytes: observation_policy[2],
         maximum_forward_sensitivity,
+        maximum_native_bytes: maximum_preparation_bytes,
     };
     let mut raw = ptr::null_mut();
     let mut status = u32::MAX;
+    let mut numerical_status = u32::MAX;
     let tag = observation_tag_id("selection", selection).ok_or("UNKNOWN_SELECTION")?;
-    let transport =
-        unsafe { cosmo_gaussian_prepare(observations.0, tag, &policy, &mut raw, &mut status) };
+    let transport = unsafe {
+        cosmo_gaussian_prepare(
+            source.0,
+            tag,
+            &policy,
+            &mut raw,
+            &mut status,
+            &mut numerical_status,
+        )
+    };
+    if transport == OK && status != GAUSSIAN_STATUS_FINITE {
+        let _drop = Gaussian(raw);
+        return Ok(
+            json!({"kind":"failure","status":gaussian_status_name(status).ok_or("INVALID_SCIENTIFIC_STATUS")?,"numerical_status":numerical_status_name(numerical_status).ok_or("INVALID_NUMERICAL_STATUS")?,"phase":"preparation","evaluations":[],"selected_source_indices":selected}),
+        );
+    }
     let mut owner = semantic(transport, status, raw)?;
     if let Some(prior) = prior {
         let ids: Vec<_> = prior.ordered_ids.iter().map(|x| bytes(x)).collect();
@@ -100,10 +120,24 @@ pub(crate) fn gaussian_batch(
         raw = ptr::null_mut();
         status = u32::MAX;
         let transport = unsafe {
-            cosmo_gaussian_proper_offset(owner.0, &descriptor, &policy, &mut raw, &mut status)
+            cosmo_gaussian_proper_offset(
+                owner.0,
+                &descriptor,
+                &policy,
+                &mut raw,
+                &mut status,
+                &mut numerical_status,
+            )
         };
+        if transport == OK && status != GAUSSIAN_STATUS_FINITE {
+            let _drop = Gaussian(raw);
+            return Ok(
+                json!({"kind":"failure","status":gaussian_status_name(status).ok_or("INVALID_SCIENTIFIC_STATUS")?,"numerical_status":numerical_status_name(numerical_status).ok_or("INVALID_NUMERICAL_STATUS")?,"phase":"proper_prior_preparation","evaluations":[],"selected_source_indices":selected}),
+            );
+        }
         owner = semantic(transport, status, raw)?;
     }
+    policy.maximum_native_bytes = maximum_evaluation_bytes;
     let ids: Vec<_> = ordered_ids.iter().map(|x| bytes(x)).collect();
     let flat: Vec<_> = residuals.iter().flatten().copied().collect();
     let descriptor = GaussianBatch {
@@ -178,7 +212,7 @@ pub(crate) fn gaussian_batch(
     };
     let decode_ids = |v: &Strings| -> Result<Vec<String>, String> {
         let length = usize::try_from(v.length).map_err(|_| "INVALID_RESULT_LENGTH")?;
-        if length > source.values.len()
+        if length > source_rows
             || v.byte_length
                 != v.length
                     .checked_mul(std::mem::size_of::<Bytes>() as u64)
@@ -244,6 +278,30 @@ pub(crate) fn gaussian_batch(
     }
     let mean_shift = copied(view.mean_shift.data, view.mean_shift.length, n)?;
     Ok(
-        json!({"kind":if failed {"failure"} else {"finite"},"error_id":if failed {Some("GAUSSIAN_EVALUATION_FAILURE")}else{None},"mode":if response.is_some(){"profile_offset_score"}else{"normalized_density"},"ordered_ids":native_ids,"selected_source_indices":selected.source_indices,"measure":text(&view.measure)?,"input_matrix_convention":text(&view.input_matrix_convention)?,"matrix_validation_scope":matrix_scope,"source_semantics":text(&view.source_semantics)?,"table_identity":text(&view.table_identity)?,"uncertainty_identity":text(&view.uncertainty_identity)?,"ordering_provenance":text(&view.ordering_provenance)?,"calibration_provenance":text(&view.calibration_provenance)?,"dependence_provenance":text(&view.dependence_provenance)?,"prepared_distribution_treatment":text(&view.treatment)?,"residual_unit":source.metadata.unit,"response_unit":"one","evaluation_treatment":if response.is_some(){"profile score; normalized density not applicable"}else{"normalized Gaussian density"},"mean_shift":mean_shift,"mean_shift_encoding":"empty means zero shift for each ordered row","priors":priors,"selection_history":selection_history,"rows":output}),
+        json!({"kind":if failed {"failure"} else {"finite"},"error_id":if failed {Some("GAUSSIAN_EVALUATION_FAILURE")}else{None},"mode":if response.is_some(){"profile_offset_score"}else{"normalized_density"},"ordered_ids":native_ids,"selected_source_indices":selected,"measure":text(&view.measure)?,"input_matrix_convention":text(&view.input_matrix_convention)?,"matrix_validation_scope":matrix_scope,"source_semantics":text(&view.source_semantics)?,"table_identity":text(&view.table_identity)?,"uncertainty_identity":text(&view.uncertainty_identity)?,"ordering_provenance":text(&view.ordering_provenance)?,"calibration_provenance":text(&view.calibration_provenance)?,"dependence_provenance":text(&view.dependence_provenance)?,"prepared_distribution_treatment":text(&view.treatment)?,"residual_unit":residual_unit,"response_unit":"one","evaluation_treatment":if response.is_some(){"profile score; normalized density not applicable"}else{"normalized Gaussian density"},"mean_shift":mean_shift,"mean_shift_encoding":"empty means zero shift for each ordered row","priors":priors,"selection_history":selection_history,"rows":output}),
     )
+}
+
+fn selected_indices(
+    source: &Prepared,
+    selection: &str,
+    source_rows: usize,
+) -> Result<Vec<u64>, String> {
+    let tag = observation_tag_id("selection", selection).ok_or("UNKNOWN_SELECTION")?;
+    let (mut raw, mut status) = (ptr::null_mut(), 0);
+    let code = unsafe { cosmo_observation_select(source.0, tag, &mut raw, &mut status) };
+    let owner = super::Owned(raw);
+    if code != OK {
+        return Err(format!("CORE_STATUS_{code}"));
+    }
+    if status != OBSERVATION_STATUS_OK || raw.is_null() {
+        return Err("INVALID_SELECTION_VIEW".into());
+    }
+    let (mut mask, mut n, mut indices, mut k) = (ptr::null(), 0, ptr::null(), 0);
+    let code =
+        unsafe { cosmo_result_selection_view(owner.0, &mut mask, &mut n, &mut indices, &mut k) };
+    if code != OK || n != source_rows as u64 {
+        return Err("INVALID_SELECTION_VIEW".into());
+    }
+    copied(indices, k, source_rows)
 }

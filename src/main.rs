@@ -1,19 +1,17 @@
-mod background_run;
-mod background_v2_run;
 mod bao_ingestion;
-mod bao_piecewise_run;
-mod bao_run;
 mod bridge;
 mod cli;
+mod current_background_run;
+mod current_bao_run;
+mod current_observation_run;
+mod current_session;
 mod ingestion;
-mod observation_run;
+mod model_spec;
 mod outcome;
-mod piecewise_run;
 mod records;
+mod retained_context;
 mod statistics_run;
-mod supernova_piecewise_run;
-mod supernova_run;
-mod supernova_v2_run;
+mod stream_io;
 fn main() {
     if let Err(e) = cli::execute() {
         eprintln!("{}", serde_json::json!({"kind":"failure","error_id":e}));

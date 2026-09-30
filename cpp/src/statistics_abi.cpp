@@ -1,5 +1,6 @@
 #include "irred/abi.h"
 #include "irred/statistics.hpp"
+#include "payload_accounting.hpp"
 #include "observation_internal.hpp"
 #include <cmath>
 #include <limits>
@@ -103,11 +104,17 @@ struct cosmo_gaussian {
   std::vector<std::vector<cosmo_bytes>> prior_ids, kept_ids, complement_ids;
   explicit cosmo_gaussian(irred::statistics::Gaussian g)
       : native(std::move(g)) {
+    ids.reserve(native.metadata().ordered_ids.size());
+    kept_ids.reserve(native.selection_history().size());
+    complement_ids.reserve(native.selection_history().size());
+    prior_ids.reserve(native.priors().size());
     for (const auto &id : native.metadata().ordered_ids)
       ids.push_back(view(id));
     for (const auto &selection : native.selection_history()) {
       kept_ids.emplace_back();
       complement_ids.emplace_back();
+      kept_ids.back().reserve(selection.kept_row_ids.size());
+      complement_ids.back().reserve(selection.complement_row_ids.size());
       for (const auto &id : selection.kept_row_ids)
         kept_ids.back().push_back(view(id));
       for (const auto &id : selection.complement_row_ids)
@@ -115,6 +122,7 @@ struct cosmo_gaussian {
     }
     for (const auto &prior : native.priors()) {
       prior_ids.emplace_back();
+      prior_ids.back().reserve(prior.applied_row_ids.size());
       for (const auto &id : prior.applied_row_ids)
         prior_ids.back().push_back(view(id));
     }
@@ -123,16 +131,18 @@ struct cosmo_gaussian {
 struct cosmo_gaussian_result {
   std::vector<cosmo_gaussian_row> rows;
 };
-extern "C" uint32_t cosmo_gaussian_prepare(const cosmo_prepared *observations,
-                                           uint32_t selection,
-                                           const cosmo_gaussian_policy *p,
-                                           cosmo_gaussian **out,
-                                           uint32_t *semantic) {
+extern "C" uint32_t
+cosmo_gaussian_prepare(const cosmo_prepared *observations, uint32_t selection,
+                       const cosmo_gaussian_policy *p, cosmo_gaussian **out,
+                       uint32_t *semantic, uint32_t *numerical_status) {
   if (out)
     *out = nullptr;
   if (semantic)
     *semantic = COSMO_GAUSSIAN_STATUS_INVALID_INPUT;
-  if (!out || !semantic || !observations || !p)
+  if (numerical_status)
+    *numerical_status =
+        static_cast<uint32_t>(irred::numerics::Status::invalid_input);
+  if (!out || !semantic || !numerical_status || !observations || !p)
     return COSMO_INVALID_INPUT;
   if (p->abi_version != COSMO_ABI_VERSION)
     return COSMO_ABI_MISMATCH;
@@ -149,12 +159,23 @@ extern "C" uint32_t cosmo_gaussian_prepare(const cosmo_prepared *observations,
   for (const auto &id : source.measurement_ids)
     if (!bytes(view(id), string_left))
       return COSMO_INVALID_INPUT;
+  const auto peak = irred::statistics::selected_gaussian_preparation_payload_bound(
+      *native_observations(observations), source.values.size(),
+      irred::numerics::Arithmetic::binary64_legacy_v1);
+  irred::detail::PayloadAccounting combined(peak.value_or(SIZE_MAX));
+  combined.add(1, sizeof(cosmo_gaussian));
+  combined.add(source.values.size(), 2 * sizeof(cosmo_bytes));
+  combined.add(2, sizeof(std::vector<cosmo_bytes>));
+  const auto envelope = combined.result();
+  if (!peak || !envelope || *envelope > p->maximum_native_bytes)
+    return COSMO_INVALID_INPUT;
   try {
     auto result = irred::statistics::prepare_observations(
         *native_observations(observations),
         static_cast<irred::observations::Selection>(selection),
         p->maximum_matrix_elements, p->maximum_forward_sensitivity);
     *semantic = static_cast<uint32_t>(result.status());
+    *numerical_status = static_cast<uint32_t>(result.numerical_status());
     if (result.status() == DensityStatus::finite)
       *out = new cosmo_gaussian(std::move(result));
     return COSMO_OK;
@@ -166,12 +187,16 @@ extern "C" uint32_t cosmo_gaussian_prepare(const cosmo_prepared *observations,
 }
 extern "C" uint32_t cosmo_gaussian_proper_offset(
     const cosmo_gaussian *g, const cosmo_gaussian_prior *prior,
-    const cosmo_gaussian_policy *p, cosmo_gaussian **out, uint32_t *semantic) {
+    const cosmo_gaussian_policy *p, cosmo_gaussian **out, uint32_t *semantic,
+    uint32_t *numerical_status) {
   if (out)
     *out = nullptr;
   if (semantic)
     *semantic = COSMO_GAUSSIAN_STATUS_INVALID_INPUT;
-  if (!g || !prior || !p || !out || !semantic)
+  if (numerical_status)
+    *numerical_status =
+        static_cast<uint32_t>(irred::numerics::Status::invalid_input);
+  if (!g || !prior || !p || !out || !semantic || !numerical_status)
     return COSMO_INVALID_INPUT;
   if (prior->abi_version != COSMO_ABI_VERSION ||
       p->abi_version != COSMO_ABI_VERSION)
@@ -185,6 +210,33 @@ extern "C" uint32_t cosmo_gaussian_proper_offset(
       prior->response.length != n || !bytes(prior->latent_identity, left) ||
       !strings(prior->ordered_ids, n, left))
     return COSMO_INVALID_INPUT;
+  const auto peak = g->native.proper_offset_payload_bound(
+      {reinterpret_cast<const char *>(prior->latent_identity.data),
+       static_cast<size_t>(prior->latent_identity.length)});
+  irred::detail::PayloadAccounting combined(peak.value_or(SIZE_MAX));
+  combined.add(2, sizeof(cosmo_gaussian));
+  // Existing views remain live alongside candidate views; reserve exact
+  // candidate lengths, while charging existing actual capacities.
+  auto existing = [&](const auto &groups) {
+    combined.add(groups.capacity(), sizeof(std::vector<cosmo_bytes>));
+    for (const auto &ids : groups) combined.add(ids.capacity(), sizeof(cosmo_bytes));
+  };
+  combined.add(g->ids.capacity(), sizeof(cosmo_bytes));
+  existing(g->kept_ids); existing(g->complement_ids); existing(g->prior_ids);
+  combined.add(n, 2 * sizeof(cosmo_bytes) + sizeof(std::string));
+  combined.add(g->native.selection_history().size(), 2 * sizeof(std::vector<cosmo_bytes>));
+  combined.add(g->native.priors().size() + 1, sizeof(std::vector<cosmo_bytes>));
+  for (const auto &history : g->native.selection_history()) {
+    combined.add(history.kept_row_ids.size(), sizeof(cosmo_bytes));
+    combined.add(history.complement_row_ids.size(), sizeof(cosmo_bytes));
+  }
+  for (const auto &prior_item : g->native.priors())
+    combined.add(prior_item.applied_row_ids.size(), sizeof(cosmo_bytes));
+  for (size_t i = 0; i < n; ++i)
+    combined.add(std::max<size_t>(prior->ordered_ids.data[i].length, std::string{}.capacity()) + 1, 1);
+  const auto envelope = combined.result();
+  if (!peak || !envelope || *envelope > p->maximum_native_bytes)
+    return COSMO_INVALID_INPUT;
   try {
     auto ids = copy(prior->ordered_ids);
     auto result = g->native.proper_offset(
@@ -192,6 +244,7 @@ extern "C" uint32_t cosmo_gaussian_proper_offset(
         copy(prior->latent_identity), prior->independence_declared != 0,
         p->maximum_matrix_elements, p->maximum_forward_sensitivity);
     *semantic = static_cast<uint32_t>(result.status());
+    *numerical_status = static_cast<uint32_t>(result.numerical_status());
     if (result.status() == DensityStatus::finite)
       *out = new cosmo_gaussian(std::move(result));
     return COSMO_OK;
@@ -272,6 +325,26 @@ extern "C" uint32_t cosmo_gaussian_evaluate(const cosmo_gaussian *g,
       b->response.length !=
           (b->mode == COSMO_GAUSSIAN_MODE_PROFILE_OFFSET_SCORE ? n : 0))
     return COSMO_INVALID_INPUT;
+  const auto scratch = g->native.evaluation_payload_bound(
+      static_cast<size_t>(b->row_count), b->mode == COSMO_GAUSSIAN_MODE_PROFILE_OFFSET_SCORE);
+  const auto retained = g->native.retained_payload_bound();
+  irred::detail::PayloadAccounting combined(0);
+  if (!scratch || !retained) return COSMO_INVALID_INPUT;
+  combined.add(*scratch, 1); combined.add(*retained, 1);
+  combined.add(1, sizeof(cosmo_gaussian) - sizeof(irred::statistics::Gaussian));
+  combined.add(g->ids.capacity(), sizeof(cosmo_bytes));
+  auto views = [&](const auto &groups) {
+    combined.add(groups.capacity(), sizeof(std::vector<cosmo_bytes>));
+    for (const auto &ids : groups) combined.add(ids.capacity(), sizeof(cosmo_bytes));
+  };
+  views(g->kept_ids); views(g->complement_ids); views(g->prior_ids);
+  combined.add(1, sizeof(cosmo_gaussian_result));
+  combined.add(b->row_count, sizeof(cosmo_gaussian_row));
+  combined.add(n, sizeof(std::string));
+  for (size_t i = 0; i < n; ++i)
+    combined.add(std::max<size_t>(b->ordered_ids.data[i].length, std::string{}.capacity()) + 1, 1);
+  const auto envelope = combined.result();
+  if (!envelope || *envelope > p->maximum_native_bytes) return COSMO_INVALID_INPUT;
   try {
     auto ids = copy(b->ordered_ids);
     auto result = std::make_unique<cosmo_gaussian_result>();

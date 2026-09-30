@@ -9,7 +9,7 @@
       throw std::runtime_error("ABI fixture check failed: " #condition);       \
   } while (false)
 static cosmo_i64_buffer buffer(const int64_t *p, uint64_t n) {
-  return {sizeof(cosmo_i64_buffer), 1, 1, 0, p, n, n * 8};
+  return {sizeof(cosmo_i64_buffer), COSMO_ABI_VERSION, 1, 0, p, n, n * 8};
 }
 int main() {
   const int64_t a[] = {0, 4, -7, 9223372036854775806LL}, b[] = {0, -2, 3, 1};
@@ -32,7 +32,7 @@ int main() {
   y = x;
   CHECK(cosmo_add(&x, &y, 0, &r) == 0);
   CHECK(cosmo_result_destroy(r) == 0);
-  x.abi_version = 2;
+  x.abi_version = COSMO_ABI_VERSION + 1;
   CHECK(cosmo_add(&x, &y, 0, &r) == COSMO_ABI_MISMATCH && !r);
   x = y;
   x.length = 1;

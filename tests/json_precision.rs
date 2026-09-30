@@ -53,7 +53,9 @@ fn actual_scalar_request_spec_source_and_native_sum_preserve_decimal() {
     let path = Scratch(path);
     for (i, expected) in values().into_iter().enumerate() {
         let text = expected.to_string();
-        let raw = format!("{{\"schema_version\":1,\"operation\":\"numerics.scalar_batch.v1\",\"method\":\"compensated_sum\",\"values\":[{text}]}}");
+        let raw = format!(
+            "{{\"schema_version\":2,\"operation\":\"numerics.scalar_batch.v1\",\"method\":\"compensated_sum\",\"values\":[{text}]}}"
+        );
         let request = path.0.join("request.json");
         fs::write(&request, &raw).unwrap();
         let store = path.0.join(format!("store-{i}"));
@@ -61,7 +63,8 @@ fn actual_scalar_request_spec_source_and_native_sum_preserve_decimal() {
         let output = Command::new(env!("CARGO_BIN_EXE_irred"))
             .arg("run")
             .arg(&request)
-            .arg(&store).args(["--assurance","qualified"])
+            .arg(&store)
+            .args(["--assurance", "qualified"])
             .output()
             .unwrap();
         assert_eq!(
