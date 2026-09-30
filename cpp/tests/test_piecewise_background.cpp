@@ -5,6 +5,7 @@
 #include "fixtures/piecewise_historical.hpp"
 #include "irred/piecewise_background.hpp"
 #include <array>
+#include <bit>
 #include <cmath>
 #include <cstdio>
 #include <limits>
@@ -83,9 +84,53 @@ void transcript() {
       }
     }
 }
+// Same-platform before/after audit mode; no cross-platform libm bit promise.
+void transcript_double_bits(double v) {
+  std::printf("%016llx ",
+              (unsigned long long)std::bit_cast<unsigned long long>(v));
+}
+void piecewise_transcript() {
+  for (auto q : {std::array<double, 5>{0, 0, 0, 0, 0},
+                 std::array<double, 5>{-3, 2, -3, 2, -3},
+                 std::array<double, 5>{-1, -1, -1, -1, -1}}) {
+    auto b = prepare_piecewise_q({70, q});
+    std::vector<Query> qs;
+    for (double e : piecewise_q_edges)
+      for (double z :
+           {std::nextafter(e, -INFINITY), e, std::nextafter(e, INFINITY)})
+        qs.push_back({z, z, Convention::geometric_same_redshift});
+    qs.push_back({1e-200, 1e-200, Convention::geometric_same_redshift});
+    for (auto cap : {size_t(1000), size_t(5)}) {
+      auto r = b.evaluate_batch(qs, {100, cap});
+      std::printf("%u %zu\n", (unsigned)r.status, r.segments_processed);
+      for (auto &s : r.slots) {
+        std::printf("%u %u %zu %zu %u %u ", (unsigned)s.status,
+                    (unsigned)s.numerical_status, s.bin, s.segments_processed,
+                    (unsigned)s.q_convention, (unsigned)s.jerk_availability);
+        auto &g = s.geometry;
+        for (double x : {g.expansion_E, g.h_km_s_mpc, g.radial_integral,
+                         g.radial_mpc, g.transverse_mpc, g.angular_diameter_mpc,
+                         g.luminosity_mpc, g.dimensionless_luminosity_shape,
+                         g.lookback_seconds, g.volume_mpc3_per_sr_per_redshift})
+          transcript_double_bits(x);
+        for (auto v : {s.assigned_q, s.jerk, s.q0_within_piecewise_model}) {
+          std::printf("%u ", (unsigned)v.has_value());
+          if (v)
+            transcript_double_bits(*v);
+        }
+        std::puts("");
+      }
+    }
+  }
+}
+
 } // namespace
 int main(int argc, char **argv) {
   try {
+    if (argc == 2 && std::string_view(argv[1]) == "--piecewise-transcript") {
+      piecewise_transcript();
+      return 0;
+    }
     if (argc == 2 && std::string_view(argv[1]) == "--legacy-transcript") {
       transcript();
       return 0;

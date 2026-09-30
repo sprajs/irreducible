@@ -2,6 +2,20 @@
 
 The native tests run from a source checkout using the fixtures included in the repository. External comparison software is not required.
 
+## Optional directed interval reference
+
+The test-only `IRRED_REFERENCE_GMP_MPFR` profile requires installed dynamic GMP/GMPXX and MPFR libraries. The integrated product build forces it OFF; these libraries are not production dependencies. Missing headers or dynamic libraries make this explicit profile unavailable. No libraries or original datasets are bundled.
+
+The following separate reference build and no-assets controls have been executed with GMP/GMPXX 6.3.0 and MPFR 4.2.2:
+
+```sh
+.build-tools/bin/cmake -S cpp -B /tmp/irred-reference-profile-check -DCMAKE_BUILD_TYPE=Release -DIRRED_REFERENCE_GMP_MPFR=ON
+.build-tools/bin/cmake --build /tmp/irred-reference-profile-check --target test_bao_piecewise_interval --parallel 1
+.build-tools/bin/ctest --test-dir /tmp/irred-reference-profile-check -R '^bao_piecewise_interval_controls$' --output-on-failure
+```
+
+The executable target is excluded from the default build, so build it explicitly before running its control test. Controls challenge exact rational and directed interval arithmetic; they do not establish an original-data scientific gate. Original-data mode requires an external SHA guard and separate component-budget review. Pin actual library/header versions and hashes, compiler flags, reference source and raw input identities for that comparison. The current host's MPFR headers declare LGPL 3 or later; GMPXX headers declare LGPL 3 or later or GPL 2 or later. Review the installed notices for other enabled environments.
+
 ## Ordinary checks
 
 After [dependency preparation](getting-started.md), run:

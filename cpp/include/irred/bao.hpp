@@ -1,6 +1,8 @@
 #pragma once
 #include "irred/background.hpp"
+#include "irred/piecewise_background.hpp"
 #include "irred/statistics.hpp"
+#include <array>
 #include <cstddef>
 #include <cstdint>
 #include <span>
@@ -99,6 +101,56 @@ struct DensityBatch {
   std::vector<DensitySlot> slots;
   std::size_t evaluations = 0;
 };
+// Distinct analytic entry: fixed five-bin q and explicitly free H0*r_d.
+// The computational H0 used to construct geometry cancels from these ratios.
+inline constexpr double piecewise_computational_h0_km_s_mpc = 70;
+struct PiecewiseModelPoint {
+  std::array<double, 5> q;
+  Ruler ruler;
+  PiecewiseModelPoint(std::array<double, 5> values, Ruler scale)
+      : q(values), ruler(scale) {}
+};
+struct PiecewisePolicy {
+  cosmology::PiecewisePolicy background;
+  std::size_t maximum_queries = 4096, maximum_native_bytes = 1048576;
+};
+struct PiecewiseSlot {
+  Query source{};
+  cosmology::Status status = cosmology::Status::invalid_input;
+  numerics::Status numerical_status = numerics::Status::invalid_input;
+  double dimensionless_value = 0;
+  std::size_t segment_visits = 0;
+};
+struct PiecewiseBatch {
+  cosmology::Status status = cosmology::Status::invalid_input;
+  std::size_t segment_visits = 0;
+  std::vector<PiecewiseSlot> slots;
+};
+PiecewiseBatch evaluate_piecewise(const cosmology::PiecewiseBackground &, Ruler,
+                                  std::span<const Query>, PiecewisePolicy);
+struct PiecewiseDensityPolicy {
+  PiecewisePolicy observables;
+  std::size_t maximum_models = 0, maximum_native_bytes = 0;
+  double maximum_forward_sensitivity = 0;
+  numerics::Arithmetic arithmetic =
+      static_cast<numerics::Arithmetic>(UINT32_MAX);
+};
+struct PiecewiseDensitySlot {
+  PiecewiseModelPoint source;
+  explicit PiecewiseDensitySlot(PiecewiseModelPoint point) : source(point) {}
+  std::string model_id, equation_id, arithmetic_id;
+  cosmology::Status background_status = cosmology::Status::invalid_input;
+  numerics::Status numerical_status = numerics::Status::invalid_input;
+  statistics::GaussianResult result;
+  std::vector<double> predictions, residuals;
+  std::size_t segment_visits = 0;
+};
+struct PiecewiseDensityBatch {
+  statistics::DensityStatus status = statistics::DensityStatus::invalid_input;
+  numerics::Status numerical_status = numerics::Status::invalid_input;
+  std::vector<PiecewiseDensitySlot> slots;
+  std::size_t segment_visits = 0;
+};
 class PreparedDensity {
 public:
   statistics::DensityStatus status() const noexcept { return status_; }
@@ -110,8 +162,15 @@ public:
     return gaussian_.metadata();
   }
   DensityBatch evaluate(std::span<const ModelQuery>, DensityPolicy) const;
+  // z[0,2.5], finite q_i[-3,2], free H0rd[5000,15000]; no extrapolation,
+  // quadrature settings, priors or joint-probe independence claim. Derivative
+  // absence at q jumps does not invalidate these geometry-only observables.
+  PiecewiseDensityBatch evaluate_piecewise(std::span<const PiecewiseModelPoint>,
+                                           PiecewiseDensityPolicy) const;
 
 private:
+  template <class Model, class Result, class EvaluationPolicy>
+  Result evaluate_common(std::span<const Model>, EvaluationPolicy) const;
   DensityInput source_;
   statistics::Gaussian gaussian_;
   statistics::DensityStatus status_ = statistics::DensityStatus::invalid_input;

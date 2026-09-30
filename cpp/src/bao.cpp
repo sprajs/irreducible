@@ -1,6 +1,8 @@
 #include "irred/bao.hpp"
+#include "piecewise_radial.hpp"
 #include <cmath>
 #include <limits>
+#include <type_traits>
 namespace irred::bao {
 namespace {
 bool normal_or_zero(long double x) {
@@ -15,15 +17,42 @@ bool known(Observable o) {
          o == Observable::volume_over_ruler;
 }
 } // namespace
-Batch evaluate(const cosmology::Background &background, Ruler ruler,
-               std::span<const Query> queries, Policy policy) {
-  Batch result;
+namespace {
+long double project(long double scale, long double expansion,
+                    long double radial, Query query) {
+  const auto dm = scale * radial;
+  const auto dh = scale / expansion;
+  long double value = 0;
+  switch (query.observable) {
+  case Observable::transverse_over_ruler:
+    value = dm;
+    break;
+  case Observable::hubble_over_ruler:
+    value = dh;
+    break;
+  case Observable::volume_over_ruler:
+    value = std::cbrt(static_cast<long double>(query.z) * dm * dm * dh);
+    break;
+  }
+  return value;
+}
+template <class Background, class EvaluationPolicy>
+auto evaluate_observables(const Background &background, Ruler ruler,
+                          std::span<const Query> queries,
+                          EvaluationPolicy policy) {
+  constexpr bool analytic =
+      std::is_same_v<Background, cosmology::PiecewiseBackground>;
+  using Result = std::conditional_t<analytic, PiecewiseBatch, Batch>;
+  using OutputSlot = std::conditional_t<analytic, PiecewiseSlot, Slot>;
+  using NativeSlot =
+      std::conditional_t<analytic, cosmology::PiecewiseSlot, cosmology::Slot>;
+  Result result;
   // Resource checks precede dereferencing or copying any caller query.
   if (queries.size() > policy.maximum_queries ||
       queries.size() > policy.background.maximum_queries ||
       queries.size() > policy.maximum_native_bytes /
-                           (sizeof(Slot) + sizeof(cosmology::Query) +
-                            sizeof(std::size_t) + sizeof(cosmology::Slot))) {
+                           (sizeof(OutputSlot) + sizeof(cosmology::Query) +
+                            sizeof(std::size_t) + sizeof(NativeSlot))) {
     result.status = cosmology::Status::work_limit;
     return result;
   }
@@ -51,7 +80,13 @@ Batch evaluate(const cosmology::Background &background, Ruler ruler,
     indices.push_back(i);
   }
   // This is one coarse batch, including repeated redshifts as distinct slots.
-  auto computed = background.evaluate_batch(admitted, policy.background);
+  auto computed = [&] {
+    if constexpr (analytic)
+      return cosmology::detail::PiecewiseRadialAccess::radial(
+          background, admitted, policy.background);
+    else
+      return background.evaluate_batch(admitted, policy.background);
+  }();
   if (computed.status != cosmology::Status::ok) {
     result.status = computed.status;
     result.slots.clear();
@@ -64,24 +99,23 @@ Batch evaluate(const cosmology::Background &background, Ruler ruler,
     auto &slot = result.slots[indices[j]];
     slot.status = source.status;
     slot.numerical_status = source.numerical_status;
-    slot.evaluations = source.evaluations;
-    result.evaluations += source.evaluations;
+    if constexpr (analytic) {
+      slot.segment_visits = source.segments_processed;
+      result.segment_visits += source.segments_processed;
+    } else {
+      slot.evaluations = source.evaluations;
+      result.evaluations += source.evaluations;
+    }
     if (source.status != cosmology::Status::ok)
       continue;
-    const auto dm = scale * source.radial_integral;
-    const auto dh = scale / source.expansion_E;
-    long double value = 0;
-    switch (slot.source.observable) {
-    case Observable::transverse_over_ruler:
-      value = dm;
-      break;
-    case Observable::hubble_over_ruler:
-      value = dh;
-      break;
-    case Observable::volume_over_ruler:
-      value = std::cbrt(static_cast<long double>(slot.source.z) * dm * dm * dh);
-      break;
-    }
+    const auto value = [&] {
+      if constexpr (analytic)
+        return project(scale, source.expansion_E, source.radial_integral,
+                       slot.source);
+      else
+        return project(scale, source.expansion_E, source.radial_integral,
+                       slot.source);
+    }();
     if (!normal_or_zero(value) || value < 0 ||
         ((slot.source.z > 0 ||
           slot.source.observable == Observable::hubble_over_ruler) &&
@@ -99,8 +133,25 @@ Batch evaluate(const cosmology::Background &background, Ruler ruler,
   result.status = cosmology::Status::ok;
   return result;
 }
+} // namespace
+Batch evaluate(const cosmology::Background &background, Ruler ruler,
+               std::span<const Query> queries, Policy policy) {
+  return evaluate_observables(background, ruler, queries, policy);
+}
+PiecewiseBatch
+evaluate_piecewise(const cosmology::PiecewiseBackground &background,
+                   Ruler ruler, std::span<const Query> queries,
+                   PiecewisePolicy policy) {
+  return evaluate_observables(background, ruler, queries, policy);
+}
 namespace {
 bool valid_policy(const DensityPolicy &p) {
+  return std::isfinite(p.maximum_forward_sensitivity) &&
+         p.maximum_forward_sensitivity > 0 &&
+         (p.arithmetic == numerics::Arithmetic::binary64_legacy_v1 ||
+          p.arithmetic == numerics::Arithmetic::longdouble_cpu_v1);
+}
+bool valid_policy(const PiecewiseDensityPolicy &p) {
   return std::isfinite(p.maximum_forward_sensitivity) &&
          p.maximum_forward_sensitivity > 0 &&
          (p.arithmetic == numerics::Arithmetic::binary64_legacy_v1 ||
@@ -211,7 +262,23 @@ PreparedDensity prepare_density(const DensityInput &input,
 }
 DensityBatch PreparedDensity::evaluate(std::span<const ModelQuery> models,
                                        DensityPolicy policy) const {
-  DensityBatch batch;
+  return evaluate_common<ModelQuery, DensityBatch>(models, policy);
+}
+PiecewiseDensityBatch
+PreparedDensity::evaluate_piecewise(std::span<const PiecewiseModelPoint> models,
+                                    PiecewiseDensityPolicy policy) const {
+  return evaluate_common<PiecewiseModelPoint, PiecewiseDensityBatch>(models,
+                                                                     policy);
+}
+template <class Model, class Result, class EvaluationPolicy>
+Result PreparedDensity::evaluate_common(std::span<const Model> models,
+                                        EvaluationPolicy policy) const {
+  constexpr bool analytic = std::is_same_v<Model, PiecewiseModelPoint>;
+  using OutputSlot =
+      std::conditional_t<analytic, PiecewiseDensitySlot, DensitySlot>;
+  using NativeSlot =
+      std::conditional_t<analytic, cosmology::PiecewiseSlot, cosmology::Slot>;
+  Result batch;
   if (status_ != statistics::DensityStatus::finite) {
     batch.status = status_;
     batch.numerical_status = numerical_status_;
@@ -222,12 +289,13 @@ DensityBatch PreparedDensity::evaluate(std::span<const ModelQuery> models,
   const auto n = source_.queries.size();
   auto bytes = policy.maximum_native_bytes;
   if (models.size() > policy.maximum_models ||
-      !fits(models.size(), sizeof(DensitySlot), bytes) ||
+      !fits(models.size(), sizeof(OutputSlot), bytes) ||
       (models.size() != 0 &&
        (n > std::numeric_limits<std::size_t>::max() / models.size() ||
         !fits(n * models.size(), 2 * sizeof(double), bytes))) ||
       !fits(n,
-            sizeof(Slot) + sizeof(cosmology::Slot) + sizeof(cosmology::Query) +
+            sizeof(std::conditional_t<analytic, PiecewiseSlot, Slot>) +
+                sizeof(NativeSlot) + sizeof(cosmology::Query) +
                 sizeof(std::size_t) + 4 * sizeof(long double) +
                 2 * sizeof(double),
             bytes)) {
@@ -235,30 +303,67 @@ DensityBatch PreparedDensity::evaluate(std::span<const ModelQuery> models,
     return batch;
   }
   for (const auto &model : models) {
-    if (!fits(model.background.model_id().size() + 1, 1, bytes) ||
+    const auto id = [&]() -> std::string_view {
+      if constexpr (analytic)
+        return cosmology::PiecewiseBackground::model_id;
+      else
+        return model.background.model_id();
+    }();
+    if (!fits(id.size() + 1, 1, bytes) ||
         !fits(bao::equation_id.size() + 1, 1, bytes) ||
         !fits(gaussian_.metadata().arithmetic_id.size() + 1, 1, bytes)) {
       batch.numerical_status = numerics::Status::work_limit;
       return batch;
     }
   }
-  batch.slots.resize(models.size());
-  auto remaining = policy.observables.background.maximum_total_evaluations;
+  if constexpr (analytic)
+    batch.slots.reserve(models.size());
+  else
+    batch.slots.resize(models.size());
+  auto remaining = [&] {
+    if constexpr (analytic)
+      return policy.observables.background.maximum_segment_visits;
+    else
+      return policy.observables.background.maximum_total_evaluations;
+  }();
   for (std::size_t i = 0; i < models.size(); ++i) {
+    if constexpr (analytic)
+      batch.slots.emplace_back(models[i]);
     auto &slot = batch.slots[i];
-    slot.attempted_model = models[i].background.parameters();
-    slot.attempted_h0_rd_km_s = models[i].ruler.h0_rd_km_s;
-    slot.model_id = models[i].background.model_id();
+    if constexpr (analytic)
+      slot.model_id = cosmology::PiecewiseBackground::model_id;
+    else {
+      slot.attempted_model = models[i].background.parameters();
+      slot.attempted_h0_rd_km_s = models[i].ruler.h0_rd_km_s;
+      slot.model_id = models[i].background.model_id();
+    }
     slot.equation_id = bao::equation_id;
     slot.arithmetic_id = gaussian_.metadata().arithmetic_id;
     auto local = policy.observables;
-    local.background.maximum_total_evaluations = remaining;
-    auto predicted = bao::evaluate(models[i].background, models[i].ruler,
-                                   source_.queries, local);
+    if constexpr (analytic)
+      local.background.maximum_segment_visits = remaining;
+    else
+      local.background.maximum_total_evaluations = remaining;
+    auto predicted = [&] {
+      if constexpr (analytic) {
+        auto background = cosmology::prepare_piecewise_q(
+            {piecewise_computational_h0_km_s_mpc, models[i].q});
+        return bao::evaluate_piecewise(background, models[i].ruler,
+                                       source_.queries, local);
+      } else
+        return bao::evaluate(models[i].background, models[i].ruler,
+                             source_.queries, local);
+    }();
     slot.background_status = predicted.status;
-    slot.evaluations = predicted.evaluations;
-    batch.evaluations += predicted.evaluations;
-    remaining -= predicted.evaluations;
+    if constexpr (analytic) {
+      slot.segment_visits = predicted.segment_visits;
+      batch.segment_visits += predicted.segment_visits;
+      remaining -= predicted.segment_visits;
+    } else {
+      slot.evaluations = predicted.evaluations;
+      batch.evaluations += predicted.evaluations;
+      remaining -= predicted.evaluations;
+    }
     if (predicted.status != cosmology::Status::ok) {
       slot.result.density.status = statistics::DensityStatus::numerical_failure;
       slot.numerical_status = predicted.status == cosmology::Status::work_limit

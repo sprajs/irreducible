@@ -3,6 +3,9 @@
 #include <array>
 #include <optional>
 namespace irred::cosmology {
+namespace detail {
+struct PiecewiseRadialAccess;
+}
 inline constexpr std::array<double, 6> piecewise_q_edges{0, .1, .3, .6, 1, 2.5};
 struct PiecewiseQParameters {
   double h0_km_s_mpc;
@@ -69,10 +72,12 @@ private:
   Status status_ = Status::invalid_input;
   double hubble_distance_mpc_ = 0, hubble_time_seconds_ = 0;
   std::array<long double, 5> start_E_{};
+  friend struct detail::PiecewiseRadialAccess;
   friend PiecewiseBackground prepare_piecewise_q(PiecewiseQParameters);
 };
-// Native only. No extrapolation, smoothing prior, age/rd, sampler or v2
-// admission. Finite qi[-3,2], expansion z[0,2.5], finite positive representable
+// Separate analytic provider; no legacy v1/v2 model-tag admission.
+// No extrapolation, smoothing prior, age/rd or sampler.
+// Finite qi[-3,2], expansion z[0,2.5], finite positive representable
 // H0. Geometry's nonzero outputs must be normal binary64; exact z0 zeros
 // allowed. Retained qi may be subnormal or zero: they are explicit
 // dimensionless inputs, not physical-length outputs. Undefined jerk is absent,

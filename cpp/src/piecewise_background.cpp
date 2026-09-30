@@ -1,8 +1,10 @@
 #include "irred/piecewise_background.hpp"
 #include "flat_geometry.hpp"
+#include "piecewise_radial.hpp"
 #include <algorithm>
 #include <cmath>
 #include <limits>
+#include <type_traits>
 namespace irred::cosmology {
 namespace {
 // Entire-function continuation, not a q threshold replacing the true integral.
@@ -60,10 +62,18 @@ PiecewiseBackground prepare_piecewise_q(PiecewiseQParameters p) {
   out.status_ = Status::ok;
   return out;
 }
-PiecewiseBatch
-PiecewiseBackground::evaluate_batch(std::span<const Query> queries,
-                                    PiecewisePolicy policy) const {
-  PiecewiseBatch out;
+template <bool RadialOnly>
+auto detail::PiecewiseRadialAccess::evaluate(const PiecewiseBackground &owner,
+                                             std::span<const Query> queries,
+                                             PiecewisePolicy policy) {
+  using Batch =
+      std::conditional_t<RadialOnly, PiecewiseRadialBatch, PiecewiseBatch>;
+  const auto status_ = owner.status_;
+  const auto &parameters_ = owner.parameters_;
+  const auto &start_E_ = owner.start_E_;
+  const auto hubble_distance_mpc_ = owner.hubble_distance_mpc_;
+  const auto hubble_time_seconds_ = owner.hubble_time_seconds_;
+  Batch out;
   out.status = status_;
   if (status_ != Status::ok)
     return out;
@@ -161,36 +171,52 @@ PiecewiseBackground::evaluate_batch(std::span<const Query> queries,
     }
     s.status = Status::ok;
     s.numerical_status = numerics::Status::ok;
-    s.bin = k;
-    s.geometry = {
-        static_cast<double>(E),          static_cast<double>(H),
-        static_cast<double>(radial),     static_cast<double>(g.dc),
-        static_cast<double>(g.dc),       static_cast<double>(g.da),
-        static_cast<double>(g.dl),       static_cast<double>(g.shape),
-        static_cast<double>(g.lookback), static_cast<double>(g.volume)};
-    s.assigned_q = parameters_.q[k];
-    s.q_convention = QConvention::interior_constant_bin;
-    bool jump = k > 0 && query.z_expansion == piecewise_q_edges[k] &&
-                parameters_.q[k] != parameters_.q[k - 1];
-    if (jump) {
-      s.q_convention = QConvention::right_limit_at_internal_jump;
-      s.jerk_availability = JerkAvailability::unavailable_at_jump;
+    if constexpr (RadialOnly) {
+      s.expansion_E = E;
+      s.radial_integral = radial;
     } else {
-      s.jerk = (double)((long double)parameters_.q[k] *
-                        (2 * (long double)parameters_.q[k] + 1));
-      s.jerk_availability = JerkAvailability::ordinary_within_bin;
-    }
-    if (query.z_expansion == 0) {
-      s.q_convention = QConvention::right_limit_at_zero;
-      s.jerk_availability = JerkAvailability::one_sided_endpoint;
-      s.q0_within_piecewise_model = parameters_.q[0];
-    }
-    if (query.z_expansion == 2.5) {
-      s.q_convention = QConvention::left_limit_at_final_endpoint;
-      s.jerk_availability = JerkAvailability::one_sided_endpoint;
+      s.bin = k;
+      s.geometry = {
+          static_cast<double>(E),          static_cast<double>(H),
+          static_cast<double>(radial),     static_cast<double>(g.dc),
+          static_cast<double>(g.dc),       static_cast<double>(g.da),
+          static_cast<double>(g.dl),       static_cast<double>(g.shape),
+          static_cast<double>(g.lookback), static_cast<double>(g.volume)};
+      s.assigned_q = parameters_.q[k];
+      s.q_convention = QConvention::interior_constant_bin;
+      bool jump = k > 0 && query.z_expansion == piecewise_q_edges[k] &&
+                  parameters_.q[k] != parameters_.q[k - 1];
+      if (jump) {
+        s.q_convention = QConvention::right_limit_at_internal_jump;
+        s.jerk_availability = JerkAvailability::unavailable_at_jump;
+      } else {
+        s.jerk = (double)((long double)parameters_.q[k] *
+                          (2 * (long double)parameters_.q[k] + 1));
+        s.jerk_availability = JerkAvailability::ordinary_within_bin;
+      }
+      if (query.z_expansion == 0) {
+        s.q_convention = QConvention::right_limit_at_zero;
+        s.jerk_availability = JerkAvailability::one_sided_endpoint;
+        s.q0_within_piecewise_model = parameters_.q[0];
+      }
+      if (query.z_expansion == 2.5) {
+        s.q_convention = QConvention::left_limit_at_final_endpoint;
+        s.jerk_availability = JerkAvailability::one_sided_endpoint;
+      }
     }
   }
   out.status = Status::ok;
   return out;
+}
+PiecewiseBatch
+PiecewiseBackground::evaluate_batch(std::span<const Query> queries,
+                                    PiecewisePolicy policy) const {
+  return detail::PiecewiseRadialAccess::evaluate<false>(*this, queries, policy);
+}
+detail::PiecewiseRadialBatch
+detail::PiecewiseRadialAccess::radial(const PiecewiseBackground &owner,
+                                      std::span<const Query> queries,
+                                      PiecewisePolicy policy) {
+  return evaluate<true>(owner, queries, policy);
 }
 } // namespace irred::cosmology
