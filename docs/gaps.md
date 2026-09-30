@@ -4,7 +4,7 @@ This assessment separates the current numerical engine from the proposed [roadma
 
 ## What exists
 
-The current engine exposes eight operations: exact integer addition, typed physical conversion, scalar numerical methods, immutable observation preparation, requested flat-FLRW background outputs, Gaussian calculations, conditional SN magnitude profiles and conditional free-ruler BAO densities. The backgrounds are LCDM, constant q, CPL and fixed five-bin q. They are bounded CPU calculations with explicit source, arithmetic, numerical and execution contracts. Named wide-arithmetic gates use Linux/GCC long double with at least 64 mantissa bits; hosts where long double equals double are not covered, and Ubuntu CI is a separate engineering check. Gaussian nuisance elimination currently supports a scalar offset, not an arbitrary multi-column joint model.
+The current engine exposes nine operations: exact integer addition, typed physical conversion, scalar numerical methods, immutable observation preparation, requested flat-FLRW background outputs, Gaussian calculations, conditional SN magnitude profiles and conditional free-ruler BAO densities, and deterministic rectangular-passband photometry. The backgrounds are LCDM, constant q, CPL and fixed five-bin q. They are bounded CPU calculations with explicit source, arithmetic, numerical and execution contracts. Named wide-arithmetic gates use Linux/GCC long double with at least 64 mantissa bits; hosts where long double equals double are not covered, and Ubuntu CI is a separate engineering check. Gaussian nuisance elimination currently supports a scalar offset, not an arbitrary multi-column joint model.
 
 No current runtime request receives a named scientific qualification. Passing the default numerical_contract means that required numerical checks passed; it is not inference or interpretation qualification. Named comparison evidence applies to its recorded inputs/build/domain, not automatically to a new request.
 
@@ -81,3 +81,5 @@ The provenance manifests enumerate 391 curated inputs, 4,211 study-source record
 The roadmap first proposes an analytic one-passband experiment, a small synthetic shared-calibration ladder and a conditional sound-horizon integral with supplied drag epoch. Predicting that epoch adds an explicit thermal/ionization/drag contract; full perturbation and CMB work are separate later dependencies.
 
 The next useful work is to choose an actual vertical from the [roadmap](roadmap.md), pin its inputs and forward assumptions, and qualify its own observable and downstream error. Neither broad inventory completion nor a successful numerical call closes these physical and data gaps.
+
+Deterministic photometry now predicts three radiometric outputs for a finite constant rest spectrum and supplied distance. Sampled/time-dependent spectra, source populations, calibration uncertainty, noise, selection and recovery remain proposed.

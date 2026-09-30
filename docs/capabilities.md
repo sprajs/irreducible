@@ -11,6 +11,7 @@ Use the executable's `describe --json` output for its exact build, ABI revision 
 | `observations.prepare` | Immutable typed source preparation | Structural checks; no probability or lineage upgrade |
 | `statistics.gaussian` | Normalized Gaussian density, offset profile or proper latent prior | Explicit ordered residuals and nuisance assumptions |
 | `supernova.profile` | Conditional single-offset magnitude profile | Same expansion types, with no source effect or an explicit grey magnitude effect |
+| `photometry.predict` | Deterministic flat-spectrum rectangular-passband prediction | Supplied distance/redshift; incident flux, collected energy and transmitted photon expectation |
 | `bao.density` | Conditional normalized free-ruler Gaussian density | Same expansion types and explicit H0rd |
 
 Background requests select expansion, radial, luminosity_shape, clock, physical or kinematics groups. Dimensionless E and clock integrals remain usable when a requested dimensional H or lookback-time projection fails. Observer and physical-scale failures do not erase independent outputs. E-only and DH-only calculations avoid radial integration. Exact redshift bits share nodes within a model batch; repeated model specifications across model rows currently recompute their geometry under the same global work budget.
@@ -26,3 +27,5 @@ Native BAO comparisons include the named eleven-point and fixed-q twenty-four-po
 Required numerical checks that pass satisfy default `numerical_contract` assurance and exit 0. Explicit `qualified` assurance exits 6 when applicable named evidence is absent. Completed scientific failures exit 2. Interpretation remains unqualified; no arbitrary request receives automatic scientific qualification.
 
 Measured mirrored dense preparation improved one pinned fixture on one compiler/machine; that historical measurement does not establish performance of the consolidated interface. Optimization follows matched-quality measurements, not the presence of a wider type or more threads. Samplers, priors over cosmological parameters, smoothing campaigns and whole-domain certificates remain outside these capabilities.
+
+[Photometry](photometry.md) uses a finite constant rest-frame wavelength luminosity and optical transmission. It predicts no shot noise, selection, detector electrons or source population; supplied distance is not inferred. Named analytic and independent frequency-quadrature controls do not qualify arbitrary requests.

@@ -62,7 +62,8 @@ pub(crate) fn execute() -> Result<(), String> {
                         {"id":"observations.prepare","implementation":"implemented","scientific":true,"qualification":"unqualified","profiles":["pantheon_plus_released_v1","gaussian_fixture_v1","typed_magnitude_covariance"],"ownership":"immutable shared native source"},
                         {"id":"statistics.gaussian","implementation":"implemented","scientific":true,"qualification":"unqualified","modes":["normalized_density","profile_offset_score"]},
                         {"id":"supernova.profile","implementation":"implemented","scientific":true,"qualification":"unqualified","models":["lcdm","constant_q","cpl","fixed_q5"],"source_effects":["none","grey_log1p_magnitude"],"target":"conditional single-offset relative profile"},
-                        {"id":"bao.density","implementation":"implemented","scientific":true,"qualification":"unqualified","models":["lcdm","constant_q","cpl","fixed_q5"],"target":"conditional free-H0rd normalized Gaussian density"}],
+                        {"id":"bao.density","implementation":"implemented","scientific":true,"qualification":"unqualified","models":["lcdm","constant_q","cpl","fixed_q5"],"target":"conditional free-H0rd normalized Gaussian density"},
+                        {"id":"photometry.predict","implementation":"implemented","scientific":true,"qualification":"unqualified","source_models":["constant_rest_luminosity_rectangular_band"],"requested_groups":["incident_band_flux","collected_energy","expected_transmitted_photons"],"scope":"deterministic supplied-distance standard-redshift optical transmission; no noise, selection or detector electronics"}],
                     "abi_schema":serde_json::from_str::<Value>(include_str!("../schema/abi.json")).map_err(|e|e.to_string())?,
                     "commands":["describe --json","version --json","run REQUEST STORE [--assurance numerical_contract|qualified]","stream STORE [LIMITS_JSON]"],
                     "interface_policy":"one current ABI revision; no compatibility aliases",
@@ -162,6 +163,7 @@ pub(crate) fn execute() -> Result<(), String> {
                             Ok(crate::outcome::Outcome::scientific(resolved.clone().unwrap(),output,"evaluations",json!(request.method),json!("binary64_storage_method_declared_intermediate"),json!({"max_batch_elements":MAX_BATCH_ELEMENTS}),"bounded native/interface checks; request applicability not established"))
                         },
                         "background.evaluate" => crate::background_run::execute(&input),
+                        "photometry.predict" => crate::photometry_run::execute(&input),
                         "supernova.profile" | "bao.density" => crate::session::execute_once(&input,&store),
                         "statistics.gaussian" => crate::statistics_run::execute(&input,&store),
                         "observations.prepare" => crate::observation_run::execute(&input,&store),

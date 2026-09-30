@@ -243,3 +243,6 @@ pub(crate) mod bao;
 pub(crate) mod supernova;
 #[path = "expansion_bridge.rs"]
 pub(crate) mod expansion;
+
+#[path = "photometry_bridge.rs"]
+pub(crate) mod photometry;
