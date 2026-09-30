@@ -16,7 +16,7 @@ Start with a calculation an agent needs. Add a physical model, reader or numeric
 
 ## Build discipline
 
-`python3 tools/build.py` is the integrated entry point. It configures CMake, generates bindings/manifests and builds Rust against the native library. The supported development profile currently uses Debug, conservative floating-point flags and four jobs. Changing flags, compiler, architecture or backend requires recording identity and revalidating the affected contract.
+`python3 tools/build.py` is the integrated entry point. It configures CMake, generates bindings/manifests and builds Rust against the native library. The default profile uses Debug. `--profile release` uses a separate native build directory and optimized Rust/C++ binaries, with conservative floating-point flags and four jobs in both profiles. Changing flags, compiler, architecture or backend requires recording identity and revalidating the affected contract.
 
 Do not mutate source while another build is reading it. Coordinate shared CPU/memory budgets. The exclusive build-identity test belongs in an isolated checkout and must run directly as described in [testing](testing.md).
 

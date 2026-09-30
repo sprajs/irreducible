@@ -46,3 +46,5 @@ python3 tools/check_docs.py
 The source/flag mutation test is ignored by ordinary Cargo test runs and has a separate exclusive procedure in [testing](testing.md). Coordinate shared builds; do not run a second build or a source-mutation test in an active build tree.
 
 `build/`, `target/`, `.build-tools/` and `runs/` are generated locally.
+
+For optimized binaries, use the separately identified [Release profile](testing.md#explicit-release-profile). Debug remains the default; build both profiles before comparing performance at matched numerical quality.

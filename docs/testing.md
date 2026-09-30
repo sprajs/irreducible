@@ -47,3 +47,24 @@ Ordinary native tests include immutable observation ownership, exact masks/row o
 The product build deliberately reports FITS unavailable. A separate optional native codec profile requires installed CFITSIO and can be tested with `-DCOSMOLOGY_TEST_CFITSIO=ON` in a separate CMake build directory. It covers one handcrafted synthetic BINTABLE profile, not universal FITS support. The wrapper resets this test-only option to OFF for its supported product build. CFITSIO is file-format infrastructure; its installed version/library identity and NASA permissive notice must be reviewed for any enabled deployment.
 
 `check_install.py` installs to a fresh temporary prefix, rejects the old generic include root, and compiles/runs the durable `test_installed_consumer.cpp` against the installed `libirred_core.a`. It checks independent library usability and cleans its temporary installation.
+
+## Explicit Release profile
+
+Build and test the optimized profile with the same native and Rust cases:
+
+```sh
+python3 tools/build.py --profile release
+.build-tools/bin/ctest --test-dir build/native-release --output-on-failure
+cargo test --release --locked --offline -j4
+target/release/irred describe --json
+```
+
+Debug remains the default and uses `build/native`, `target/debug` and `build/build-manifest.json`. Release uses `build/native-release`, `target/release` and `build/build-manifest-release.json`. Cargo selects the matching native archive and embeds the matching manifest; do not manually cross-link profiles. Both retain strict floating-point options and panic containment. Release adds C++ `-O3 -DNDEBUG` and the pinned standard Cargo release settings; its source/build/profile identity differs from Debug. Native checks remain active under NDEBUG. These build checks establish no workload speedup.
+
+After building both profiles in an isolated checkout, run the durable identity/negative witness:
+
+```sh
+cargo test --locked --offline -j4 --test profile_identity -- --ignored
+```
+
+This checks each executable's describe/version manifest, identical source digests with distinct profile/build/native-archive identities, and a deliberately wrong native fixture compiled with NDEBUG. That fixture must fail, proving its required checks were executed. It compiles one temporary native test, cleans it after success, and never mutates production source.

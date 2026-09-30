@@ -18,3 +18,9 @@ sha2 = "=0.10.9"
 panic = "unwind"
 [profile.release]
 panic = "unwind"
+opt-level = 3
+debug = 0
+lto = false
+codegen-units = 16
+overflow-checks = false
+incremental = false

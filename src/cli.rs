@@ -40,7 +40,7 @@ struct OperationHeader {
 }
 pub(crate) fn execute() -> Result<(), String> {
     let args: Vec<_> = std::env::args().collect();
-    let manifest: Value = serde_json::from_str(include_str!("../build/build-manifest.json"))
+    let manifest: Value = serde_json::from_str(include_str!(env!("IRRED_BUILD_MANIFEST")))
         .map_err(|e| e.to_string())?;
     match args.get(1).map(String::as_str) {
         Some("describe") | Some("version") if args.len() == 3 && args[2] == "--json" => {
