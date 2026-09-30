@@ -40,6 +40,28 @@ pub const OBSERVATION_STATUS_INCOMPATIBLE_SEMANTICS: u32 = 3;
 pub const OBSERVATION_STATUS_MISSING_REQUIRED_VALUE: u32 = 4;
 pub const OBSERVATION_STATUS_NONFINITE_REQUIRED_VALUE: u32 = 5;
 pub const OBSERVATION_STATUS_RESOURCE_LIMIT: u32 = 6;
+pub const GAUSSIAN_MODE_NORMALIZED_DENSITY: u32 = 0;
+pub const GAUSSIAN_MODE_PROFILE_OFFSET_SCORE: u32 = 1;
+pub const GAUSSIAN_STATUS_FINITE: u32 = 0;
+pub const GAUSSIAN_STATUS_OUTSIDE_SUPPORT: u32 = 1;
+pub const GAUSSIAN_STATUS_INVALID_INPUT: u32 = 2;
+pub const GAUSSIAN_STATUS_UNSUPPORTED_DOMAIN: u32 = 3;
+pub const GAUSSIAN_STATUS_NUMERICAL_FAILURE: u32 = 4;
+pub const GAUSSIAN_STATUS_INCOMPATIBLE_METADATA: u32 = 5;
+pub const GAUSSIAN_MATRIX_VALIDATION_SCOPE_FULL_DECLARED_MATRIX: u32 = 0;
+pub const GAUSSIAN_MATRIX_VALIDATION_SCOPE_SELECTED_COVARIANCE_ONLY: u32 = 1;
+pub const GAUSSIAN_MATRIX_VALIDATION_SCOPE_FULL_PRECISION_THEN_MARGINAL: u32 = 2;
+pub fn gaussian_status_name(value: u32) -> Option<&'static str> {
+    match value {
+        0 => Some("finite"),
+        1 => Some("outside_support"),
+        2 => Some("invalid_input"),
+        3 => Some("unsupported_domain"),
+        4 => Some("numerical_failure"),
+        5 => Some("incompatible_metadata"),
+        _ => None,
+    }
+}
 #[repr(C)]
 pub struct Buffer {
     pub struct_size: u32,
@@ -133,6 +155,79 @@ pub struct ObservationDescriptor {
     pub source_selection: U8Buffer,
     pub quality: U64Buffer,
 }
+#[repr(C)]
+pub struct GaussianPolicy {
+    pub struct_size: u32,
+    pub abi_version: u32,
+    pub reserved: u32,
+    pub reserved2: u32,
+    pub maximum_matrix_elements: u64,
+    pub maximum_batch_elements: u64,
+    pub maximum_string_bytes: u64,
+    pub maximum_forward_sensitivity: f64,
+}
+#[repr(C)]
+pub struct GaussianBatch {
+    pub struct_size: u32,
+    pub abi_version: u32,
+    pub mode: u32,
+    pub reserved: u32,
+    pub row_count: u64,
+    pub residuals: F64Buffer,
+    pub ordered_ids: Strings,
+    pub response: F64Buffer,
+}
+#[repr(C)]
+pub struct GaussianRow {
+    pub status: u32,
+    pub numerical_status: u32,
+    pub log_density: f64,
+    pub quadratic: f64,
+    pub log_determinant: f64,
+    pub normalization: f64,
+    pub backward_residual: f64,
+    pub estimated_forward_sensitivity: f64,
+    pub coefficient: f64,
+}
+#[repr(C)]
+pub struct GaussianView {
+    pub struct_size: u32,
+    pub abi_version: u32,
+    pub matrix_validation_scope: u32,
+    pub ordered_ids: Strings,
+    pub measure: Bytes,
+    pub table_identity: Bytes,
+    pub uncertainty_identity: Bytes,
+    pub ordering_provenance: Bytes,
+    pub calibration_provenance: Bytes,
+    pub dependence_provenance: Bytes,
+    pub source_semantics: Bytes,
+    pub input_matrix_convention: Bytes,
+    pub treatment: Bytes,
+    pub mean_shift: F64Buffer,
+    pub prior_count: u64,
+    pub selection_count: u64,
+}
+#[repr(C)]
+pub struct GaussianPrior {
+    pub struct_size: u32,
+    pub abi_version: u32,
+    pub independence_declared: u32,
+    pub reserved: u32,
+    pub mean: f64,
+    pub variance: f64,
+    pub latent_identity: Bytes,
+    pub response: F64Buffer,
+    pub ordered_ids: Strings,
+}
+#[repr(C)]
+pub struct GaussianSelection {
+    pub struct_size: u32,
+    pub abi_version: u32,
+    pub operation: Bytes,
+    pub kept_row_ids: Strings,
+    pub complement_row_ids: Strings,
+}
 unsafe extern "C" {
     pub fn cosmo_add(
         a: *const Buffer,
@@ -192,6 +287,47 @@ unsafe extern "C" {
         index_length: *mut u64,
     ) -> u32;
     pub fn cosmo_observation_destroy(prepared: *mut std::ffi::c_void) -> u32;
+    pub fn cosmo_gaussian_prepare(
+        observations: *const std::ffi::c_void,
+        selection: u32,
+        policy: *const GaussianPolicy,
+        out: *mut *mut std::ffi::c_void,
+        semantic: *mut u32,
+    ) -> u32;
+    pub fn cosmo_gaussian_proper_offset(
+        gaussian: *const std::ffi::c_void,
+        prior: *const GaussianPrior,
+        policy: *const GaussianPolicy,
+        out: *mut *mut std::ffi::c_void,
+        semantic: *mut u32,
+    ) -> u32;
+    pub fn cosmo_gaussian_source_view(
+        gaussian: *const std::ffi::c_void,
+        out: *mut GaussianView,
+    ) -> u32;
+    pub fn cosmo_gaussian_prior_view(
+        gaussian: *const std::ffi::c_void,
+        index: u64,
+        out: *mut GaussianPrior,
+    ) -> u32;
+    pub fn cosmo_gaussian_evaluate(
+        gaussian: *const std::ffi::c_void,
+        batch: *const GaussianBatch,
+        policy: *const GaussianPolicy,
+        out: *mut *mut std::ffi::c_void,
+    ) -> u32;
+    pub fn cosmo_gaussian_result_view(
+        result: *const std::ffi::c_void,
+        rows: *mut *const GaussianRow,
+        length: *mut u64,
+    ) -> u32;
+    pub fn cosmo_gaussian_destroy(gaussian: *mut std::ffi::c_void) -> u32;
+    pub fn cosmo_gaussian_result_destroy(result: *mut std::ffi::c_void) -> u32;
+    pub fn cosmo_gaussian_selection_view(
+        gaussian: *const std::ffi::c_void,
+        index: u64,
+        out: *mut GaussianSelection,
+    ) -> u32;
 }
 #[derive(Clone, serde::Deserialize, serde::Serialize)]
 #[serde(deny_unknown_fields)]

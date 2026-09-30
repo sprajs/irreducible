@@ -84,3 +84,7 @@ extern "C" uint32_t cosmo_observation_select(const cosmo_prepared* p,uint32_t se
 }
 extern "C" uint32_t cosmo_result_selection_view(const cosmo_result* r,const uint8_t** mask,uint64_t* n,const uint64_t** indices,uint64_t* m) {if(!mask||!n||!indices||!m)return COSMO_INVALID_INPUT;*mask=nullptr;*indices=nullptr;*n=*m=0;if(!r||r->kind!=4)return COSMO_INVALID_INPUT;*mask=r->selection_mask.data();*n=r->selection_mask.size();*indices=r->selection_indices.data();*m=r->selection_indices.size();return COSMO_OK;}
 extern "C" uint32_t cosmo_observation_destroy(cosmo_prepared* p) {delete p;return COSMO_OK;}
+
+const irred::observations::Prepared *native_observations(const cosmo_prepared *p) noexcept {
+ return p ? &p->prepared : nullptr;
+}

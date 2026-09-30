@@ -3,6 +3,7 @@ mod cli;
 mod ingestion;
 mod observation_run;
 mod records;
+mod statistics_run;
 fn main() {
     if let Err(e) = cli::execute() {
         eprintln!("{}", serde_json::json!({"kind":"failure","error_id":e}));

@@ -37,6 +37,14 @@ struct Request {
     source_selection: Vec<u8>,
 }
 pub(crate) fn execute(input: &[u8], store: &Path) -> Result<(Value, Value), String> {
+    execute_calculation(input, store, |_, _, _| Ok(None))
+}
+// Reuse exactly the same structural acquisition and immutable source retention.
+pub(crate) fn execute_calculation(
+    input: &[u8],
+    store: &Path,
+    calculation: impl FnOnce(&ObservationInput, &str, [u64; 3]) -> Result<Option<Value>, String>,
+) -> Result<(Value, Value), String> {
     let r: Request = serde_json::from_slice(input).map_err(|e| e.to_string())?;
     if r.schema_version != 1 || r.operation != "observations.prepare.v1" {
         return Err("UNSUPPORTED_SPECIFICATION".into());
@@ -152,5 +160,20 @@ pub(crate) fn execute(input: &[u8], store: &Path) -> Result<(Value, Value), Stri
  "uncertainty_axis_ids":source.uncertainty_axis_ids,"full_uncertainty_matrix":{"object_digest":matrix_artifact_digest,"elements":prepared.retained_matrix.len(),"axis_ids":source.uncertainty_axis_ids,"unit":source.metadata.uncertainty_unit,"retention":"full matrix unchanged; no projection or repair"},"selected_mask":prepared.mask,"selected_source_indices":prepared.source_indices,
  "calibration_provenance":source.calibration_provenance,"dependence_provenance":source.dependence_provenance,"quality_dictionary":source.quality_dictionary,"ordering_provenance":source.ordering_provenance,
  "quality_flags_available":false,"quality_placeholder_semantics":"no decoded quality column; zeros are structural placeholders, not all-clear flags","original_columns":table.original_columns,"original_fields":table.original_fields,"raw_assets_retained":true,"reader_ordering_provenance":reader_ordering_provenance,"ordering_verified_from_unlabeled_matrix":false,"inference_independence":"not_asserted"});
+    let calculation = calculation(
+        &source,
+        &r.selection,
+        [
+            limits.maximum_rows,
+            limits.maximum_matrix_elements,
+            limits.maximum_string_bytes,
+        ],
+    )
+    .unwrap_or_else(|error| Some(json!({"kind":"failure","error_id":error})));
+    let output = if let Some(result) = calculation {
+        json!({"kind":result["kind"],"observations":output,"calculation":result})
+    } else {
+        output
+    };
     Ok((spec, output))
 }

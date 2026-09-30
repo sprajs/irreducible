@@ -385,6 +385,262 @@
           "U64Buffer"
         ]
       ]
+    },
+    {
+      "c_name": "cosmo_gaussian_policy",
+      "rust_name": "GaussianPolicy",
+      "fields": [
+        [
+          "struct_size",
+          "u32"
+        ],
+        [
+          "abi_version",
+          "u32"
+        ],
+        [
+          "reserved",
+          "u32"
+        ],
+        [
+          "reserved2",
+          "u32"
+        ],
+        [
+          "maximum_matrix_elements",
+          "u64"
+        ],
+        [
+          "maximum_batch_elements",
+          "u64"
+        ],
+        [
+          "maximum_string_bytes",
+          "u64"
+        ],
+        [
+          "maximum_forward_sensitivity",
+          "f64"
+        ]
+      ]
+    },
+    {
+      "c_name": "cosmo_gaussian_batch",
+      "rust_name": "GaussianBatch",
+      "fields": [
+        [
+          "struct_size",
+          "u32"
+        ],
+        [
+          "abi_version",
+          "u32"
+        ],
+        [
+          "mode",
+          "u32"
+        ],
+        [
+          "reserved",
+          "u32"
+        ],
+        [
+          "row_count",
+          "u64"
+        ],
+        [
+          "residuals",
+          "F64Buffer"
+        ],
+        [
+          "ordered_ids",
+          "Strings"
+        ],
+        [
+          "response",
+          "F64Buffer"
+        ]
+      ]
+    },
+    {
+      "c_name": "cosmo_gaussian_row",
+      "rust_name": "GaussianRow",
+      "fields": [
+        [
+          "status",
+          "u32"
+        ],
+        [
+          "numerical_status",
+          "u32"
+        ],
+        [
+          "log_density",
+          "f64"
+        ],
+        [
+          "quadratic",
+          "f64"
+        ],
+        [
+          "log_determinant",
+          "f64"
+        ],
+        [
+          "normalization",
+          "f64"
+        ],
+        [
+          "backward_residual",
+          "f64"
+        ],
+        [
+          "estimated_forward_sensitivity",
+          "f64"
+        ],
+        [
+          "coefficient",
+          "f64"
+        ]
+      ]
+    },
+    {
+      "c_name": "cosmo_gaussian_view",
+      "rust_name": "GaussianView",
+      "fields": [
+        [
+          "struct_size",
+          "u32"
+        ],
+        [
+          "abi_version",
+          "u32"
+        ],
+        [
+          "matrix_validation_scope",
+          "u32"
+        ],
+        [
+          "ordered_ids",
+          "Strings"
+        ],
+        [
+          "measure",
+          "Bytes"
+        ],
+        [
+          "table_identity",
+          "Bytes"
+        ],
+        [
+          "uncertainty_identity",
+          "Bytes"
+        ],
+        [
+          "ordering_provenance",
+          "Bytes"
+        ],
+        [
+          "calibration_provenance",
+          "Bytes"
+        ],
+        [
+          "dependence_provenance",
+          "Bytes"
+        ],
+        [
+          "source_semantics",
+          "Bytes"
+        ],
+        [
+          "input_matrix_convention",
+          "Bytes"
+        ],
+        [
+          "treatment",
+          "Bytes"
+        ],
+        [
+          "mean_shift",
+          "F64Buffer"
+        ],
+        [
+          "prior_count",
+          "u64"
+        ],
+        [
+          "selection_count",
+          "u64"
+        ]
+      ]
+    },
+    {
+      "c_name": "cosmo_gaussian_prior",
+      "rust_name": "GaussianPrior",
+      "fields": [
+        [
+          "struct_size",
+          "u32"
+        ],
+        [
+          "abi_version",
+          "u32"
+        ],
+        [
+          "independence_declared",
+          "u32"
+        ],
+        [
+          "reserved",
+          "u32"
+        ],
+        [
+          "mean",
+          "f64"
+        ],
+        [
+          "variance",
+          "f64"
+        ],
+        [
+          "latent_identity",
+          "Bytes"
+        ],
+        [
+          "response",
+          "F64Buffer"
+        ],
+        [
+          "ordered_ids",
+          "Strings"
+        ]
+      ]
+    },
+    {
+      "c_name": "cosmo_gaussian_selection",
+      "rust_name": "GaussianSelection",
+      "fields": [
+        [
+          "struct_size",
+          "u32"
+        ],
+        [
+          "abi_version",
+          "u32"
+        ],
+        [
+          "operation",
+          "Bytes"
+        ],
+        [
+          "kept_row_ids",
+          "Strings"
+        ],
+        [
+          "complement_row_ids",
+          "Strings"
+        ]
+      ]
     }
   ],
   "functions": [
@@ -611,6 +867,159 @@
           "prepared"
         ]
       ]
+    },
+    {
+      "name": "cosmo_gaussian_prepare",
+      "args": [
+        [
+          "observations",
+          "const_prepared"
+        ],
+        [
+          "selection",
+          "u32"
+        ],
+        [
+          "policy",
+          "const_GaussianPolicy_ptr"
+        ],
+        [
+          "out",
+          "gaussian_out"
+        ],
+        [
+          "semantic",
+          "u32_ptr"
+        ]
+      ]
+    },
+    {
+      "name": "cosmo_gaussian_proper_offset",
+      "args": [
+        [
+          "gaussian",
+          "const_gaussian"
+        ],
+        [
+          "prior",
+          "const_GaussianPrior_ptr"
+        ],
+        [
+          "policy",
+          "const_GaussianPolicy_ptr"
+        ],
+        [
+          "out",
+          "gaussian_out"
+        ],
+        [
+          "semantic",
+          "u32_ptr"
+        ]
+      ]
+    },
+    {
+      "name": "cosmo_gaussian_source_view",
+      "args": [
+        [
+          "gaussian",
+          "const_gaussian"
+        ],
+        [
+          "out",
+          "GaussianView_ptr"
+        ]
+      ]
+    },
+    {
+      "name": "cosmo_gaussian_prior_view",
+      "args": [
+        [
+          "gaussian",
+          "const_gaussian"
+        ],
+        [
+          "index",
+          "u64"
+        ],
+        [
+          "out",
+          "GaussianPrior_ptr"
+        ]
+      ]
+    },
+    {
+      "name": "cosmo_gaussian_evaluate",
+      "args": [
+        [
+          "gaussian",
+          "const_gaussian"
+        ],
+        [
+          "batch",
+          "const_GaussianBatch_ptr"
+        ],
+        [
+          "policy",
+          "const_GaussianPolicy_ptr"
+        ],
+        [
+          "out",
+          "gaussian_result_out"
+        ]
+      ]
+    },
+    {
+      "name": "cosmo_gaussian_result_view",
+      "args": [
+        [
+          "result",
+          "const_gaussian_result"
+        ],
+        [
+          "rows",
+          "const_gaussian_row_out"
+        ],
+        [
+          "length",
+          "u64_ptr"
+        ]
+      ]
+    },
+    {
+      "name": "cosmo_gaussian_destroy",
+      "args": [
+        [
+          "gaussian",
+          "gaussian"
+        ]
+      ]
+    },
+    {
+      "name": "cosmo_gaussian_result_destroy",
+      "args": [
+        [
+          "result",
+          "gaussian_result"
+        ]
+      ]
+    },
+    {
+      "name": "cosmo_gaussian_selection_view",
+      "args": [
+        [
+          "gaussian",
+          "const_gaussian"
+        ],
+        [
+          "index",
+          "u64"
+        ],
+        [
+          "out",
+          "GaussianSelection_ptr"
+        ]
+      ]
     }
   ],
   "max_batch_elements": 1000000,
@@ -692,6 +1101,25 @@
       "missing_required_value": 4,
       "nonfinite_required_value": 5,
       "resource_limit": 6
+    }
+  },
+  "gaussian_tags": {
+    "mode": {
+      "normalized_density": 0,
+      "profile_offset_score": 1
+    },
+    "status": {
+      "finite": 0,
+      "outside_support": 1,
+      "invalid_input": 2,
+      "unsupported_domain": 3,
+      "numerical_failure": 4,
+      "incompatible_metadata": 5
+    },
+    "matrix_validation_scope": {
+      "full_declared_matrix": 0,
+      "selected_covariance_only": 1,
+      "full_precision_then_marginal": 2
     }
   }
 }

@@ -25,7 +25,7 @@ pub(crate) struct ObservationInput {
     pub source_selection: Vec<u8>,
     pub quality: Vec<u64>,
 }
-struct Prepared(*mut c_void);
+pub(super) struct Prepared(pub(super) *mut c_void);
 impl Drop for Prepared {
     fn drop(&mut self) {
         unsafe {
@@ -33,20 +33,20 @@ impl Drop for Prepared {
         }
     }
 }
-fn bytes(s: &str) -> Bytes {
+pub(super) fn bytes(s: &str) -> Bytes {
     Bytes {
         data: s.as_ptr(),
         length: s.len() as u64,
     }
 }
-fn strings(v: &[Bytes]) -> Strings {
+pub(super) fn strings(v: &[Bytes]) -> Strings {
     Strings {
         data: v.as_ptr(),
         length: v.len() as u64,
         byte_length: std::mem::size_of_val(v) as u64,
     }
 }
-fn doubles(v: &[f64]) -> F64Buffer {
+pub(super) fn doubles(v: &[f64]) -> F64Buffer {
     F64Buffer {
         struct_size: std::mem::size_of::<F64Buffer>() as u32,
         abi_version: ABI_VERSION,
@@ -74,7 +74,7 @@ fn semantic(status: u32) -> Result<(), String> {
         ))
     }
 }
-fn copied<T: Copy>(p: *const T, n: u64, cap: usize) -> Result<Vec<T>, String> {
+pub(super) fn copied<T: Copy>(p: *const T, n: u64, cap: usize) -> Result<Vec<T>, String> {
     let n = usize::try_from(n).map_err(|_| "INVALID_RESULT_LENGTH")?;
     if n > cap
         || n > isize::MAX as usize / std::mem::size_of::<T>()
@@ -94,11 +94,11 @@ pub(crate) struct ObservationSelection {
     pub source_values: Vec<f64>,
     pub retained_matrix: Vec<f64>,
 }
-pub(crate) fn prepare_observations(
+pub(super) fn prepare_retained(
     s: &ObservationInput,
     selection: &str,
     policy: [u64; 3],
-) -> Result<ObservationSelection, String> {
+) -> Result<(Prepared, ObservationSelection), String> {
     let tag = |g: &str, v: &str| {
         observation_tag_id(g, v).ok_or_else(|| format!("UNKNOWN_OBSERVATION_TAG_{g}:{v}"))
     };
@@ -213,10 +213,21 @@ pub(crate) fn prepare_observations(
     {
         return Err("INVALID_SELECTION_VIEW".into());
     }
-    Ok(ObservationSelection {
-        mask,
-        source_indices,
-        source_values,
-        retained_matrix,
-    })
+    Ok((
+        owned,
+        ObservationSelection {
+            mask,
+            source_indices,
+            source_values,
+            retained_matrix,
+        },
+    ))
+}
+
+pub(crate) fn prepare_observations(
+    s: &ObservationInput,
+    selection: &str,
+    policy: [u64; 3],
+) -> Result<ObservationSelection, String> {
+    prepare_retained(s, selection, policy).map(|(_, selection)| selection)
 }

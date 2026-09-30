@@ -7,6 +7,8 @@ extern "C" {
 #define COSMO_ABI_VERSION 1u
 typedef struct cosmo_result cosmo_result;
 typedef struct cosmo_prepared cosmo_prepared;
+typedef struct cosmo_gaussian cosmo_gaussian;
+typedef struct cosmo_gaussian_result cosmo_gaussian_result;
 #define COSMO_OK 0u
 #define COSMO_ABI_MISMATCH 1u
 #define COSMO_INVALID_INPUT 2u
@@ -98,6 +100,17 @@ typedef struct cosmo_prepared cosmo_prepared;
 #define COSMO_OBSERVATION_STATUS_MISSING_REQUIRED_VALUE 4u
 #define COSMO_OBSERVATION_STATUS_NONFINITE_REQUIRED_VALUE 5u
 #define COSMO_OBSERVATION_STATUS_RESOURCE_LIMIT 6u
+#define COSMO_GAUSSIAN_MODE_NORMALIZED_DENSITY 0u
+#define COSMO_GAUSSIAN_MODE_PROFILE_OFFSET_SCORE 1u
+#define COSMO_GAUSSIAN_STATUS_FINITE 0u
+#define COSMO_GAUSSIAN_STATUS_OUTSIDE_SUPPORT 1u
+#define COSMO_GAUSSIAN_STATUS_INVALID_INPUT 2u
+#define COSMO_GAUSSIAN_STATUS_UNSUPPORTED_DOMAIN 3u
+#define COSMO_GAUSSIAN_STATUS_NUMERICAL_FAILURE 4u
+#define COSMO_GAUSSIAN_STATUS_INCOMPATIBLE_METADATA 5u
+#define COSMO_GAUSSIAN_MATRIX_VALIDATION_SCOPE_FULL_DECLARED_MATRIX 0u
+#define COSMO_GAUSSIAN_MATRIX_VALIDATION_SCOPE_SELECTED_COVARIANCE_ONLY 1u
+#define COSMO_GAUSSIAN_MATRIX_VALIDATION_SCOPE_FULL_PRECISION_THEN_MARGINAL 2u
 typedef struct { uint32_t struct_size; uint32_t abi_version; uint32_t element_type; uint32_t reserved; const int64_t* data; uint64_t length; uint64_t byte_length; } cosmo_i64_buffer;
 typedef struct { uint32_t struct_size; uint32_t abi_version; uint32_t element_type; uint32_t reserved; const double* data; uint64_t length; uint64_t byte_length; } cosmo_f64_buffer;
 typedef struct { uint32_t struct_size; uint32_t abi_version; uint32_t unit; uint32_t role; uint32_t frame; uint32_t convention; uint32_t constant_set; uint32_t reserved; } cosmo_quantity_metadata;
@@ -107,6 +120,12 @@ typedef struct { const uint8_t* data; uint64_t length; uint64_t byte_length; } c
 typedef struct { const uint64_t* data; uint64_t length; uint64_t byte_length; } cosmo_u64_buffer;
 typedef struct { uint64_t maximum_rows; uint64_t maximum_matrix_elements; uint64_t maximum_string_bytes; } cosmo_observation_policy;
 typedef struct { uint32_t struct_size; uint32_t abi_version; uint32_t reserved; uint32_t profile; uint32_t role; uint32_t unit; uint32_t calibration; uint32_t uncertainty; uint32_t uncertainty_unit; uint32_t component; cosmo_bytes table_sha256; cosmo_bytes uncertainty_sha256; cosmo_bytes calibration_provenance; cosmo_bytes dependence_provenance; cosmo_bytes quality_dictionary; cosmo_bytes ordering_provenance; cosmo_strings measurement_ids; cosmo_strings event_ids; cosmo_strings uncertainty_axis_ids; cosmo_f64_buffer values; cosmo_f64_buffer zhd; cosmo_f64_buffer zcmb; cosmo_f64_buffer zhel; cosmo_f64_buffer uncertainty_matrix; cosmo_u8_buffer missing; cosmo_u8_buffer zhd_missing; cosmo_u8_buffer zcmb_missing; cosmo_u8_buffer zhel_missing; cosmo_u8_buffer source_selection; cosmo_u64_buffer quality; } cosmo_observation_descriptor;
+typedef struct { uint32_t struct_size; uint32_t abi_version; uint32_t reserved; uint32_t reserved2; uint64_t maximum_matrix_elements; uint64_t maximum_batch_elements; uint64_t maximum_string_bytes; double maximum_forward_sensitivity; } cosmo_gaussian_policy;
+typedef struct { uint32_t struct_size; uint32_t abi_version; uint32_t mode; uint32_t reserved; uint64_t row_count; cosmo_f64_buffer residuals; cosmo_strings ordered_ids; cosmo_f64_buffer response; } cosmo_gaussian_batch;
+typedef struct { uint32_t status; uint32_t numerical_status; double log_density; double quadratic; double log_determinant; double normalization; double backward_residual; double estimated_forward_sensitivity; double coefficient; } cosmo_gaussian_row;
+typedef struct { uint32_t struct_size; uint32_t abi_version; uint32_t matrix_validation_scope; cosmo_strings ordered_ids; cosmo_bytes measure; cosmo_bytes table_identity; cosmo_bytes uncertainty_identity; cosmo_bytes ordering_provenance; cosmo_bytes calibration_provenance; cosmo_bytes dependence_provenance; cosmo_bytes source_semantics; cosmo_bytes input_matrix_convention; cosmo_bytes treatment; cosmo_f64_buffer mean_shift; uint64_t prior_count; uint64_t selection_count; } cosmo_gaussian_view;
+typedef struct { uint32_t struct_size; uint32_t abi_version; uint32_t independence_declared; uint32_t reserved; double mean; double variance; cosmo_bytes latent_identity; cosmo_f64_buffer response; cosmo_strings ordered_ids; } cosmo_gaussian_prior;
+typedef struct { uint32_t struct_size; uint32_t abi_version; cosmo_bytes operation; cosmo_strings kept_row_ids; cosmo_strings complement_row_ids; } cosmo_gaussian_selection;
 uint32_t cosmo_add(const cosmo_i64_buffer* a, const cosmo_i64_buffer* b, uint32_t fault, cosmo_result** out);
 uint32_t cosmo_result_view(const cosmo_result* r, const int64_t** data, uint64_t* n);
 uint32_t cosmo_result_destroy(cosmo_result* r);
@@ -119,6 +138,15 @@ uint32_t cosmo_observation_source_view(const cosmo_prepared* prepared, cosmo_obs
 uint32_t cosmo_observation_select(const cosmo_prepared* prepared, uint32_t selection, cosmo_result** out, uint32_t* semantic_status);
 uint32_t cosmo_result_selection_view(const cosmo_result* result, const uint8_t** mask, uint64_t* mask_length, const uint64_t** indices, uint64_t* index_length);
 uint32_t cosmo_observation_destroy(cosmo_prepared* prepared);
+uint32_t cosmo_gaussian_prepare(const cosmo_prepared* observations, uint32_t selection, const cosmo_gaussian_policy* policy, cosmo_gaussian** out, uint32_t* semantic);
+uint32_t cosmo_gaussian_proper_offset(const cosmo_gaussian* gaussian, const cosmo_gaussian_prior* prior, const cosmo_gaussian_policy* policy, cosmo_gaussian** out, uint32_t* semantic);
+uint32_t cosmo_gaussian_source_view(const cosmo_gaussian* gaussian, cosmo_gaussian_view* out);
+uint32_t cosmo_gaussian_prior_view(const cosmo_gaussian* gaussian, uint64_t index, cosmo_gaussian_prior* out);
+uint32_t cosmo_gaussian_evaluate(const cosmo_gaussian* gaussian, const cosmo_gaussian_batch* batch, const cosmo_gaussian_policy* policy, cosmo_gaussian_result** out);
+uint32_t cosmo_gaussian_result_view(const cosmo_gaussian_result* result, const cosmo_gaussian_row** rows, uint64_t* length);
+uint32_t cosmo_gaussian_destroy(cosmo_gaussian* gaussian);
+uint32_t cosmo_gaussian_result_destroy(cosmo_gaussian_result* result);
+uint32_t cosmo_gaussian_selection_view(const cosmo_gaussian* gaussian, uint64_t index, cosmo_gaussian_selection* out);
 static inline uint64_t cosmo_numerics_output_length(uint32_t operation,uint64_t input) {switch(operation) {
 case COSMO_NUMERICAL_OPERATION_COMPENSATED_SUM:return 1;
 case COSMO_NUMERICAL_OPERATION_LOG_SUM_EXP:return 1;

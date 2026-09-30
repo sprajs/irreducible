@@ -231,3 +231,8 @@ pub(crate) fn numerics_evaluate(
 #[path = "observation_bridge.rs"]
 mod observations;
 pub(crate) use observations::{prepare_observations, ObservationInput, ObservationMetadata};
+
+#[path = "statistics_bridge.rs"]
+mod statistics;
+
+pub(crate) use statistics::{gaussian_batch, ProperPrior};

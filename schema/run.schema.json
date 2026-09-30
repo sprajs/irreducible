@@ -13,6 +13,9 @@
     },
     {
       "$ref": "#/$defs/observations"
+    },
+    {
+      "$ref": "#/$defs/gaussian"
     }
   ],
   "$defs": {
@@ -353,6 +356,127 @@
             "systematic",
             "total"
           ]
+        }
+      }
+    },
+    "gaussian": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema_version",
+        "operation",
+        "observations",
+        "mode",
+        "residual_unit",
+        "response_unit",
+        "ordered_ids",
+        "residuals",
+        "maximum_batch_elements",
+        "maximum_forward_sensitivity"
+      ],
+      "properties": {
+        "schema_version": {
+          "const": 1
+        },
+        "operation": {
+          "const": "statistics.gaussian_batch.v1"
+        },
+        "observations": {
+          "$ref": "#/$defs/observations"
+        },
+        "mode": {
+          "enum": [
+            "normalized_density",
+            "profile_offset_score"
+          ]
+        },
+        "residual_unit": {
+          "enum": [
+            "magnitude",
+            "metre"
+          ]
+        },
+        "response_unit": {
+          "const": "one"
+        },
+        "ordered_ids": {
+          "type": "array",
+          "maxItems": 10000,
+          "items": {
+            "type": "string"
+          }
+        },
+        "residuals": {
+          "type": "array",
+          "maxItems": 1000000,
+          "items": {
+            "type": "array",
+            "maxItems": 10000,
+            "items": {
+              "type": "number"
+            }
+          }
+        },
+        "response": {
+          "type": [
+            "array",
+            "null"
+          ],
+          "items": {
+            "type": "number"
+          }
+        },
+        "proper_prior": {
+          "type": [
+            "object",
+            "null"
+          ],
+          "additionalProperties": false,
+          "required": [
+            "response",
+            "ordered_ids",
+            "mean",
+            "variance",
+            "latent_identity",
+            "independence_declared"
+          ],
+          "properties": {
+            "response": {
+              "type": "array",
+              "items": {
+                "type": "number"
+              }
+            },
+            "ordered_ids": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "mean": {
+              "type": "number"
+            },
+            "variance": {
+              "type": "number",
+              "exclusiveMinimum": 0
+            },
+            "latent_identity": {
+              "type": "string",
+              "minLength": 1
+            },
+            "independence_declared": {
+              "type": "boolean"
+            }
+          }
+        },
+        "maximum_batch_elements": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 1000000
+        },
+        "maximum_forward_sensitivity": {
+          "type": "number",
+          "exclusiveMinimum": 0
         }
       }
     }

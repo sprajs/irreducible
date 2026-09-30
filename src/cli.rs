@@ -46,7 +46,7 @@ pub(crate) fn execute() -> Result<(), String> {
         Some("describe") | Some("version") if args.len() == 3 && args[2] == "--json" => {
             println!(
                 "{}",
-                json!({"schema_version":1,"product":"Irreducible","executable":"irred","version":env!("CARGO_PKG_VERSION"),"abi_version":ABI_VERSION,"build":manifest,"capabilities":[{"id":"fixture.checked_i64_add.v1","implementation":"implemented","qualification":"unqualified","scientific":false},{"id":"quantity.convert.v1","implementation":"implemented","qualification":"unqualified","scientific":true},{"id":"numerics.scalar_batch.v1","implementation":"implemented","qualification":"unqualified","scientific":true},{"id":"observations.prepare.v1","implementation":"implemented","qualification":"unqualified","scientific":true,"profiles":["pantheon_plus_released_v1","gaussian_fixture_v1"],"fits_codec":"unavailable_in_product"}],"quantity_schema":serde_json::from_str::<Value>(include_str!("../schema/abi.json")).map_err(|e|e.to_string())?,"commands":["describe --json","version --json","run REQUEST STORE"],"scientific_qualifications":[]})
+                json!({"schema_version":1,"product":"Irreducible","executable":"irred","version":env!("CARGO_PKG_VERSION"),"abi_version":ABI_VERSION,"build":manifest,"capabilities":[{"id":"fixture.checked_i64_add.v1","implementation":"implemented","qualification":"unqualified","scientific":false},{"id":"quantity.convert.v1","implementation":"implemented","qualification":"unqualified","scientific":true},{"id":"numerics.scalar_batch.v1","implementation":"implemented","qualification":"unqualified","scientific":true},{"id":"statistics.gaussian_batch.v1","implementation":"implemented","qualification":"unqualified","scientific":true,"interface_gate":"bounded_native_and_cli_passed","modes":["normalized_density","profile_offset_score"]},{"id":"observations.prepare.v1","implementation":"implemented","qualification":"unqualified","scientific":true,"profiles":["pantheon_plus_released_v1","gaussian_fixture_v1"],"fits_codec":"unavailable_in_product"}],"quantity_schema":serde_json::from_str::<Value>(include_str!("../schema/abi.json")).map_err(|e|e.to_string())?,"commands":["describe --json","version --json","run REQUEST STORE"],"scientific_qualifications":[]})
             );
             Ok(())
         }
@@ -135,6 +135,9 @@ pub(crate) fn execute() -> Result<(), String> {
                                 "error_id":if failed {Some("NUMERICAL_EVALUATION_FAILURE")}else{None},
                                 "method":request.method,"source_values":request.values,"evaluations":evaluations}))
                         },
+                        "statistics.gaussian_batch.v1" => {
+                            let (spec,output)=crate::statistics_run::execute(&input,&store)?;resolved=Some(spec);Ok(output)
+                        }
                         "observations.prepare.v1" => {
                             let (spec,output)=crate::observation_run::execute(&input,&store)?;resolved=Some(spec);Ok(output)
                         },
@@ -159,9 +162,10 @@ pub(crate) fn execute() -> Result<(), String> {
             let is_quantity = resolved
                 .as_ref()
                 .is_some_and(|spec| spec["operation"] == "quantity.convert.v1");
-            let is_observation = resolved
-                .as_ref()
-                .is_some_and(|spec| spec["operation"] == "observations.prepare.v1");
+            let is_observation = resolved.as_ref().is_some_and(|spec| {
+                spec["operation"] == "observations.prepare.v1"
+                    || spec["operation"] == "statistics.gaussian_batch.v1"
+            });
             let mut final_record = initial;
             final_record["precision"] = json!(if is_observation {
                 "binary64_source_parse_no_scientific_transformation"
