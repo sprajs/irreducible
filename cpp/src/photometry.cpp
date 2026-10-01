@@ -1,5 +1,5 @@
 #include "irred/photometry.hpp"
-#include "irred/quantities.hpp"
+#include "photometry_detail.hpp"
 #include <algorithm>
 #include <cfenv>
 #include <cmath>
@@ -7,45 +7,7 @@
 #include <numbers>
 namespace irred::photometry {
 namespace {
-using Wide = long double;
-struct Interval { Wide lower, upper; };
-// Error-free TwoSum under the declared round-to-nearest contract.
-Interval add(Wide a, Wide b) noexcept {
-  const Wide value = a + b;
-  const Wide bb = value - a;
-  const Wide error = (a - (value - bb)) + (b - bb);
-  return {error < 0 ? std::nextafter(value, -std::numeric_limits<Wide>::infinity()) : value,
-          error > 0 ? std::nextafter(value, std::numeric_limits<Wide>::infinity()) : value};
-}
-Interval multiply(Wide a, Wide b) noexcept {
-  const Wide value = a * b;
-  const Wide error = std::fma(a, b, -value);
-  return {error < 0 ? std::nextafter(value, -std::numeric_limits<Wide>::infinity()) : value,
-          error > 0 ? std::nextafter(value, std::numeric_limits<Wide>::infinity()) : value};
-}
-Interval scale(Interval a, Wide b) noexcept {
-  return {multiply(a.lower, b).lower, multiply(a.upper, b).upper};
-}
-void fail(Outcome &out, numerics::Status cause) noexcept {
-  out.availability = Availability::failed;
-  out.numerical_status = cause;
-  out.value.reset();
-}
-void store(Outcome &out, Wide value) noexcept {
-  if (!std::isfinite(value) || value > std::numeric_limits<double>::max()) {
-    fail(out, numerics::Status::overflow); return;
-  }
-  const double rounded = static_cast<double>(value);
-  if (value > 0 && rounded == 0) {
-    fail(out, numerics::Status::outside_domain); return;
-  }
-  if (value > 0 && std::abs(static_cast<Wide>(rounded) - value) / value > 1e-12L) {
-    fail(out, numerics::Status::conditioning_budget_exceeded); return;
-  }
-  out.availability = Availability::available;
-  out.numerical_status = numerics::Status::ok;
-  out.value = rounded;
-}
+using namespace detail;
 bool requested(std::uint32_t mask, std::uint32_t bit) noexcept { return (mask & bit) != 0; }
 numerics::Status admission(const Input &p) noexcept {
   for (double x : {p.luminosity_watt_per_metre, p.rest_lower_metre, p.rest_upper_metre,
@@ -112,8 +74,7 @@ void evaluate_row(Row &row, std::uint32_t mask) noexcept {
     return;
   }
   const Wide distance = p.luminosity_distance_metre;
-  const Wide spectral_flux = static_cast<Wide>(p.luminosity_watt_per_metre) /
-      (4 * std::numbers::pi_v<Wide> * distance * distance * r);
+  const Wide spectral_flux = detail::spectral_flux(p.luminosity_watt_per_metre, distance, r);
   const Wide band_flux = spectral_flux * width;
   if (requested(mask, incident_flux)) store(*groups[0], band_flux);
   const Wide collection = static_cast<Wide>(p.collecting_area_square_metre) *

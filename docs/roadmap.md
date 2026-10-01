@@ -22,13 +22,13 @@ The common numerical/data layer should support units and frames, stable linear a
 
 ## Dependency graph and first executable verticals
 
-The forward model advances through small complete calculations. [Deterministic photometry](photometry.md) and [the supplied-drag sound horizon](sound-horizon.md) implement bounded first pieces; their named numerical checks do not complete the verticals below. Sampled/calibrated source response, noise and recovery, a joint ladder, and predicted thermal/drag history remain proposals, with no claim that those comparisons or new data acquisition have run. A scoped joint fit can start as soon as the forward models and dependence contracts for that subset qualify; it need not wait for CMB or nonlinear simulations.
+The forward model advances through small complete calculations. [Deterministic photometry](photometry.md), its native sampled extension and [the supplied-drag sound horizon](sound-horizon.md) implement bounded first pieces; their named numerical checks do not complete the verticals below. Calibrated-response uncertainty, noise and recovery, a joint ladder, and predicted thermal/drag history remain proposals, with no claim that those comparisons or new data acquisition have run. A scoped joint fit can start as soon as the forward models and dependence contracts for that subset qualify; it need not wait for CMB or nonlinear simulations.
 
 ### 1. Synthetic photometric observation and recovery
 
 **Bounded first increment:** deterministic radiometry for a finite constant rest-frame wavelength spectrum, a rectangular observed passband and optical transmission. `photometry.predict` supplies incident flux, collected energy and expected transmitted photons under a supplied distance and explicit propagation convention; see [photometry](photometry.md). This is not a noisy experiment or recovery model.
 
-**Next increment:** sampled spectra and passbands with declared interpolation, quadrature, normalization and calibration-uncertainty contracts. Qualify constant/linear limits and independent refinement first. Noise, recorded random streams, selection and recovery then need their own scope and checks.
+**Native sampled increment:** the standalone C++ photometry API integrates finite piecewise-linear wavelength spectra and optical passbands with explicit support, normalization and fixed-calibration assumptions; see [photometry](photometry.md). Its constant/linear controls and independent frequency-coordinate refinement concern the declared sampled model. CLI ingestion and calibration-uncertainty propagation remain next prerequisites. Noise, recorded random streams, selection and recovery need their own scope and checks.
 
 **Inputs:** an explicitly identified source spectrum or empirical time-dependent SN spectral template, redshift/time convention, distance or flux normalization, extinction hypothesis, measured passband and detector response, observation times, noise and selection parameters. Begin with one passband and a simple analytic source before a multi-band SN.
 
