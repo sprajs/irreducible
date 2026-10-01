@@ -220,6 +220,7 @@ int main() {
          "invalid shared radiation refused");
     std::cout << "PASS " << checks
               << " conditional BAO independent peer controls\n";
+    return 0;
   } catch (const std::exception &e) {
     std::cerr << e.what() << '\n';
     return 1;
