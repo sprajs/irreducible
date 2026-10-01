@@ -279,3 +279,10 @@ add_executable(test_early_late tests/test_early_late.cpp)
 target_link_libraries(test_early_late PRIVATE irred_core)
 target_compile_options(test_early_late PRIVATE -Wall -Wextra -Wpedantic -fno-fast-math -ffp-contract=off)
 add_test(NAME early_late_contract COMMAND test_early_late)
+
+# Conditional BAO density consumes the qualified shared early/late provider.
+target_sources(irred_core PRIVATE src/bao_conditional.cpp)
+add_executable(test_bao_conditional tests/test_bao_conditional.cpp)
+target_link_libraries(test_bao_conditional PRIVATE irred_core)
+target_compile_options(test_bao_conditional PRIVATE -Wall -Wextra -Wpedantic -fno-fast-math -ffp-contract=off)
+add_test(NAME bao_conditional_contract COMMAND test_bao_conditional)
