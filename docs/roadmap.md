@@ -24,6 +24,40 @@ execution can test current functions before adding a CLI/ABI route justified by
 an actual consumer. Do not add noise, lensing or growth labels to unsupported
 calculations merely to fill a milestone.
 
+## Next bounded choices
+
+Choose from this queue after inspecting the latest built state and experiment
+findings. These are proposed scopes with separate acceptance gates, not a claim
+that every branch is implemented or must advance in this order. The first
+consumer should follow the available qualified inputs; independent acquisition
+and synthetic controls can proceed alongside it.
+
+| Proposed scope | Prerequisite and concrete deliverable | Independent acceptance before a larger claim |
+| --- | --- | --- |
+| Thermal conditional BAO density | Compose the tested thermal distance/ruler state with the existing retained ordered ratio covariance and projection gate | Matched fixed-point references, full covariance and numerical sensitivity at density level; supplied drag stays explicit |
+| Released ladder constrained target | Resolve source axis/constraint identities and specify the released box support, including any fixed coordinate, separately from the full-design relative profile | Exact constrained linear controls and a source-defined measure; a zero-width coordinate is not a proper full-dimensional prior |
+| Ladder calibration/model sensitivity | Declare one source-supported change to anchor, zero-point, metallicity or extinction assumptions at a time | Refit and held-out prediction with preserved failures and dependence; do not fold arbitrary variants into one Gaussian error |
+| Proper Gaussian parameter posterior | Add a declared proper parameter prior to an identifiable fixed-design consumer with explicit units/order/normalization | Analytic posterior and independent integration controls; distinguish parameter posterior from observation density and estimator sampling law |
+| Released SN observer/velocity contract | Pin redshift frames, observer convention, peculiar-velocity corrections and covariance for one selected sample | Analytic frame/low-z controls, exact object linkage and released conventions; no new calibration information from a free offset |
+| Sampled photometry ingestion | Expose the tested sampled spectra/passbands through one coarse ABI/CLI batch with immutable source ownership | Sample-order, units, density convention, lifetime, quota and record parity with native controls |
+| Measured passband calibration | Acquire one instrument response and a source-supported joint calibration distribution | Exact bytes/version, wavelength units, photon/energy response and calibration dependence; compare independent spectral coordinates |
+| Time-dependent source photometry | Add one declared sampled spectral-time interpolation model with rest/observer exposure conventions | Constant/linear-time controls and temporal/spectral refinement before using a trained SN template |
+| Detector counts and random streams | Add a bounded photon-to-electron/noise model with declared gain, background and generator/stream identity | Analytic mean/variance and distribution controls, replay and stream independence; distinguish count noise from calibration uncertainty |
+| Detection and censoring | Compose one explicit detection rule with the same simulated measurement law | Exact truncated/censored probability controls and synthetic recovery including non-detections; never drop failed or undetected rows |
+| Homogeneous ionization control | Freeze atomic assets, abundance, temperature and equilibrium assumptions for a small thermal-state calculation | Analytic equilibrium/limiting controls; equilibrium alone does not predict the actual drag history |
+| Recombination and drag history | Add a source-defined non-equilibrium thermal/ionization evolution and baryon-drag optical depth | Independent stiff evolution, atomic-input sensitivity and likelihood-relevant refinement before replacing supplied z_drag |
+| Scoped GR growth | Declare pressureless/subhorizon assumptions and compatible background components, with explicit initial normalization | Einstein–de Sitter and independent ODE controls; a scale-independent growth approximation is not massive-neutrino transfer or full perturbation closure |
+| A named thin-lens system | Combine compatible distances with an explicit analytic lens/source and instrument operator | Analytic deflection/magnification, synthetic image/delay recovery and degeneracy controls; distances do not identify the lens mass |
+| Linear transfer and CMB projection | Complete radiation/metric/massive-neutrino perturbations, primordial modes and thermal state, then one projection | Conservation/initial-mode controls and independent transfers/spectra with refinement at observable and likelihood level |
+
+For each chosen scope, freeze equations, source identity, domains, output masks,
+consumer budgets and reference ancestry before implementation. Record one
+integration owner per repository and the shared four-job budget. A native SDK
+experiment is sufficient when it is the real consumer; a new CLI operation is
+justified by an actual ingestion or orchestration need. Keep the failed and
+accepted attempts, migrate minimal independent facts into ordinary native CI,
+then publish only after reviewing the complete integrated diff and actual gates.
+
 ## Shared physics, explicit observational operators
 
 The forward direction is:
