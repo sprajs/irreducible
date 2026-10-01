@@ -2,8 +2,9 @@
 
 The native C++ `irred/early_late.hpp` API uses the same `EarlyFlatModel` and
 supplied-drag `SoundHorizonRequest` as the sound-horizon calculation. It supplies
-conditional distances and BAO ratio predictions only. It supplies no BAO data
-likelihood, fit, drag prediction, thermal history, growth or CMB qualification.
+conditional distances and BAO ratio predictions. This provider supplies no fit,
+drag prediction, thermal history, growth or CMB qualification; the separate
+[conditional BAO consumer](bao-conditional.md) supplies a bounded data density.
 
 The shared compiled state owns the safe nonnegative flat closure and
 P(a)=Omega_r+Omega_m*a+Omega_Lambda*a^4, with E(a)=sqrt(P(a))/a^2.
