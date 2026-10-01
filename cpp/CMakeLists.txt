@@ -245,3 +245,10 @@ add_executable(test_sampled_photometry_peer tests/test_sampled_photometry_peer.c
 target_link_libraries(test_sampled_photometry_peer PRIVATE irred_core)
 target_compile_options(test_sampled_photometry_peer PRIVATE -Wall -Wextra -Wpedantic -fno-fast-math -ffp-contract=off)
 add_test(NAME sampled_photometry_peer_contract COMMAND test_sampled_photometry_peer)
+
+# Normalized observed density with a full correlated proper calibration prior.
+target_sources(irred_core PRIVATE src/correlated_calibration.cpp)
+add_executable(test_correlated_calibration tests/test_correlated_calibration.cpp)
+target_link_libraries(test_correlated_calibration PRIVATE irred_core)
+target_compile_options(test_correlated_calibration PRIVATE -Wall -Wextra -Wpedantic -fno-fast-math -ffp-contract=off)
+add_test(NAME correlated_calibration_contract COMMAND test_correlated_calibration)
