@@ -20,6 +20,7 @@ Read [AGENTS.md](../AGENTS.md) first, then choose a guide:
 | Use one early/late state for distances and conditional ruler ratios in C++ | [Early and late expansion](early-late.md) |
 | Check scientific assumptions | [Scientific contracts](scientific-contracts.md) |
 | Profile an ordered multi-column Gaussian model in C++ | [Gaussian design](gaussian-design.md) |
+| Marginalize a correlated proper calibration prior in C++ | [Correlated calibration](correlated-calibration.md) |
 | Predict and recover a synthetic anchor/Cepheid/SN ladder in C++ | [Calibration ladder](calibration-ladder.md) |
 | Run tests or add a fixture | [Testing](testing.md) and [fixture provenance](../cpp/tests/fixtures/README.md) |
 | Maintain these docs | [Maintenance](maintenance.md) |

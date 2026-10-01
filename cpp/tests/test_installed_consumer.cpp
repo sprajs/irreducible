@@ -4,9 +4,25 @@
 #include <irred/sampled_photometry.hpp>
 #include <irred/calibration_ladder.hpp>
 #include <irred/early_late.hpp>
+#include <irred/correlated_calibration.hpp>
 #include <array>
 #include <cmath>
 #include <numbers>
+int installed_correlated_calibration() {
+ using namespace irred::statistics;
+ Metadata md;md.ordered_ids={"a","b"};md.measure="product d(magnitude)";
+ md.table_identity="installed synthetic calibration control";md.ordering_provenance="explicit rows";
+ CalibrationPrior p;p.ordered_parameter_ids={"zero","colour"};p.parameter_units={"magnitude","magnitude"};
+ p.mean={.25,-.5};p.covariance={.25,.125,.125,.5};
+ p.prior_identity="installed proper correlated prior";p.response_identity="identity response";
+ p.residual_unit="magnitude";p.measure_identity=md.measure;p.calibration_identity="synthetic calibration";
+ p.dependence_identity="independent conditional noise";p.noise_independence_declared=true;
+ auto g=prepare_gaussian(std::array<double,4>{1,0,0,2},MatrixKind::covariance,md,100,1e-10);
+ const auto op=CorrelatedCalibration::prepare(std::move(g),std::array<double,4>{1,0,0,1},md.ordered_ids,std::move(p));
+ const auto v=op.evaluate(std::array<double,2>{.25,-.5},md.ordered_ids);
+ const double expected=-.5*(std::log(3.109375)+2*std::log(2*std::numbers::pi));
+ return v.density.status==DensityStatus::finite && std::abs(v.quadratic)<1e-14 && std::abs(v.density.log_value-expected)<2e-12 ? 0 : 7;
+}
 int installed_ladder() {
  using namespace irred::calibration;
  using namespace irred::statistics;
@@ -76,5 +92,6 @@ int main() {
  const auto &dm=geometry.rows[0].outputs[static_cast<unsigned>(EarlyLateOutput::dm_mpc)], &dl=geometry.rows[0].outputs[static_cast<unsigned>(EarlyLateOutput::dl_mpc)];
  const double exact_dm=299792.458/70/2;
  if (!(dm.status==irred::numerics::Status::ok && dl.status==irred::numerics::Status::ok && dm.value && dl.value && std::abs(*dm.value-exact_dm)<1e-7 && std::abs(*dl.value-2*exact_dm)<1e-7)) return 5;
- return installed_ladder();
+ if (const auto ladder_status=installed_ladder();ladder_status!=0) return ladder_status;
+ return installed_correlated_calibration();
 }

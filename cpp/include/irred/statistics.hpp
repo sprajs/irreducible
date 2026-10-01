@@ -81,6 +81,7 @@ std::optional<std::size_t> selected_gaussian_preparation_payload_bound(
     numerics::Arithmetic) noexcept;
 class ProfileOperator;
 class DesignProfile;
+class CorrelatedCalibration;
 class Gaussian {
 public:
   Gaussian() = default;
@@ -160,6 +161,7 @@ private:
   std::vector<SelectionRecord> history_;
   numerics::Factorization factor_;
   friend class DesignProfile;
+  friend class CorrelatedCalibration;
   friend Gaussian prepare_selected_observations(const observations::Prepared &,
                                                 std::span<const std::size_t>,
                                                 std::size_t, double,
