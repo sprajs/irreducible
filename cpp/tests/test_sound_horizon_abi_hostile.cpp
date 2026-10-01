@@ -112,6 +112,29 @@ void tests() {
   irred_sound_horizon_result *out = nullptr;
   check(irred_sound_horizon_evaluate(&b, &p, &out) == IRRED_OK && out,
         "mixed transport");
+  // A misaligned offset of a real owner must reject before any dereference.
+  // This does not promise validation of arbitrary aligned forged pointers.
+  auto *misaligned_owner = reinterpret_cast<irred_sound_horizon_result *>(
+      reinterpret_cast<uintptr_t>(out) + 1);
+  irred_sound_horizon_view rejected_view{};
+  check(irred_sound_horizon_result_view(misaligned_owner, &rejected_view) ==
+            IRRED_INVALID_INPUT,
+        "misaligned result view rejected");
+  check(irred_sound_horizon_result_destroy(misaligned_owner) ==
+            IRRED_INVALID_INPUT,
+        "misaligned destroy rejected");
+  alignas(irred_sound_horizon_view)
+      std::array<unsigned char, sizeof(irred_sound_horizon_view) + 1>
+          view_storage{};
+  check(irred_sound_horizon_result_view(
+            out, reinterpret_cast<irred_sound_horizon_view *>(
+                     view_storage.data() + 1)) == IRRED_INVALID_INPUT,
+        "misaligned view destination rejected");
+  check(irred_sound_horizon_result_view(nullptr, &rejected_view) ==
+            IRRED_INVALID_INPUT,
+        "null owner view rejected");
+  check(irred_sound_horizon_result_destroy(nullptr) == IRRED_OK,
+        "null destroy remains harmless");
   auto v = view(out);
   check(v.count == 2 && v.numerical_status == 0, "mixed container");
   check(v.rows[0].has_value && v.rows[0].numerical_status == 0, "finite row");

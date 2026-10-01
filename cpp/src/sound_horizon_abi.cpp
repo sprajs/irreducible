@@ -101,8 +101,10 @@ extern "C" uint32_t irred_sound_horizon_evaluate(
 }
 extern "C" uint32_t irred_sound_horizon_result_view(
     const irred_sound_horizon_result *result,irred_sound_horizon_view *out) {
-  if(!result||!aligned(out)) return IRRED_INVALID_INPUT;
-  *out={};out->struct_size=sizeof(*out);out->abi_version=IRRED_ABI_VERSION;
+  if(!aligned(out)) return IRRED_INVALID_INPUT;
+  *out={};
+  if(!aligned(result)) return IRRED_INVALID_INPUT;
+  out->struct_size=sizeof(*out);out->abi_version=IRRED_ABI_VERSION;
   out->numerical_status=static_cast<uint32_t>(result->native.status);
   out->rows=result->rows.empty()?nullptr:result->rows.data();out->count=result->rows.size();
   out->callbacks=result->native.callbacks;
@@ -112,6 +114,7 @@ extern "C" uint32_t irred_sound_horizon_result_view(
   out->arithmetic_id=bytes("binary64-callback-wide64-or-more-nearest");return IRRED_OK;
 }
 extern "C" uint32_t irred_sound_horizon_result_destroy(irred_sound_horizon_result *p) {
+  if(p && !aligned(p)) return IRRED_INVALID_INPUT;
   delete p;return IRRED_OK;
 }
 static_assert(sizeof(irred_sound_horizon_input)==72 && alignof(irred_sound_horizon_input)==8);
