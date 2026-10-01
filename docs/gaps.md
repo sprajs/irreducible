@@ -84,4 +84,6 @@ The next useful work is to choose an actual vertical from the [roadmap](roadmap.
 
 Deterministic photometry predicts three radiometric outputs for a finite constant rest spectrum and supplied distance through the CLI. The standalone C++ sampled operator extends this to declared piecewise-linear wavelength spectra and optical passbands. Sampled CLI ingestion, time dependence, source populations, calibration-uncertainty propagation, noise, selection and recovery remain proposed.
 
+The native [synthetic ladder](calibration-ladder.md) now implements an empirical supplied-shape joint relative fit with anchors, Cepheids, calibrator/Hubble-flow SNe and one shared calibration coordinate. Named independent recovery and held-out controls do not establish fitting of the released ladder, posterior uncertainty or an observed H0 result. Actual source/selection/calibration reconstruction and any proper-prior normalization remain separate gates.
+
 The native early/late operator now shares the sound-horizon model's matter/radiation and flat geometry identity with distance and conditional BAO-ratio predictions. Its supplied drag epoch, fixed matter content and named numerical controls do not establish a predicted thermal history, an observational BAO likelihood or perturbation/CMB closure; see [early and late expansion](early-late.md).
