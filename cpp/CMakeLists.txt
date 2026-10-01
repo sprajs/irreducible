@@ -246,6 +246,11 @@ target_link_libraries(test_sampled_photometry_peer PRIVATE irred_core)
 target_compile_options(test_sampled_photometry_peer PRIVATE -Wall -Wextra -Wpedantic -fno-fast-math -ffp-contract=off)
 add_test(NAME sampled_photometry_peer_contract COMMAND test_sampled_photometry_peer)
 
+add_executable(test_early_late_peer tests/test_early_late_peer.cpp)
+target_link_libraries(test_early_late_peer PRIVATE irred_core)
+target_compile_options(test_early_late_peer PRIVATE -Wall -Wextra -Wpedantic -fno-fast-math -ffp-contract=off)
+add_test(NAME early_late_peer_contract COMMAND test_early_late_peer)
+
 # One native early/late physical identity and conditional supplied-drag predictions.
 target_sources(irred_core PRIVATE src/early_late.cpp)
 add_executable(test_early_late tests/test_early_late.cpp)
