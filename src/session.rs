@@ -31,6 +31,9 @@ enum Command {
         requested_outputs: Vec<crate::bridge::bao::Output>,
         numerical_policy: crate::bridge::bao::EvaluationPolicy,
     },
+    SoundHorizonEvaluate {
+        request: Value,
+    },
     BackgroundEvaluate {
         request: Value,
     },
@@ -413,6 +416,24 @@ fn dispatch(
                     stream_io::encode(&reply, limit).map_err(|_| Error::OutputLine)
                 })
                 .map_err(|_| "OUTPUT_LINE_LIMIT".into())
+        }
+        Command::SoundHorizonEvaluate { mut request } => {
+            let requested_policy = request["numerical_policy"].clone();
+            // Bound transient evaluation against currently retained owners.
+            // Effective context allowance is execution evidence, not scientific identity.
+            let requested = request["numerical_policy"]["maximum_native_bytes"]
+                .as_u64()
+                .ok_or("INVALID_REQUEST")?;
+            let remaining =
+                u64::try_from(context.remaining_bytes()).map_err(|_| "RESOURCE_LIMIT")?;
+            request["numerical_policy"]["maximum_native_bytes"] = json!(requested.min(remaining));
+            let input = serde_json::to_vec(&request).map_err(|_| "INVALID_REQUEST")?;
+            let effective_policy = request["numerical_policy"].clone();
+            let mut outcome = crate::sound_horizon_run::execute(&input)?;
+            outcome.specification["numerical_policy"] = requested_policy;
+            let mut reply = outcome_reply(outcome);
+            reply["effective_runtime_policy"] = effective_policy;
+            stream_io::encode(&reply, limit)
         }
         Command::BackgroundEvaluate { mut request } => {
             let requested_policy = request["numerical_policy"].clone();

@@ -22,11 +22,13 @@ The common numerical/data layer should support units and frames, stable linear a
 
 ## Dependency graph and first executable verticals
 
-The next work consists of small complete paths through the forward model. These proposals do not claim that new observations have been acquired or that comparisons have run. A scoped joint fit can start as soon as the forward models and dependence contracts for that subset qualify; it need not wait for CMB or nonlinear simulations.
+The forward model advances through small complete calculations. [Deterministic photometry](photometry.md) and [the supplied-drag sound horizon](sound-horizon.md) implement bounded first pieces; their named numerical checks do not complete the verticals below. Sampled/calibrated source response, noise and recovery, a joint ladder, and predicted thermal/drag history remain proposals, with no claim that those comparisons or new data acquisition have run. A scoped joint fit can start as soon as the forward models and dependence contracts for that subset qualify; it need not wait for CMB or nonlinear simulations.
 
 ### 1. Synthetic photometric observation and recovery
 
-**First executable increment:** one analytic constant spectrum, one rectangular passband and a declared detector response, with deterministic count predictions and a small synthetic noise experiment. Multi-band templates and real calibration assets follow this control.
+**Bounded first increment:** deterministic radiometry for a finite constant rest-frame wavelength spectrum, a rectangular observed passband and optical transmission. `photometry.predict` supplies incident flux, collected energy and expected transmitted photons under a supplied distance and explicit propagation convention; see [photometry](photometry.md). This is not a noisy experiment or recovery model.
+
+**Next increment:** sampled spectra and passbands with declared interpolation, quadrature, normalization and calibration-uncertainty contracts. Qualify constant/linear limits and independent refinement first. Noise, recorded random streams, selection and recovery then need their own scope and checks.
 
 **Inputs:** an explicitly identified source spectrum or empirical time-dependent SN spectral template, redshift/time convention, distance or flux normalization, extinction hypothesis, measured passband and detector response, observation times, noise and selection parameters. Begin with one passband and a simple analytic source before a multi-band SN.
 
@@ -42,6 +44,8 @@ This supplies a practical simulation-first foundation for spectra, photometry an
 
 **First executable increment:** a small synthetic ladder with two anchors, several host Cepheids and calibrator/Hubble-flow SNe, including one shared zero-point nuisance and its covariance. Recover known distances, luminosity and H₀ under the declared empirical model before introducing the full released assets.
 
+**Immediate prerequisite:** an identifiable multi-column Gaussian/design-matrix calculation with explicit rank, covariance/order, shared nuisance and proper-prior versus relative-profile measure. The existing scalar-offset profile is not a joint ladder solver. Establish exact linear controls before synthetic recovery or released-data fitting.
+
 **Inputs:** named anchor likelihoods, Cepheid periods, fluxes/colours, metallicities, host and instrument identities, covariance/calibration responses, selection/crowding/extinction declarations, calibrator SN observations and Hubble-flow SN observations. Every duplicated object or calibrator has one identity.
 
 **Calculation:** an explicit empirical Cepheid relation, such as absolute magnitude = intercept + period term + metallicity term, connects anchor distances to host distances. Host SN calibration connects those distances to a named SN luminosity model; the Hubble-flow forward prediction then depends on the specified geometry and H₀ definition. Wesenheit or extinction choices, relation breaks, parallax offsets, peculiar velocities and population/selection terms are model components, not preprocessing truths. The [SH0ES measurement paper](https://arxiv.org/abs/2112.04510) gives a concrete released ladder and sensitivity variants to reconstruct conditionally.
@@ -54,15 +58,17 @@ Once these prerequisites pass, their scoped joint calibration/H₀ fit is useful
 
 ### 3. Early-time state and a bounded sound-horizon calculation
 
-**First executable increment:** an early-time expansion and photon–baryon sound-speed state, followed by the sound-horizon integral at an explicitly supplied drag redshift. This is a conditional ruler calculation, not a prediction of the drag epoch. Full linear perturbations and CMB spectra are later consumers, not prerequisites for this integral.
+**Bounded first increment:** `cosmology.sound_horizon` implements an early-time expansion and photon–baryon sound-speed state, followed by the sound-horizon integral at an explicitly supplied drag redshift; see [the contract](sound-horizon.md). This is a conditional ruler calculation, not a prediction of the drag epoch. Full linear perturbations and CMB spectra are later consumers, not prerequisites for this integral.
 
 **Inputs:** a defined baseline expansion/matter/radiation content, photon and baryon densities, units and early-time domain; a declared drag redshift and its origin. Use the tightly coupled photon–baryon sound-speed convention and specify how the high-redshift tail is bounded. The input drag epoch is part of scientific identity and cannot inherit qualification from an unrelated cosmology.
 
 **Calculation:** compute r_s(z_d) = integral from z_d to infinity of c_s(z)/H(z) dz, with c_s = c/sqrt(3(1+R)) and R = 3ρ_b/(4ρ_γ) under that approximation. The first implementation supplies z_d explicitly. A subsequent increment predicts the drag epoch using an identified ionization/recombination and baryon-drag optical-depth contract, with atomic assets and a thermal history. Distinguish the last-scattering sound horizon from the drag ruler and from an empirically free BAO scale. The [CLASS thermodynamics implementation](https://github.com/lesgourg/class_public/blob/master/source/thermodynamics.c) is a primary reference for this dependency, not an imported authority or production requirement.
 
-**Outputs:** the conditional ruler, integrand/state diagnostics, tail and integration error bounds, and the origin/status of z_d. Later thermal work returns its predicted drag epoch separately. The current free H₀r_d parameter does not identify H₀ and r_d independently.
+**Outputs:** the conditional ruler, integrand/state diagnostics, declared compactification/tail treatment, empirical numerical error estimates and independently allocated checks, and the origin/status of z_d. Later thermal work returns its predicted drag epoch separately. The current free H₀r_d parameter does not identify H₀ and r_d independently.
 
-**Gate:** dimensions and scaling, analytic simplified expansion/sound-speed limits, independent quadrature, tail control and refinement, then an allocated BAO observable/log-density error. When z_d becomes predicted, add independent thermal/drag comparisons and propagate its uncertainty. Neither this integral nor a matching ruler qualifies growth, lensing or CMB predictions.
+**Gate:** dimensions and scaling, analytic simplified expansion/sound-speed limits, independent quadrature, tail treatment and refinement. A downstream BAO observable/log-density allocation is a separate future gate. When z_d becomes predicted, add independent thermal/drag comparisons and propagate its uncertainty. Neither this integral nor a matching ruler qualifies growth, lensing or CMB predictions.
+
+Before using this ruler in a physical-ruler BAO likelihood, connect early and late expansion through one consistent matter/radiation, geometry, unit and parameter identity. The current free ruler remains a separate conditional calculation. Predicting the drag epoch then requires its thermal/ionization contract.
 
 Background plus thermal/ionization history can subsequently support a declared perturbation closure, primordial modes, transfer functions and line-of-sight projection. Each later observable needs its own reference and likelihood allocation.
 
