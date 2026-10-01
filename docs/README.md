@@ -12,7 +12,8 @@ Read [AGENTS.md](../AGENTS.md) first, then choose a guide:
 | Build and run | [Getting started](getting-started.md) |
 | See what is implemented | [Capabilities](capabilities.md), then `irred describe --json` |
 | Plan a repeatable paper workflow (proposed) | [Run recipes](run-recipes.md) |
-| Predict a synthetic rectangular-passband observation | [Photometry](photometry.md) |
+| Predict a synthetic rectangular or sampled-passband observation | [Photometry](photometry.md) |
+| Propagate a finite shared passband calibration law in C++ | [Photometry calibration](photometry-calibration.md) |
 | Make a request | [CLI contract](cli.md) |
 | Interpret an output | [Run records](run-records.md) |
 | Add a model, reader or calculation | [Development](development.md) and [architecture](architecture.md) |
