@@ -104,4 +104,23 @@ struct SolveResult {
 // Requested sensitivity budget is caller/consumer policy, not a global epsilon.
 SolveResult solve(const Factorization &, std::span<const double> rhs,
                   double maximum_forward_sensitivity);
+// One retained-factor forward triangular solve, L z = rhs. Wide outputs are
+// intentional internal numerical coordinates, not rounded binary64 observables.
+// The diagnostic concerns stored L, not a covariance forward-error certificate.
+struct WhiteningResult {
+  Status status = Status::invalid_input;
+  std::vector<long double> value;
+  double backward_residual = 0, arithmetic_rounding_estimate = 0;
+};
+std::optional<std::size_t> whitening_payload_bound(std::size_t n) noexcept;
+// Borrow rhs/factor; no factor copy or matrix readback. No vector payload on
+// failure. maximum_elements bounds n; payload bounds scratch/result only.
+WhiteningResult whiten(const Factorization &, std::span<const double> rhs,
+                       std::size_t maximum_elements,
+                       std::size_t maximum_payload_bytes,
+                       double maximum_backward_error);
+WhiteningResult whiten(const Factorization &, std::span<const long double> rhs,
+                       std::size_t maximum_elements,
+                       std::size_t maximum_payload_bytes,
+                       double maximum_backward_error);
 } // namespace irred::numerics

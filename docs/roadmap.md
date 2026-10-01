@@ -16,8 +16,8 @@ its own identity. A passing fixed-point test does not reproduce a posterior or
 qualify all modalities. The diagnostic is an input to this plan, not another plan.
 
 Dependency-ready next work is the smallest consumer supported by that evidence:
-a stable rank-revealing covariance/design route for a released-ladder admission
-failure; a declared massive-neutrino background for the full standard expansion
+source-defined released-ladder parameter mapping and conditional estimator
+uncertainty after the successful unchanged-budget native QR comparison; a declared massive-neutrino background for the full standard expansion
 identity; then thermal/ionization/drag prediction before a predicted physical BAO
 ruler. Perturbations and CMB need their own closure and comparisons. Native SDK
 execution can test current functions before adding a CLI/ABI route justified by
