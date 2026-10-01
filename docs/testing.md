@@ -180,3 +180,12 @@ Uploaded CI artifacts expire after 14 days. They do not replace durable Git bran
 Finite passband-calibration regressions retain analytic constant/linear radiometry, independently integrated frequency-coordinate controls and separately accumulated weighted moments. Refinement occupies at most 5% of the named comparison allocation. Shared-state covariance, permutations, constant witnesses, unresolved spread, partial failures and resource quotas are challenged without original calibration assets or external engines.
 
 Conditional BAO regressions compare independent direct-redshift/sqrt(a) fixed-panel quadrature and cofactor/LDLT normalized Gaussian calculations. They retain separate ratio and 1e-8 density-component allocations, reference refinement, H0 cancellation, projection refusal, positive diagnostic underflow, output omission, lifetime and global callback quotas. Original released assets remain optional local comparisons, with exact source hashes and conditional fitted-summary roles.
+
+Thermal-relic regressions retain exact massless and nonrelativistic limits,
+collisionless continuity, independent high-precision momentum integrals and a
+matched CLASS background grid. Explicit temperature/statistical-weight and
+constant conversions prevent external defaults from masquerading as agreement.
+The prepared owner's copies, moves, self moves and failed source use are tested;
+the original moved-source failure remains preserved in local research evidence.
+These controls cover species states and E/H, without qualifying distances,
+recombination, drag, perturbations or a Planck posterior.

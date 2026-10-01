@@ -19,8 +19,12 @@ Engineering remains serial CPU execution with bounded dense matrices and narrow 
 The [bounded LambdaCDM baseline](lcdm-baseline.md) distinguishes full Planck base
 LCDM from the current supported approximation. The native shared early/late
 state treats radiation as massless and matter as pressureless at every epoch.
-It has no massive-neutrino transition or thermal/ionization prediction. Drag
-redshift is supplied. The CLI late LCDM background omits radiation and has a
+The separate native [thermal-neutrino provider](thermal-neutrino.md) now
+supplies explicit relic density/pressure and flat E/H with a mass transition,
+independent high-precision and matched CLASS controls. It is not yet connected
+to the early/late distance or supplied-drag ruler consumer. Temperature/species
+and physical-density mapping still need an explicit source contract; no operator
+predicts thermal/ionization history. Drag redshift is supplied. The CLI late LCDM background omits radiation and has a
 different physical identity; native early/late and conditional BAO currently
 require a C++ SDK consumer rather than a CLI/C ABI request.
 
