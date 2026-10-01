@@ -41,6 +41,23 @@ void close(double actual, long double expected) {
 int main() {
   const std::vector<double> x = {1, .5, -.25, 1}, r = {1.25, -.5};
   const auto ids = metadata().ordered_ids;
+  // A qualified Gaussian may retain subnormal off-diagonals. Calibration
+  // must enforce its stronger declared normal-input domain before XSX^T
+  // conceals such a source entry.
+  const auto subnormal = std::numeric_limits<double>::denorm_min();
+  auto hostile_source =
+      prepare_gaussian(std::vector<double>{2, subnormal, subnormal, 1.5},
+                       MatrixKind::covariance, metadata(), 100, 1e-10);
+  assert(hostile_source.status() == DensityStatus::finite);
+  const auto source_density = hostile_source.evaluate(r, ids, 1e-10);
+  assert(source_density.density.status == DensityStatus::finite);
+  auto hostile_calibration = CorrelatedCalibration::prepare(
+      std::move(hostile_source), x, ids, prior());
+  assert(hostile_calibration.status() != DensityStatus::finite);
+  assert(hostile_source.status() == DensityStatus::finite);
+  assert(hostile_source.covariance()[1] == subnormal);
+  close(hostile_source.evaluate(r, ids, 1e-10).density.log_value,
+        source_density.density.log_value);
   auto g = base();
   auto p = prior();
   auto c = CorrelatedCalibration::prepare(std::move(g), x, ids, p);

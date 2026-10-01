@@ -136,6 +136,9 @@ CorrelatedCalibration::prepare(Gaussian &&g, std::span<const double> x,
                   p.ordered_parameter_ids[j]) !=
             p.ordered_parameter_ids.begin() + j)
       return out;
+  for (auto v : g.covariance())
+    if (!normal(v))
+      return out;
   for (auto v : x)
     if (!normal(v))
       return out;
