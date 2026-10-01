@@ -33,3 +33,65 @@ target/release/irred run tests/fixtures/photometry.json /tmp/irred-photometry-ex
 Each requested group carries its own numerical status. Default numerical-contract assurance can pass while interpretation remains unqualified. The operation is available through the one-shot `run` interface; it does not create a retained observation handle.
 
 The byte quota admits successful combined native/wrapper allocated calculation payload. A fixed bounded empty work-limit diagnostic owner is excluded from that admission budget and may be allocated even when the quota is zero. Borrowed caller storage, scalar call frames, allocator overhead and RSS are also excluded.
+
+## Native sampled-spectrum and passband operator
+
+The independently usable C++20 library also provides `evaluate_sampled` in
+`irred/sampled_photometry.hpp`. This extension has no CLI operation or C/Rust ABI.
+`SampledSpectrum` borrows rest-frame wavelength and Lλ arrays (metres and W/m);
+`SampledPassband` borrows observed wavelength and optical-transmission arrays.
+Each axis has at least two finite, strictly increasing positive wavelengths;
+source luminosities are finite and nonnegative and transmission lies in [0,1].
+Scalar distance, redshift, area and observer exposure follow the rectangular
+operator's domain and propagation convention.
+
+Both arrays declare exact piecewise-linear functions in wavelength, with zero
+outside their finite supports. Endpoint samples specify their interior limits;
+there is no extrapolation. Samples do not establish the true continuous source
+or instrument response between measurements. The operator does not normalize
+transmission, infer a spectrum, accept Fν samples or propagate sample/calibration
+covariance. Calibration is fixed. Source, distance, calibration and interpolation
+model uncertainty remain outside the numerical allocation.
+
+With r=1+z, use Fλ(λ)=Lλ(λ/r)/(4πDL²r). If B is the entire finite passband
+support, the three independent outputs are:
+
+- Incident flux: integral over B of Fλ dλ, in W/m², without transmission weights.
+- Collected energy: At integral over B of Fλ T dλ, in joules.
+- Expected transmitted photons: At/(hc) integral over B of λ Fλ T dλ.
+
+T is optical transmission and enters collected quantities once. It is neither
+quantum efficiency nor electronic gain. Passband regions with zero transmission
+still belong to B for incident flux. Source support clipping is applied separately.
+Observer exposure receives no additional redshift factor.
+
+The implementation walks the merged source/passband intervals without allocation.
+Within each interval it integrates the linear source and quadratic source-times-
+transmission product analytically. Multiplying that product by observed wavelength
+produces a cubic. Nonnegative Bernstein coefficients and their exact integral
+weights avoid subtraction of nearly equal polynomial antiderivatives. There is
+no empirical quadrature-error estimate or claim of a certified universal bound.
+Outward endpoint/arithmetic checks reject unresolved overlaps and excessive
+conditioning; they distinguish exact touching from redshift-induced positive
+thin overlap. Positive binary64 underflow and overflow are typed failures.
+Each requested result has its own availability and numerical status; unrequested
+conversions cannot invalidate another output. Scientific admission precedes zero
+shortcuts.
+
+`SampledPolicy` requests the existing flux/energy/photon mask and bounds total
+source-plus-passband knots and merged segments. The hard total-knot cap is 65536;
+the conservative segment admission count is total knots minus three. Limits are
+checked before walking arrays. A policy/work-limit failure has no output payload.
+Arrays remain caller-owned and need only live through the synchronous call;
+`SampledResult` owns scalar outputs and retains no source views. There is no
+cache, retained observation object or per-row FFI.
+
+Owner controls use independent constant/linear polynomial antiderivatives,
+clipping, refinement by inserting exactly linear knots, inverse-distance/area/
+exposure scaling, bolometric redshift conservation, zero transmission, invalid
+arrays, quotas, omitted outputs, unresolved binary endpoint adversaries and
+isolated output underflow/overflow. The named allocation is 2×10^-12 relative
+plus 10^-300 absolute, with a separate positivity guard; the independent
+frequency-coordinate refinement allocation is 2×10^-13 relative. These are
+synthetic numerical controls with shared SI definitions, not measurements,
+calibration validation, inference or astrophysical qualification.
