@@ -10,8 +10,8 @@ Use the [bounded LambdaCDM baseline](lcdm-baseline.md) as a cross-project diagno
 Prospector owns source claims, Reproducible owns pinned execution and findings,
 and Irreducible owns compiled repairs and regressions. Test the available shared
 early/late state and conditional likelihood against ordered released inputs and
-independent references. Keep full Planck base LCDM blocked where massive-neutrino,
-thermal or perturbation closure is absent; a massless supplied-drag variant has
+independent references. Keep full Planck base LCDM blocked where massive-neutrino perturbations,
+ionization history or observable closure is absent; a massless supplied-drag variant has
 its own identity. A passing fixed-point test does not reproduce a posterior or
 qualify all modalities. The diagnostic is an input to this plan, not another plan.
 

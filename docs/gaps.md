@@ -44,8 +44,15 @@ observation noise and an explicitly assumed generating mean. Named synthetic
 checks do not qualify released-data parameter mapping or coverage. The relative
 profile is not a normalized posterior. Source review now identifies original
 column 46 as 5 log10(H0 in km/s/Mpc); its formal contrast variance on the same
-3492x47 products agrees with independent SVD/QR. No released H0/error acceptance
-target or full host/nuisance dictionary was verified; see [Gaussian design](gaussian-design.md).
+3492x47 products agrees with independent SVD/QR. A later [Reproducible source audit](https://github.com/sprajs/reproducible/tree/main/experiments/released-ladder)
+now joins all 2150 initial Cepheid rows to the pinned primary table and identifies
+all 37 host columns. Period/metallicity and the H0 contrast are corroborated;
+seven remaining anchor/nuisance identities stay unresolved. The audit preserves
+the paper/release N1365 count discrepancy and distinguishes the released MCMC
+zero-width coordinate from this full47 relative profile. Its source-rounded
+logarithmic-coordinate check and independent synthetic constraint-row sensitivity
+comparisons do not reproduce the paper's posterior or systematic H0 uncertainty.
+See [Gaussian design](gaussian-design.md).
 
 No current operator predicts matter transfer/growth, lensing potentials or
 images, recombination/drag, CMB spectra, stellar/source populations, detector

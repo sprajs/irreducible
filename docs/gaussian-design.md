@@ -53,8 +53,14 @@ allocation; two independent QR references also agree. The external references
 share covariance whitening, while the native covariance factor and design
 algorithm have separate implementation ancestry. This tests the formal
 fixed-design Gaussian full-C law, including supplied compact constraints and
-assumptions. The complete host and nuisance axis dictionary remains unresolved.
-No released H0/error acceptance target, observational uncertainty, posterior or
-coverage is established. Earlier source/build receipts remain unchanged.
+assumptions. Those earlier receipts do not identify the complete physical axes. A later
+[Reproducible audit](https://github.com/sprajs/reproducible/tree/main/experiments/released-ladder)
+verifies the 37-host order using the pinned primary period/metallicity table,
+while retaining seven unresolved anchor/nuisance identities. It executes the
+full47 native contrast and synthetic constraint-row sensitivities against
+independent QR/SVD, and checks consistency with the paper's rounded logarithmic
+coordinate. The released MCMC example's zero-width coordinate has a different
+measure from this unconstrained profile. No observational uncertainty, posterior
+or coverage is established; earlier source/build receipts remain unchanged.
 
 Owner tests freeze coefficient/residual tolerance 2×10⁻¹² absolute plus relative, quadratic 10⁻¹⁰ absolute, with 10⁻¹² independent small exact references. The synthetic two-anchor/host/shared-zero-point control has orthogonal contrasts and a shared column; the peer suite independently solves augmented KKT equations for correlated-covariance controls, avoiding a Gram-only oracle. A separate exact dyadic two-column control uses X=(1,1+2⁻¹⁴t), t=(−3,−1,1,3), and analytically derived coefficients/residuals/q; its reference was also checked by a separate 90-digit direct SVD calculation before production comparison. Ordinary tests require only the frozen analytic facts, not an external SVD dependency. Tests challenge row/parameter order, shared identities, units (including powers-of-two scaling by ±900), exact and near rank deficiency, moves, caller-buffer lifetime, priors, byte/element resource boundaries, unsupported rounding, nonfinite inputs and actual post-cast stationarity. This is bounded evidence for those named cases, not an all-domain scientific qualification, actual calibration analysis or joint ladder fit.
