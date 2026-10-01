@@ -33,9 +33,16 @@ preserved. The native retained whitened pivoted QR at source f844080 now admits
 the exact same 3492-row/47-column compact products with both covariance arithmetic
 profiles and unchanged budgets. All coefficients and the objective agree with
 independent LAPACK QR/SVD references; q=3552.759330295523. This closes the named
-numerical admission blocker. Physical parameter labels, the released calibration
-assumptions, estimator uncertainty and observational H0 reconstruction still need
-separate qualification. The relative profile is not a normalized posterior.
+numerical admission blocker. The complete physical parameter dictionary, released
+calibration assumptions and observational H0 reconstruction
+still need separate qualification. Native QR contrast variance and a synthetic
+ladder H0 sampling law now supply conditional uncertainty under fixed Gaussian
+observation noise and an explicitly assumed generating mean. Named synthetic
+checks do not qualify released-data parameter mapping or coverage. The relative
+profile is not a normalized posterior. Source review now identifies original
+column 46 as 5 log10(H0 in km/s/Mpc); its formal contrast variance on the same
+3492x47 products agrees with independent SVD/QR. No released H0/error acceptance
+target or full host/nuisance dictionary was verified; see [Gaussian design](gaussian-design.md).
 
 No current operator predicts matter transfer/growth, lensing potentials or
 images, recombination/drag, CMB spectra, stellar/source populations, detector

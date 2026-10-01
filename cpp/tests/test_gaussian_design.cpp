@@ -276,6 +276,103 @@ int main() {
     }
     check(!irred::numerics::whitening_payload_bound(SIZE_MAX),
           "whitening overflow bound");
+    // Independently orthogonal columns: Var(w' beta_hat)=w0^2/2+w1^2/4+w2^2/6.
+    LinearFunctionalMetadata functional{
+        {"1", "1", "1"}, "synthetic anchor+2host-3zero", "mag"};
+    const auto parameter_order = moved.design_metadata().ordered_parameter_ids;
+    const std::vector<double> weights{1, 2, -3};
+    auto variance =
+        moved.estimator_variance(weights, parameter_order, functional);
+    check(variance.status == DensityStatus::finite,
+          "conditional estimator variance");
+    near(variance.variance, 3, "orthogonal exact contrast variance");
+    check(variance.triangular_backward_residual >= 0 &&
+              variance.estimated_forward_sensitivity <= 1e-10 &&
+              variance.output_rounding_error_relative >= 0,
+          "variance actual arithmetic diagnostics");
+    check(variance.metadata.functional_identity ==
+                  functional.functional_identity &&
+              variance.metadata.output_unit == "mag" &&
+              variance.metadata.weight_units == functional.weight_units &&
+              std::strcmp(variance.method_id,
+                          "retained-qr-linear-estimator-variance/v1") == 0 &&
+              std::strcmp(variance.sampling_law_id,
+                          "fixed-design-gaussian-observation-noise/v1") == 0,
+          "functional provenance and conditional sampling law identity");
+    const std::vector<double> zero_weights(3, 0);
+    const auto zero_variance =
+        moved.estimator_variance(zero_weights, parameter_order, functional);
+    check(zero_variance.status == DensityStatus::finite &&
+              zero_variance.variance == 0,
+          "exact zero contrast variance");
+    auto negative_weights = weights;
+    for (auto &weight : negative_weights)
+      weight = -weight;
+    near(moved.estimator_variance(negative_weights, parameter_order, functional)
+             .variance,
+         3, "contrast sign invariance");
+    std::vector<double> extreme_weights{std::ldexp(1., 900),
+                                        std::ldexp(2., -900), -3};
+    near(extreme_profile
+             .estimator_variance(extreme_weights, parameter_order, functional)
+             .variance,
+         3, "variance coordinate scaling invariance");
+    auto wrong_parameters = parameter_order;
+    std::swap(wrong_parameters[0], wrong_parameters[1]);
+    check(moved.estimator_variance(weights, wrong_parameters, functional)
+                  .status == DensityStatus::incompatible_metadata,
+          "variance exact parameter order");
+    auto invalid_functional = functional;
+    invalid_functional.weight_units[1].clear();
+    check(moved.estimator_variance(weights, parameter_order, invalid_functional)
+                  .status == DensityStatus::invalid_input,
+          "variance weight-unit declaration");
+    invalid_functional = functional;
+    invalid_functional.output_unit.clear();
+    check(moved.estimator_variance(weights, parameter_order, invalid_functional)
+                  .status == DensityStatus::invalid_input,
+          "variance output-unit declaration");
+    auto poisoned_weights = weights;
+    poisoned_weights[0] = NAN;
+    check(
+        moved.estimator_variance(poisoned_weights, parameter_order, functional)
+                .status == DensityStatus::invalid_input,
+        "variance finite weights");
+    const auto variance_bound =
+        moved.estimator_variance_payload_bound(functional);
+    DesignPolicy variance_quota;
+    variance_quota.maximum_payload_bytes = *variance_bound;
+    check(moved.estimator_variance(weights, parameter_order, functional,
+                                   variance_quota)
+                  .status == DensityStatus::finite,
+          "variance exact byte envelope");
+    --variance_quota.maximum_payload_bytes;
+    auto limited_variance = moved.estimator_variance(
+        weights, parameter_order, functional, variance_quota);
+    check(limited_variance.numerical_status ==
+                  irred::numerics::Status::work_limit &&
+              limited_variance.metadata.weight_units.empty() &&
+              limited_variance.variance == 0,
+          "variance byte boundary no payload");
+    variance_quota = DesignPolicy{};
+    variance_quota.maximum_elements = 2;
+    check(moved.estimator_variance(weights, parameter_order, functional,
+                                   variance_quota)
+                  .numerical_status == irred::numerics::Status::work_limit,
+          "variance element quota");
+    for (const double scale : {1e-200, 1e200}) {
+      auto unrepresentable = weights;
+      for (auto &weight : unrepresentable)
+        weight *= scale;
+      const auto rejected_variance = moved.estimator_variance(
+          unrepresentable, parameter_order, functional);
+      check(rejected_variance.status == DensityStatus::numerical_failure &&
+                rejected_variance.variance == 0 &&
+                rejected_variance.metadata.functional_identity.empty(),
+            "positive variance underflow overflow withheld");
+    }
+    check(moved.evaluate(r, ids).status == DensityStatus::finite,
+          "variance queries retain profile");
     std::printf("gaussian design owner: %d checks passed; named synthetic "
                 "controls only\n",
                 checks);

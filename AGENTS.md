@@ -45,6 +45,13 @@ acceptance cannot establish inference or interpretation. Keep unsupported
 closures explicit and translate observed discrepancies into owned engine work
 in the sole active roadmap.
 
+Keep the native thermal-relic E/H provider separate from the massless
+distance/ruler consumer until one shared physical state and its source mapping
+are tested. Conditional estimator variance assumes fixed design and supplied
+Gaussian observation noise; a synthetic H0 sampling law requires an explicitly
+declared generating mean. Neither calculation supplies a parameter posterior or
+observational qualification. Read their guides before composing a new consumer.
+
 ## Repository traps and publication
 
 [schema/abi.json](schema/abi.json) owns the shared C/Rust ABI; regenerate with `tools/generate_abi.py`, never hand-edit bindings. No cross-language exception unwinding or per-row FFI. Public documentation is in `docs/`; keep executable discovery and docs consistent with actual gates.

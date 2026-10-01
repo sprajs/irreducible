@@ -1,9 +1,11 @@
 #include "irred/calibration_ladder.hpp"
+#include "payload_accounting.hpp"
 #include <algorithm>
 #include <cfenv>
 #include <cmath>
 #include <limits>
 #include <set>
+#include <utility>
 
 namespace irred::calibration {
 namespace {
@@ -114,6 +116,12 @@ bool valid(const Model &m, bool recovery) {
     }
   }
   return !recovery || (anchors.size() >= 2 && cep && cal && hf);
+}
+std::size_t eta_index(const Model &m) { return m.ordered_host_ids.size() + 4; }
+long double eta_log_h0_scale() { return std::log(10.L) / 5; }
+long double log_h0_projection(const Model &m, double eta) {
+  return std::log(static_cast<long double>(m.h_reference_km_s_Mpc)) +
+         eta_log_h0_scale() * eta;
 }
 double row_offset(const Row &r) {
   return r.kind == RowKind::hubble_supernova ? r.reference_modulus_mag : 0;
@@ -236,6 +244,27 @@ Prediction predict(const Model &m, std::span<const double> b,
   out.numerical_status = numerics::Status::ok;
   return out;
 }
+Ladder::Ladder(Ladder &&other) noexcept
+    : preparation_status_(std::exchange(other.preparation_status_,
+                                        DensityStatus::invalid_input)),
+      preparation_numerical_status_(
+          std::exchange(other.preparation_numerical_status_,
+                        numerics::Status::invalid_input)),
+      model_(std::move(other.model_)), profile_(std::move(other.profile_)) {
+  other.model_ = Model{};
+}
+Ladder &Ladder::operator=(Ladder &&other) noexcept {
+  if (this != &other) {
+    preparation_status_ =
+        std::exchange(other.preparation_status_, DensityStatus::invalid_input);
+    preparation_numerical_status_ = std::exchange(
+        other.preparation_numerical_status_, numerics::Status::invalid_input);
+    model_ = std::move(other.model_);
+    profile_ = std::move(other.profile_);
+    other.model_ = Model{};
+  }
+  return *this;
+}
 Ladder Ladder::prepare(statistics::Gaussian &&g, Model m,
                        statistics::DesignPolicy policy) {
   Ladder out;
@@ -327,10 +356,8 @@ Recovery Ladder::fit(std::span<const double> y,
   out.relative_fit = profile_.evaluate(residual, ids, policy);
   if (out.relative_fit.status != DensityStatus::finite)
     return out;
-  const long double exponent =
-      std::log(static_cast<long double>(model_.h_reference_km_s_Mpc)) +
-      std::log(10.L) *
-          out.relative_fit.coefficients[model_.ordered_host_ids.size() + 4] / 5;
+  const long double exponent = log_h0_projection(
+      model_, out.relative_fit.coefficients[eta_index(model_)]);
   const long double h0 = std::exp(exponent);
   out.h0_km_s_Mpc = static_cast<double>(h0);
   if (!std::isnormal(out.h0_km_s_Mpc) || !std::isfinite(h0))
@@ -348,5 +375,159 @@ Prediction Ladder::predict(std::span<const double> b,
     return p;
   }
   return calibration::predict(model_, b, ids, policy);
+}
+H0EstimatorLaw Ladder::h0_estimator_law(double eta_mean,
+                                        std::string mean_identity,
+                                        std::span<const double> probabilities,
+                                        statistics::DesignPolicy policy) const {
+  H0EstimatorLaw out;
+  auto fail = [](DensityStatus status, numerics::Status numerical_status) {
+    H0EstimatorLaw result;
+    result.status = status;
+    result.numerical_status = numerical_status;
+    return result;
+  };
+  if (!arithmetic_supported())
+    return fail(DensityStatus::unsupported_domain,
+                numerics::Status::outside_domain);
+  if (status() != DensityStatus::finite)
+    return fail(status(), numerical_status());
+  if (!representable(eta_mean) || mean_identity.empty() ||
+      probabilities.empty() ||
+      !std::isfinite(policy.maximum_forward_sensitivity) ||
+      policy.maximum_forward_sensitivity <= 0)
+    return out;
+  const auto &design = profile_.design_metadata();
+  const auto p = design.ordered_parameter_ids.size();
+  detail::PayloadAccounting bytes(sizeof(H0EstimatorLaw));
+  bytes.string(mean_identity);
+  bytes.add(probabilities.size(), 2 * sizeof(double));
+  bytes.add(p, sizeof(double) + 2 * sizeof(long double) + sizeof(std::string));
+  // Bound construction/result capacities of each declared weight unit, plus
+  // fixed functional/unit identities. No model/covariance readback is needed.
+  for (const auto &unit : design.parameter_units) {
+    bytes.add(unit.size(), 2);
+    bytes.add(64, 1);
+  }
+  bytes.add(256, 1);
+  const auto bound = bytes.result();
+  if (!bound || *bound > policy.maximum_payload_bytes ||
+      p > policy.maximum_elements ||
+      probabilities.size() > policy.maximum_elements ||
+      probabilities.size() > std::numeric_limits<std::size_t>::max() / 98)
+    return fail(DensityStatus::numerical_failure, numerics::Status::work_limit);
+  if (std::any_of(probabilities.begin(), probabilities.end(),
+                  [](double probability) {
+                    return !std::isfinite(probability) || probability < 1e-12 ||
+                           probability > 1 - 1e-12;
+                  }))
+    return out;
+  statistics::LinearFunctionalMetadata contrast;
+  contrast.functional_identity = "empirical-synthetic-ladder/eta-estimator/v1";
+  contrast.output_unit = "mag";
+  contrast.weight_units.reserve(p);
+  for (const auto &unit : design.parameter_units)
+    contrast.weight_units.push_back("mag / (" + unit + ")");
+  std::vector<double> weights(p, 0);
+  weights[eta_index(model_)] = 1;
+  auto variance = profile_.estimator_variance(
+      weights, design.ordered_parameter_ids, std::move(contrast), policy);
+  if (variance.status != DensityStatus::finite)
+    return fail(variance.status, variance.numerical_status);
+  const long double a = eta_log_h0_scale();
+  const long double log_nominal = log_h0_projection(model_, eta_mean);
+  const long double spread =
+      a * std::sqrt(static_cast<long double>(variance.variance));
+  const long double log_expectation =
+      log_nominal + a * a * variance.variance / 2;
+  auto positive_output = [](long double value, double &rounded) {
+    if (!std::isfinite(value) || !(value > 0) ||
+        value > std::numeric_limits<double>::max())
+      return false;
+    rounded = static_cast<double>(value);
+    return std::isnormal(rounded);
+  };
+  const auto nominal = std::exp(log_nominal),
+             expectation = std::exp(log_expectation);
+  if (!positive_output(nominal, out.nominal_h0_km_s_Mpc) ||
+      !positive_output(expectation, out.sampling_expectation_h0_km_s_Mpc))
+    return fail(DensityStatus::numerical_failure,
+                numerics::Status::outside_domain);
+  const auto epsilon = std::numeric_limits<long double>::epsilon();
+  const auto expectation_error =
+      a * a * variance.variance / 2 * variance.estimated_forward_sensitivity +
+      8 * epsilon * (1 + std::abs(log_expectation)) +
+      std::abs(expectation - out.sampling_expectation_h0_km_s_Mpc) /
+          expectation;
+  if (!std::isfinite(expectation_error) ||
+      expectation_error > policy.maximum_forward_sensitivity)
+    return fail(DensityStatus::numerical_failure,
+                numerics::Status::conditioning_budget_exceeded);
+  std::vector<double> quantiles;
+  quantiles.reserve(probabilities.size());
+  for (const double requested : probabilities) {
+    const long double probability = requested;
+    const long double tail = std::min(probability, 1 - probability);
+    long double z = 0, achieved = .5L;
+    if (requested != .5) {
+      long double lower = 0, upper = 8;
+      auto small_tail = [&](long double value) {
+        ++out.normal_cdf_evaluations;
+        return std::erfc(value / std::sqrt(2.L)) / 2;
+      };
+      if (small_tail(upper) > tail)
+        return fail(DensityStatus::numerical_failure,
+                    numerics::Status::outside_domain);
+      for (unsigned iteration = 0; iteration < 96; ++iteration) {
+        const auto middle = (lower + upper) / 2;
+        if (middle == lower || middle == upper)
+          break;
+        if (small_tail(middle) > tail)
+          lower = middle;
+        else
+          upper = middle;
+      }
+      z = (lower + upper) / 2;
+      achieved = small_tail(z);
+    }
+    const auto tail_error = std::abs(achieved - tail) / tail;
+    if (!std::isfinite(tail_error) || tail_error > 1e-12L)
+      return fail(DensityStatus::numerical_failure,
+                  numerics::Status::conditioning_budget_exceeded);
+    out.maximum_relative_tail_probability_error =
+        std::max(out.maximum_relative_tail_probability_error,
+                 static_cast<double>(tail_error));
+    const auto pdf = std::exp(-z * z / 2) / std::sqrt(2 * std::acos(-1.L));
+    const auto quantile_normal_error = std::abs(achieved - tail) / pdf;
+    if (requested < .5)
+      z = -z;
+    const auto log_quantile = log_nominal + spread * z;
+    const auto quantile = std::exp(log_quantile);
+    double rounded;
+    if (!positive_output(quantile, rounded))
+      return fail(DensityStatus::numerical_failure,
+                  numerics::Status::outside_domain);
+    const auto log_error =
+        std::abs(spread * z) * variance.estimated_forward_sensitivity / 2 +
+        std::abs(spread) * quantile_normal_error +
+        8 * epsilon * (1 + std::abs(log_quantile)) +
+        std::abs(quantile - rounded) / quantile;
+    if (!std::isfinite(log_error) ||
+        log_error > policy.maximum_forward_sensitivity)
+      return fail(DensityStatus::numerical_failure,
+                  numerics::Status::conditioning_budget_exceeded);
+    out.maximum_quantile_log_error_estimate =
+        std::max(out.maximum_quantile_log_error_estimate,
+                 static_cast<double>(log_error));
+    quantiles.push_back(rounded);
+  }
+  out.eta_estimator = std::move(variance);
+  out.assumed_eta_mean = eta_mean;
+  out.eta_mean_identity = std::move(mean_identity);
+  out.probabilities.assign(probabilities.begin(), probabilities.end());
+  out.h0_quantiles_km_s_Mpc = std::move(quantiles);
+  out.status = DensityStatus::finite;
+  out.numerical_status = numerics::Status::ok;
+  return out;
 }
 } // namespace irred::calibration

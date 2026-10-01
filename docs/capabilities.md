@@ -49,6 +49,14 @@ The native [conditional BAO density](bao-conditional.md) reuses the retained ful
 
 For a source-backed standard-cosmology comparison, use the [bounded LambdaCDM baseline](lcdm-baseline.md). Its native consumer and blocked full-model sectors are separate from CLI discovery and runtime qualification.
 
+The native [Gaussian design](gaussian-design.md) also returns a requested
+linear-estimator contrast variance using its retained QR. The
+[synthetic ladder](calibration-ladder.md) consumes that variance for an explicit
+conditional H0 sampling law, including its biased expectation and ordered
+quantiles. These assume fixed design, supplied Gaussian observation covariance
+and a declared generating mean. They add no CLI/C ABI operation, parameter
+posterior, demonstrated confidence coverage or observational H0 result.
+
 The standalone C++ [thermal-neutrino background](thermal-neutrino.md) evolves
 explicit collisionless zero-chemical-potential Fermi–Dirac species between
 relativistic and nonrelativistic regimes. It supplies density and pressure in

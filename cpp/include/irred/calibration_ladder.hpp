@@ -38,6 +38,23 @@ struct Recovery {
   statistics::DesignResult relative_fit;
   double h0_km_s_Mpc = 0; // usable only when relative_fit.status == finite
 };
+// Sampling distribution under an explicitly assumed generating eta mean and
+// supplied fixed Gaussian measurement covariance. No coverage/posterior claim.
+struct H0EstimatorLaw {
+  statistics::DensityStatus status = statistics::DensityStatus::invalid_input;
+  numerics::Status numerical_status = numerics::Status::invalid_input;
+  statistics::EstimatorVarianceResult eta_estimator;
+  double assumed_eta_mean = 0, nominal_h0_km_s_Mpc = 0,
+         sampling_expectation_h0_km_s_Mpc = 0,
+         maximum_relative_tail_probability_error = 0,
+         maximum_quantile_log_error_estimate = 0;
+  std::size_t normal_cdf_evaluations = 0;
+  std::string eta_mean_identity;
+  std::vector<double> probabilities, h0_quantiles_km_s_Mpc;
+  const char *method_id = "retained-qr-eta-lognormal-quantiles/v1";
+  const char *sampling_law_id =
+      "fixed-design-gaussian-observation-noise/lognormal-H0/v1";
+};
 // Coefficients: ordered host mu, M_Cep, b, gamma, M_SN, eta, delta.
 // IDs are generated from the model, not matched by position alone.
 std::vector<std::string> parameter_ids(const Model &);
@@ -49,16 +66,8 @@ public:
   Ladder() = default;
   Ladder(const Ladder &) = delete;
   Ladder &operator=(const Ladder &) = delete;
-  Ladder(Ladder &&) noexcept = default;
-  Ladder &operator=(Ladder &&other) noexcept {
-    if (this != &other) {
-      model_ = std::move(other.model_);
-      profile_ = std::move(other.profile_);
-      preparation_status_ = other.preparation_status_;
-      preparation_numerical_status_ = other.preparation_numerical_status_;
-    }
-    return *this;
-  }
+  Ladder(Ladder &&) noexcept;
+  Ladder &operator=(Ladder &&) noexcept;
   // Successful preparation consumes covariance once. Failure preserves it.
   static Ladder prepare(statistics::Gaussian &&, Model,
                         statistics::DesignPolicy = {});
@@ -86,6 +95,12 @@ public:
   Prediction predict(std::span<const double> coefficients,
                      std::span<const std::string> ordered_parameter_ids,
                      statistics::DesignPolicy = {}) const;
+  // eta mean and identity are supplied assumptions, even when a fitted eta is
+  // used as a plug-in mean. Probabilities retain exact caller order/values.
+  H0EstimatorLaw h0_estimator_law(double assumed_eta_mean,
+                                  std::string eta_mean_identity,
+                                  std::span<const double> probabilities,
+                                  statistics::DesignPolicy = {}) const;
 
 private:
   statistics::DensityStatus preparation_status_ =

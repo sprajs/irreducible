@@ -18,6 +18,14 @@ recording missing physics. The full Planck base model and the current native
 massless-radiation approximation have distinct identities; numerical agreement
 is scoped evidence, not a guarantee across every cosmological domain.
 
+The native library now also has an explicit thermal-neutrino
+[density/pressure and E/H provider](docs/thermal-neutrino.md), tested against
+matched CLASS controls. Its distance/ruler coupling remains a next step.
+[Conditional estimator variance](docs/gaussian-design.md) and the
+[synthetic ladder's H₀ sampling law](docs/calibration-ladder.md) test a separate
+calibration prerequisite. These native calculations are available through the
+C++ SDK; their guides distinguish tested controls from observational inference.
+
 ## Repeat a paper’s calculation
 
 A planned recipe format would keep a calculation's data sources, model choices and steps in one file, so another person or agent could repeat it and inspect its assumptions. The [run-recipe proposal](docs/run-recipes.md) compares JSON, TOML and YAML and defines the intended first step; the runner does not exist yet. New physics will still be added as tested compiled code, reviewed through a pull request—not as equations executed from a configuration file.
