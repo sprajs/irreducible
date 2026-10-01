@@ -17,7 +17,8 @@ enum class EarlyLateOutput : unsigned {
 inline constexpr unsigned early_late_output_count =
     static_cast<unsigned>(EarlyLateOutput::count);
 inline constexpr unsigned early_late_mask(EarlyLateOutput x) {
-  return 1u << static_cast<unsigned>(x);
+  const auto tag = static_cast<unsigned>(x);
+  return tag < early_late_output_count ? 1u << tag : 0u;
 }
 struct EarlyLatePolicy {
   double absolute_tolerance_mpc, relative_tolerance;

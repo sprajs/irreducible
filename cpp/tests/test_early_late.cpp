@@ -20,6 +20,10 @@ int main() {
       40,          64,
       1024 * 1024, {1e-9, 2e-11, 1000000, 40, 1, 1000000, 1024 * 1024}};
   const unsigned all = (1u << early_late_output_count) - 1;
+  require(early_late_mask(EarlyLateOutput::count) == 0,
+          "sentinel output has no mask");
+  require(early_late_mask(static_cast<EarlyLateOutput>(32u)) == 0,
+          "invalid output tag avoids undefined shift");
   const double zs[]{0, 1e-12, .1, 1, 10, 1000};
   for (double matter : {0., .75}) {
     SoundHorizonRequest source{
