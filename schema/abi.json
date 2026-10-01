@@ -2049,6 +2049,216 @@
       ]
     },
     {
+      "c_name": "irred_sound_horizon_input",
+      "rust_name": "SoundHorizonInput",
+      "fields": [
+        [
+          "struct_size",
+          "u32"
+        ],
+        [
+          "abi_version",
+          "u32"
+        ],
+        [
+          "h0_km_s_mpc",
+          "f64"
+        ],
+        [
+          "omega_m",
+          "f64"
+        ],
+        [
+          "omega_r",
+          "f64"
+        ],
+        [
+          "omega_b",
+          "f64"
+        ],
+        [
+          "omega_gamma",
+          "f64"
+        ],
+        [
+          "z_drag",
+          "f64"
+        ],
+        [
+          "drag_origin",
+          "Bytes"
+        ]
+      ]
+    },
+    {
+      "c_name": "irred_sound_horizon_batch",
+      "rust_name": "SoundHorizonBatch",
+      "fields": [
+        [
+          "struct_size",
+          "u32"
+        ],
+        [
+          "abi_version",
+          "u32"
+        ],
+        [
+          "points",
+          "const_SoundHorizonInput_ptr"
+        ],
+        [
+          "count",
+          "u64"
+        ],
+        [
+          "byte_length",
+          "u64"
+        ]
+      ]
+    },
+    {
+      "c_name": "irred_sound_horizon_policy",
+      "rust_name": "SoundHorizonPolicy",
+      "fields": [
+        [
+          "struct_size",
+          "u32"
+        ],
+        [
+          "abi_version",
+          "u32"
+        ],
+        [
+          "absolute_tolerance_mpc",
+          "f64"
+        ],
+        [
+          "relative_tolerance",
+          "f64"
+        ],
+        [
+          "maximum_callbacks_per_point",
+          "u64"
+        ],
+        [
+          "maximum_depth",
+          "u64"
+        ],
+        [
+          "maximum_points",
+          "u64"
+        ],
+        [
+          "maximum_total_callbacks",
+          "u64"
+        ],
+        [
+          "maximum_native_bytes",
+          "u64"
+        ]
+      ]
+    },
+    {
+      "c_name": "irred_sound_horizon_row",
+      "rust_name": "SoundHorizonRow",
+      "fields": [
+        [
+          "struct_size",
+          "u32"
+        ],
+        [
+          "abi_version",
+          "u32"
+        ],
+        [
+          "source",
+          "SoundHorizonInput"
+        ],
+        [
+          "numerical_status",
+          "u32"
+        ],
+        [
+          "reserved",
+          "u32"
+        ],
+        [
+          "has_value",
+          "u32"
+        ],
+        [
+          "reserved2",
+          "u32"
+        ],
+        [
+          "sound_horizon_mpc",
+          "f64"
+        ],
+        [
+          "error_estimate_mpc",
+          "f64"
+        ],
+        [
+          "callbacks",
+          "u64"
+        ]
+      ]
+    },
+    {
+      "c_name": "irred_sound_horizon_view",
+      "rust_name": "SoundHorizonResultView",
+      "fields": [
+        [
+          "struct_size",
+          "u32"
+        ],
+        [
+          "abi_version",
+          "u32"
+        ],
+        [
+          "numerical_status",
+          "u32"
+        ],
+        [
+          "reserved",
+          "u32"
+        ],
+        [
+          "rows",
+          "const_SoundHorizonRow_ptr"
+        ],
+        [
+          "count",
+          "u64"
+        ],
+        [
+          "callbacks",
+          "u64"
+        ],
+        [
+          "model_id",
+          "Bytes"
+        ],
+        [
+          "equation_id",
+          "Bytes"
+        ],
+        [
+          "constant_set_id",
+          "Bytes"
+        ],
+        [
+          "coordinate_id",
+          "Bytes"
+        ],
+        [
+          "arithmetic_id",
+          "Bytes"
+        ]
+      ]
+    },
+    {
       "c_name": "irred_photometry_input",
       "rust_name": "PhotometryInput",
       "fields": [
@@ -3034,6 +3244,45 @@
       ]
     },
     {
+      "name": "irred_sound_horizon_evaluate",
+      "args": [
+        [
+          "batch",
+          "const_SoundHorizonBatch_ptr"
+        ],
+        [
+          "policy",
+          "const_SoundHorizonPolicy_ptr"
+        ],
+        [
+          "out",
+          "sound_horizon_result_out"
+        ]
+      ]
+    },
+    {
+      "name": "irred_sound_horizon_result_view",
+      "args": [
+        [
+          "result",
+          "const_sound_horizon_result"
+        ],
+        [
+          "out",
+          "SoundHorizonResultView_ptr"
+        ]
+      ]
+    },
+    {
+      "name": "irred_sound_horizon_result_destroy",
+      "args": [
+        [
+          "result",
+          "sound_horizon_result"
+        ]
+      ]
+    },
+    {
       "name": "irred_photometry_evaluate",
       "args": [
         [
@@ -3272,6 +3521,7 @@
     "supernova_result": "irred_supernova_result",
     "bao": "irred_bao",
     "bao_result": "irred_bao_result",
+    "sound_horizon_result": "irred_sound_horizon_result",
     "photometry_result": "irred_photometry_result"
   },
   "expansion_contract": {
@@ -3313,6 +3563,16 @@
     "arrays": "maximum_array_elements counts scientific f64 vector payloads only: SN geometry/effect/corrected/profiled and BAO predictions/residuals. Fixed diagnostics and u64 node maps are charged in aggregate bytes; node maps are independently bounded by selected-query/model hard caps. Only requested vectors exported; dependencies/workspace still charged in combined bytes; no fabricated zero arrays.",
     "limitations": "exact-z reuse within each model batch, shared global callback/segment budget; no cross-model geometry cache",
     "gaussian_preparation_bytes": "GaussianPolicy.maximum_native_bytes bounds combined owned Gaussian/wrapper payload and phase scratch for prepare, proper-prior preparation or evaluation. Rust exposes separate requested preparation/evaluation caps; shared Prepared charged separately in fixed aggregate context ceiling."
+  },
+  "sound_horizon_tags": {},
+  "sound_horizon_contract": {
+    "operation": "cosmology.sound_horizon",
+    "model": "explicit flat pressureless matter + massless radiation + Lambda; photons/baryons supplied subsets",
+    "drag": "supplied nonnegative redshift + provenance; no predicted drag or thermal history",
+    "coordinate": "exact a=1/(1+z), then t=a/a_drag in [0,1]; no omitted infinite-redshift tail",
+    "arithmetic": "FE_TONEAREST; long double digits>=64/max_exponent>=16384; empirical quadrature estimate and declared arithmetic admission allowance",
+    "failure": "malformed descriptors/overflow/hardcount null transport; configured combined byte/point quota owned empty work_limit; scientific row failures owned precise numerical cause without usable scalar",
+    "resource": "combined wrapper/input copies/wire rows/native output; preexisting borrowed input, stack, allocator bookkeeping and RSS excluded; allocated wrapper owner charged even empty"
   },
   "photometry_tags": {
     "output": {

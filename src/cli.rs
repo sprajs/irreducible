@@ -58,6 +58,7 @@ pub(crate) fn execute() -> Result<(), String> {
                         {"id":"fixture.checked_i64_add","implementation":"implemented","scientific":false,"qualification":"unqualified"},
                         {"id":"quantity.convert","implementation":"implemented","scientific":true,"qualification":"unqualified"},
                         {"id":"numerics.scalar_batch","implementation":"implemented","scientific":true,"qualification":"unqualified"},
+                        {"id":"cosmology.sound_horizon","implementation":"implemented","scientific":true,"qualification":"unqualified","target":"conditional comoving sound horizon at supplied drag redshift"},
                         {"id":"background.evaluate","implementation":"implemented","scientific":true,"qualification":"unqualified","requested_groups":["radial","luminosity_shape","clock","physical","kinematics","expansion"],"models":["lcdm","constant_q","cpl","fixed_q5"],"node_reuse":"exact z bits within each model batch; no cross-model cache"},
                         {"id":"observations.prepare","implementation":"implemented","scientific":true,"qualification":"unqualified","profiles":["pantheon_plus_released_v1","gaussian_fixture_v1","typed_magnitude_covariance"],"ownership":"immutable shared native source"},
                         {"id":"statistics.gaussian","implementation":"implemented","scientific":true,"qualification":"unqualified","modes":["normalized_density","profile_offset_score"]},
@@ -163,6 +164,7 @@ pub(crate) fn execute() -> Result<(), String> {
                             Ok(crate::outcome::Outcome::scientific(resolved.clone().unwrap(),output,"evaluations",json!(request.method),json!("binary64_storage_method_declared_intermediate"),json!({"max_batch_elements":MAX_BATCH_ELEMENTS}),"bounded native/interface checks; request applicability not established"))
                         },
                         "background.evaluate" => crate::background_run::execute(&input),
+                        "cosmology.sound_horizon" => crate::sound_horizon_run::execute(&input),
                         "photometry.predict" => crate::photometry_run::execute(&input),
                         "supernova.profile" | "bao.density" => crate::session::execute_once(&input,&store),
                         "statistics.gaussian" => crate::statistics_run::execute(&input,&store),

@@ -840,6 +840,71 @@ pub struct BaoRow {
 }
 #[allow(non_snake_case)]
 #[repr(C)]
+pub struct SoundHorizonInput {
+    pub struct_size: u32,
+    pub abi_version: u32,
+    pub h0_km_s_mpc: f64,
+    pub omega_m: f64,
+    pub omega_r: f64,
+    pub omega_b: f64,
+    pub omega_gamma: f64,
+    pub z_drag: f64,
+    pub drag_origin: Bytes,
+}
+#[allow(non_snake_case)]
+#[repr(C)]
+pub struct SoundHorizonBatch {
+    pub struct_size: u32,
+    pub abi_version: u32,
+    pub points: *const SoundHorizonInput,
+    pub count: u64,
+    pub byte_length: u64,
+}
+#[allow(non_snake_case)]
+#[repr(C)]
+pub struct SoundHorizonPolicy {
+    pub struct_size: u32,
+    pub abi_version: u32,
+    pub absolute_tolerance_mpc: f64,
+    pub relative_tolerance: f64,
+    pub maximum_callbacks_per_point: u64,
+    pub maximum_depth: u64,
+    pub maximum_points: u64,
+    pub maximum_total_callbacks: u64,
+    pub maximum_native_bytes: u64,
+}
+#[allow(non_snake_case)]
+#[repr(C)]
+pub struct SoundHorizonRow {
+    pub struct_size: u32,
+    pub abi_version: u32,
+    pub source: SoundHorizonInput,
+    pub numerical_status: u32,
+    pub reserved: u32,
+    pub has_value: u32,
+    pub reserved2: u32,
+    pub sound_horizon_mpc: f64,
+    pub error_estimate_mpc: f64,
+    pub callbacks: u64,
+}
+#[allow(non_snake_case)]
+#[repr(C)]
+pub struct SoundHorizonResultView {
+    pub struct_size: u32,
+    pub abi_version: u32,
+    pub numerical_status: u32,
+    pub reserved: u32,
+    pub rows: *const SoundHorizonRow,
+    pub count: u64,
+    pub callbacks: u64,
+    pub model_id: Bytes,
+    pub equation_id: Bytes,
+    pub constant_set_id: Bytes,
+    pub coordinate_id: Bytes,
+    pub arithmetic_id: Bytes,
+}
+#[allow(non_snake_case)]
+#[repr(C)]
 pub struct PhotometryInput {
     pub struct_size: u32,
     pub abi_version: u32,
@@ -1108,6 +1173,16 @@ unsafe extern "C" {
         descriptor: *const ObservationDescriptor,
         bytes: *mut u64,
     ) -> u32;
+    pub fn irred_sound_horizon_evaluate(
+        batch: *const SoundHorizonBatch,
+        policy: *const SoundHorizonPolicy,
+        out: *mut *mut std::ffi::c_void,
+    ) -> u32;
+    pub fn irred_sound_horizon_result_view(
+        result: *const std::ffi::c_void,
+        out: *mut SoundHorizonResultView,
+    ) -> u32;
+    pub fn irred_sound_horizon_result_destroy(result: *mut std::ffi::c_void) -> u32;
     pub fn irred_photometry_evaluate(
         batch: *const PhotometryBatch,
         policy: *const PhotometryPolicy,

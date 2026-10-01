@@ -1,3 +1,4 @@
+mod sound_horizon_run;
 mod bao_ingestion;
 mod bridge;
 mod cli;

@@ -140,8 +140,16 @@ def build_schema(abi, fixture):
     defs["numerics"] = operation("numerics.scalar_batch", {
         "method": enum(abi["numerical_tags"]["operation"]),
         "values": array(number, abi["max_batch_elements"])})
+    defs["sound_horizon"] = operation("cosmology.sound_horizon", {
+        "points": array(obj({"h0_km_s_mpc": number, "omega_m": number,
+            "omega_r": number, "omega_b": number, "omega_gamma": number,
+            "z_drag": number, "drag_origin": text}), 65536),
+        "numerical_policy": obj({"absolute_tolerance_mpc": number,
+            "relative_tolerance": number, "maximum_callbacks_per_point": uint,
+            "maximum_depth": {**uint, "maximum": 60}, "maximum_points": uint,
+            "maximum_total_callbacks": uint, "maximum_native_bytes": {**uint, "maximum": 1073741824}})})
     return {"$schema": "https://json-schema.org/draft/2020-12/schema",
         "$id": "cosmology.run.v2", "$defs": defs,
         "oneOf": [ref(name) for name in ("fixture", "quantity", "numerics", "observations",
-                                          "background", "statistics", "supernova", "bao", "photometry")],
+                                          "background", "statistics", "supernova", "bao", "sound_horizon", "photometry")],
         "description": "Structural compiled requests; native domains, numerical gates and scientific qualifications remain distinct."}

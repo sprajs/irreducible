@@ -1957,6 +1957,110 @@
         "method",
         "values"
       ]
+    },
+    "sound_horizon": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "schema_version": {
+          "const": 2
+        },
+        "operation": {
+          "const": "cosmology.sound_horizon"
+        },
+        "points": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "h0_km_s_mpc": {
+                "type": "number"
+              },
+              "omega_m": {
+                "type": "number"
+              },
+              "omega_r": {
+                "type": "number"
+              },
+              "omega_b": {
+                "type": "number"
+              },
+              "omega_gamma": {
+                "type": "number"
+              },
+              "z_drag": {
+                "type": "number"
+              },
+              "drag_origin": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "h0_km_s_mpc",
+              "omega_m",
+              "omega_r",
+              "omega_b",
+              "omega_gamma",
+              "z_drag",
+              "drag_origin"
+            ]
+          },
+          "maxItems": 65536
+        },
+        "numerical_policy": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "absolute_tolerance_mpc": {
+              "type": "number"
+            },
+            "relative_tolerance": {
+              "type": "number"
+            },
+            "maximum_callbacks_per_point": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 18446744073709551615
+            },
+            "maximum_depth": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 60
+            },
+            "maximum_points": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 18446744073709551615
+            },
+            "maximum_total_callbacks": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 18446744073709551615
+            },
+            "maximum_native_bytes": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 1073741824
+            }
+          },
+          "required": [
+            "absolute_tolerance_mpc",
+            "relative_tolerance",
+            "maximum_callbacks_per_point",
+            "maximum_depth",
+            "maximum_points",
+            "maximum_total_callbacks",
+            "maximum_native_bytes"
+          ]
+        }
+      },
+      "required": [
+        "schema_version",
+        "operation",
+        "points",
+        "numerical_policy"
+      ]
     }
   },
   "oneOf": [
@@ -1983,6 +2087,9 @@
     },
     {
       "$ref": "#/$defs/bao"
+    },
+    {
+      "$ref": "#/$defs/sound_horizon"
     },
     {
       "$ref": "#/$defs/photometry"
