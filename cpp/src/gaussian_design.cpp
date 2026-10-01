@@ -39,7 +39,7 @@ DesignProfile::DesignProfile(DesignProfile &&o) noexcept
     : gaussian_(std::move(o.gaussian_)),
       design_metadata_(std::move(o.design_metadata_)),
       gram_factor_(std::move(o.gram_factor_)), x_(std::move(o.x_)),
-      wx_(std::move(o.wx_)), scales_(std::move(o.scales_)),
+      scales_(std::move(o.scales_)),
       status_(std::exchange(o.status_, DensityStatus::invalid_input)),
       numerical_status_(
           std::exchange(o.numerical_status_, numerics::Status::invalid_input)),
@@ -78,7 +78,6 @@ DesignProfile::retained_payload_bound() const noexcept {
   b.embedded(gaussian_.retained_payload_bound(), sizeof(Gaussian));
   b.embedded(gram_factor_.retained_payload_bound(), sizeof(gram_factor_));
   b.vector(x_);
-  b.vector(wx_);
   b.vector(scales_);
   return b.result();
 }
@@ -104,19 +103,8 @@ DesignProfile DesignProfile::prepare(Gaussian &&g, std::span<const double> x,
     out.status_ = DensityStatus::incompatible_metadata;
     return out;
   }
-  if (!policy_valid(policy) || p < 2 || n < p ||
-      !unique(m.ordered_parameter_ids) || m.parameter_units.size() != p ||
-      m.residual_unit.empty() || m.design_identity.empty() ||
-      m.dependence_identity.empty() || !unique(m.shared_nuisance_ids) ||
-      std::any_of(
-          m.parameter_units.begin(), m.parameter_units.end(),
-          [](const auto &s) { return s.empty(); }))
+  if (!policy_valid(policy) || p < 2 || n < p)
     return out;
-  for (const auto &id : m.shared_nuisance_ids)
-    if (std::find(m.ordered_parameter_ids.begin(),
-                  m.ordered_parameter_ids.end(),
-                  id) == m.ordered_parameter_ids.end())
-      return out;
   auto bound = preparation_payload_bound(g, p, m);
   if (!bound || n > policy.maximum_elements / p ||
       p > policy.maximum_elements / p ||
@@ -125,6 +113,17 @@ DesignProfile DesignProfile::prepare(Gaussian &&g, std::span<const double> x,
     out.numerical_status_ = numerics::Status::work_limit;
     return out;
   }
+  if (!unique(m.ordered_parameter_ids) || m.parameter_units.size() != p ||
+      m.residual_unit.empty() || m.design_identity.empty() ||
+      m.dependence_identity.empty() || !unique(m.shared_nuisance_ids) ||
+      std::any_of(m.parameter_units.begin(), m.parameter_units.end(),
+                  [](const auto &s) { return s.empty(); }))
+    return out;
+  for (const auto &id : m.shared_nuisance_ids)
+    if (std::find(m.ordered_parameter_ids.begin(),
+                  m.ordered_parameter_ids.end(),
+                  id) == m.ordered_parameter_ids.end())
+      return out;
   if (x.size() != n * p || std::any_of(x.begin(), x.end(), [](double v) {
         return !std::isfinite(v);
       }))
@@ -135,7 +134,7 @@ DesignProfile DesignProfile::prepare(Gaussian &&g, std::span<const double> x,
     out.rank_ = DesignRank::unresolved;
   };
   out.x_.assign(x.begin(), x.end());
-  out.wx_.resize(n * p);
+  std::vector<double> wx(n * p);
   out.scales_.resize(p);
   std::vector<double> column(n), gram(p * p);
   // First normalize by max absolute entry, avoiding overflow in the first
@@ -168,7 +167,7 @@ DesignProfile DesignProfile::prepare(Gaussian &&g, std::span<const double> x,
     const long double root = std::sqrt(q);
     for (std::size_t i = 0; i < n; ++i)
       if (!output(static_cast<long double>(solved.value[i]) / root,
-                  out.wx_[i * p + j])) {
+                  wx[i * p + j])) {
         fail(numerics::Status::outside_domain);
         return out;
       }
@@ -180,7 +179,7 @@ DesignProfile DesignProfile::prepare(Gaussian &&g, std::span<const double> x,
       long double v = 0;
       for (std::size_t i = 0; i < n; ++i)
         v += (static_cast<long double>(x[i * p + j]) / out.scales_[j]) *
-             out.wx_[i * p + k];
+             wx[i * p + k];
       if (!output(v, gram[j * p + k])) {
         fail(numerics::Status::overflow);
         return out;
@@ -221,9 +220,7 @@ DesignResult DesignProfile::evaluate(std::span<const double> r,
     return out;
   }
   const auto n = metadata().ordered_ids.size(), p = scales_.size();
-  if (!policy_valid(policy) || r.size() != n ||
-      std::any_of(r.begin(), r.end(),
-                  [](double v) { return !std::isfinite(v); }))
+  if (!policy_valid(policy) || r.size() != n)
     return out;
   auto fail = [](numerics::Status s) {
     DesignResult f;
@@ -235,6 +232,9 @@ DesignResult DesignProfile::evaluate(std::span<const double> r,
   if (!bound || *bound > policy.maximum_payload_bytes ||
       n > policy.maximum_elements || p > policy.maximum_elements)
     return fail(numerics::Status::work_limit);
+  if (std::any_of(r.begin(), r.end(),
+                  [](double v) { return !std::isfinite(v); }))
+    return out;
   if (preparation_sensitivity_ > policy.maximum_forward_sensitivity ||
       gram_condition_ * std::numeric_limits<double>::epsilon() >
           std::min(1e-8, policy.maximum_forward_sensitivity))

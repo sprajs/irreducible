@@ -71,7 +71,7 @@ private:
   Gaussian gaussian_;
   DesignMetadata design_metadata_;
   numerics::Factorization gram_factor_;
-  std::vector<double> x_, wx_, scales_;
+  std::vector<double> x_, scales_;
   DensityStatus status_ = DensityStatus::invalid_input;
   numerics::Status numerical_status_ = numerics::Status::invalid_input;
   DesignRank rank_ = DesignRank::unassessed;
