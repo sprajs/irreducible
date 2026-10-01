@@ -20,11 +20,15 @@ is scoped evidence, not a guarantee across every cosmological domain.
 
 The native library now also has an explicit thermal-neutrino
 [density/pressure and E/H provider](docs/thermal-neutrino.md), tested against
-matched CLASS controls. Its distance/ruler coupling remains a next step.
+matched CLASS controls. The native [thermal distance/ruler consumer](docs/thermal-observables.md)
+now maps explicitly supplied physical densities and temperatures into one retained
+state for distances and a conditional supplied-drag ruler.
 [Conditional estimator variance](docs/gaussian-design.md) and the
 [synthetic ladder's H₀ sampling law](docs/calibration-ladder.md) test a separate
 calibration prerequisite. These native calculations are available through the
 C++ SDK; their guides distinguish tested controls from observational inference.
+The [next bounded choices](docs/roadmap.md#next-bounded-choices) cover statistical,
+photometric, thermal, growth and lensing work with separate prerequisites and gates.
 
 ## Repeat a paper’s calculation
 

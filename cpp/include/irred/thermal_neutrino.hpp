@@ -38,10 +38,36 @@ struct ThermalSpeciesState {
   std::size_t callbacks = 0;
 };
 ThermalSpeciesState evaluate_thermal_species(const ThermalSpecies &, double a,
-                                            ThermalPolicy = {});
+                                             ThermalPolicy = {});
 struct ThermalFlatModel {
   double h0_km_s_mpc, omega_gamma, omega_massless_nonphoton, omega_b, omega_cdm;
   std::vector<ThermalSpecies> species;
+};
+// Source physical densities are omega_i = Omega_i h^2, h=H0/100.
+// Photon energy density derives from the explicitly supplied Kelvin
+// temperature.
+struct ThermalPhysicalSpecies {
+  double mass_ev, temperature_today_kelvin, statistical_weight;
+};
+struct ThermalPhysicalModel {
+  double h0_km_s_mpc, physical_baryon_density, physical_cdm_density;
+  double tcmb_kelvin, physical_massless_nonphoton_density;
+  std::vector<ThermalPhysicalSpecies> species;
+};
+struct ThermalPhysicalMapping {
+  numerics::Status status = numerics::Status::invalid_input;
+  std::optional<ThermalFlatModel> model;
+};
+ThermalPhysicalMapping map_thermal_physical_model(const ThermalPhysicalModel &,
+                                                  ThermalPolicy = {});
+// Wide internal numerical coordinate, P(a)=a^4 E(a)^2. The finite a=0
+// radiation limit is meaningful; an exactly radiation-free source has P(0)=0.
+// E(0) is not evaluated or fabricated. Nonzero wide coordinates/diagnostics
+// must remain normal; positive-a underflow cannot masquerade as exact zero.
+struct ThermalScaledExpansion {
+  numerics::Status status = numerics::Status::invalid_input;
+  long double a4_e2 = 0, error_estimate = 0;
+  std::size_t callbacks = 0;
 };
 struct ThermalBackgroundValue {
   numerics::Status status = numerics::Status::invalid_input;
@@ -74,9 +100,12 @@ public:
   std::optional<double> omega_species_today() const noexcept;
   std::optional<double> omega_lambda() const noexcept;
   std::size_t preparation_callbacks() const noexcept { return callbacks_; }
+  ThermalScaledExpansion scaled_expansion(long double a,
+                                          ThermalPolicy = {}) const;
   ThermalBackgroundBatch evaluate(std::span<const double> scale_factors,
                                   unsigned requested_outputs,
                                   ThermalPolicy = {}) const;
+
 private:
   numerics::Status status_ = numerics::Status::invalid_input;
   ThermalFlatModel source_{};
@@ -84,14 +113,15 @@ private:
   long double normalization_error_ = 0;
   std::size_t callbacks_ = 0;
   friend ThermalBackground prepare_thermal_background(const ThermalFlatModel &,
-                                                       ThermalPolicy);
+                                                      ThermalPolicy);
 };
 ThermalBackground prepare_thermal_background(const ThermalFlatModel &,
                                              ThermalPolicy = {});
 // Conservative simultaneous owned payload, excluding input owners, allocator
 // metadata, stack recursion and RSS. Hard domain: <=16 explicit species.
-std::optional<std::size_t> thermal_background_payload_bound(
-    std::size_t points, std::size_t species) noexcept;
+std::optional<std::size_t>
+thermal_background_payload_bound(std::size_t points,
+                                 std::size_t species) noexcept;
 inline constexpr std::string_view thermal_neutrino_model_id =
     "flat-collisionless-zero-chemical-potential-thermal-FD-relic-lambda/v1";
 inline constexpr std::string_view thermal_neutrino_method_id =
@@ -99,5 +129,5 @@ inline constexpr std::string_view thermal_neutrino_method_id =
 inline constexpr std::string_view thermal_neutrino_arithmetic_id =
     "thermal-FD/binary64-quadrature-wide-scaling/v1";
 inline constexpr std::string_view thermal_neutrino_constants_id =
-    "SI2019-exact-h-c-eV-IAU2012-AU-CODATA2018-G-fixed";
+    "SI2019-exact-h-c-kB-eV-IAU2012-AU-CODATA2018-G-fixed";
 } // namespace irred::cosmology

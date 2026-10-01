@@ -45,9 +45,11 @@ acceptance cannot establish inference or interpretation. Keep unsupported
 closures explicit and translate observed discrepancies into owned engine work
 in the sole active roadmap.
 
-Keep the native thermal-relic E/H provider separate from the massless
-distance/ruler consumer until one shared physical state and its source mapping
-are tested. Conditional estimator variance assumes fixed design and supplied
+Use the native thermal distance/ruler consumer only with its explicitly mapped
+physical densities, temperatures and species. It shares the thermal E/H state;
+the massless early/late and conditional-density consumers retain their distinct
+physical identity. Read [thermal observables](docs/thermal-observables.md) before
+composing a new consumer; do not substitute one model for another silently. Conditional estimator variance assumes fixed design and supplied
 Gaussian observation noise; a synthetic H0 sampling law requires an explicitly
 declared generating mean. Neither calculation supplies a parameter posterior or
 observational qualification. Read their guides before composing a new consumer.

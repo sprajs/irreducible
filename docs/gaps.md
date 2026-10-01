@@ -21,10 +21,13 @@ LCDM from the current supported approximation. The native shared early/late
 state treats radiation as massless and matter as pressureless at every epoch.
 The separate native [thermal-neutrino provider](thermal-neutrino.md) now
 supplies explicit relic density/pressure and flat E/H with a mass transition,
-independent high-precision and matched CLASS controls. It is not yet connected
-to the early/late distance or supplied-drag ruler consumer. Temperature/species
-and physical-density mapping still need an explicit source contract; no operator
-predicts thermal/ionization history. Drag redshift is supplied. The CLI late LCDM background omits radiation and has a
+independent high-precision and matched CLASS controls. The native
+[thermal distance/ruler consumer](thermal-observables.md) now maps supplied
+physical densities and explicit temperatures/species and retains one state for
+distances and the conditional supplied-drag ruler. It preserves the massless
+model as a distinct physical identity. Thermal predictions have not yet been
+composed with the retained conditional BAO density. No operator predicts
+thermal/ionization history or drag; there is no implicit Neff/mass hierarchy. The CLI late LCDM background omits radiation and has a
 different physical identity; native early/late and conditional BAO currently
 require a C++ SDK consumer rather than a CLI/C ABI request.
 
@@ -41,8 +44,15 @@ observation noise and an explicitly assumed generating mean. Named synthetic
 checks do not qualify released-data parameter mapping or coverage. The relative
 profile is not a normalized posterior. Source review now identifies original
 column 46 as 5 log10(H0 in km/s/Mpc); its formal contrast variance on the same
-3492x47 products agrees with independent SVD/QR. No released H0/error acceptance
-target or full host/nuisance dictionary was verified; see [Gaussian design](gaussian-design.md).
+3492x47 products agrees with independent SVD/QR. A later [Reproducible source audit](https://github.com/sprajs/reproducible/tree/main/experiments/released-ladder)
+now joins all 2150 initial Cepheid rows to the pinned primary table and identifies
+all 37 host columns. Period/metallicity and the H0 contrast are corroborated;
+seven remaining anchor/nuisance identities stay unresolved. The audit preserves
+the paper/release N1365 count discrepancy and distinguishes the released MCMC
+zero-width coordinate from this full47 relative profile. Its source-rounded
+logarithmic-coordinate check and independent synthetic constraint-row sensitivity
+comparisons do not reproduce the paper's posterior or systematic H0 uncertainty.
+See [Gaussian design](gaussian-design.md).
 
 No current operator predicts matter transfer/growth, lensing potentials or
 images, recombination/drag, CMB spectra, stellar/source populations, detector

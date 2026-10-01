@@ -7,6 +7,7 @@
 #include <irred/early_late.hpp>
 #include <irred/bao_conditional.hpp>
 #include <irred/correlated_calibration.hpp>
+#include <irred/thermal_observables.hpp>
 #include <array>
 #include <cmath>
 #include <numbers>
@@ -93,6 +94,21 @@ int installed_ladder() {
  const double h0=70*std::pow(10.,.1);
  return recovered.relative_fit.status==DensityStatus::finite && recovered.relative_fit.coefficients.size()==8 && std::abs(recovered.relative_fit.coefficients[5]+19)<1e-9 && std::abs(recovered.h0_km_s_Mpc-h0)<1e-7 ? 0 : 6;
 }
+int installed_thermal_observables() {
+ using namespace irred::cosmology;
+ const ThermalObservableRequest request{{70,.0245,.1225,2.7255,1e-5,{}},1059.95,
+  "installed synthetic supplied drag","installed explicit physical-density source"};
+ const auto prepared=prepare_thermal_observables(request);
+ const std::array<double,2> redshifts{0,1};
+ const auto result=prepared.evaluate(redshifts,early_late_mask(EarlyLateOutput::e)|
+  early_late_mask(EarlyLateOutput::dm_over_rs)|thermal_ruler_mask);
+ if (prepared.status()!=irred::numerics::Status::ok || result.status!=irred::numerics::Status::ok ||
+  !result.ruler || result.ruler->status!=irred::numerics::Status::ok || !result.ruler->value || result.rows.size()!=2) return 10;
+ const auto &present=result.rows[0].outputs[static_cast<unsigned>(EarlyLateOutput::e)];
+ const auto &ratio=result.rows[1].outputs[static_cast<unsigned>(EarlyLateOutput::dm_over_rs)];
+ return present.value && *present.value==1 && ratio.status==irred::numerics::Status::ok &&
+  ratio.value && std::isfinite(*ratio.value) && *ratio.value>0 ? 0 : 10;
+}
 int main() {
  const auto result=irred::numerics::log1p_checked(0.5);
  if(result.status!=irred::numerics::Status::ok || std::abs(result.value-0.4054651081081643819780131154643491)>=1e-14) return 1;
@@ -132,5 +148,6 @@ int main() {
  if (const auto ladder_status=installed_ladder();ladder_status!=0) return ladder_status;
  if (const auto calibration_status=installed_passband_calibration();calibration_status!=0) return calibration_status;
  if (const auto bao_status=installed_conditional_bao();bao_status!=0) return bao_status;
+ if (const auto thermal_status=installed_thermal_observables();thermal_status!=0) return thermal_status;
  return installed_correlated_calibration();
 }

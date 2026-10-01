@@ -63,4 +63,10 @@ relativistic and nonrelativistic regimes. It supplies density and pressure in
 eV^4 and retained flat E/H batches, separating photons, other massless radiation,
 baryons, CDM and relics. Independent high-precision, continuity and matched CLASS
 controls test named cases. It has no CLI/C ABI, automatic Neff/temperature/mass
-mapping, thermal/ionization history, distance/ruler coupling or perturbations.
+mapping, thermal/ionization history or perturbations. The distinct native
+[thermal observables](thermal-observables.md) consumer explicitly maps physical
+baryon/CDM/other-massless densities and Kelvin temperatures, then uses this same
+retained state for E/H, flat distances and a supplied-drag ruler/ratios. It adds no
+CLI/C ABI operation, automatic Neff/mass hierarchy, drag prediction, thermal BAO
+density or observational qualification. The existing conditional BAO density
+continues to consume its declared massless early/late model.

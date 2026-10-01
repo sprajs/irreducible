@@ -4,15 +4,21 @@ The standalone C++20 `irred/thermal_neutrino.hpp` API calculates the energy
 density and pressure of explicit decoupled zero-chemical-potential Fermi–Dirac
 species, then prepares a flat photon, massless-radiation, baryon, CDM, relic and
 Lambda background. It supplies E(a) and H(a), with no CLI or C ABI route.
-This is a background prerequisite. It supplies no recombination, ionization,
-drag prediction, distance/ruler consumer, perturbations, growth or CMB spectra.
+This remains the background prerequisite. The separate
+[thermal observables](thermal-observables.md) consumer now uses this same retained
+state for distances and a supplied-drag ruler. Neither provider supplies
+recombination, ionization, drag prediction, perturbations, growth or CMB spectra.
 
 A species supplies finite mass `mass_ev >= 0`, present momentum temperature
 `temperature_today_ev > 0` and explicit positive `statistical_weight`. The
 weight counts populated states: g=2 describes a neutrino plus antineutrino with
 the same distribution. It is not a mass sum or an effective neutrino number.
 There is no implicit Tcmb, Neff, temperature ratio, hierarchy, degeneracy or
-93.14-eV mapping. The frozen distribution is f(q)=1/(exp(q)+1), q=p a/Tnu0;
+93.14-eV mapping. The explicit `ThermalPhysicalModel` mapping supplies Kelvin
+temperatures and physical baryon/CDM/other-massless densities omega_i=Omega_i h^2;
+it converts with exact SI kB=1.380649e-23 J/K and derives the photon fraction
+from the supplied blackbody Tcmb. See the thermal-observables guide for this
+source convention. The frozen distribution is f(q)=1/(exp(q)+1), q=p a/Tnu0;
 its momentum temperature scales as 1/a even after the species becomes
 nonrelativistic. No interactions or production history are evolved.
 
@@ -67,19 +73,26 @@ SI elementary charge conversion to 1.602176634e-19 J/eV and the
 to 6.67430e-11 m^3 kg^-1 s^-2. Converting natural energy density to SI uses
 (eV_J)^4/(hbar c)^3. G is a measured constant: treating this central value as
 fixed is an explicit model/conversion convention. Its physical uncertainty is
-not covered by numerical quadrature estimates. These constants are identified
-by `thermal_neutrino_constants_id`; the compiled numerical method and
-arithmetic profile have separate `thermal_neutrino_method_id` and
+not covered by numerical quadrature estimates. The current constants identity is
+`SI2019-exact-h-c-kB-eV-IAU2012-AU-CODATA2018-G-fixed`, including the explicit
+kB conversion now used by the physical mapping. The existing eV-source
+background retains the same numerical constants; historical receipts bearing
+`SI2019-exact-h-c-eV-IAU2012-AU-CODATA2018-G-fixed` remain immutable.
+These constants are identified by `thermal_neutrino_constants_id`; the compiled
+numerical method and arithmetic profile have separate `thermal_neutrino_method_id` and
 `thermal_neutrino_arithmetic_id` identities.
 
-All physical state and background queries require finite 0<a<=1, finite
+All physical species-state and E/H background queries require finite 0<a<=1, finite
 positive H0 and a nonnegative flat Lambda closure. Zero supplied fractions are
 valid analytic controls. At most sixteen explicit species are supported.
 Preparation subtracts the largest nonnegative contributions first, rejecting
 a strictly positive closure excess even when a naive sum would round to one.
 A closure within the present-density numerical diagnostic is refused rather
 than clipped or silently replaced. The prepared normalization gives E(1)=1
-and H(1)=H0 with no new momentum work.
+and H(1)=H0 with no new momentum work. The same owner exposes the wide
+scaled coordinate P(a)=a^4 E(a)^2 on 0<=a<=1, using the exact FD massless
+moment at the finite radiation endpoint a=0. This does not make E(0) finite.
+E/H and the separate distance/ruler consumer reuse that one scaled equation.
 
 A prepared owner supports independent copies. A move transfers its species,
 normalization and numerical state together, leaving the source invalid with
