@@ -252,3 +252,8 @@ add_executable(test_correlated_calibration tests/test_correlated_calibration.cpp
 target_link_libraries(test_correlated_calibration PRIVATE irred_core)
 target_compile_options(test_correlated_calibration PRIVATE -Wall -Wextra -Wpedantic -fno-fast-math -ffp-contract=off)
 add_test(NAME correlated_calibration_contract COMMAND test_correlated_calibration)
+
+add_executable(test_correlated_calibration_peer tests/test_correlated_calibration_peer.cpp)
+target_link_libraries(test_correlated_calibration_peer PRIVATE irred_core)
+target_compile_options(test_correlated_calibration_peer PRIVATE -Wall -Wextra -Wpedantic -fno-fast-math -ffp-contract=off)
+add_test(NAME correlated_calibration_peer_contract COMMAND test_correlated_calibration_peer)
