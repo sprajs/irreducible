@@ -5,7 +5,10 @@
 #include <span>
 #include <string>
 #include <vector>
+namespace irred::cosmology { struct SoundHorizonRequest; }
 namespace irred::bao {
+struct ConditionalDensityPolicy;
+struct ConditionalDensityBatch;
 enum class Observable : std::uint32_t {
   transverse_over_ruler,
   hubble_over_ruler,
@@ -139,6 +142,8 @@ public:
     return gaussian_.metadata();
   }
   DensityBatch evaluate(std::span<const ModelPoint>, DensityPolicy) const;
+  ConditionalDensityBatch evaluate_conditional(
+      std::span<const cosmology::SoundHorizonRequest>, ConditionalDensityPolicy) const;
 
 private:
   DensityInput source_;

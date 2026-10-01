@@ -291,3 +291,15 @@ add_executable(test_photometry_calibration_peer tests/test_photometry_calibratio
 target_link_libraries(test_photometry_calibration_peer PRIVATE irred_core)
 target_compile_options(test_photometry_calibration_peer PRIVATE -Wall -Wextra -Wpedantic -fno-fast-math -ffp-contract=off)
 add_test(NAME photometry_calibration_peer_contract COMMAND test_photometry_calibration_peer)
+
+# Conditional BAO density consumes the shared early/late provider.
+target_sources(irred_core PRIVATE src/bao_conditional.cpp)
+add_executable(test_bao_conditional tests/test_bao_conditional.cpp)
+target_link_libraries(test_bao_conditional PRIVATE irred_core)
+target_compile_options(test_bao_conditional PRIVATE -Wall -Wextra -Wpedantic -fno-fast-math -ffp-contract=off)
+add_test(NAME bao_conditional_contract COMMAND test_bao_conditional)
+
+add_executable(test_bao_conditional_peer tests/test_bao_conditional_peer.cpp)
+target_link_libraries(test_bao_conditional_peer PRIVATE irred_core)
+target_compile_options(test_bao_conditional_peer PRIVATE -Wall -Wextra -Wpedantic -fno-fast-math -ffp-contract=off)
+add_test(NAME bao_conditional_peer_contract COMMAND test_bao_conditional_peer)

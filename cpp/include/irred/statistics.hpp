@@ -5,6 +5,7 @@
 #include <span>
 #include <string>
 #include <vector>
+namespace irred::bao { class PreparedDensity; }
 namespace irred::statistics {
 enum class DensityStatus {
   finite,
@@ -160,6 +161,7 @@ private:
   std::vector<PriorRecord> priors_;
   std::vector<SelectionRecord> history_;
   numerics::Factorization factor_;
+  friend class irred::bao::PreparedDensity;
   friend class DesignProfile;
   friend class CorrelatedCalibration;
   friend Gaussian prepare_selected_observations(const observations::Prepared &,
