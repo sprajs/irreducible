@@ -24,13 +24,14 @@ redshift is supplied. The CLI late LCDM background omits radiation and has a
 different physical identity; native early/late and conditional BAO currently
 require a C++ SDK consumer rather than a CLI/C ABI request.
 
-Existing released-ladder admission evidence at source 99ce262 records finite
-covariance preparation but `conditioning_budget_exceeded` and unresolved design
-rank on the full 3492-row/47-column products. That is a historical numerical
-blocker, not a rerun on the current source, proof of rank deficiency or a failure
-of the observed ladder. A stable rank-revealing algorithm and unchanged-budget
-independent comparison are needed before claiming a released joint fit. The
-native synthetic ladder controls cannot close that gap.
+The historical released-ladder admission failure at source 99ce262 remains
+preserved. The native retained whitened pivoted QR at source f844080 now admits
+the exact same 3492-row/47-column compact products with both covariance arithmetic
+profiles and unchanged budgets. All coefficients and the objective agree with
+independent LAPACK QR/SVD references; q=3552.759330295523. This closes the named
+numerical admission blocker. Physical parameter labels, the released calibration
+assumptions, estimator uncertainty and observational H0 reconstruction still need
+separate qualification. The relative profile is not a normalized posterior.
 
 No current operator predicts matter transfer/growth, lensing potentials or
 images, recombination/drag, CMB spectra, stellar/source populations, detector
