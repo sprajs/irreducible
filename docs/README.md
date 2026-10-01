@@ -17,6 +17,7 @@ Read [AGENTS.md](../AGENTS.md) first, then choose a guide:
 | Interpret an output | [Run records](run-records.md) |
 | Add a model, reader or calculation | [Development](development.md) and [architecture](architecture.md) |
 | Evaluate a supplied-drag early-time ruler | [Conditional sound horizon](sound-horizon.md) |
+| Use one early/late state for distances and conditional ruler ratios in C++ | [Early and late expansion](early-late.md) |
 | Check scientific assumptions | [Scientific contracts](scientific-contracts.md) |
 | Profile an ordered multi-column Gaussian model in C++ | [Gaussian design](gaussian-design.md) |
 | Run tests or add a fixture | [Testing](testing.md) and [fixture provenance](../cpp/tests/fixtures/README.md) |
