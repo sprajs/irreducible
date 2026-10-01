@@ -33,3 +33,19 @@ Inputs and outputs are finite binary64; nonzero values must be normal. Intermedi
 `DesignPolicy` bounds n×p and byte payload before design allocation. Conservative wrapper charges include its owned model/strings and transient row equations/IDs/validation storage; they are added to the parent's preparation bound. Fit bounds its offset-subtracted residual vector plus the parent's evaluation scratch/output bound. These are payload envelopes excluding allocator bookkeeping/RSS, not whole-process memory promises. Model preparation is retained; covariance and QR factors are never refactored during fit. Prediction is a separate bounded batch and does not copy/read back covariance. The class is move-only; moved successful owners become invalid through the parent design.
 
 Frozen owner allocations before implementation: coefficient and magnitude prediction tolerance 2×10⁻¹¹ absolute plus relative; H₀ 2×10⁻¹⁰ absolute plus relative; q 10⁻⁹ absolute. These conservative synthetic binary64 allocations cover cancellation of moduli and magnitudes plus the parent design's solve/cast diagnostics; they are not claimed as certified bounds over the entire admitted domain. The exponential projection amplifies η error by ln(10)/5 in relative H₀. Owner controls use independently transcribed analytic rows/truth, exact noiseless recovery, correlated shared-response covariance, reference-coordinate invariance, row/host permutation, remove/refit held-out prediction and explicit degeneracy/adversarial failures. A peer augmented KKT algorithm is separate evidence, avoiding the production QR calculation. All failures remain distinct from zero probability. Named tests and immutable local receipts define the actual checked scope.
+
+## Released compact design comparison
+
+The generic parent QR route at source f844080 was compared with the exact
+3492-row/47-column SH0ES-2022 high-level compact y, L and C products. Both
+binary64 and wide covariance factors admit the unchanged 1e-10 sensitivity
+policy and 2 GiB payload ceiling. The relative fit gives q=3552.759330295523;
+all 47 coefficients agree with independent LAPACK QR/SVD controls within
+1e-8 absolute plus 1e-9 relative, occupying less than 0.12% of that allocation.
+The quadratic allocation remains 1e-7 absolute plus 1e-10 relative. An independent
+covariance solve on the actual returned residuals also agrees. This comparison
+uses source-axis indices and does not assert physical parameter labels, H0,
+estimator covariance, a normalized posterior or reproduction of the paper's
+analysis. The historical failed Gram-route receipt is preserved. Large original
+products and local receipts are optional research evidence; ordinary CI retains
+minimal analytic, independent, refinement and adverse controls.
