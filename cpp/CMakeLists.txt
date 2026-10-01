@@ -225,3 +225,9 @@ foreach(photometry_test IN ITEMS photometry photometry_hostile photometry_abi_ho
   target_compile_options(test_${photometry_test} PRIVATE -Wall -Wextra -Wpedantic -fno-fast-math -ffp-contract=off)
   add_test(NAME ${photometry_test}_contract COMMAND test_${photometry_test})
 endforeach()
+
+target_sources(irred_core PRIVATE src/sampled_photometry.cpp)
+add_executable(test_sampled_photometry tests/test_sampled_photometry.cpp)
+target_link_libraries(test_sampled_photometry PRIVATE irred_core)
+target_compile_options(test_sampled_photometry PRIVATE -Wall -Wextra -Wpedantic -fno-fast-math -ffp-contract=off)
+add_test(NAME sampled_photometry_contract COMMAND test_sampled_photometry)
