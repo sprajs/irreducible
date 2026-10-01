@@ -21,6 +21,7 @@ Read [AGENTS.md](../AGENTS.md) first, then choose a guide:
 | Evaluate a supplied-drag early-time ruler | [Conditional sound horizon](sound-horizon.md) |
 | Use one early/late state for distances and conditional ruler ratios in C++ | [Early and late expansion](early-late.md) |
 | Evaluate explicit thermal relic density, pressure and flat E/H in C++ | [Thermal neutrino background](thermal-neutrino.md) |
+| Map physical densities/temperatures and evaluate thermal distances/ruler ratios | [Thermal observables](thermal-observables.md) |
 | Evaluate a supplied-drag BAO density with that same state in C++ | [Conditional BAO](bao-conditional.md) |
 | Check scientific assumptions | [Scientific contracts](scientific-contracts.md) |
 | Profile an ordered multi-column Gaussian model in C++ | [Gaussian design](gaussian-design.md) |

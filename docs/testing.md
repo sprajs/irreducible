@@ -199,3 +199,14 @@ probabilities, including unequal complementary endpoint tails. They test the
 explicit fixed-design sampling law, without establishing a posterior,
 observational H0 uncertainty or confidence coverage. The original failed-wrapper
 move-status witness is preserved separately from successful-owner controls.
+
+## Thermal observable composition
+
+Ordinary native tests exercise the retained thermal physical mapping and flat
+distance/supplied-drag ruler consumer, its independent analytic/high-precision
+and matched CLASS controls, masks, limits and owner lifetimes. See
+[thermal observables](thermal-observables.md) for the equations, physical inputs,
+frozen allocations and reference ancestry. External engines, acquired sources
+and Python high-precision libraries are comparison tooling; ordinary CI consumes
+small declared facts and independent native controls. These tests add no CLI
+operation or full-reference observational qualification.

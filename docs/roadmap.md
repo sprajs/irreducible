@@ -16,9 +16,10 @@ its own identity. A passing fixed-point test does not reproduce a posterior or
 qualify all modalities. The diagnostic is an input to this plan, not another plan.
 
 Dependency-ready next work is the smallest consumer supported by that evidence:
-complete source-defined released-ladder parameter mapping and calibration/model sensitivity
-after the successful unchanged-budget native QR comparison; a source-defined parameter/temperature mapping and distance/ruler consumer
-for the native explicit thermal-neutrino background; then thermal/ionization/drag prediction before a predicted physical BAO
+resolve the released ladder's remaining constraint/measure identity and calibration/model sensitivity
+after the successful unchanged-budget native QR comparison and source-linked host audit;
+compose the tested native thermal distance/ruler state with the retained conditional
+BAO density; then thermal/ionization/drag prediction before a predicted physical BAO
 ruler. Perturbations and CMB need their own closure and comparisons. Native SDK
 execution can test current functions before adding a CLI/ABI route justified by
 an actual consumer. Do not add noise, lensing or growth labels to unsupported
@@ -138,10 +139,13 @@ The native [early/late calculation](early-late.md) now connects this ruler and f
 The native [thermal-neutrino increment](thermal-neutrino.md) supplies
 collisionless species density/pressure and one retained flat E/H identity,
 including the relativistic-to-nonrelativistic transition. Named high-precision
-and matched CLASS controls test explicit inputs and conservation. The next
-consumer must use that same state for distances and a conditional supplied-drag
-ruler, with source-defined species/temperature/physical-density mapping and
-propagated numerical budgets. It does not predict drag or recombination.
+and matched CLASS controls test explicit inputs and conservation. The native
+[thermal observables](thermal-observables.md) consumer now uses that same state
+for distances and a conditional supplied-drag ruler, with explicit
+species/temperature/physical-density mapping and propagated numerical budgets.
+The retained conditional BAO density remains a separate massless-model consumer
+until a scoped composition passes its own density-level allocation. Neither
+provider predicts drag or recombination.
 
 Background plus thermal/ionization history can subsequently support a declared perturbation closure, primordial modes, transfer functions and line-of-sight projection. Each later observable needs its own reference and likelihood allocation.
 

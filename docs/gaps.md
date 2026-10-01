@@ -21,10 +21,13 @@ LCDM from the current supported approximation. The native shared early/late
 state treats radiation as massless and matter as pressureless at every epoch.
 The separate native [thermal-neutrino provider](thermal-neutrino.md) now
 supplies explicit relic density/pressure and flat E/H with a mass transition,
-independent high-precision and matched CLASS controls. It is not yet connected
-to the early/late distance or supplied-drag ruler consumer. Temperature/species
-and physical-density mapping still need an explicit source contract; no operator
-predicts thermal/ionization history. Drag redshift is supplied. The CLI late LCDM background omits radiation and has a
+independent high-precision and matched CLASS controls. The native
+[thermal distance/ruler consumer](thermal-observables.md) now maps supplied
+physical densities and explicit temperatures/species and retains one state for
+distances and the conditional supplied-drag ruler. It preserves the massless
+model as a distinct physical identity. Thermal predictions have not yet been
+composed with the retained conditional BAO density. No operator predicts
+thermal/ionization history or drag; there is no implicit Neff/mass hierarchy. The CLI late LCDM background omits radiation and has a
 different physical identity; native early/late and conditional BAO currently
 require a C++ SDK consumer rather than a CLI/C ABI request.
 
