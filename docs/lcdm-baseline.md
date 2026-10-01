@@ -72,6 +72,40 @@ policies separately. Preserve original failed attempts before changing a
 reference, policy or implementation. These named numerical checks provide no
 universal accuracy guarantee or inference qualification.
 
+The first real-data attempt can fail because a requested producer allowance is
+below combined dependency diagnostics, even when the underlying quadratures
+finish. Ratio admission includes numerator/ruler interval propagation and
+binary64 arithmetic floors; it needs its own feasible allowance. Diagnose the
+reported status, preserve that attempt and justify a revised producer policy
+against the unchanged downstream allocation. Do not relax the comparison,
+projection gate or physical covariance to manufacture a pass.
+
+## Recorded diagnostic
+
+The October 2026 baseline uses chosen controls H0=67.4 km/s/Mpc,
+Omega_m=0.315, Omega_r=9.2e-5, Omega_b=0.049, Omega_gamma=5.45e-5 and supplied
+z_drag=1059. These fractions are independent inputs near familiar reference
+values; they are not a Planck posterior draw or a temperature-derived parameter
+mapping. The second point doubles H0 at fixed fractions and drag.
+
+The initial producer ratio allowance of 1e-14 absolute + 2e-14 relative refused
+the combined diagnostics with `conditioning_budget_exceeded`; those attempts
+were preserved. After source review, the ratio producer allowance became
+1e-14 absolute + 2e-13 relative, while sound/distance producer policies and all
+external comparison, refinement and projection gates stayed unchanged. The
+bounded massless variant passed 64 comparisons on all 13 DESI DR2 rows: the
+quadratic was 28.070790034811825, with independent discrepancy about 4.2e-14,
+and the projection diagnostic was about 1.51e-10 against its 1e-8 allowance.
+The packet owns exact source/build/run identities and retained failed attempts.
+This fixed-point diagnostic is neither a fitted cosmological result nor a claim
+that these observations must equal the prediction.
+
+The clean engine at db4765838fc404a489a0115ee69713f2ea6cd2f4 also passed 12
+selected existing native owner/peer executables for expansion, conditional BAO,
+sampled/calibrated photometry, synthetic ladder and proper correlated
+calibration. Those tests retain their named mathematical scope; full Planck,
+CMB, growth, lensing and observational ladder results remain outside this run.
+
 ## Cross-project handoff
 
 1. **Prospector** pins the primary paper version, source hash, coverage and
