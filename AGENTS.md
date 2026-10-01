@@ -22,6 +22,29 @@ Keep observations, fitted summaries, assumptions and synthetic controls distinct
 
 Measure performance at matched quality and resource limits, including setup/memory. Keep a portable baseline and explicit arithmetic/ISA contracts. Review affected consumers whenever shared kernels change. Review licensing before copying code/assets.
 
+## Baseline and cross-project work
+
+Use the [bounded LambdaCDM guide](docs/lcdm-baseline.md) when testing the stack.
+Prospector owns paper/source review and candidate definitions; Reproducible owns
+pinned experiments, input lineage, orchestration and findings; Irreducible owns
+compiled physics, numerics and permanent scientific regressions. Assign one
+integration owner per repository and a cross-project coordinator. Inspect live
+state before dispatch, freeze the physical identity and acceptance, and allocate
+the four total local compute jobs across all chats and worktrees. Record exact
+requested worker models and launch evidence; reuse correctly configured workers
+on capacity failure rather than silently substituting.
+
+A standard reference and a supported approximation need separate identities.
+The current native massless-radiation supplied-drag model is not full Planck base
+LCDM, and the CLI late background omits radiation. Preserve source-defined
+physical versus fractional densities, neutrino assumptions and drag provenance.
+A gold numerical fixture means pinned inputs/order/reference ancestry, not
+cosmological truth. Posterior summaries are not additional measurements; never
+combine probes without resolved overlap/calibration/covariance. Runtime numerical
+acceptance cannot establish inference or interpretation. Keep unsupported
+closures explicit and translate observed discrepancies into owned engine work
+in the sole active roadmap.
+
 ## Repository traps and publication
 
 [schema/abi.json](schema/abi.json) owns the shared C/Rust ABI; regenerate with `tools/generate_abi.py`, never hand-edit bindings. No cross-language exception unwinding or per-row FFI. Public documentation is in `docs/`; keep executable discovery and docs consistent with actual gates.

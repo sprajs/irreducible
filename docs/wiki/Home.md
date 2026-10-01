@@ -11,6 +11,7 @@ A future recipe format would put the data sources, model choices and calculation
 ## Try, explore or contribute
 
 - [Build and run an example](https://github.com/sprajs/irreducible/blob/main/docs/getting-started.md), then browse [what works today](https://github.com/sprajs/irreducible/blob/main/docs/capabilities.md) and the [CLI guide](https://github.com/sprajs/irreducible/blob/main/docs/cli.md).
+- Test the [bounded LambdaCDM baseline](https://github.com/sprajs/irreducible/blob/main/docs/lcdm-baseline.md) through the reviewed Prospector → Reproducible → Irreducible workflow; full Planck closure remains distinct from the supported massless variant.
 - Read the [roadmap](https://github.com/sprajs/irreducible/blob/main/docs/roadmap.md) for the next experiments and [gaps](https://github.com/sprajs/irreducible/blob/main/docs/gaps.md) for the missing physics and data.
 - Have a model, reader or useful test to add? [Contributions](https://github.com/sprajs/irreducible/blob/main/CONTRIBUTING.md) are welcome, including agent-written pull requests. Start with [agent instructions](https://github.com/sprajs/irreducible/blob/main/AGENTS.md) and the [development guide](https://github.com/sprajs/irreducible/blob/main/docs/development.md).
 

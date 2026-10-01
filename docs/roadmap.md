@@ -4,6 +4,26 @@ Irreducible is intended to be a simulation-first, agent-operated physics engine 
 
 This is the active development plan. Historical calculations and comparison records are evidence, not competing instructions. Advance a capability when its own physical, data and numerical prerequisites are ready; do not require completion of whole fields or a general inference ecosystem.
 
+## Baseline-led scope selection
+
+Use the [bounded LambdaCDM baseline](lcdm-baseline.md) as a cross-project diagnostic:
+Prospector owns source claims, Reproducible owns pinned execution and findings,
+and Irreducible owns compiled repairs and regressions. Test the available shared
+early/late state and conditional likelihood against ordered released inputs and
+independent references. Keep full Planck base LCDM blocked where massive-neutrino,
+thermal or perturbation closure is absent; a massless supplied-drag variant has
+its own identity. A passing fixed-point test does not reproduce a posterior or
+qualify all modalities. The diagnostic is an input to this plan, not another plan.
+
+Dependency-ready next work is the smallest consumer supported by that evidence:
+a stable rank-revealing covariance/design route for a released-ladder admission
+failure; a declared massive-neutrino background for the full standard expansion
+identity; then thermal/ionization/drag prediction before a predicted physical BAO
+ruler. Perturbations and CMB need their own closure and comparisons. Native SDK
+execution can test current functions before adding a CLI/ABI route justified by
+an actual consumer. Do not add noise, lensing or growth labels to unsupported
+calculations merely to fill a milestone.
+
 ## Shared physics, explicit observational operators
 
 The forward direction is:
@@ -68,9 +88,9 @@ Once these prerequisites pass, their scoped joint calibration/H₀ fit is useful
 
 **Outputs:** the conditional ruler, integrand/state diagnostics, declared compactification/tail treatment, empirical numerical error estimates and independently allocated checks, and the origin/status of z_d. Later thermal work returns its predicted drag epoch separately. The current free H₀r_d parameter does not identify H₀ and r_d independently.
 
-**Gate:** dimensions and scaling, analytic simplified expansion/sound-speed limits, independent quadrature, tail treatment and refinement. Named native conditional-ratio controls now test numerical observables; a BAO likelihood allocation remains a separate future gate. When z_d becomes predicted, add independent thermal/drag comparisons and propagate its uncertainty. Neither this integral nor a matching ruler qualifies growth, lensing or CMB predictions.
+**Gate:** dimensions and scaling, analytic simplified expansion/sound-speed limits, independent quadrature, tail treatment and refinement. Named native conditional-ratio controls test numerical observables; the distinct native conditional density has its own projection allocation. Released-compression validity and physical-ruler inference remain separate gates. When z_d becomes predicted, add independent thermal/drag comparisons and propagate its uncertainty. Neither this integral nor a matching ruler qualifies growth, lensing or CMB predictions.
 
-The native [early/late calculation](early-late.md) now connects this ruler and flat FLRW distances through one matter/radiation, geometry, unit and parameter identity. It supplies conditional ratio predictions with a supplied drag epoch, not a physical-ruler BAO likelihood or qualification of a released compression. The current free-ruler likelihood remains a separate conditional calculation. Predicting the drag epoch still requires its thermal/ionization contract.
+The native [early/late calculation](early-late.md) now connects this ruler and flat FLRW distances through one matter/radiation, geometry, unit and parameter identity. The provider supplies conditional ratio predictions with a supplied drag epoch. The distinct native conditional BAO consumer supplies a bounded density; neither qualifies a predicted physical ruler or a released compression. The current free-ruler likelihood remains a separate conditional calculation. Predicting the drag epoch still requires its thermal/ionization contract.
 
 Background plus thermal/ionization history can subsequently support a declared perturbation closure, primordial modes, transfer functions and line-of-sight projection. Each later observable needs its own reference and likelihood allocation.
 

@@ -8,6 +8,16 @@ The goal is to share the physics behind those predictions, from simulated source
 
 Today you can run flat-FLRW background calculations, conditional supernova and BAO comparisons, and Gaussian calculations through the **`irred`** CLI or C++ library. These are the starting tools, not yet a complete simulator or joint cosmological analysis. [Current capabilities](docs/capabilities.md) explain their scope; the [roadmap](docs/roadmap.md) shows what comes next.
 
+## Test an established baseline
+
+The [bounded LambdaCDM baseline](docs/lcdm-baseline.md) connects reviewed papers in
+[Prospector](https://github.com/sprajs/prospector) to pinned experiments in
+[Reproducible](https://github.com/sprajs/reproducible) using this compiled engine.
+It checks supported predictions and released-data likelihood calculations while
+recording missing physics. The full Planck base model and the current native
+massless-radiation approximation have distinct identities; numerical agreement
+is scoped evidence, not a guarantee across every cosmological domain.
+
 ## Repeat a paper’s calculation
 
 A planned recipe format would keep a calculation's data sources, model choices and steps in one file, so another person or agent could repeat it and inspect its assumptions. The [run-recipe proposal](docs/run-recipes.md) compares JSON, TOML and YAML and defines the intended first step; the runner does not exist yet. New physics will still be added as tested compiled code, reviewed through a pull request—not as equations executed from a configuration file.
