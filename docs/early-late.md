@@ -53,3 +53,5 @@ zero/tiny/high redshift, invalid closure/subsets, quotas and existing sound
 regressions are required. Independent direct-z quadrature has different
 coordinates from production; shared polynomial helpers are not independent
 evidence. Named tested controls do not qualify every arbitrary request.
+
+The native [conditional BAO consumer](bao-conditional.md) composes these ratios with a retained full ordered Gaussian observation object and checks downstream projection sensitivity separately. The supplied drag origin and shared parameter/unit identity remain explicit; physical validity of a released compression is a separate condition.
