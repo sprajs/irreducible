@@ -279,3 +279,10 @@ add_executable(test_early_late tests/test_early_late.cpp)
 target_link_libraries(test_early_late PRIVATE irred_core)
 target_compile_options(test_early_late PRIVATE -Wall -Wextra -Wpedantic -fno-fast-math -ffp-contract=off)
 add_test(NAME early_late_contract COMMAND test_early_late)
+
+# Finite joint optical-passband calibration law, native only.
+target_sources(irred_core PRIVATE src/photometry_calibration.cpp)
+add_executable(test_photometry_calibration tests/test_photometry_calibration.cpp)
+target_link_libraries(test_photometry_calibration PRIVATE irred_core)
+target_compile_options(test_photometry_calibration PRIVATE -Wall -Wextra -Wpedantic -fno-fast-math -ffp-contract=off)
+add_test(NAME photometry_calibration_contract COMMAND test_photometry_calibration)
