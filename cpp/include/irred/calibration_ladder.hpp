@@ -22,6 +22,7 @@ struct Model {
   std::vector<Row> rows;
   double metallicity_reference_dex = 0;
   double h_reference_km_s_Mpc = 70;
+  std::string magnitude_convention, metallicity_coordinate_identity;
   std::string distance_shape_identity, calibration_identity,
       dependence_identity;
   // Must describe a covariance conditional on delta, excluding a marginalized

@@ -23,6 +23,8 @@ void near(double x, double y, const char *why) {
 Model fixture() {
   Model m;
   m.ordered_host_ids = {"A", "B", "C"};
+  m.magnitude_convention = "synthetic common photometric magnitude convention";
+  m.metallicity_coordinate_identity = "synthetic log metal abundance dex";
   m.distance_shape_identity =
       "synthetic fixed FLRW Href70 supplied luminosity modulus";
   m.calibration_identity = "synthetic one delta measurement";
@@ -96,8 +98,13 @@ irred::statistics::Gaussian gaussian(const Model &m, bool correlated = true) {
   std::vector<double> c(n * n);
   for (std::size_t i = 0; i < n; ++i)
     for (std::size_t j = 0; j < n; ++j) {
-      const double u_i = static_cast<double>(static_cast<int>(i % 3) - 1),
-                   u_j = static_cast<double>(static_cast<int>(j % 3) - 1);
+      auto row_mode = [&](std::size_t row) {
+        unsigned value = 0;
+        for (unsigned char ch : m.rows[row].row_id)
+          value += ch;
+        return static_cast<double>(static_cast<int>(value % 3) - 1);
+      };
+      const double u_i = row_mode(i), u_j = row_mode(j);
       c[i * n + j] = (i == j ? .01 : 0) + (correlated ? .002 * u_i * u_j : 0);
     }
   irred::statistics::Metadata md;
@@ -238,12 +245,29 @@ int main() {
     check(ld.status() != DensityStatus::finite &&
               gd.status() == DensityStatus::finite,
           "calibration degeneracy preserves source");
+    auto unused = m;
+    unused.ordered_host_ids.push_back("unused host");
+    auto gu = gaussian(unused);
+    auto lu = Ladder::prepare(std::move(gu), unused);
+    check(lu.status() != DensityStatus::finite &&
+              gu.status() == DensityStatus::finite,
+          "unconnected host rank failure preserves source");
+    auto near_rank = m;
+    for (auto &r : near_rank.rows)
+      if (r.kind == RowKind::cepheid)
+        r.metallicity_dex = r.log10_period_days - 1;
+    near_rank.rows[3].metallicity_dex += 1e-9;
+    auto gn = gaussian(near_rank);
+    auto ln = Ladder::prepare(std::move(gn), near_rank);
+    check(ln.status() != DensityStatus::finite &&
+              gn.status() == DensityStatus::finite,
+          "near period metallicity rank failure preserves source");
     auto independent = m;
     independent.rows.pop_back();
     auto gi = gaussian(independent);
     auto li = Ladder::prepare(std::move(gi), independent);
     recovered(li.fit(observations(independent, b), rows(independent)), b);
-    for (int failure = 0; failure < 9; ++failure) {
+    for (int failure = 0; failure < 11; ++failure) {
       auto bad = m;
       switch (failure) {
       case 0:
@@ -273,12 +297,42 @@ int main() {
       case 8:
         bad.rows[0].calibration_response = 1;
         break;
+      case 9:
+        bad.magnitude_convention.clear();
+        break;
+      case 10:
+        bad.metallicity_coordinate_identity.clear();
+        break;
       }
       auto keep = gaussian(m);
       auto reject = Ladder::prepare(std::move(keep), bad);
       check(reject.status() != DensityStatus::finite &&
                 keep.status() == DensityStatus::finite,
             "invalid model preserves covariance");
+    }
+    for (int mismatch = 0; mismatch < 4; ++mismatch) {
+      auto mismatch_model = m;
+      if (mismatch == 0)
+        mismatch_model.calibration_identity = "conflicting calibration";
+      if (mismatch == 1)
+        mismatch_model.dependence_identity = "conflicting dependence";
+      if (mismatch == 2)
+        mismatch_model.conditional_covariance_identity =
+            "conflicting covariance";
+      auto original = gaussian(m);
+      if (mismatch == 3) {
+        auto metadata = original.metadata();
+        metadata.source_semantics = "real observations";
+        std::vector<double> covariance(original.covariance().begin(),
+                                       original.covariance().end());
+        original = irred::statistics::prepare_gaussian(
+            covariance, irred::statistics::MatrixKind::covariance, metadata,
+            covariance.size(), 1e-10);
+      }
+      auto incompatible = Ladder::prepare(std::move(original), mismatch_model);
+      check(incompatible.status() == DensityStatus::incompatible_metadata &&
+                original.status() == DensityStatus::finite,
+            "conflicting source metadata preserves covariance");
     }
     auto wrong = ids;
     std::swap(wrong[0], wrong[1]);

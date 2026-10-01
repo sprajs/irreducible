@@ -44,7 +44,9 @@ std::optional<std::size_t> payload(const Model &m) {
     if (!string_charge(r.row_id) || !string_charge(r.host_id) ||
         !string_charge(r.event_id))
       return {};
-  if (!string_charge(m.distance_shape_identity) ||
+  if (!string_charge(m.magnitude_convention) ||
+      !string_charge(m.metallicity_coordinate_identity) ||
+      !string_charge(m.distance_shape_identity) ||
       !string_charge(m.calibration_identity) ||
       !string_charge(m.dependence_identity) ||
       !string_charge(m.conditional_covariance_identity))
@@ -55,6 +57,8 @@ bool valid(const Model &m, bool recovery) {
   if (m.ordered_host_ids.size() < 2 || m.rows.empty() ||
       !representable(m.metallicity_reference_dex) ||
       !std::isnormal(m.h_reference_km_s_Mpc) || m.h_reference_km_s_Mpc <= 0 ||
+      m.magnitude_convention.empty() ||
+      m.metallicity_coordinate_identity.empty() ||
       m.distance_shape_identity.empty() || m.calibration_identity.empty() ||
       m.dependence_identity.empty() ||
       m.conditional_covariance_identity.empty())
@@ -111,6 +115,9 @@ bool valid(const Model &m, bool recovery) {
   }
   return !recovery || (anchors.size() >= 2 && cep && cal && hf);
 }
+double row_offset(const Row &r) {
+  return r.kind == RowKind::hubble_supernova ? r.reference_modulus_mag : 0;
+}
 // Single owner of each row's linear equation, used by prediction and
 // preparation.
 bool equation(const Model &m, const Row &r, std::span<double> x,
@@ -124,7 +131,7 @@ bool equation(const Model &m, const Row &r, std::span<double> x,
       return false;
     x[static_cast<std::size_t>(it - m.ordered_host_ids.begin())] = 1;
   }
-  offset = 0;
+  offset = row_offset(r);
   switch (r.kind) {
   case RowKind::anchor_modulus:
     break;
@@ -139,7 +146,6 @@ bool equation(const Model &m, const Row &r, std::span<double> x,
   case RowKind::hubble_supernova:
     x[h + 3] = 1;
     x[h + 4] = -1;
-    offset = r.reference_modulus_mag;
     break;
   case RowKind::calibration_measurement:
     break;
@@ -220,7 +226,7 @@ Prediction predict(const Model &m, std::span<const double> b,
     const auto d = static_cast<double>(v);
     if (!representable(d) || (v != 0 && d == 0)) {
       out.status = DensityStatus::numerical_failure;
-      out.numerical_status = numerics::Status::overflow;
+      out.numerical_status = numerics::Status::outside_domain;
       return out;
     }
     values.push_back(d);
@@ -246,6 +252,17 @@ Ladder Ladder::prepare(statistics::Gaussian &&g, Model m,
   }
   if (!valid(m, true))
     return out;
+  const auto &gm = g.metadata();
+  if (gm.source_semantics != "synthetic controls" ||
+      gm.measure != "product d(mag)" ||
+      gm.calibration_provenance != m.calibration_identity ||
+      gm.dependence_provenance != m.dependence_identity ||
+      gm.uncertainty_identity != m.conditional_covariance_identity ||
+      gm.table_identity.empty() || gm.ordering_provenance.empty()) {
+    out.preparation_status_ = DensityStatus::incompatible_metadata;
+    return out;
+  }
+
   auto ids = parameter_ids(m);
   statistics::DesignMetadata md;
   md.ordered_parameter_ids = ids;
@@ -299,14 +316,12 @@ Recovery Ladder::fit(std::span<const double> y,
                   numerics::Status::invalid_input);
   std::vector<double> residual(y.size());
   for (std::size_t i = 0; i < y.size(); ++i) {
-    const auto offset = model_.rows[i].kind == RowKind::hubble_supernova
-                            ? model_.rows[i].reference_modulus_mag
-                            : 0;
+    const auto offset = row_offset(model_.rows[i]);
     const long double r = static_cast<long double>(y[i]) - offset;
     residual[i] = static_cast<double>(r);
     if (!representable(residual[i]) || (r != 0 && residual[i] == 0))
       return failed(DensityStatus::numerical_failure,
-                    numerics::Status::overflow);
+                    numerics::Status::outside_domain);
   }
   Recovery out;
   out.relative_fit = profile_.evaluate(residual, ids, policy);
@@ -319,7 +334,8 @@ Recovery Ladder::fit(std::span<const double> y,
   const long double h0 = std::exp(exponent);
   out.h0_km_s_Mpc = static_cast<double>(h0);
   if (!std::isnormal(out.h0_km_s_Mpc) || !std::isfinite(h0))
-    return failed(DensityStatus::numerical_failure, numerics::Status::overflow);
+    return failed(DensityStatus::numerical_failure,
+                  numerics::Status::outside_domain);
   return out;
 }
 Prediction Ladder::predict(std::span<const double> b,

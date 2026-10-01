@@ -4,7 +4,7 @@ The native `irred/calibration_ladder.hpp` consumer implements an empirical linea
 
 ## Frozen equation and coordinate contract
 
-The explicitly ordered parameter vector is host distance moduli μ_h, then M_Cep, b, γ, M_SN, η and δ. All magnitude quantities use the same caller-declared photometric convention. Cepheid log-period is log₁₀(P/day), metallicity is a supplied logarithmic dex coordinate with declared Z_ref, and η=5 log₁₀(H₀/H_ref). H_ref and H₀ use km s⁻¹ Mpc⁻¹. The model owns these equations once:
+The explicitly ordered parameter vector is host distance moduli μ_h, then M_Cep, b, γ, M_SN, η and δ. All magnitude quantities use the same required `magnitude_convention`; `metallicity_coordinate_identity` explicitly names the dex axis. These metadata labels declare a convention, not an automatic physical conversion. Cepheid log-period is log₁₀(P/day), metallicity is a supplied logarithmic dex coordinate with declared Z_ref, and η=5 log₁₀(H₀/H_ref). H_ref and H₀ use km s⁻¹ Mpc⁻¹. The model owns these equations once:
 
 - An anchor modulus measurement predicts μ_h.
 - A Cepheid predicts μ_h+M_Cep+b(log₁₀(P/day)−1)+γ(Z−Z_ref)+r_iδ.
@@ -20,7 +20,7 @@ Generated parameter IDs bind host identities and the six empirical coordinates. 
 
 ## Dependence, identification and relative measure
 
-The supplied Gaussian must carry the exact ordered row IDs and an SPD full covariance in mag². Its covariance must be conditional on δ and exclude a covariance contribution from marginalizing that same δ. `conditional_covariance_identity`, `calibration_identity` and `dependence_identity` declare this division; the engine cannot detect a physically mislabelled covariance. Never include one calibration uncertainty in both the response nuisance and covariance. Cross-row covariance is retained, not replaced with independent errors.
+The supplied Gaussian must carry the exact ordered row IDs and an SPD full covariance in mag². Preparation requires the exact `source_semantics="synthetic controls"` and `measure="product d(mag)"` tags, nonempty table/order provenance, and exact equality of its calibration/dependence/uncertainty identity fields with the model's calibration/dependence/conditional-covariance identities. Conflicting provenance fails with `incompatible_metadata` and preserves the source. Its covariance must be conditional on δ and exclude a covariance contribution from marginalizing that same δ. `conditional_covariance_identity`, `calibration_identity` and `dependence_identity` declare this division; the engine cannot detect a physically mislabelled covariance. Never include one calibration uncertainty in both the response nuisance and covariance. Cross-row covariance is retained, not replaced with independent errors.
 
 Preparation assembles the fixed design X and consumes the Gaussian only after the retained `DesignProfile` admits its rank and conditioning. The same row equations produce forward predictions and the fit's offsets. A calibration measurement is optional if another set of responses identifies δ; absent identification, preparation fails without dropping parameters or adding jitter. Extra unused host coordinates likewise fail rank admission. The parent design's equilibrated Gram condition estimate squares whitened design conditioning and is not a QR/SVD rank certificate. Failure preserves the Gaussian source.
 
@@ -28,7 +28,7 @@ Fit minimizes (y−offset−Xβ)ᵀC⁻¹(y−offset−Xβ) and returns the pare
 
 ## Domain, resources and evidence allocation
 
-Inputs and outputs are finite binary64; nonzero values must be normal. Intermediate dot products and H₀ projection use long double. As in the parent design, round-to-nearest and long double with at least 64 mantissa bits and maximum exponent at least 16384 are required. Overflow, underflow, nonfinite values, ambiguous identities, rank/conditioning failure and policy limits withhold outputs.
+Inputs and outputs are finite binary64; nonzero values must be normal. Intermediate dot products and H₀ projection use long double. As in the parent design, round-to-nearest and long double with at least 64 mantissa bits and maximum exponent at least 16384 are required. Overflow, underflow, nonfinite values, ambiguous identities, rank/conditioning failure and policy limits withhold outputs. Wrapper projection/subtraction failures report numerical failure with `outside_domain` for the declared normal binary64 output domain; parent design failures retain their original numerical status.
 
 `DesignPolicy` bounds n×p and byte payload before design allocation. Conservative wrapper charges include its owned model/strings and transient row equations/IDs/validation storage; they are added to the parent's preparation bound. Fit bounds its offset-subtracted residual vector plus the parent's evaluation scratch/output bound. These are payload envelopes excluding allocator bookkeeping/RSS, not whole-process memory promises. Model preparation is retained; covariance and Gram factors are never refactored during fit. Prediction is a separate bounded batch and does not copy/read back covariance. The class is move-only; moved successful owners become invalid through the parent design.
 
