@@ -3,6 +3,7 @@ import json
 from pathlib import Path
 import shutil
 import subprocess
+import tomllib
 from ci_identity import digest
 
 
@@ -27,6 +28,8 @@ def collect(root, destination):
                 continue
             if any(k["kind"] is None for k in dep["dep_kinds"]):
                 pending.append(dep["pkg"])
+    lock = tomllib.loads((root / "Cargo.lock").read_text())
+    registry_checksums = {(p["name"], p["version"]): p.get("checksum") for p in lock["package"]}
     inventory = []
     for key in sorted(seen - {metadata["resolve"]["root"]}):
         package = packages[key]
@@ -45,7 +48,9 @@ def collect(root, destination):
             copied[source.name] = digest(source)
         inventory.append({"name": package["name"], "version": package["version"],
                           "declared_license": package.get("license"),
-                          "source": package.get("source"), "notice_sha256": copied})
+                          "source": package.get("source"),
+                          "registry_checksum": registry_checksums[(package["name"], package["version"])],
+                          "notice_sha256": copied})
     sysroot = Path(subprocess.check_output(["rustc", "--print", "sysroot"], text=True).strip())
     docs = sysroot / "share/doc/rust"
     library_notice = docs / "COPYRIGHT-library.html"
@@ -59,7 +64,7 @@ def collect(root, destination):
         raise ValueError("Rust notice licence texts unavailable")
     shutil.copytree(licenses, target / "licenses")
     std_hashes = {str(p.relative_to(target)): digest(p) for p in target.rglob("*") if p.is_file()}
-    result = {"runtime_crates": inventory, "target": host, "rustc": version,
+    result = {"cargo_lock_sha256": digest(root / "Cargo.lock"), "runtime_crates": inventory, "target": host, "rustc": version,
               "rust_library_notice_sha256": std_hashes,
               "scope": "Resolved normal runtime edges; build/dev/proc-macro-only crates excluded. Faithful installed Rust library notice covers potential library components, not a symbol-level linkage audit. Dynamic system libraries are not bundled."}
     (destination / "inventory.json").write_text(json.dumps(result, indent=2, sort_keys=True) + "\n")
