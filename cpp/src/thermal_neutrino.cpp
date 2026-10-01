@@ -14,6 +14,7 @@ namespace {
 using S = numerics::Status;
 constexpr long double pi = std::numbers::pi_v<long double>;
 constexpr long double ev_joule = 1.602176634e-19L;
+constexpr long double boltzmann_ev_kelvin = 1.380649e-23L / ev_joule;
 constexpr long double gravitational_constant = 6.67430e-11L;
 constexpr long double arithmetic_relative =
     64.L * std::numeric_limits<double>::epsilon();
@@ -224,6 +225,50 @@ std::optional<std::size_t> thermal_background_payload_bound(
   bytes.add(points,2*sizeof(ThermalBackgroundRow));
   return bytes.result();
 }
+ThermalPhysicalMapping map_thermal_physical_model(const ThermalPhysicalModel &m,
+                                                 ThermalPolicy p) {
+  ThermalPhysicalMapping out;
+  if (!arithmetic_supported() || !valid_policy(p) || m.species.size()>16) return out;
+  const auto bytes=thermal_background_payload_bound(0,m.species.size());
+  if (!bytes) return out;
+  if (m.species.size()>p.maximum_species || *bytes>p.maximum_native_bytes) {
+    out.status=S::work_limit; return out;
+  }
+  for (double x:{m.h0_km_s_mpc,m.physical_baryon_density,m.physical_cdm_density,
+                 m.tcmb_kelvin,m.physical_massless_nonphoton_density})
+    if (!std::isfinite(x)) { out.status=S::nonfinite_input; return out; }
+  if (!(m.h0_km_s_mpc>0) || !(m.tcmb_kelvin>0) || m.physical_baryon_density<0 ||
+      m.physical_cdm_density<0 || m.physical_massless_nonphoton_density<0) {
+    out.status=S::outside_domain; return out;
+  }
+  ThermalFlatModel mapped{}; mapped.h0_km_s_mpc=m.h0_km_s_mpc;
+  const long double h=static_cast<long double>(m.h0_km_s_mpc)/100, h2=h*h;
+  const long double t=boltzmann_ev_kelvin*m.tcmb_kelvin, t2=t*t;
+  const long double photon=pi*pi/15*t2*t2/critical_density_ev4(m.h0_km_s_mpc);
+  auto cast=[](long double x,double &dest) {
+    if (x!=0 && !normal_positive(x)) return false;
+    dest=static_cast<double>(x); return std::isfinite(dest);
+  };
+  if (!cast(photon,mapped.omega_gamma) ||
+      !cast(m.physical_baryon_density/h2,mapped.omega_b) ||
+      !cast(m.physical_cdm_density/h2,mapped.omega_cdm) ||
+      !cast(m.physical_massless_nonphoton_density/h2,mapped.omega_massless_nonphoton)) {
+    out.status=S::outside_domain; return out;
+  }
+  mapped.species.reserve(m.species.size());
+  for (const auto &v:m.species) {
+    if (!std::isfinite(v.temperature_today_kelvin)) { out.status=S::nonfinite_input; return out; }
+    ThermalSpecies species{v.mass_ev,0,v.statistical_weight};
+    if (!(v.temperature_today_kelvin>0) ||
+        !cast(boltzmann_ev_kelvin*v.temperature_today_kelvin,species.temperature_today_ev)) {
+      out.status=S::outside_domain; return out;
+    }
+    out.status=species_status(species,1);
+    if (out.status!=S::ok) return out;
+    mapped.species.push_back(species);
+  }
+  out.status=S::ok; out.model=std::move(mapped); return out;
+}
 ThermalBackground prepare_thermal_background(const ThermalFlatModel &m,
                                              ThermalPolicy p) {
   ThermalBackground out;
@@ -307,6 +352,42 @@ std::optional<double> ThermalBackground::omega_lambda() const noexcept {
   if (status_!=S::ok || (lambda_!=0 && !normal_positive(lambda_))) return {};
   return static_cast<double>(lambda_);
 }
+ThermalScaledExpansion ThermalBackground::scaled_expansion(
+    long double a, ThermalPolicy p) const {
+  ThermalScaledExpansion out;
+  if (!arithmetic_supported() || !valid_policy(p)) return out;
+  if (status_!=S::ok) { out.status=status_; return out; }
+  if (!std::isfinite(a)) { out.status=S::nonfinite_input; return out; }
+  if (a<0 || a>1) { out.status=S::outside_domain; return out; }
+  const auto bytes=thermal_background_payload_bound(0,source_.species.size());
+  if (!bytes) return out;
+  if (source_.species.size()>p.maximum_species || *bytes>p.maximum_native_bytes) {
+    out.status=S::work_limit; return out;
+  }
+  if (a==1) { out.status=S::ok; out.a4_e2=1; return out; }
+  const long double a2=a*a, a4=a2*a2;
+  out.a4_e2=source_.omega_gamma+static_cast<long double>(source_.omega_massless_nonphoton)+
+      (source_.omega_b+static_cast<long double>(source_.omega_cdm))*a+lambda_*a4;
+  out.error_estimate=normalization_error_*a4;
+  for (const auto &s:source_.species) {
+    const long double t=s.temperature_today_ev, t2=t*t;
+    auto v=moments(static_cast<long double>(s.mass_ev)*a/t,p,
+                   p.maximum_total_callbacks-out.callbacks,false);
+    out.callbacks+=v.callbacks;
+    if (v.status!=S::ok) { out.status=v.status; return out; }
+    const long double factor=s.statistical_weight*t2*t2/(2*pi*pi*critical_ev4_);
+    out.a4_e2+=factor*v.rho; out.error_estimate+=factor*v.rho_error;
+  }
+  out.error_estimate+=arithmetic_relative*out.a4_e2;
+  if (a==0 && out.a4_e2==0 && out.error_estimate==0) out.status=S::ok;
+  else if (out.a4_e2<std::numeric_limits<long double>::min() ||
+           out.error_estimate<std::numeric_limits<long double>::min())
+    out.status=S::outside_domain;
+  else if (!(out.a4_e2>out.error_estimate) || !std::isfinite(out.a4_e2))
+    out.status=S::conditioning_budget_exceeded;
+  else out.status=S::ok;
+  return out;
+}
 ThermalBackgroundBatch ThermalBackground::evaluate(
     std::span<const double> factors, unsigned requested, ThermalPolicy p) const {
   ThermalBackgroundBatch out;
@@ -326,27 +407,16 @@ ThermalBackgroundBatch ThermalBackground::evaluate(
     long double e=0, e_error=0;
     if (status==S::ok && a==1) { e=1; }
     else if (status==S::ok) {
-      const long double aa=a, a2=aa*aa;
-      // a^4 E^2 is finite over the binary64 scale-factor domain; this avoids
-      // gratuitous huge intermediates in the radiation era.
-      long double polynomial=source_.omega_gamma+static_cast<long double>(source_.omega_massless_nonphoton)+
-        (source_.omega_b+static_cast<long double>(source_.omega_cdm))*aa+lambda_*a2*a2;
-      long double error=normalization_error_*a2*a2;
-      for (const auto &s:source_.species) {
-        auto v=species(s,a,p,p.maximum_total_callbacks-out.callbacks,false);
-        row.callbacks+=v.callbacks; out.callbacks+=v.callbacks;
-        if (v.status!=S::ok) { status=v.status; break; }
-        polynomial+=(v.rho/critical_ev4_)*a2*a2;
-        error+=(v.rho_error/critical_ev4_)*a2*a2;
-      }
+      auto local=p;
+      local.maximum_total_callbacks=p.maximum_total_callbacks-out.callbacks;
+      const auto scaled=scaled_expansion(a,local);
+      row.callbacks+=scaled.callbacks; out.callbacks+=scaled.callbacks;
+      status=scaled.status;
       if (status==S::ok) {
-        if (!(polynomial>error) || !std::isfinite(polynomial)) status=S::conditioning_budget_exceeded;
-        else {
-          e=std::sqrt(polynomial)/a2;
-          // Additive dependency estimate plus arithmetic diagnostic. The
-          // denominator uses the lower E^2 interval to avoid linear-only error.
-          e_error=error/(2*std::sqrt(polynomial-error)*a2)+arithmetic_relative*e;
-        }
+        const long double a2=static_cast<long double>(a)*a;
+        e=std::sqrt(scaled.a4_e2)/a2;
+        e_error=scaled.error_estimate/(2*std::sqrt(scaled.a4_e2-scaled.error_estimate)*a2)+
+                arithmetic_relative*e;
       }
     }
     auto output=[&](unsigned mask,ThermalBackgroundValue &v,long double x,long double err) {
