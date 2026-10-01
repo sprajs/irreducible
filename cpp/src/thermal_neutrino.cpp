@@ -82,6 +82,11 @@ WideMoments moments(long double y, const ThermalPolicy &p,
   WideMoments out;
   if (!std::isfinite(y) || y < 0) { out.status = S::outside_domain; return out; }
   const long double scale = std::hypot(1.L, y);
+  // On q in [1,2], the normalized rho integral is at least
+  // 1/(exp(2)+1), and normalized pressure at least 1/[6*(exp(2)+1)].
+  // Thus .01 is a conservative positive lower control for either integral.
+  // Their exponential upper controls are below 16; these constants select
+  // tail/arithmetic work, while final admission uses the evaluated moment.
   const long double requested_lower = p.absolute_tolerance +
                                      p.relative_tolerance * .01L;
   if (p.absolute_tolerance + 16.L*p.relative_tolerance <

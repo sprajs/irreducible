@@ -108,8 +108,36 @@ void background(){
  ThermalPolicy payload;payload.maximum_native_bytes=0;
  check(prepare_thermal_background(model,payload).status()!=S::ok,"payload admission respected");
 }
+void matched_class(){
+ // Independent original adapter calls CLASS v3.3.0 background_init and
+ // background_at_z, pinned commit 0ceb7a9a4c1e444ef5d5d56a8328a0640be91b18.
+ // Explicit zero-chemical-potential FD family: CLASS deg=1 includes both
+ // states, whereas this API uses g=2. All input fractions below are explicit.
+ // Fixed legacy CLASS h/eV/G/Mpc differ from this API. At fixed supplied
+ // T_eV=Tcmb*T_ncdm*kB_CLASS/eV_CLASS, amplitude is matched with
+ // deg_CLASS=(Gnew/Gold)*(hold/hnew)^3*(eVnew/eVold)^4*(Mpcnew/Mpcold)^2
+ // =1.000002824932919, independently derived from pinned primary source.
+ // CLASS manual trapezoid qmax80 bins4096/8192, tightened background ODE,
+ // frozen E reference refinement <=5.972e-12 relative, less than 5% of the
+ // fixed 2e-10 relative comparison. Earlier failed adaptive-mesh arbitrary-y
+ // reference preserved. These are synthetic matched E values, not a Planck
+ // posterior, automatic Neff mapping, perturbations or distance qualification.
+ ThermalFlatModel m{67.4,5.443781491563183e-5,3.751e-5,
+                    .02237/(.674*.674),.12/(.674*.674),
+                    {{.06,.00016818966050500852,2}}};
+ auto op=prepare_thermal_background(m);check(op.status()==S::ok,"matched CLASS model admitted");
+ relative_near(*op.omega_species_today(),.0014180872495669578L,"matched CLASS explicit nu fraction");
+ std::array<double,7> z{0,.1,1,10,100,1000,1e6},a{};
+ for(size_t i=0;i<a.size();++i)a[i]=1/(1+z[i]);
+ constexpr std::array<W,7> ref{1,1.0508317697470424L,1.7902809950671763L,
+   20.519876107077128L,578.34844510805067L,20477.937796412822L,10236606364.874552L};
+ auto got=op.evaluate(a,thermal_e|thermal_h);check(got.status==S::ok&&got.rows.size()==ref.size(),"matched CLASS E/H batch");
+ for(size_t i=0;i<ref.size();++i){const auto& row=got.rows[i];check(row.e.status==S::ok&&row.e.value&&row.h_km_s_mpc.status==S::ok&&row.h_km_s_mpc.value,"matched per-output admission");
+  relative_near(*row.e.value,ref[i],"external CLASS matched E");
+  relative_near(*row.h_km_s_mpc.value,67.4L*ref[i],"external CLASS matched H");}
 }
-int main(){try{moments();species();background();
+}
+int main(){try{moments();species();background();matched_class();
  const auto old=std::fegetround();check(std::fesetround(FE_DOWNWARD)==0,"set hostile rounding");
  auto bad=irred::cosmology::evaluate_thermal_moments(1);check(std::fesetround(old)==0,"restore rounding");
  check(bad.status!=S::ok&&!bad.rho_moment&&!bad.pressure_moment,"unsupported arithmetic no accepted moment");

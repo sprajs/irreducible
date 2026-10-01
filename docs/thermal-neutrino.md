@@ -115,8 +115,17 @@ failures. Independent peer references use an originally written
 high-precision momentum calculation, distinct from production quadrature;
 reference refinement must occupy at most 5% of the frozen comparison
 allocation, 1e-10 + 2e-10 times the normalized reference moment and 2e-10
-relative for E and H. A pinned CLASS comparison must match species,
-temperature, weight, massless/photon accounting and constants explicitly.
+relative for E and H. Permanent peer controls also freeze a matched
+[CLASS v3.3.0 source](https://github.com/lesgourg/class_public/tree/0ceb7a9a4c1e444ef5d5d56a8328a0640be91b18)
+background at z=0, 0.1, 1, 10, 100, 1000 and 1e6, with source-refinement
+change at most 5.972e-12 relative. The fixture declares supplied photon and
+massless fractions, baryon/CDM physical densities, one 0.06-eV species,
+explicit momentum temperature and g=2. An independently derived constant
+conversion adjusts the external statistical amplitude to match SI h, G, eV
+and Mpc conventions. Its original inputs and refinement receipts remain
+separate from production. This is a named background comparison, with no
+implicit Planck or external-default mapping. Species, temperature, weight,
+massless/photon accounting and constants must match explicitly.
 The [CLASS IV background treatment](https://cds.cern.ch/record/1345134)
 is a scientific source; the independently executed CLASS reference has its
 own numerical approximations and ancestry. No external implementation code
