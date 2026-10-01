@@ -27,6 +27,21 @@ struct DesignResult {
   double covariance_whitening_backward_residual = 0,
          covariance_whitening_rounding_estimate = 0;
 };
+// Declared weights map each named parameter unit into output_unit. These are
+// caller provenance, not parsed conversions or a prior on fitted coefficients.
+struct LinearFunctionalMetadata {
+  std::vector<std::string> weight_units;
+  std::string functional_identity, output_unit;
+};
+struct EstimatorVarianceResult {
+  DensityStatus status = DensityStatus::invalid_input;
+  numerics::Status numerical_status = numerics::Status::invalid_input;
+  double variance = 0, triangular_backward_residual = 0,
+         estimated_forward_sensitivity = 0, output_rounding_error_relative = 0;
+  LinearFunctionalMetadata metadata;
+  const char *method_id = "retained-qr-linear-estimator-variance/v1";
+  const char *sampling_law_id = "fixed-design-gaussian-observation-noise/v1";
+};
 class DesignProfile {
 public:
   DesignProfile() = default;
@@ -53,6 +68,9 @@ public:
   double equilibrated_triangular_condition_inf() const noexcept {
     return triangular_condition_;
   }
+  double equilibrated_transpose_triangular_condition_inf() const noexcept {
+    return transpose_triangular_condition_;
+  }
   const char *method_id() const noexcept {
     return "retained-whitened-pivoted-householder-qr/v1";
   }
@@ -70,6 +88,14 @@ public:
   DesignResult evaluate(std::span<const double> residual,
                         std::span<const std::string> ordered_row_ids,
                         DesignPolicy policy = {}) const;
+  // Conditional variance of the ideal linear estimator under supplied fixed
+  // X,C and Gaussian observation noise. Not a posterior or rounding-noise law.
+  EstimatorVarianceResult
+  estimator_variance(std::span<const double> weights,
+                     std::span<const std::string> ordered_parameter_ids,
+                     LinearFunctionalMetadata, DesignPolicy = {}) const;
+  std::optional<std::size_t> estimator_variance_payload_bound(
+      const LinearFunctionalMetadata &) const noexcept;
 
 private:
   Gaussian gaussian_;
@@ -81,6 +107,7 @@ private:
   DensityStatus status_ = DensityStatus::invalid_input;
   numerics::Status numerical_status_ = numerics::Status::invalid_input;
   DesignRank rank_ = DesignRank::unassessed;
-  double triangular_condition_ = 0, preparation_sensitivity_ = 0;
+  double triangular_condition_ = 0, transpose_triangular_condition_ = 0,
+         preparation_sensitivity_ = 0;
 };
 } // namespace irred::statistics

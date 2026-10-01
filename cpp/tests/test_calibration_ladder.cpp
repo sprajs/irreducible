@@ -375,9 +375,117 @@ int main() {
     auto *self = &moved;
     moved = std::move(*self);
     recovered(moved.fit(y, ids), b);
+    check(ladder.model().rows.empty() &&
+              ladder.model().ordered_host_ids.empty(),
+          "successful moved source releases model");
+    Ladder assigned;
+    assigned = std::move(moved);
+    check(moved.status() == DensityStatus::invalid_input &&
+              moved.model().rows.empty(),
+          "move assignment invalidates source and clears model");
+    recovered(assigned.fit(y, ids), b);
+    auto *assigned_self = &assigned;
+    assigned = std::move(*assigned_self);
+    recovered(assigned.fit(y, ids), b);
+    Ladder failed_moved(std::move(limited));
+    check(limited.status() == DensityStatus::invalid_input &&
+              limited.numerical_status() ==
+                  irred::numerics::Status::invalid_input &&
+              failed_moved.numerical_status() ==
+                  irred::numerics::Status::work_limit,
+          "failed wrapper move clears source fallback status");
+    Ladder failed_assigned;
+    failed_assigned = std::move(failed_moved);
+    check(failed_moved.status() == DensityStatus::invalid_input &&
+              failed_assigned.numerical_status() ==
+                  irred::numerics::Status::work_limit,
+          "failed wrapper move assignment clears fallback status");
+    // Saturated square control: eta=y_cal-y_anchorA-y_HF+mu_ref-.75*y_delta.
+    // Independent diagonal .01 covariance gives Var(eta)=.01*(3+.75^2).
+    auto square = m;
+    square.ordered_host_ids = {"A", "B"};
+    square.rows.clear();
+    for (const auto index : {0, 1, 2, 3, 4, 11, 13, 15})
+      square.rows.push_back(m.rows[index]);
+    square.conditional_covariance_identity =
+        "synthetic diagonal .01 I conditional delta";
+    auto square_source = gaussian(square, false);
+    auto square_ladder = Ladder::prepare(std::move(square_source), square);
+    check(square_ladder.status() == DensityStatus::finite,
+          "square eta sampling control");
+    const std::vector<double> probabilities{.8413447460685429, .5,
+                                            .15865525393145705};
+    const auto law = square_ladder.h0_estimator_law(
+        .5, "supplied synthetic generating eta=.5", probabilities);
+    check(law.status == DensityStatus::finite,
+          "explicit conditional H0 sampling law");
+    check(std::abs(law.eta_estimator.variance - .035625) <=
+              2e-12 + 2e-12 * .035625,
+          "independent linear-noise eta variance");
+    const auto a = std::log(10.) / 5;
+    const auto nominal = 70 * std::pow(10., .1);
+    const auto spread = a * std::sqrt(.035625);
+    auto h_near = [&](double actual, double expected, const char *why) {
+      check(std::abs(actual - expected) <= 2e-10 + 2e-10 * std::abs(expected),
+            why);
+    };
+    h_near(law.nominal_h0_km_s_Mpc, nominal, "H0 nominal median projection");
+    h_near(law.sampling_expectation_h0_km_s_Mpc,
+           nominal * std::exp(a * a * .035625 / 2),
+           "H0 nonlinear sampling expectation");
+    check(law.sampling_expectation_h0_km_s_Mpc > law.nominal_h0_km_s_Mpc,
+          "expectation distinct from nominal fit projection");
+    h_near(law.h0_quantiles_km_s_Mpc[0], nominal * std::exp(spread),
+           "near-one-sigma upper quantile");
+    h_near(law.h0_quantiles_km_s_Mpc[1], nominal, "median quantile");
+    h_near(law.h0_quantiles_km_s_Mpc[2], nominal * std::exp(-spread),
+           "near-one-sigma lower quantile");
+    check(law.probabilities == probabilities &&
+              !law.eta_mean_identity.empty() && law.assumed_eta_mean == .5 &&
+              law.eta_estimator.metadata.output_unit == "mag" &&
+              law.maximum_relative_tail_probability_error <= 1e-12 &&
+              law.maximum_quantile_log_error_estimate <= 1e-10 &&
+              law.normal_cdf_evaluations <= 98 * probabilities.size(),
+          "law exact probability order provenance and bounded diagnostics");
+    const auto endpoints = square_ladder.h0_estimator_law(
+        .5, "same synthetic mean", std::vector<double>{1e-12, 1 - 1e-12});
+    check(endpoints.status == DensityStatus::finite &&
+              endpoints.h0_quantiles_km_s_Mpc[0] < nominal &&
+              endpoints.h0_quantiles_km_s_Mpc[1] > nominal,
+          "bounded quantile endpoints");
+    for (const double probability :
+         {0., 1., std::numeric_limits<double>::quiet_NaN()})
+      check(square_ladder
+                    .h0_estimator_law(.5, "mean",
+                                      std::vector<double>{probability})
+                    .status == DensityStatus::invalid_input,
+            "unsupported probability rejected");
+    check(square_ladder.h0_estimator_law(.5, "", probabilities).status ==
+              DensityStatus::invalid_input,
+          "mean provenance required");
+    check(square_ladder.h0_estimator_law(.5, "mean", probabilities, tiny)
+              .h0_quantiles_km_s_Mpc.empty(),
+          "sampling law byte quota no output");
+    auto count_quota = irred::statistics::DesignPolicy{};
+    count_quota.maximum_elements = probabilities.size() - 1;
+    check(square_ladder.h0_estimator_law(.5, "mean", probabilities, count_quota)
+                  .numerical_status == irred::numerics::Status::work_limit,
+          "sampling law element quota");
+    for (const double eta : {2000., -2000.}) {
+      const auto failed_law =
+          square_ladder.h0_estimator_law(eta, "extreme mean", probabilities);
+      check(failed_law.status == DensityStatus::numerical_failure &&
+                failed_law.h0_quantiles_km_s_Mpc.empty() &&
+                failed_law.nominal_h0_km_s_Mpc == 0 &&
+                failed_law.eta_estimator.metadata.weight_units.empty(),
+            "unrepresentable law projection withholds all calculation payload");
+    }
+    check(ladder.h0_estimator_law(.5, "mean", probabilities).status ==
+              DensityStatus::invalid_input,
+          "moved sampling owner invalid");
     const auto round = std::fegetround();
     std::fesetround(FE_DOWNWARD);
-    check(moved.predict(b, parameter_ids(m)).status ==
+    check(assigned.predict(b, parameter_ids(m)).status ==
               DensityStatus::unsupported_domain,
           "rounding contract prediction");
     std::fesetround(round);

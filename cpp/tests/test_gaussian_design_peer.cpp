@@ -94,6 +94,70 @@ void dyadic_stress(int scale0,int scale1,bool reverse){
   check(got.covariance_whitening_backward_residual>=0&&std::isfinite(got.covariance_whitening_rounding_estimate),"whitening diagnostics finite");
  }
 }
+// Frozen before native variance evaluation: C3=tridiag(2,1), X=[1,i]
+// has cofactor covariance [[2,-1],[-1,1]]. For general small controls the
+// independent augmented KKT supplies each linear observation response B;
+// contract Var(w^T beta_hat)=w^T B C B^T w without production R ancestry.
+W response_variance(std::span<const double> c,std::span<const double> x,
+                    std::span<const double> weights,size_t n){
+ const size_t p=weights.size();std::vector<W> response(n);std::vector<double> basis(n,0);
+ for(size_t i=0;i<n;++i){basis[i]=1;const auto ref=kkt(c,x,basis,p);basis[i]=0;
+  for(size_t j=0;j<p;++j)response[i]+=W(weights[j])*ref.a[j];}
+ W variance=0;for(size_t i=0;i<n;++i)for(size_t j=0;j<n;++j)variance+=response[i]*c[i*n+j]*response[j];return variance;
+}
+void variance_controls(){
+ auto fm=LinearFunctionalMetadata{{"dimensionless","index"},"synthetic specified intercept-plus-slope contrast","u"};
+ const std::array<double,9> c{2,1,0,1,2,1,0,1,2};const std::array<double,6> x{1,0,1,1,1,2};
+ auto m=metadata(3);auto g=prepare_gaussian(c,MatrixKind::covariance,m,9,1e-10);
+ auto op=DesignProfile::prepare(std::move(g),x,m.ordered_ids,design());const auto ids=op.design_metadata().ordered_parameter_ids;
+ const std::array<std::array<double,2>,5> weights{{{1,0},{0,1},{1,1},{1,-1},{0,0}}};
+ const std::array<W,5> expected{2,1,1,5,0};
+ for(size_t i=0;i<weights.size();++i){auto ref=response_variance(c,x,weights[i],3);
+  check(std::abs(ref-expected[i])<=1e-12L,"exact cofactor covariance matches independent KKT responses");
+  const auto got=op.estimator_variance(weights[i],ids,fm);check(got.status==DensityStatus::finite,"specified estimator variance admitted");
+  check(std::abs(W(got.variance)-expected[i])<=2e-12L+2e-12L*std::abs(expected[i]),"cofactor estimator variance allocation");
+  check(got.metadata.functional_identity==fm.functional_identity&&got.metadata.output_unit==fm.output_unit&&got.metadata.weight_units==fm.weight_units,"functional units and identity retained");
+  check(std::string_view(got.method_id)=="retained-qr-linear-estimator-variance/v1"&&std::string_view(got.sampling_law_id)=="fixed-design-gaussian-observation-noise/v1","variance ideal sampling law identity");
+  check(got.triangular_backward_residual>=0&&got.estimated_forward_sensitivity>=0&&got.estimated_forward_sensitivity<=1e-10,"transpose solve scoped diagnostics");
+ }
+ auto wrong=ids;std::swap(wrong[0],wrong[1]);check(op.estimator_variance(weights[0],wrong,fm).status==DensityStatus::incompatible_metadata,"variance parameter order exact");
+ auto poisoned=weights[0];poisoned[0]=std::numeric_limits<double>::quiet_NaN();check(op.estimator_variance(poisoned,ids,fm).status!=DensityStatus::finite,"nonfinite weights refused");
+ auto empty=fm;empty.output_unit.clear();check(op.estimator_variance(weights[0],ids,empty).status!=DensityStatus::finite,"missing functional unit refused");
+ const auto bound=op.estimator_variance_payload_bound(fm);check(bool(bound),"variance payload envelope");
+ DesignPolicy quota;quota.maximum_payload_bytes=*bound;check(op.estimator_variance(weights[0],ids,fm,quota).status==DensityStatus::finite,"variance exact byte allowance");
+ --quota.maximum_payload_bytes;const auto short_result=op.estimator_variance(weights[0],ids,fm,quota);
+ check(short_result.status!=DensityStatus::finite&&short_result.metadata.functional_identity.empty(),"variance byte failure no metadata payload");
+ for(const double magnitude:{1e-200,std::numeric_limits<double>::max()}){
+  const std::array<double,2> extreme{magnitude,0};auto bad=op.estimator_variance(extreme,ids,fm);
+  check(bad.status!=DensityStatus::finite&&bad.metadata.functional_identity.empty(),"nonzero variance underoverflow withheld");}
+ // Shared covariance ancestry is explicitly fixed. These KKT controls test
+ // a different arithmetic route, not independent observations.
+ const std::array<double,16> correlated{4,1,1,1,1,3,1,1,1,1,5,1,1,1,1,2};
+ const std::array<double,8> multi{1,-2,1,-1,1,1,1,3};auto mm=metadata(4);
+ auto gg=prepare_gaussian(correlated,MatrixKind::covariance,mm,16,1e-10);auto pp=DesignProfile::prepare(std::move(gg),multi,mm.ordered_ids,design());
+ for(const auto& w:weights){const W ref=response_variance(correlated,multi,w,4);auto got=pp.estimator_variance(w,ids,fm);
+  check(got.status==DensityStatus::finite&&std::abs(W(got.variance)-ref)<=2e-12L+2e-12L*std::abs(ref),"correlated KKT estimator variance");}
+ // Exact I4 triangular X has covariance [[3,-3,1],[-3,5,-2],[1,-2,1]].
+ const std::array<double,16> identity{1,0,0,0,0,1,0,0,0,0,1,0,0,0,0,1};
+ const std::array<double,12> tri{1,1,1,0,1,2,0,0,1,0,0,0};
+ DesignMetadata d3{{"p0","p1","p2"},{"u","u","u"},{"p0"},"u","synthetic triangular design","fixed Gaussian noise"};
+ auto g3=prepare_gaussian(identity,MatrixKind::covariance,mm,16,1e-10);auto p3=DesignProfile::prepare(std::move(g3),tri,mm.ordered_ids,d3);
+ const std::array<std::array<double,3>,4> w3{{{1,0,0},{0,1,0},{0,0,1},{1,1,1}}};const std::array<W,4> v3{3,5,1,1};
+ LinearFunctionalMetadata f3{{"1","1","1"},"synthetic three-coordinate contrast","u"};
+ for(size_t i=0;i<w3.size();++i){auto got=p3.estimator_variance(w3[i],d3.ordered_parameter_ids,f3);
+  check(got.status==DensityStatus::finite&&std::abs(W(got.variance)-v3[i])<=2e-12L+2e-12L*v3[i],"three-coordinate cofactor covariance");}
+ check(p3.equilibrated_transpose_triangular_condition_inf()>=1,"transpose R condition separately retained");
+ // Ill-scaled dyadic columns: weights must co-scale to retain a functional.
+ constexpr W K=13421772.8L;const double delta=std::ldexp(1.,-14);
+ for(bool swapped:{false,true}){std::array<double,8> dx{};const std::array<int,4> t{-3,-1,1,3};
+  for(size_t i=0;i<4;++i){dx[i*2]=std::ldexp(1.,20);dx[i*2+1]=std::ldexp(1+delta*t[i],-20);if(swapped)std::swap(dx[i*2],dx[i*2+1]);}
+  auto dd=design();auto declared=fm;if(swapped){std::swap(dd.ordered_parameter_ids[0],dd.ordered_parameter_ids[1]);std::swap(dd.parameter_units[0],dd.parameter_units[1]);std::swap(declared.weight_units[0],declared.weight_units[1]);}
+  auto dg=prepare_gaussian(identity,MatrixKind::covariance,mm,16,1e-10);auto dop=DesignProfile::prepare(std::move(dg),dx,mm.ordered_ids,dd);
+  for(int sign:{1,-1}){std::array<double,2> w{std::ldexp(1.,20),sign*std::ldexp(1.,-20)};if(swapped)std::swap(w[0],w[1]);
+   W ref=sign==1?.25L:.25L+4*K;auto got=dop.estimator_variance(w,dd.ordered_parameter_ids,declared);
+   check(got.status==DensityStatus::finite&&std::abs(W(got.variance)-ref)<=2e-12L+2e-12L*ref,"dyadic co-scaled and permuted variance");}
+ }
+}
 }
 int main(){try{
  std::array<double,9> c{2,1,0,1,2,1,0,1,2};std::array<double,6> x{1,0,1,1,1,2};std::array<double,3> r{1,0,0};
@@ -104,6 +168,7 @@ int main(){try{
  xp=x;for(size_t i=0;i<3;++i)xp[i*2+1]*=8;compare(c,xp,r);
  std::array<double,16> correlated{4,1,1,1,1,3,1,1,1,1,5,1,1,1,1,2};std::array<double,8> multi{1,-2,1,-1,1,1,1,3};std::array<double,4> rr{2,-3,1,4};compare(correlated,multi,rr);
  dyadic_stress(0,0,false);dyadic_stress(20,-20,false);dyadic_stress(-20,20,true);
+ variance_controls();
  auto m=metadata(3);auto g=prepare_gaussian(c,MatrixKind::covariance,m,9,1e-10);
  std::array<double,6> zero{1,0,1,0,1,0};auto failed=DesignProfile::prepare(std::move(g),zero,m.ordered_ids,design());check(failed.status()!=DensityStatus::finite&&failed.rank()==DesignRank::deficient,"proven zero column rank");check(g.status()==DensityStatus::finite,"failed preparation preserves source");
  std::array<double,6> duplicate{1,1,1,1,1,1};failed=DesignProfile::prepare(std::move(g),duplicate,m.ordered_ids,design());check(failed.status()!=DensityStatus::finite&&failed.rank()==DesignRank::unresolved,"dependent columns unresolved not jittered");
