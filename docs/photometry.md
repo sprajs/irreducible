@@ -95,3 +95,5 @@ plus 10^-300 absolute, with a separate positivity guard; the independent
 frequency-coordinate refinement allocation is 2×10^-13 relative. These are
 synthetic numerical controls with shared SI definitions, not measurements,
 calibration validation, inference or astrophysical qualification.
+
+A native [finite shared passband-calibration law](photometry-calibration.md) composes the sampled operator with an explicitly supplied joint distribution of valid transmission states. Its expected-signal covariance retains cross-band calibration dependence. Source and distance remain fixed; numerical sensitivity, calibration spread and future photon/noise simulation have separate meanings.

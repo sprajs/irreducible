@@ -2,12 +2,28 @@
 #include <irred/numerics.hpp>
 #include <irred/gaussian_design.hpp>
 #include <irred/sampled_photometry.hpp>
+#include <irred/photometry_calibration.hpp>
 #include <irred/calibration_ladder.hpp>
 #include <irred/early_late.hpp>
 #include <irred/correlated_calibration.hpp>
 #include <array>
 #include <cmath>
 #include <numbers>
+int installed_passband_calibration() {
+ using namespace irred::photometry;
+ const std::array<double,2> wavelength{1e-6,2e-6}, luminosity{1,1}, low{.2,.2}, high{.8,.8};
+ const std::array<CalibrationBand,1> bands{{{"synthetic band",wavelength,1,1}}};
+ const std::array<std::span<const double>,1> low_arrays{low}, high_arrays{high};
+ const std::array<CalibrationState,2> states{{{"low",1,low_arrays},{"high",1,high_arrays}}};
+ const CalibrationInput input{{wavelength,luminosity},1,0,bands,states,
+  "installed synthetic source","installed synthetic calibration","two equiprobable states","one shared state"};
+ CalibrationPolicy policy;policy.requested_outputs=collected_energy;
+ const auto result=evaluate_calibration(input,policy);
+ const double energy=1e-6/(4*std::numbers::pi);
+ return result.status==irred::numerics::Status::ok && result.moments && result.axes.size()==1 &&
+  std::abs(result.moments->mean[0]/(.5*energy)-1)<2e-10 &&
+  std::abs(result.moments->covariance[0]/(.09*energy*energy)-1)<2e-8 ? 0 : 8;
+}
 int installed_correlated_calibration() {
  using namespace irred::statistics;
  Metadata md;md.ordered_ids={"a","b"};md.measure="product d(magnitude)";
@@ -93,5 +109,6 @@ int main() {
  const double exact_dm=299792.458/70/2;
  if (!(dm.status==irred::numerics::Status::ok && dl.status==irred::numerics::Status::ok && dm.value && dl.value && std::abs(*dm.value-exact_dm)<1e-7 && std::abs(*dl.value-2*exact_dm)<1e-7)) return 5;
  if (const auto ladder_status=installed_ladder();ladder_status!=0) return ladder_status;
+ if (const auto calibration_status=installed_passband_calibration();calibration_status!=0) return calibration_status;
  return installed_correlated_calibration();
 }
