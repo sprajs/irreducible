@@ -10,6 +10,8 @@ X is finite row-major n×p, n≥p≥2. Exact ordered row IDs must match the cons
 
 ## Numerical domain and rank
 
+Both preparation and evaluation require round-to-nearest arithmetic (`FE_TONEAREST`) and long double with at least 64 mantissa bits and maximum exponent at least 16384, including when the retained covariance factor uses binary64 arithmetic. Unsupported environments return `unsupported_domain` with no calculation payload; failed preparation leaves the Gaussian source usable.
+
 Preparation uses existing covariance solves once per column and retains that same factor. Columns are equilibrated by their C⁻¹ metric norms. The retained Gram matrix is G=D⁻¹XᵀC⁻¹XD⁻¹. Existing Cholesky and solves operate on G; dot products accumulate in long double, while input/output and design storage is binary64. This forms normal equations and **squares the whitened design conditioning**. It is not a QR/SVD rank certificate.
 
 Full column rank is reported only *within the conditioning admission contract*: G must pass Cholesky and κ∞(G) ε_binary64 ≤ min(10⁻⁸, requested maximum_forward_sensitivity). The condition value is an arithmetic estimate from the retained factor, not a rigorous bound. An exact all-zero column establishes deficiency. Other factor/conditioning failures report unresolved rank, withhold outputs and preserve the source. No jitter, regularization or dropped columns repairs failure. Column rescaling improves coordinate robustness but does not resolve geometric near-dependence. Qualifying general ill-conditioned rank would need a separately reviewed stable rank-revealing algorithm.

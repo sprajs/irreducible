@@ -1,8 +1,10 @@
 #include "irred/gaussian_design.hpp"
 #include "payload_accounting.hpp"
 #include <algorithm>
+#include <cfenv>
 #include <cmath>
 #include <limits>
+#include <new>
 #include <utility>
 namespace irred::statistics {
 namespace {
@@ -33,6 +35,11 @@ bool output(long double v, double &d) {
 bool policy_valid(DesignPolicy p) {
   return std::isfinite(p.maximum_forward_sensitivity) &&
          p.maximum_forward_sensitivity > 0;
+}
+bool supported_arithmetic_environment() noexcept {
+  return std::numeric_limits<long double>::digits >= 64 &&
+         std::numeric_limits<long double>::max_exponent >= 16384 &&
+         std::fegetround() == FE_TONEAREST;
 }
 } // namespace
 DesignProfile::DesignProfile(DesignProfile &&o) noexcept
@@ -92,6 +99,11 @@ DesignProfile DesignProfile::prepare(Gaussian &&g, std::span<const double> x,
                                      std::span<const std::string> ids,
                                      DesignMetadata m, DesignPolicy policy) {
   DesignProfile out;
+  if (!supported_arithmetic_environment()) {
+    out.status_ = DensityStatus::unsupported_domain;
+    out.numerical_status_ = numerics::Status::outside_domain;
+    return out;
+  }
   const auto n = g.metadata().ordered_ids.size(),
              p = m.ordered_parameter_ids.size();
   if (g.status() != DensityStatus::finite) {
@@ -210,6 +222,11 @@ DesignResult DesignProfile::evaluate(std::span<const double> r,
                                      std::span<const std::string> ids,
                                      DesignPolicy policy) const {
   DesignResult out;
+  if (!supported_arithmetic_environment()) {
+    out.status = DensityStatus::unsupported_domain;
+    out.numerical_status = numerics::Status::outside_domain;
+    return out;
+  }
   if (status_ != DensityStatus::finite) {
     out.status = status_;
     out.numerical_status = numerical_status_;

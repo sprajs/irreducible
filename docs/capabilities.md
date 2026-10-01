@@ -32,3 +32,5 @@ Measured mirrored dense preparation improved one pinned fixture on one compiler/
 The [conditional sound horizon](sound-horizon.md) uses an exact compact scale-factor interval, with explicitly supplied photon/baryon fractions and drag-redshift provenance. It predicts neither thermal history nor drag epoch; no existing BAO likelihood qualification is inherited.
 
 See [photometry](photometry.md) for the bounded deterministic projection.
+
+The standalone C++ library also provides a retained multi-column Gaussian design profile. Preparation consumes a Gaussian owner and retains its covariance factor and design calculations across residual evaluations. Ordered row/parameter identities, units and declared shared nuisance coordinates are explicit. This native API has no CLI request or C ABI exposure yet; its relative score is not a normalized density or evidence. See [Gaussian design](gaussian-design.md) for its conservative rank/conditioning admission and limits.
