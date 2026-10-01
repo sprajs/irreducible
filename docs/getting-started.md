@@ -4,7 +4,7 @@ Irreducible is currently built from source. The executable is `irred`; there is 
 
 ## Prepare a Linux checkout
 
-You need Git, Python 3 with `venv`, Rust/Cargo with Rust 2024 edition support and the `rustfmt` component, and a C++20 compiler/linker. The locally tested development environment uses Rust/Cargo 1.98.0, GCC 16.2.1 and CMake 4.1.3 on 64-bit Linux. The qualified wide-arithmetic suites require long double with at least 64 mantissa bits; targets where long double equals double are not qualified by these gates. Ubuntu CI is a separate engineering portability check, not inherited scientific validation. Other toolchains require their own validation; these versions describe the tested host, not a proven minimum-version matrix.
+You need Git, Python 3.11 or newer with `venv`, Rust/Cargo with Rust 2024 edition support and the `rustfmt` component, and a C++20 compiler/linker. The locally tested development environment uses Rust/Cargo 1.98.0, GCC 16.2.1 and CMake 4.1.3 on 64-bit Linux. The qualified wide-arithmetic suites require long double with at least 64 mantissa bits; targets where long double equals double are not qualified by these gates. Ubuntu CI is a separate engineering portability check, not inherited scientific validation. Other toolchains require their own validation; these versions describe the tested host, not a proven minimum-version matrix.
 
 ```sh
 git clone https://github.com/sprajs/irreducible.git

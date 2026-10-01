@@ -28,6 +28,8 @@ This example calculates the expansion rate and physical distances at redshift 1 
 
 PRs are welcome, including agent-written ones. Bring a coherent change with the checks and explanation it needs; useful contributions do not have to fit a fixed size. See [contributing](CONTRIBUTING.md).
 
+The [CI workflow](.github/workflows/repository.yml) checks native, Rust and CLI paths separately and produces a scoped Ubuntu build artifact. [Testing and version identity](docs/testing.md#ci-checks-and-build-artifacts) explains the deliberate source version, per-run identity, notices and artifact limits.
+
 ## License and citation
 
 [BSD 3-Clause](LICENSE).

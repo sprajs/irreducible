@@ -1,6 +1,6 @@
 [package]
 name = "irreducible"
-version = "0.1.0"
+version = "0.1.0-dev"
 edition = "2024"
 description = "An agent-operated scientific engine with explicit numerical contracts"
 license = "BSD-3-Clause"

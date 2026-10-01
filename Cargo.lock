@@ -58,7 +58,7 @@ dependencies = [
 
 [[package]]
 name = "irreducible"
-version = "0.1.0"
+version = "0.1.0-dev"
 dependencies = [
  "serde",
  "serde_json",
