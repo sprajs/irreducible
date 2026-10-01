@@ -65,7 +65,7 @@ nor permission to reuse that compression under every theory. Unknown dependence
 with another probe remains unknown.
 
 The limited comparison allocates 1e-9 Mpc + 2e-11 relative to distances,
-1e-11 + 5e-11 relative to ratios, and absolute 1e-8 separately to the quadratic,
+2e-11 relative to dimensionless E, 1e-11 + 5e-11 relative to ratios, and absolute 1e-8 separately to the quadratic,
 log determinant, Gaussian normalization and log density. Independent-reference
 refinement occupies at most 5% of each allocation. Record stricter producer
 policies separately. Preserve original failed attempts before changing a
@@ -99,6 +99,14 @@ and the projection diagnostic was about 1.51e-10 against its 1e-8 allowance.
 The packet owns exact source/build/run identities and retained failed attempts.
 This fixed-point diagnostic is neither a fitted cosmological result nor a claim
 that these observations must equal the prediction.
+
+Independent source-to-consumer review also found that the experiment's twin-H0
+expansion check reused the distance check's additive Mpc allowance. A retained
+negative witness showed that the old harness admitted a dimensionless E shift
+outside the declared expansion allocation. The corrected check applies the
+original E allocation, with a permanent negative regression and a fresh
+committed-source run. This repairs the experiment gate; it changes no engine
+equation, physical covariance or declared comparison allocation.
 
 The clean engine at db4765838fc404a489a0115ee69713f2ea6cd2f4 also passed 12
 selected existing native owner/peer executables for expansion, conditional BAO,
