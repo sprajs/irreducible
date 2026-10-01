@@ -137,6 +137,16 @@ void variance_controls(){
  auto gg=prepare_gaussian(correlated,MatrixKind::covariance,mm,16,1e-10);auto pp=DesignProfile::prepare(std::move(gg),multi,mm.ordered_ids,design());
  for(const auto& w:weights){const W ref=response_variance(correlated,multi,w,4);auto got=pp.estimator_variance(w,ids,fm);
   check(got.status==DensityStatus::finite&&std::abs(W(got.variance)-ref)<=2e-12L+2e-12L*std::abs(ref),"correlated KKT estimator variance");}
+ // Simultaneously permute the supplied covariance axes, X rows and row IDs.
+ // The conditional functional variance must retain the same physical rows.
+ const std::array<size_t,4> order{2,0,3,1};std::array<double,16> pc{};std::array<double,8> px{};
+ auto pm=mm;
+ for(size_t i=0;i<4;++i){pm.ordered_ids[i]=mm.ordered_ids[order[i]];
+  for(size_t j=0;j<4;++j)pc[i*4+j]=correlated[order[i]*4+order[j]];
+  for(size_t j=0;j<2;++j)px[i*2+j]=multi[order[i]*2+j];}
+ auto pg=prepare_gaussian(pc,MatrixKind::covariance,pm,16,1e-10);auto permuted=DesignProfile::prepare(std::move(pg),px,pm.ordered_ids,design());
+ for(const auto& w:weights){const W ref=response_variance(correlated,multi,w,4);const auto got=permuted.estimator_variance(w,ids,fm);
+  check(got.status==DensityStatus::finite&&std::abs(W(got.variance)-ref)<=2e-12L+2e-12L*std::abs(ref),"row-permuted correlated estimator variance");}
  // Exact I4 triangular X has covariance [[3,-3,1],[-3,5,-2],[1,-2,1]].
  const std::array<double,16> identity{1,0,0,0,0,1,0,0,0,0,1,0,0,0,0,1};
  const std::array<double,12> tri{1,1,1,0,1,2,0,0,1,0,0,0};
