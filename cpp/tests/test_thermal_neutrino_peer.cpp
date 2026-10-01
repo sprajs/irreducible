@@ -15,6 +15,7 @@
 #include <limits>
 #include <numbers>
 #include <stdexcept>
+#include <utility>
 namespace {
 using namespace irred::cosmology;
 using S=irred::numerics::Status;
@@ -136,8 +137,37 @@ void matched_class(){
   relative_near(*row.e.value,ref[i],"external CLASS matched E");
   relative_near(*row.h_km_s_mpc.value,67.4L*ref[i],"external CLASS matched H");}
 }
+void ownership(){
+ // Frozen reference is the independently integrated synthetic background
+ // above, not an expectation regenerated from the repaired move code.
+ // Historical implicit move left status=ok with an emptied species vector:
+ // preserved root witness changed E(.1) from17.398718835753673 to17.360835801963212.
+ // Transfer must invalidate the source and keep every target physical field.
+ ThermalFlatModel input{70,5e-5,2e-5,.05,.25,{{.06,.000168,2}}};
+ auto source=prepare_thermal_background(input);check(source.status()==S::ok,"lifetime source admitted");
+ constexpr W expected=17.39871883575367278847808L;
+ std::array<double,1> a{.1};
+ auto verify=[&](const ThermalBackground& op){auto r=op.evaluate(a,thermal_e|thermal_h);
+  check(r.status==S::ok&&r.rows.size()==1&&r.rows[0].e.status==S::ok&&r.rows[0].e.value&&r.rows[0].h_km_s_mpc.value,"retained physical owner outputs");
+  relative_near(*r.rows[0].e.value,expected,"retained owner independently referenced E");
+  relative_near(*r.rows[0].h_km_s_mpc.value,70*expected,"retained owner independently referenced H");
+  check(op.source().species.size()==1&&op.source().species[0].mass_ev==.06&&op.source().species[0].temperature_today_ev==.000168,"retained explicit species identity");};
+ auto invalid=[&](const ThermalBackground& op){check(op.status()!=S::ok&&!op.omega_species_today()&&!op.omega_lambda(),"moved source cannot claim physical normalization");
+  auto r=op.evaluate(a,thermal_e|thermal_h);check(r.status!=S::ok&&r.rows.empty(),"moved source withholds all output rows");};
+ // Preparation acquires/copies the model once; subsequent input mutation must
+ // not silently change normalization or delete the retained species.
+ input.species.clear();input.omega_b=.8;verify(source);
+ auto target=std::move(source);invalid(source);verify(target);
+ auto copy=target;verify(copy);
+ check(copy.source().species.data()!=target.source().species.data(),"copied owner distinct species storage");
+ auto* self_alias=&target;target=std::move(*self_alias);verify(target);
+ ThermalBackground assigned;assigned=std::move(target);invalid(target);verify(assigned);
+ auto replacement=prepare_thermal_background({70,1,0,0,0,{}});
+ replacement=std::move(assigned);invalid(assigned);verify(replacement);
+ verify(copy);copy=copy;verify(copy);
 }
-int main(){try{moments();species();background();matched_class();
+}
+int main(){try{moments();species();background();matched_class();ownership();
  const auto old=std::fegetround();check(std::fesetround(FE_DOWNWARD)==0,"set hostile rounding");
  auto bad=irred::cosmology::evaluate_thermal_moments(1);check(std::fesetround(old)==0,"restore rounding");
  check(bad.status!=S::ok&&!bad.rho_moment&&!bad.pressure_moment,"unsupported arithmetic no accepted moment");

@@ -79,6 +79,12 @@ A closure within the present-density numerical diagnostic is refused rather
 than clipped or silently replaced. The prepared normalization gives E(1)=1
 and H(1)=H0 with no new momentum work.
 
+A prepared owner supports independent copies. A move transfers its species,
+normalization and numerical state together, leaving the source invalid with
+no usable fractions or evaluation rows. Self move preserves the owner. These
+lifetime rules prevent a lost species vector from being evaluated with a
+stale successful closure.
+
 `evaluate_thermal_moments` takes finite binary64 y>=0. Production integrates
 I_rho/s and s I_P, where s=hypot(1,y), with binary64 callbacks and wide scaled
 arithmetic. Direct momentum intervals of width four resolve the known smooth

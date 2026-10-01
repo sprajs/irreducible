@@ -62,6 +62,13 @@ struct ThermalBackgroundBatch {
 };
 class ThermalBackground {
 public:
+  ThermalBackground() = default;
+  ThermalBackground(const ThermalBackground &) = default;
+  ThermalBackground &operator=(const ThermalBackground &) = default;
+  // Moving transfers the complete physical owner and invalidates the source.
+  // Self move preserves the current owner; copies retain independent storage.
+  ThermalBackground(ThermalBackground &&) noexcept;
+  ThermalBackground &operator=(ThermalBackground &&) noexcept;
   numerics::Status status() const noexcept { return status_; }
   const ThermalFlatModel &source() const noexcept { return source_; }
   std::optional<double> omega_species_today() const noexcept;

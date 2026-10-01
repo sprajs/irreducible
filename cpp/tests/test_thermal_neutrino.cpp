@@ -6,6 +6,8 @@
 #include <limits>
 #include <numbers>
 #include <stdexcept>
+#include <type_traits>
+#include <utility>
 using namespace irred::cosmology;
 using S = irred::numerics::Status;
 int main() {
@@ -72,6 +74,54 @@ int main() {
     callbacks+=row.callbacks;
   }
   require(callbacks==batch.callbacks,"background callback accounting");
+  static_assert(std::is_nothrow_move_constructible_v<ThermalBackground>);
+  static_assert(std::is_nothrow_move_assignable_v<ThermalBackground>);
+  {
+    const ThermalFlatModel life_model{70,5e-5,2e-5,.05,.25,{{.06,.000168,2}}};
+    const double life_scale[]{.1};
+    auto original=prepare_thermal_background(life_model,p);
+    const auto expected=original.evaluate(life_scale,thermal_e|thermal_h,p);
+    require(expected.rows[0].e.status==S::ok,"move witness initial model accepted");
+    close(*expected.rows[0].e.value,17.39871883575367278847808L);
+    const auto normalization=original.omega_species_today();
+    const auto preparation_callbacks=original.preparation_callbacks();
+    auto copy=original;
+    auto moved=std::move(original);
+    auto source_refused=[&](const ThermalBackground &owner) {
+      require(owner.status()==S::invalid_input && owner.source().species.empty() &&
+              !owner.omega_species_today() && !owner.omega_lambda() &&
+              owner.preparation_callbacks()==0,"moved source is an invalid physical owner");
+      const auto result=owner.evaluate(life_scale,thermal_e|thermal_h,p);
+      require(result.status==S::invalid_input && result.rows.empty() &&
+              result.callbacks==0,"moved source returns no calculation payload");
+    };
+    auto retained=[&](const ThermalBackground &owner) {
+      require(owner.status()==S::ok && owner.source().species.size()==1 &&
+              owner.source().species[0].mass_ev==.06 &&
+              owner.omega_species_today()==normalization &&
+              owner.preparation_callbacks()==preparation_callbacks,
+              "move target retains the complete physical identity");
+      const auto result=owner.evaluate(life_scale,thermal_e|thermal_h,p);
+      require(result.rows.size()==1 && result.rows[0].e.status==S::ok &&
+              result.rows[0].h_km_s_mpc.status==S::ok &&
+              result.rows[0].e.value==expected.rows[0].e.value &&
+              result.rows[0].h_km_s_mpc.value==expected.rows[0].h_km_s_mpc.value,
+              "owner lifetime preserves expansion");
+    };
+    source_refused(original); retained(moved); retained(copy);
+    auto assigned=prepare_thermal_background({70,1,0,0,0,{}},p);
+    assigned=std::move(moved);
+    source_refused(moved); retained(assigned);
+    auto *self_alias=&assigned;
+    // Use an alias so intentional self move remains portable under warnings.
+    assigned=std::move(*self_alias);
+    retained(assigned);
+    ThermalBackground copied;
+    copied=copy;
+    retained(copied);
+    copy=ThermalBackground{};
+    retained(copied);
+  }
   auto q=p; q.maximum_total_callbacks=0;
   batch=background.evaluate(scales,thermal_e,q);
   require(batch.rows[0].e.status==S::ok && batch.rows[1].e.status==S::work_limit &&

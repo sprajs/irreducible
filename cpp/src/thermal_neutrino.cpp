@@ -7,6 +7,7 @@
 #include <cmath>
 #include <limits>
 #include <numbers>
+#include <utility>
 
 namespace irred::cosmology {
 namespace {
@@ -278,6 +279,25 @@ ThermalBackground prepare_thermal_background(const ThermalFlatModel &m,
   out.source_=m;
   out.status_=S::ok;
   return out;
+}
+ThermalBackground::ThermalBackground(ThermalBackground &&other) noexcept {
+  *this=std::move(other);
+}
+ThermalBackground &ThermalBackground::operator=(ThermalBackground &&other) noexcept {
+  if (this==&other) return *this;
+  status_=other.status_;
+  source_=std::move(other.source_);
+  critical_ev4_=other.critical_ev4_;
+  omega_species_=other.omega_species_;
+  lambda_=other.lambda_;
+  normalization_error_=other.normalization_error_;
+  callbacks_=other.callbacks_;
+  other.status_=S::invalid_input;
+  other.source_={};
+  other.critical_ev4_=other.omega_species_=other.lambda_=0;
+  other.normalization_error_=0;
+  other.callbacks_=0;
+  return *this;
 }
 std::optional<double> ThermalBackground::omega_species_today() const noexcept {
   if (status_!=S::ok || (omega_species_!=0 && !normal_positive(omega_species_))) return {};
