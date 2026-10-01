@@ -5,6 +5,8 @@
 namespace irred {
 inline constexpr std::string_view constant_set_id = "SI-IAU-definitions-v1";
 inline constexpr double speed_of_light_m_per_s = 299792458.0;
+// Exact SI 2019 definition, shared by radiometry and thermal energy densities.
+inline constexpr long double planck_constant_joule_second = 6.62607015e-34L;
 enum class Dimension : std::uint32_t { dimensionless, length, time, inverse_time };
 template<Dimension D> struct Scalar { double value; };
 using Length = Scalar<Dimension::length>;

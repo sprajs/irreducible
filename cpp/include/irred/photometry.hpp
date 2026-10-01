@@ -8,7 +8,6 @@
 namespace irred::photometry {
 inline constexpr std::string_view model_id = "constant_rest_luminosity_rectangular_band";
 inline constexpr std::string_view constants_id = "si_2019_radiometric_definitions";
-inline constexpr long double planck_constant_joule_second = 6.62607015e-34L;
 inline constexpr std::uint32_t incident_flux = 1, collected_energy = 2, transmitted_photons = 4;
 enum class Availability : std::uint32_t { omitted, available, failed };
 struct Input {

@@ -1,5 +1,4 @@
 #include "irred/thermal_neutrino.hpp"
-#include "irred/photometry.hpp"
 #include "irred/quantities.hpp"
 #include "payload_accounting.hpp"
 #include <algorithm>
@@ -172,7 +171,7 @@ WideMoments species(const ThermalSpecies &s, double a, const ThermalPolicy &p,
 }
 long double critical_density_ev4(double h0) {
   const long double c = speed_of_light_m_per_s;
-  const long double hbar = photometry::planck_constant_joule_second/(2*pi);
+  const long double hbar = planck_constant_joule_second/(2*pi);
   const long double rate = static_cast<long double>(h0)*1000/megaparsec_in_metres_wide();
   const long double natural_to_si =
       ev_joule*ev_joule*ev_joule*ev_joule/(hbar*c*hbar*c*hbar*c);
