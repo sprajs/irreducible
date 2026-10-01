@@ -17,8 +17,8 @@ qualify all modalities. The diagnostic is an input to this plan, not another pla
 
 Dependency-ready next work is the smallest consumer supported by that evidence:
 source-defined released-ladder parameter mapping and conditional estimator
-uncertainty after the successful unchanged-budget native QR comparison; a declared massive-neutrino background for the full standard expansion
-identity; then thermal/ionization/drag prediction before a predicted physical BAO
+uncertainty after the successful unchanged-budget native QR comparison; a source-defined parameter/temperature mapping and distance/ruler consumer
+for the native explicit thermal-neutrino background; then thermal/ionization/drag prediction before a predicted physical BAO
 ruler. Perturbations and CMB need their own closure and comparisons. Native SDK
 execution can test current functions before adding a CLI/ABI route justified by
 an actual consumer. Do not add noise, lensing or growth labels to unsupported
@@ -91,6 +91,14 @@ Once these prerequisites pass, their scoped joint calibration/H₀ fit is useful
 **Gate:** dimensions and scaling, analytic simplified expansion/sound-speed limits, independent quadrature, tail treatment and refinement. Named native conditional-ratio controls test numerical observables; the distinct native conditional density has its own projection allocation. Released-compression validity and physical-ruler inference remain separate gates. When z_d becomes predicted, add independent thermal/drag comparisons and propagate its uncertainty. Neither this integral nor a matching ruler qualifies growth, lensing or CMB predictions.
 
 The native [early/late calculation](early-late.md) now connects this ruler and flat FLRW distances through one matter/radiation, geometry, unit and parameter identity. The provider supplies conditional ratio predictions with a supplied drag epoch. The distinct native conditional BAO consumer supplies a bounded density; neither qualifies a predicted physical ruler or a released compression. The current free-ruler likelihood remains a separate conditional calculation. Predicting the drag epoch still requires its thermal/ionization contract.
+
+The native [thermal-neutrino increment](thermal-neutrino.md) supplies
+collisionless species density/pressure and one retained flat E/H identity,
+including the relativistic-to-nonrelativistic transition. Named high-precision
+and matched CLASS controls test explicit inputs and conservation. The next
+consumer must use that same state for distances and a conditional supplied-drag
+ruler, with source-defined species/temperature/physical-density mapping and
+propagated numerical budgets. It does not predict drag or recombination.
 
 Background plus thermal/ionization history can subsequently support a declared perturbation closure, primordial modes, transfer functions and line-of-sight projection. Each later observable needs its own reference and likelihood allocation.
 

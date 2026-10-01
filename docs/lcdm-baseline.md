@@ -47,13 +47,13 @@ different parameter variation.
 
 | Behavior | Available calculation | Evidence and boundary |
 | --- | --- | --- |
-| Expansion and flat distances | Native shared early/late state; radiation-free CLI background separately | Analytic limits, independent coordinates and named Astropy background controls; full massive-neutrino reference remains unsupported |
+| Expansion and flat distances | Native shared early/late state; radiation-free CLI background separately | Analytic limits, independent coordinates and named Astropy background controls; explicit thermal relic E/H is available separately; distance/ruler coupling and full-reference parameter mapping remain missing |
 | Supplied-drag ruler and BAO ratios | Native shared state and conditional BAO density | All released ratio rows and their full ordered covariance; fixed-point numerical comparison, without predicting drag or reproducing a posterior |
 | Relative SN distance shape | CLI/native free-offset profile | Named released-input controls; no absolute H0 information or newly combined SN/BAO likelihood |
 | Spectral projection | Native sampled photometry and finite shared passband calibration law | Analytic and independent frequency-coordinate controls; supplied source/distance/calibration law, without noise, detection or source populations |
 | Absolute calibration | Native synthetic anchor/Cepheid/SN ladder and proper correlated calibration density | Named synthetic recovery and held-out controls; released-ladder admission and observational reconstruction remain separate |
 | Growth, RSD, shear and lens images | Distances are available prerequisites | Perturbations, metric potentials, source/lens fields and measurement operators are missing |
-| CMB and physical drag prediction | Conditional background/ruler pieces only | Massive-neutrino, thermal/ionization/drag, perturbation and line-of-sight predictions are missing |
+| CMB and physical drag prediction | Conditional background/ruler pieces only | Thermal/ionization/drag, massive-neutrino perturbations and line-of-sight predictions are missing |
 
 The DESI DR2 mean/covariance products are
 [released fitted compressions](https://arxiv.org/abs/2503.14738), with estimator,

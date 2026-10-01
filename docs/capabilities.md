@@ -48,3 +48,11 @@ The native [finite passband calibration law](photometry-calibration.md) propagat
 The native [conditional BAO density](bao-conditional.md) reuses the retained full covariance factor and one shared early/late physical state for supplied-drag ruler ratios. Projection sensitivity has a separate admission gate; predictions survive a refused density. Ratios and density are H0 invariant at fixed fractions and drag. This adds no CLI/C ABI route, drag prediction, observational H0 inference, or automatic validity of a released distance compression.
 
 For a source-backed standard-cosmology comparison, use the [bounded LambdaCDM baseline](lcdm-baseline.md). Its native consumer and blocked full-model sectors are separate from CLI discovery and runtime qualification.
+
+The standalone C++ [thermal-neutrino background](thermal-neutrino.md) evolves
+explicit collisionless zero-chemical-potential Fermi–Dirac species between
+relativistic and nonrelativistic regimes. It supplies density and pressure in
+eV^4 and retained flat E/H batches, separating photons, other massless radiation,
+baryons, CDM and relics. Independent high-precision, continuity and matched CLASS
+controls test named cases. It has no CLI/C ABI, automatic Neff/temperature/mass
+mapping, thermal/ionization history, distance/ruler coupling or perturbations.
