@@ -245,3 +245,9 @@ add_executable(test_sampled_photometry_peer tests/test_sampled_photometry_peer.c
 target_link_libraries(test_sampled_photometry_peer PRIVATE irred_core)
 target_compile_options(test_sampled_photometry_peer PRIVATE -Wall -Wextra -Wpedantic -fno-fast-math -ffp-contract=off)
 add_test(NAME sampled_photometry_peer_contract COMMAND test_sampled_photometry_peer)
+
+target_sources(irred_core PRIVATE src/calibration_ladder.cpp)
+add_executable(test_calibration_ladder tests/test_calibration_ladder.cpp)
+target_link_libraries(test_calibration_ladder PRIVATE irred_core)
+target_compile_options(test_calibration_ladder PRIVATE -Wall -Wextra -Wpedantic -fno-fast-math -ffp-contract=off)
+add_test(NAME calibration_ladder_contract COMMAND test_calibration_ladder)
