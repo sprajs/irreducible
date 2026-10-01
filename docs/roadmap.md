@@ -16,7 +16,7 @@ its own identity. A passing fixed-point test does not reproduce a posterior or
 qualify all modalities. The diagnostic is an input to this plan, not another plan.
 
 Dependency-ready next work is the smallest consumer supported by that evidence:
-source-defined released-ladder parameter mapping and a declared estimator contrast
+complete source-defined released-ladder parameter mapping and calibration/model sensitivity
 after the successful unchanged-budget native QR comparison; a source-defined parameter/temperature mapping and distance/ruler consumer
 for the native explicit thermal-neutrino background; then thermal/ionization/drag prediction before a predicted physical BAO
 ruler. Perturbations and CMB need their own closure and comparisons. Native SDK

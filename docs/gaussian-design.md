@@ -40,4 +40,21 @@ The operation identifies itself as `retained-qr-linear-estimator-variance/v1` un
 
 ## Named evidence and limitations
 
+A separate source review identifies original released SH0ES column 46 as
+`5 log10(H0 / [1 km/s/Mpc])`, using the parameter vector before Equation (6)
+of [Riess et al. v3](https://arxiv.org/pdf/2112.04510v3) and the pinned
+[primary release conversion](https://github.com/PantheonPlusSH0ES/DataRelease/blob/c447f0fea703fcd0fff57de5000947b5ca81286b/SH0ES_Data/read_chains_example.py).
+For fixed H_ref, subtracting its logarithmic constant gives eta without changing
+contrast variance. A clean Release comparison at source 0178541, on the same
+full 3492x47 products used in the preserved QR admission comparison, returns
+Var(beta46)=0.0008964788320013900. It differs from independently executed
+whitened LAPACK SVD by 2.17e-18 under the frozen 2e-12 absolute plus relative
+allocation; two independent QR references also agree. The external references
+share covariance whitening, while the native covariance factor and design
+algorithm have separate implementation ancestry. This tests the formal
+fixed-design Gaussian full-C law, including supplied compact constraints and
+assumptions. The complete host and nuisance axis dictionary remains unresolved.
+No released H0/error acceptance target, observational uncertainty, posterior or
+coverage is established. Earlier source/build receipts remain unchanged.
+
 Owner tests freeze coefficient/residual tolerance 2×10⁻¹² absolute plus relative, quadratic 10⁻¹⁰ absolute, with 10⁻¹² independent small exact references. The synthetic two-anchor/host/shared-zero-point control has orthogonal contrasts and a shared column; the peer suite independently solves augmented KKT equations for correlated-covariance controls, avoiding a Gram-only oracle. A separate exact dyadic two-column control uses X=(1,1+2⁻¹⁴t), t=(−3,−1,1,3), and analytically derived coefficients/residuals/q; its reference was also checked by a separate 90-digit direct SVD calculation before production comparison. Ordinary tests require only the frozen analytic facts, not an external SVD dependency. Tests challenge row/parameter order, shared identities, units (including powers-of-two scaling by ±900), exact and near rank deficiency, moves, caller-buffer lifetime, priors, byte/element resource boundaries, unsupported rounding, nonfinite inputs and actual post-cast stationarity. This is bounded evidence for those named cases, not an all-domain scientific qualification, actual calibration analysis or joint ladder fit.
