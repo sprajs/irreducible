@@ -1,0 +1,113 @@
+# A bounded LambdaCDM baseline
+
+Use an established cosmology to test the stack before interpreting a new theory.
+The reference is a declared physical model, data release and calculation; there
+is no single parameter point that must reproduce every published result.
+[Planck 2018 VI](https://arxiv.org/abs/1807.06209) reports parameters inferred
+under its model and likelihood. Those posterior summaries are useful reference
+results, not additional independent observations.
+
+The [Reproducible baseline packet](https://github.com/sprajs/reproducible/tree/main/experiments/lcdm-baseline)
+consumes the compiled library. [Prospector](https://github.com/sprajs/prospector)
+owns reviewed papers and its versioned candidate. This guide describes the
+engine boundary; the [roadmap](roadmap.md) remains the sole development plan.
+
+## Physical identities
+
+The full reference is spatially flat GR with cold dark matter, baryons, photons,
+neutrinos, a cosmological constant, specified primordial modes and thermal
+history. The Planck base model fixes the neutrino mass sum to 0.06 eV. Its
+massive-neutrino energy density evolves between relativistic and nonrelativistic
+regimes. Neither a constant radiation fraction nor pressureless matter at every
+epoch implements that transition. A complete parameter-table reference also
+names the likelihood/data combination and distinguishes physical densities
+omega_i = Omega_i h^2 from fractional densities Omega_i.
+
+The runnable native variant has pressureless matter, massless radiation and
+Lambda, with
+
+    E(z)^2 = Omega_r (1+z)^4 + Omega_m (1+z)^3 + 1-Omega_m-Omega_r.
+
+It supplies photon and baryon subsets and a drag redshift with an origin. Flat
+FLRW, a common observer/expansion redshift and photon conservation give
+D_H=c/H, D_M=(c/H0) integral dz/E, D_L=(1+z)D_M and
+D_V=(z D_M^2 D_H)^(1/3). The ruler is the tight-coupling sound-horizon integral
+at that supplied drag redshift. [Early/late](early-late.md) and
+[sound horizon](sound-horizon.md) own the equations, numerical domains and units.
+
+This is an explicitly changed model when compared with full Planck base LCDM.
+A supplied Planck drag value does not restore its missing neutrino or thermal
+physics. Conversely, the CLI `background.evaluate` LCDM model omits radiation;
+it must not silently replace the native early/late state. H0 scaling at fixed
+fractions tests units and identifiability: distances and ruler scale as 1/H0,
+while their ratios remain invariant. Holding physical densities fixed is a
+different parameter variation.
+
+## What the bounded test can establish
+
+| Behavior | Available calculation | Evidence and boundary |
+| --- | --- | --- |
+| Expansion and flat distances | Native shared early/late state; radiation-free CLI background separately | Analytic limits, independent coordinates and named Astropy background controls; full massive-neutrino reference remains unsupported |
+| Supplied-drag ruler and BAO ratios | Native shared state and conditional BAO density | All released ratio rows and their full ordered covariance; fixed-point numerical comparison, without predicting drag or reproducing a posterior |
+| Relative SN distance shape | CLI/native free-offset profile | Named released-input controls; no absolute H0 information or newly combined SN/BAO likelihood |
+| Spectral projection | Native sampled photometry and finite shared passband calibration law | Analytic and independent frequency-coordinate controls; supplied source/distance/calibration law, without noise, detection or source populations |
+| Absolute calibration | Native synthetic anchor/Cepheid/SN ladder and proper correlated calibration density | Named synthetic recovery and held-out controls; released-ladder admission and observational reconstruction remain separate |
+| Growth, RSD, shear and lens images | Distances are available prerequisites | Perturbations, metric potentials, source/lens fields and measurement operators are missing |
+| CMB and physical drag prediction | Conditional background/ruler pieces only | Massive-neutrino, thermal/ionization/drag, perturbation and line-of-sight predictions are missing |
+
+The DESI DR2 mean/covariance products are
+[released fitted compressions](https://arxiv.org/abs/2503.14738), with estimator,
+reconstruction and covariance assumptions. Keep their exact bytes, source
+revision, redshifts, observable tags, axes and covariance together. A numerical
+reference dataset is "gold" only for those declared identities and comparisons;
+it is neither a statement that each observed value equals the model prediction
+nor permission to reuse that compression under every theory. Unknown dependence
+with another probe remains unknown.
+
+The limited comparison allocates 1e-9 Mpc + 2e-11 relative to distances,
+1e-11 + 5e-11 relative to ratios, and absolute 1e-8 separately to the quadratic,
+log determinant, Gaussian normalization and log density. Independent-reference
+refinement occupies at most 5% of each allocation. Record stricter producer
+policies separately. Preserve original failed attempts before changing a
+reference, policy or implementation. These named numerical checks provide no
+universal accuracy guarantee or inference qualification.
+
+## Cross-project handoff
+
+1. **Prospector** pins the primary paper version, source hash, coverage and
+   source-defined claim. Its candidate names the full reference and any changed
+   runnable variant, required assets, lost scope and blockers.
+2. **Reproducible** reviews that candidate, pins its revision/path/hash and exact
+   input products, declares parameter mapping and acceptance before execution,
+   then runs a small consumer of the installed Irreducible library. It owns
+   experiment orchestration, plots, immutable attempts and concise findings.
+3. **Irreducible** owns compiled equations, numerics and shared likelihoods.
+   A failed experiment becomes a source-linked discrepancy witness or explicit
+   closure blocker. Implement the smallest useful repair with independent native
+   controls and review affected consumers; do not put replacement physics in the
+   experiment controller.
+4. Re-run the pinned experiment against a clean rebuilt engine after a repair.
+   Publish source changes through each repository's reviewed PR/CI workflow;
+   record actual source/build/executable/input identities in each attempt.
+   A changed build does not rewrite earlier receipts or promote a former failure.
+
+Assign one integration owner per repository and an explicit cross-project
+coordinator. Inspect live status, worktrees, open PRs and built discovery before
+assigning work. Give each worker exclusive paths, frozen interfaces, acceptance,
+evidence destination and resources. Use the requested exact model; record a
+capacity failure and reuse correctly configured workers instead of substituting.
+The four-job local compute allowance is shared across chats, agents and
+worktrees; allocate jobs explicitly and set Rust test threads explicitly.
+
+The native early/late and conditional-density interfaces currently have no CLI
+or C ABI route. A bounded experiment-specific installed SDK consumer is a real
+execution path, not an implemented general paper runner. Verify its archive,
+headers, build manifest, compiler, consumer source and executable; bind the
+actual input and output statuses. CLI discovery continues to describe its ten
+implemented operations.
+
+Public packets and source tests stay small. Bulk third-party inputs, papers and
+full run records stay in their designated ignored storage, with terms reviewed
+before redistribution. A published scientific result needs a durable archive;
+local receipts and expiring CI artifacts alone do not supply one. Separate
+execution, numerical comparison, inference and interpretation in the account.

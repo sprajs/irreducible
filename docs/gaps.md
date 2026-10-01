@@ -4,7 +4,7 @@ This assessment separates the current numerical engine from the proposed [roadma
 
 ## What exists
 
-The current engine exposes ten operations: exact integer addition, typed physical conversion, scalar numerical methods, immutable observation preparation, requested flat-FLRW background outputs, Gaussian calculations, conditional SN magnitude profiles and conditional free-ruler BAO densities, deterministic rectangular-passband photometry, and a conditional supplied-drag sound horizon. The late-time backgrounds are LCDM, constant q, CPL and fixed five-bin q. They are bounded CPU calculations with explicit source, arithmetic, numerical and execution contracts. Named wide-arithmetic gates use Linux/GCC long double with at least 64 mantissa bits; hosts where long double equals double are not covered, and Ubuntu CI is a separate engineering check. The early ruler separately assumes flat pressureless matter, massless radiation and Lambda; photon/baryon fractions and drag redshift are supplied, not inferred, and no physical-ruler BAO qualification follows. Gaussian nuisance elimination through the CLI supports a scalar offset. The standalone C++ [multi-column design profile](gaussian-design.md) supplies a bounded linear prerequisite; it is not an implemented joint distance ladder or a proper-prior marginal density.
+The current engine exposes ten operations: exact integer addition, typed physical conversion, scalar numerical methods, immutable observation preparation, requested flat-FLRW background outputs, Gaussian calculations, conditional SN magnitude profiles and conditional free-ruler BAO densities, deterministic rectangular-passband photometry, and a conditional supplied-drag sound horizon. The late-time backgrounds are LCDM, constant q, CPL and fixed five-bin q. They are bounded CPU calculations with explicit source, arithmetic, numerical and execution contracts. Named wide-arithmetic gates use Linux/GCC long double with at least 64 mantissa bits; hosts where long double equals double are not covered, and Ubuntu CI is a separate engineering check. The early ruler separately assumes flat pressureless matter, massless radiation and Lambda; photon/baryon fractions and drag redshift are supplied, not inferred, and no physical-ruler BAO qualification follows. Gaussian nuisance elimination through the CLI supports a scalar offset. The standalone C++ [multi-column design profile](gaussian-design.md) supplies a bounded linear prerequisite; its relative score is separate from the native synthetic ladder and proper correlated calibration density described below.
 
 No current runtime request receives a named scientific qualification. Passing the default numerical_contract means that required numerical checks passed; it is not inference or interpretation qualification. Named comparison evidence applies to its recorded inputs/build/domain, not automatically to a new request.
 
@@ -13,6 +13,31 @@ Shared source ownership and retained factors support repeated evaluations. Named
 The main missing capability is a coherent forward physical state and its observational operators: source spectra/light curves, instrument/pixel response and selection; an observationally qualified absolute distance-ladder calibration model; early thermal/perturbation evolution; specific lenses; nonlinear initial conditions/dynamics/light cones; and qualified GPU/distributed execution. Current historical performance evidence does not benchmark the consolidated interface or these future workloads. A new benchmark must measure representative phases, setup/memory and matched scientific quality.
 
 Engineering remains serial CPU execution with bounded dense matrices and narrow source-specific ASCII adapters. General survey image/spectrum ingestion is absent; the optional FITS codec has test-only synthetic BINTABLE coverage and is unavailable in the product. There is no qualified distributed restart/sharding, RNG or device execution, nor a consolidated-interface throughput benchmark. Adding a model currently requires coordinated native variants/validation and Rust descriptors, schema, ABI, discovery and records. Centralize structural descriptors where useful; keep equations in compiled scientific owners.
+
+## Standard-model diagnostic gaps
+
+The [bounded LambdaCDM baseline](lcdm-baseline.md) distinguishes full Planck base
+LCDM from the current supported approximation. The native shared early/late
+state treats radiation as massless and matter as pressureless at every epoch.
+It has no massive-neutrino transition or thermal/ionization prediction. Drag
+redshift is supplied. The CLI late LCDM background omits radiation and has a
+different physical identity; native early/late and conditional BAO currently
+require a C++ SDK consumer rather than a CLI/C ABI request.
+
+Existing released-ladder admission evidence at source 99ce262 records finite
+covariance preparation but `conditioning_budget_exceeded` and unresolved design
+rank on the full 3492-row/47-column products. That is a historical numerical
+blocker, not a rerun on the current source, proof of rank deficiency or a failure
+of the observed ladder. A stable rank-revealing algorithm and unchanged-budget
+independent comparison are needed before claiming a released joint fit. The
+native synthetic ladder controls cannot close that gap.
+
+No current operator predicts matter transfer/growth, lensing potentials or
+images, recombination/drag, CMB spectra, stellar/source populations, detector
+noise, detection or survey recovery. A known cosmology makes these missing
+sectors concrete; an H(z) or distance match does not supply them. Use the
+[roadmap](roadmap.md) to choose the next qualified prerequisite after the
+experiment identifies a blocker.
 
 ## Data products are not interchangeable
 
