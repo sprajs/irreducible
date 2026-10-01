@@ -226,6 +226,16 @@ foreach(photometry_test IN ITEMS photometry photometry_hostile photometry_abi_ho
   add_test(NAME ${photometry_test}_contract COMMAND test_${photometry_test})
 endforeach()
 
+target_sources(irred_core PRIVATE src/gaussian_design.cpp)
+add_executable(test_gaussian_design tests/test_gaussian_design.cpp)
+target_link_libraries(test_gaussian_design PRIVATE irred_core)
+target_compile_options(test_gaussian_design PRIVATE -Wall -Wextra -Wpedantic -fno-fast-math -ffp-contract=off)
+add_test(NAME gaussian_design_contract COMMAND test_gaussian_design)
+add_executable(test_gaussian_design_peer tests/test_gaussian_design_peer.cpp)
+target_link_libraries(test_gaussian_design_peer PRIVATE irred_core)
+target_compile_options(test_gaussian_design_peer PRIVATE -Wall -Wextra -Wpedantic -fno-fast-math -ffp-contract=off)
+add_test(NAME gaussian_design_peer_contract COMMAND test_gaussian_design_peer)
+
 target_sources(irred_core PRIVATE src/sampled_photometry.cpp)
 add_executable(test_sampled_photometry tests/test_sampled_photometry.cpp)
 target_link_libraries(test_sampled_photometry PRIVATE irred_core)

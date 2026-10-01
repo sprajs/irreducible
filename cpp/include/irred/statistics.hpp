@@ -80,6 +80,7 @@ std::optional<std::size_t> selected_gaussian_preparation_payload_bound(
     const observations::Prepared &, std::size_t selected,
     numerics::Arithmetic) noexcept;
 class ProfileOperator;
+class DesignProfile;
 class Gaussian {
 public:
   Gaussian() = default;
@@ -158,6 +159,7 @@ private:
   std::vector<PriorRecord> priors_;
   std::vector<SelectionRecord> history_;
   numerics::Factorization factor_;
+  friend class DesignProfile;
   friend Gaussian prepare_selected_observations(const observations::Prepared &,
                                                 std::span<const std::size_t>,
                                                 std::size_t, double,

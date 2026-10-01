@@ -44,7 +44,7 @@ This supplies a practical simulation-first foundation for spectra, photometry an
 
 **First executable increment:** a small synthetic ladder with two anchors, several host Cepheids and calibrator/Hubble-flow SNe, including one shared zero-point nuisance and its covariance. Recover known distances, luminosity and H₀ under the declared empirical model before introducing the full released assets.
 
-**Immediate prerequisite:** an identifiable multi-column Gaussian/design-matrix calculation with explicit rank, covariance/order, shared nuisance and proper-prior versus relative-profile measure. The existing scalar-offset profile is not a joint ladder solver. Establish exact linear controls before synthetic recovery or released-data fitting.
+**Linear prerequisite:** the standalone C++ [Gaussian design profile](gaussian-design.md) retains an ordered multi-column design and covariance factor, declares shared nuisance identities and uses conservative rank/conditioning admission. Exact linear controls test a relative profile measure; normalized multi-column proper-prior marginalization is still a separate missing contract. Neither this native API nor the scalar CLI offset is a joint ladder solver. The two-anchor forward model, synthetic recovery and released-data fitting remain subsequent increments.
 
 **Inputs:** named anchor likelihoods, Cepheid periods, fluxes/colours, metallicities, host and instrument identities, covariance/calibration responses, selection/crowding/extinction declarations, calibrator SN observations and Hubble-flow SN observations. Every duplicated object or calibrator has one identity.
 
