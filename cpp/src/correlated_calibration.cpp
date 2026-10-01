@@ -90,7 +90,7 @@ CorrelatedCalibration::retained_payload_bound() const noexcept {
 std::optional<std::size_t>
 CorrelatedCalibration::evaluation_payload_bound() const noexcept {
   auto n = shift_.size();
-  detail::PayloadAccounting b(sizeof(GaussianResult));
+  detail::PayloadAccounting b(sizeof(CalibrationResult));
   b.add(n, sizeof(double));
   auto e = effective_.evaluation_payload_bound(n, false);
   if (!e)
@@ -217,10 +217,10 @@ CorrelatedCalibration::prepare(Gaussian &&g, std::span<const double> x,
     norm = std::max(norm, row);
   }
   out.inverse_norm_estimate_ =
-      static_cast<double>(effective.factor_.condition_estimate_inf() / norm);
-  out.covariance_rounding_eta_ = static_cast<double>(
+      effective.factor_.condition_estimate_inf() / norm;
+  out.covariance_rounding_eta_ =
       out.inverse_norm_estimate_ *
-      *std::max_element(row_error.begin(), row_error.end()));
+      *std::max_element(row_error.begin(), row_error.end());
   if (!std::isfinite(out.inverse_norm_estimate_) ||
       !std::isfinite(out.covariance_rounding_eta_) ||
       out.covariance_rounding_eta_ >= 0.01) {
@@ -299,9 +299,9 @@ CorrelatedCalibration::evaluate(std::span<const double> r,
         numerics::Status::conditioning_budget_exceeded;
   }
   if (out.density.status == DensityStatus::finite) {
-    out.quadratic_rounding_estimate = static_cast<double>(qe);
-    out.log_determinant_rounding_estimate = static_cast<double>(de);
-    out.log_density_rounding_estimate = static_cast<double>(le);
+    out.quadratic_rounding_estimate = qe;
+    out.log_determinant_rounding_estimate = de;
+    out.log_density_rounding_estimate = le;
   }
   return out;
 }

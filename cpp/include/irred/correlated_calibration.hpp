@@ -14,8 +14,9 @@ struct CalibrationPolicy {
   double maximum_forward_sensitivity = 1e-10;
 };
 struct CalibrationResult : GaussianResult {
-  double quadratic_rounding_estimate = 0, log_determinant_rounding_estimate = 0,
-         log_density_rounding_estimate = 0;
+  long double quadratic_rounding_estimate = 0,
+              log_determinant_rounding_estimate = 0,
+              log_density_rounding_estimate = 0;
 };
 // Normalized observed residual density; no posterior or model evidence.
 class CorrelatedCalibration {
@@ -57,7 +58,7 @@ public:
                              CalibrationPolicy policy = {}) const;
 
 private:
-  double inverse_norm_estimate_ = 0, covariance_rounding_eta_ = 0;
+  long double inverse_norm_estimate_ = 0, covariance_rounding_eta_ = 0;
   long double mean_rounding_inf_ = 0, mean_rounding_l1_ = 0;
   Gaussian source_, effective_;
   CalibrationPrior prior_;
