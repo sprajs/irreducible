@@ -82,4 +82,4 @@ The roadmap first proposes an analytic one-passband experiment, a small syntheti
 
 The next useful work is to choose an actual vertical from the [roadmap](roadmap.md), pin its inputs and forward assumptions, and qualify its own observable and downstream error. Neither broad inventory completion nor a successful numerical call closes these physical and data gaps.
 
-Deterministic photometry now predicts three radiometric outputs for a finite constant rest spectrum and supplied distance. Sampled/time-dependent spectra, source populations, calibration uncertainty, noise, selection and recovery remain proposed.
+Deterministic photometry predicts three radiometric outputs for a finite constant rest spectrum and supplied distance through the CLI. The standalone C++ sampled operator extends this to declared piecewise-linear wavelength spectra and optical passbands. Sampled CLI ingestion, time dependence, source populations, calibration-uncertainty propagation, noise, selection and recovery remain proposed.
