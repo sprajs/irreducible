@@ -68,7 +68,9 @@ to 6.67430e-11 m^3 kg^-1 s^-2. Converting natural energy density to SI uses
 (eV_J)^4/(hbar c)^3. G is a measured constant: treating this central value as
 fixed is an explicit model/conversion convention. Its physical uncertainty is
 not covered by numerical quadrature estimates. These constants are identified
-by `thermal_neutrino_constants_id`.
+by `thermal_neutrino_constants_id`; the compiled numerical method and
+arithmetic profile have separate `thermal_neutrino_method_id` and
+`thermal_neutrino_arithmetic_id` identities.
 
 All physical state and background queries require finite 0<a<=1, finite
 positive H0 and a nonnegative flat Lambda closure. Zero supplied fractions are

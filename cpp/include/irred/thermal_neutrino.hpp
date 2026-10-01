@@ -94,6 +94,10 @@ std::optional<std::size_t> thermal_background_payload_bound(
     std::size_t points, std::size_t species) noexcept;
 inline constexpr std::string_view thermal_neutrino_model_id =
     "flat-collisionless-zero-chemical-potential-thermal-FD-relic-lambda/v1";
+inline constexpr std::string_view thermal_neutrino_method_id =
+    "scaled-adaptive-direct-momentum-exponential-tail/v1";
+inline constexpr std::string_view thermal_neutrino_arithmetic_id =
+    "thermal-FD/binary64-quadrature-wide-scaling/v1";
 inline constexpr std::string_view thermal_neutrino_constants_id =
     "SI2019-exact-h-c-eV-IAU2012-AU-CODATA2018-G-fixed";
 } // namespace irred::cosmology
