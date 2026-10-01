@@ -24,8 +24,8 @@ struct DesignResult {
   std::vector<double> coefficients, adjusted_residuals;
   double quadratic = 0, relative_log_score = 0;
   double normalized_normal_equation_residual = 0;
-  double covariance_solve_backward_residual = 0,
-         covariance_solve_forward_sensitivity = 0;
+  double covariance_whitening_backward_residual = 0,
+         covariance_whitening_rounding_estimate = 0;
 };
 class DesignProfile {
 public:
@@ -50,9 +50,13 @@ public:
     return numerical_status_;
   }
   DesignRank rank() const noexcept { return rank_; }
-  double equilibrated_gram_condition_inf() const noexcept {
-    return gram_condition_;
+  double equilibrated_triangular_condition_inf() const noexcept {
+    return triangular_condition_;
   }
+  const char *method_id() const noexcept {
+    return "retained-whitened-pivoted-householder-qr/v1";
+  }
+  const char *qr_arithmetic_id() const noexcept { return "longdouble-cpu/v1"; }
   const Metadata &metadata() const noexcept { return gaussian_.metadata(); }
   const DesignMetadata &design_metadata() const noexcept {
     return design_metadata_;
@@ -70,11 +74,13 @@ public:
 private:
   Gaussian gaussian_;
   DesignMetadata design_metadata_;
-  numerics::Factorization gram_factor_;
-  std::vector<double> x_, scales_;
+  std::vector<double> x_;
+  // A checks actual post-cast stationarity; QR contains R and reflector tails.
+  std::vector<long double> whitened_design_, qr_, scales_, tau_;
+  std::vector<std::size_t> pivot_;
   DensityStatus status_ = DensityStatus::invalid_input;
   numerics::Status numerical_status_ = numerics::Status::invalid_input;
   DesignRank rank_ = DesignRank::unassessed;
-  double gram_condition_ = 0, preparation_sensitivity_ = 0;
+  double triangular_condition_ = 0, preparation_sensitivity_ = 0;
 };
 } // namespace irred::statistics

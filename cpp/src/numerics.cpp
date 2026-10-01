@@ -383,6 +383,64 @@ struct FactorAccess {
                      : Status::conditioning_budget_exceeded;
     return out;
   }
+  template <class Real, class Input>
+  static WhiteningResult
+  whiten_impl(const Factorization &f, std::span<const Input> rhs,
+              std::size_t cap, std::size_t bytes, double budget) {
+    if (!wide_environment())
+      return {Status::outside_domain, {}};
+    // Factorization is immutable and validates its entries when created.
+    // Whitening needs only the retained lower triangle, never original C.
+    const auto &l = lower<Real>(f);
+    if (f.status_ != Status::ok || !f.n_ ||
+        f.n_ > std::numeric_limits<std::size_t>::max() / f.n_ ||
+        l.size() != f.n_ * f.n_ || rhs.size() != f.n_ ||
+        !std::isfinite(budget) || budget <= 0)
+      return {Status::invalid_input, {}};
+    const auto bound = whitening_payload_bound(f.n_);
+    if (!bound || f.n_ > cap || *bound > bytes)
+      return {Status::work_limit, {}};
+    for (auto x : rhs)
+      if (!std::isfinite(x))
+        return {Status::nonfinite_input, {}};
+    WhiteningResult out;
+    out.value.assign(rhs.begin(), rhs.end());
+    const auto n = f.n_;
+    for (std::size_t i = 0; i < n; ++i) {
+      long double v = rhs[i];
+      for (std::size_t j = 0; j < i; ++j)
+        v -= static_cast<long double>(l[i * n + j]) * out.value[j];
+      out.value[i] = v / l[i * n + i];
+      if (!std::isfinite(out.value[i]))
+        return {Status::overflow, {}};
+      if (std::fpclassify(out.value[i]) == FP_SUBNORMAL)
+        return {Status::outside_domain, {}};
+    }
+    long double norm_l = 0, norm_x = 0, norm_b = 0, defect = 0;
+    for (std::size_t i = 0; i < n; ++i) {
+      long double row = 0, v = -static_cast<long double>(rhs[i]);
+      for (std::size_t j = 0; j <= i; ++j) {
+        row += std::abs(static_cast<long double>(l[i * n + j]));
+        v += static_cast<long double>(l[i * n + j]) * out.value[j];
+      }
+      norm_l = std::max(norm_l, row);
+      norm_x = std::max(norm_x, std::abs(out.value[i]));
+      norm_b = std::max(norm_b, std::abs(static_cast<long double>(rhs[i])));
+      defect = std::max(defect, std::abs(v));
+    }
+    const auto scale = norm_l * norm_x + norm_b;
+    const auto backward = scale == 0 ? 0 : defect / scale;
+    const auto estimate =
+        backward + n * std::numeric_limits<long double>::epsilon();
+    if (!std::isfinite(estimate))
+      return {Status::overflow, {}};
+    if (estimate > budget)
+      return {Status::conditioning_budget_exceeded, {}};
+    out.backward_residual = static_cast<double>(backward);
+    out.arithmetic_rounding_estimate = static_cast<double>(estimate);
+    out.status = Status::ok;
+    return out;
+  }
   template <class Real>
   static Factorization factor(std::span<const double> matrix, std::size_t n,
                               std::size_t cap, Arithmetic arithmetic) {
@@ -529,5 +587,41 @@ SolveResult solve(const Factorization &f, std::span<const double> rhs,
   if (f.arithmetic() != Arithmetic::binary64_legacy_v1)
     return {Status::invalid_input, {}};
   return FactorAccess::solve_impl<double>(f, rhs, budget);
+}
+std::optional<std::size_t> whitening_payload_bound(std::size_t n) noexcept {
+  if (!n)
+    return {};
+  detail::PayloadAccounting bytes(sizeof(WhiteningResult));
+  bytes.add(n, sizeof(long double));
+  return bytes.result();
+}
+namespace {
+template <class Input>
+WhiteningResult whiten_dispatch(const Factorization &f,
+                                std::span<const Input> rhs, std::size_t cap,
+                                std::size_t bytes, double budget) {
+  WideRangeGuard guard;
+  if (!guard.supported)
+    return {Status::outside_domain, {}};
+  WhiteningResult out;
+  if (f.arithmetic() == Arithmetic::longdouble_cpu_v1)
+    out = FactorAccess::whiten_impl<long double>(f, rhs, cap, bytes, budget);
+  else if (f.arithmetic() == Arithmetic::binary64_legacy_v1)
+    out = FactorAccess::whiten_impl<double>(f, rhs, cap, bytes, budget);
+  else
+    return {Status::invalid_input, {}};
+  const auto status = guard.status();
+  if (status != Status::ok)
+    return {status, {}};
+  return out;
+}
+} // namespace
+WhiteningResult whiten(const Factorization &f, std::span<const double> rhs,
+                       std::size_t cap, std::size_t bytes, double budget) {
+  return whiten_dispatch(f, rhs, cap, bytes, budget);
+}
+WhiteningResult whiten(const Factorization &f, std::span<const long double> rhs,
+                       std::size_t cap, std::size_t bytes, double budget) {
+  return whiten_dispatch(f, rhs, cap, bytes, budget);
 }
 } // namespace irred::numerics

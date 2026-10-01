@@ -5,6 +5,7 @@
 #include <cmath>
 #include <limits>
 #include <new>
+#include <numeric>
 #include <utility>
 namespace irred::statistics {
 namespace {
@@ -44,14 +45,15 @@ bool supported_arithmetic_environment() noexcept {
 } // namespace
 DesignProfile::DesignProfile(DesignProfile &&o) noexcept
     : gaussian_(std::move(o.gaussian_)),
-      design_metadata_(std::move(o.design_metadata_)),
-      gram_factor_(std::move(o.gram_factor_)), x_(std::move(o.x_)),
-      scales_(std::move(o.scales_)),
+      design_metadata_(std::move(o.design_metadata_)), x_(std::move(o.x_)),
+      whitened_design_(std::move(o.whitened_design_)), qr_(std::move(o.qr_)),
+      scales_(std::move(o.scales_)), tau_(std::move(o.tau_)),
+      pivot_(std::move(o.pivot_)),
       status_(std::exchange(o.status_, DensityStatus::invalid_input)),
       numerical_status_(
           std::exchange(o.numerical_status_, numerics::Status::invalid_input)),
       rank_(std::exchange(o.rank_, DesignRank::unassessed)),
-      gram_condition_(std::exchange(o.gram_condition_, 0)),
+      triangular_condition_(std::exchange(o.triangular_condition_, 0)),
       preparation_sensitivity_(std::exchange(o.preparation_sensitivity_, 0)) {}
 DesignProfile &DesignProfile::operator=(DesignProfile &&o) noexcept {
   if (this != &o) {
@@ -69,13 +71,12 @@ DesignProfile::preparation_payload_bound(const Gaussian &g, std::size_t p,
   detail::PayloadAccounting b(sizeof(DesignProfile));
   b.embedded(g.retained_payload_bound(), sizeof(Gaussian));
   charge(b, m);
-  // Includes transferred source + candidate owners simultaneously; Gram
-  // Cholesky inverse-condition scratch, solves, normalized columns and result
-  // buffers.
-  b.add(n * p, 2 * sizeof(double));
-  b.add(p * p, 8 * sizeof(long double));
-  b.add(n, 16 * sizeof(long double));
-  b.add(p, 16 * sizeof(long double));
+  // Source factor is borrowed during preparation and transferred only on
+  // success. A is retained for actual-output checks; QR is its decomposition.
+  b.add(n * p, sizeof(double) + 2 * sizeof(long double));
+  b.add(n, 4 * sizeof(long double));
+  b.add(p, 12 * sizeof(long double) + sizeof(std::size_t));
+  b.add(1, sizeof(numerics::WhiteningResult));
   return b.result();
 }
 std::optional<std::size_t>
@@ -83,9 +84,12 @@ DesignProfile::retained_payload_bound() const noexcept {
   detail::PayloadAccounting b(sizeof(*this));
   charge(b, design_metadata_);
   b.embedded(gaussian_.retained_payload_bound(), sizeof(Gaussian));
-  b.embedded(gram_factor_.retained_payload_bound(), sizeof(gram_factor_));
   b.vector(x_);
+  b.vector(whitened_design_);
+  b.vector(qr_);
   b.vector(scales_);
+  b.vector(tau_);
+  b.vector(pivot_);
   return b.result();
 }
 std::optional<std::size_t>
@@ -146,11 +150,9 @@ DesignProfile DesignProfile::prepare(Gaussian &&g, std::span<const double> x,
     out.rank_ = DesignRank::unresolved;
   };
   out.x_.assign(x.begin(), x.end());
-  std::vector<double> wx(n * p);
+  out.whitened_design_.resize(n * p);
   out.scales_.resize(p);
-  std::vector<double> column(n), gram(p * p);
-  // First normalize by max absolute entry, avoiding overflow in the first
-  // solve.
+  std::vector<long double> column(n);
   for (std::size_t j = 0; j < p; ++j) {
     double maximum = 0;
     for (std::size_t i = 0; i < n; ++i)
@@ -160,56 +162,123 @@ DesignProfile DesignProfile::prepare(Gaussian &&g, std::span<const double> x,
       out.rank_ = DesignRank::deficient;
       return out;
     }
+    // Wide normalization preserves small entries of a binary64 column even
+    // when its range is wider than binary64 normalized coordinates allow.
     for (std::size_t i = 0; i < n; ++i)
-      column[i] = x[i * p + j] / maximum;
-    auto solved =
-        numerics::solve(g.factor_, column, policy.maximum_forward_sensitivity);
-    if (solved.status != numerics::Status::ok) {
-      fail(solved.status);
+      column[i] = static_cast<long double>(x[i * p + j]) / maximum;
+    auto whitened =
+        numerics::whiten(g.factor_, std::span<const long double>(column),
+                         policy.maximum_elements, policy.maximum_payload_bytes,
+                         policy.maximum_forward_sensitivity);
+    if (whitened.status != numerics::Status::ok) {
+      fail(whitened.status);
       return out;
     }
-    long double q = 0;
-    for (std::size_t i = 0; i < n; ++i)
-      q += static_cast<long double>(column[i]) * solved.value[i];
-    if (!(q > 0) || !output(static_cast<long double>(maximum) * std::sqrt(q),
-                            out.scales_[j])) {
-      fail(numerics::Status::overflow);
+    long double norm = 0;
+    for (const auto v : whitened.value)
+      norm = std::hypot(norm, v);
+    out.scales_[j] = static_cast<long double>(maximum) * norm;
+    if (!(norm > 0) || !std::isfinite(out.scales_[j]) ||
+        std::fpclassify(out.scales_[j]) == FP_SUBNORMAL) {
+      fail(numerics::Status::outside_domain);
       return out;
     }
-    const long double root = std::sqrt(q);
-    for (std::size_t i = 0; i < n; ++i)
-      if (!output(static_cast<long double>(solved.value[i]) / root,
-                  wx[i * p + j])) {
+    for (std::size_t i = 0; i < n; ++i) {
+      const auto value = whitened.value[i] / norm;
+      if (!std::isfinite(value) || std::fpclassify(value) == FP_SUBNORMAL ||
+          (whitened.value[i] != 0 && value == 0)) {
         fail(numerics::Status::outside_domain);
         return out;
       }
-    out.preparation_sensitivity_ = std::max(
-        out.preparation_sensitivity_, solved.estimated_forward_sensitivity);
-  }
-  for (std::size_t j = 0; j < p; ++j)
-    for (std::size_t k = 0; k <= j; ++k) {
-      long double v = 0;
-      for (std::size_t i = 0; i < n; ++i)
-        v += (static_cast<long double>(x[i * p + j]) / out.scales_[j]) *
-             wx[i * p + k];
-      if (!output(v, gram[j * p + k])) {
-        fail(numerics::Status::overflow);
-        return out;
-      }
-      gram[k * p + j] = gram[j * p + k];
+      out.whitened_design_[i * p + j] = value;
     }
-  out.gram_factor_ =
-      numerics::cholesky(gram, p, policy.maximum_elements, g.arithmetic());
-  if (out.gram_factor_.status() != numerics::Status::ok) {
-    fail(out.gram_factor_.status());
-    return out;
+    out.preparation_sensitivity_ = std::max(
+        out.preparation_sensitivity_, whitened.arithmetic_rounding_estimate);
   }
-  out.gram_condition_ = out.gram_factor_.condition_estimate_inf();
-  if (out.gram_condition_ * std::numeric_limits<double>::epsilon() >
-      std::min(1e-8, policy.maximum_forward_sensitivity)) {
+  out.qr_ = out.whitened_design_;
+  out.tau_.resize(p);
+  out.pivot_.resize(p);
+  std::iota(out.pivot_.begin(), out.pivot_.end(), 0);
+  const auto rank_floor = (static_cast<long double>(n) + p) *
+                          std::numeric_limits<long double>::epsilon();
+  for (std::size_t k = 0; k < p; ++k) {
+    std::size_t best = k;
+    long double largest = -1;
+    // Recompute trailing norms: downdates can lose the decisive small tail.
+    for (std::size_t j = k; j < p; ++j) {
+      long double norm = 0;
+      for (std::size_t i = k; i < n; ++i)
+        norm = std::hypot(norm, out.qr_[i * p + j]);
+      if (norm > largest) {
+        largest = norm;
+        best = j;
+      }
+    }
+    if (!std::isfinite(largest) || largest <= rank_floor) {
+      fail(numerics::Status::singular);
+      return out;
+    }
+    if (best != k) {
+      for (std::size_t i = 0; i < n; ++i)
+        std::swap(out.qr_[i * p + k], out.qr_[i * p + best]);
+      std::swap(out.pivot_[k], out.pivot_[best]);
+    }
+    const auto first = out.qr_[k * p + k];
+    const auto diagonal = -std::copysign(largest, first);
+    const auto leading = first - diagonal;
+    out.tau_[k] = (diagonal - first) / diagonal;
+    for (std::size_t i = k + 1; i < n; ++i)
+      out.qr_[i * p + k] /= leading;
+    out.qr_[k * p + k] = diagonal;
+    for (std::size_t j = k + 1; j < p; ++j) {
+      long double dot = out.qr_[k * p + j];
+      for (std::size_t i = k + 1; i < n; ++i)
+        dot += out.qr_[i * p + k] * out.qr_[i * p + j];
+      dot *= out.tau_[k];
+      out.qr_[k * p + j] -= dot;
+      for (std::size_t i = k + 1; i < n; ++i)
+        out.qr_[i * p + j] -= out.qr_[i * p + k] * dot;
+    }
+  }
+  for (const auto value : out.qr_)
+    if (!std::isfinite(value) || std::fpclassify(value) == FP_SUBNORMAL) {
+      fail(numerics::Status::outside_domain);
+      return out;
+    }
+  // Norm-infinity conditioning of triangular R in pivoted, equilibrated
+  // coordinates. Q preserves 2-norm, not infinity norm; this is not kappa2(A).
+  long double norm_r = 0;
+  std::vector<long double> inverse_rows(p, 0), inverse_column(p);
+  for (std::size_t i = 0; i < p; ++i) {
+    long double row = 0;
+    for (std::size_t j = i; j < p; ++j)
+      row += std::abs(out.qr_[i * p + j]);
+    norm_r = std::max(norm_r, row);
+  }
+  for (std::size_t j = 0; j < p; ++j) {
+    std::fill(inverse_column.begin(), inverse_column.end(), 0);
+    for (std::size_t k = p; k > 0; --k) {
+      const auto i = k - 1;
+      long double v = i == j ? 1 : 0;
+      for (std::size_t t = i + 1; t < p; ++t)
+        v -= out.qr_[i * p + t] * inverse_column[t];
+      inverse_column[i] = v / out.qr_[i * p + i];
+      inverse_rows[i] += std::abs(inverse_column[i]);
+    }
+  }
+  const auto condition =
+      std::max(1.L, norm_r * *std::max_element(inverse_rows.begin(),
+                                               inverse_rows.end()));
+  const auto sensitivity =
+      condition * (std::numeric_limits<double>::epsilon() + rank_floor);
+  if (!std::isfinite(condition) || !std::isfinite(sensitivity) ||
+      sensitivity > std::min(1e-8, policy.maximum_forward_sensitivity)) {
     fail(numerics::Status::conditioning_budget_exceeded);
     return out;
   }
+  out.triangular_condition_ = static_cast<double>(condition);
+  out.preparation_sensitivity_ =
+      std::max(out.preparation_sensitivity_, static_cast<double>(sensitivity));
   out.design_metadata_ = std::move(m);
   out.gaussian_ = std::move(g);
   std::vector<double>().swap(out.gaussian_.covariance_);
@@ -252,31 +321,40 @@ DesignResult DesignProfile::evaluate(std::span<const double> r,
   if (std::any_of(r.begin(), r.end(),
                   [](double v) { return !std::isfinite(v); }))
     return out;
+  const auto sensitivity =
+      triangular_condition_ * (std::numeric_limits<double>::epsilon() +
+                               (static_cast<long double>(n) + p) *
+                                   std::numeric_limits<long double>::epsilon());
   if (preparation_sensitivity_ > policy.maximum_forward_sensitivity ||
-      gram_condition_ * std::numeric_limits<double>::epsilon() >
-          std::min(1e-8, policy.maximum_forward_sensitivity))
+      sensitivity > std::min(1e-8, policy.maximum_forward_sensitivity))
     return fail(numerics::Status::conditioning_budget_exceeded);
-  auto wr =
-      numerics::solve(gaussian_.factor_, r, policy.maximum_forward_sensitivity);
+  auto wr = numerics::whiten(gaussian_.factor_, r, policy.maximum_elements,
+                             policy.maximum_payload_bytes,
+                             policy.maximum_forward_sensitivity);
   if (wr.status != numerics::Status::ok)
     return fail(wr.status);
-  std::vector<double> rhs(p);
-  for (std::size_t j = 0; j < p; ++j) {
-    long double v = 0;
-    for (std::size_t i = 0; i < n; ++i)
-      v += (static_cast<long double>(x_[i * p + j]) / scales_[j]) * wr.value[i];
-    if (!output(v, rhs[j]))
-      return fail(numerics::Status::overflow);
+  auto transformed = wr.value;
+  for (std::size_t k = 0; k < p; ++k) {
+    long double dot = transformed[k];
+    for (std::size_t i = k + 1; i < n; ++i)
+      dot += qr_[i * p + k] * transformed[i];
+    dot *= tau_[k];
+    transformed[k] -= dot;
+    for (std::size_t i = k + 1; i < n; ++i)
+      transformed[i] -= qr_[i * p + k] * dot;
   }
-  auto beta =
-      numerics::solve(gram_factor_, rhs, policy.maximum_forward_sensitivity);
-  if (beta.status != numerics::Status::ok)
-    return fail(beta.status);
+  std::vector<long double> beta(p);
+  for (std::size_t k = p; k > 0; --k) {
+    const auto i = k - 1;
+    long double v = transformed[i];
+    for (std::size_t j = i + 1; j < p; ++j)
+      v -= qr_[i * p + j] * beta[j];
+    beta[i] = v / qr_[i * p + i];
+  }
   out.coefficients.resize(p);
   out.adjusted_residuals.resize(n);
   for (std::size_t j = 0; j < p; ++j)
-    if (!output(static_cast<long double>(beta.value[j]) / scales_[j],
-                out.coefficients[j]))
+    if (!output(beta[j] / scales_[pivot_[j]], out.coefficients[pivot_[j]]))
       return fail(numerics::Status::outside_domain);
   for (std::size_t i = 0; i < n; ++i) {
     long double v = r[i];
@@ -285,18 +363,19 @@ DesignResult DesignProfile::evaluate(std::span<const double> r,
     if (!output(v, out.adjusted_residuals[i]))
       return fail(numerics::Status::outside_domain);
   }
-  auto we = numerics::solve(gaussian_.factor_, out.adjusted_residuals,
-                            policy.maximum_forward_sensitivity);
+  auto we = numerics::whiten(
+      gaussian_.factor_, std::span<const double>(out.adjusted_residuals),
+      policy.maximum_elements, policy.maximum_payload_bytes,
+      policy.maximum_forward_sensitivity);
   if (we.status != numerics::Status::ok)
     return fail(we.status);
   long double q = 0, defect = 0, denom = 0;
   for (std::size_t i = 0; i < n; ++i)
-    q += static_cast<long double>(out.adjusted_residuals[i]) * we.value[i];
+    q += we.value[i] * we.value[i];
   for (std::size_t j = 0; j < p; ++j) {
     long double d = 0, scale = 0;
     for (std::size_t i = 0; i < n; ++i) {
-      const long double z =
-          static_cast<long double>(x_[i * p + j]) / scales_[j];
+      const long double z = whitened_design_[i * p + j];
       d += z * we.value[i];
       scale += std::abs(z * wr.value[i]);
     }
@@ -311,8 +390,8 @@ DesignResult DesignProfile::evaluate(std::span<const double> r,
       !output(-q / 2, out.relative_log_score))
     return fail(numerics::Status::outside_domain);
   out.normalized_normal_equation_residual = static_cast<double>(normal);
-  out.covariance_solve_backward_residual = we.backward_residual;
-  out.covariance_solve_forward_sensitivity = we.estimated_forward_sensitivity;
+  out.covariance_whitening_backward_residual = we.backward_residual;
+  out.covariance_whitening_rounding_estimate = we.arithmetic_rounding_estimate;
   out.status = DensityStatus::finite;
   out.numerical_status = numerics::Status::ok;
   return out;
