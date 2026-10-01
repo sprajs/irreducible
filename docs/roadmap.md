@@ -66,9 +66,9 @@ Once these prerequisites pass, their scoped joint calibration/H₀ fit is useful
 
 **Outputs:** the conditional ruler, integrand/state diagnostics, declared compactification/tail treatment, empirical numerical error estimates and independently allocated checks, and the origin/status of z_d. Later thermal work returns its predicted drag epoch separately. The current free H₀r_d parameter does not identify H₀ and r_d independently.
 
-**Gate:** dimensions and scaling, analytic simplified expansion/sound-speed limits, independent quadrature, tail treatment and refinement. A downstream BAO observable/log-density allocation is a separate future gate. When z_d becomes predicted, add independent thermal/drag comparisons and propagate its uncertainty. Neither this integral nor a matching ruler qualifies growth, lensing or CMB predictions.
+**Gate:** dimensions and scaling, analytic simplified expansion/sound-speed limits, independent quadrature, tail treatment and refinement. Named native conditional-ratio controls now test numerical observables; a BAO likelihood allocation remains a separate future gate. When z_d becomes predicted, add independent thermal/drag comparisons and propagate its uncertainty. Neither this integral nor a matching ruler qualifies growth, lensing or CMB predictions.
 
-Before using this ruler in a physical-ruler BAO likelihood, connect early and late expansion through one consistent matter/radiation, geometry, unit and parameter identity. The current free ruler remains a separate conditional calculation. Predicting the drag epoch then requires its thermal/ionization contract.
+The native [early/late calculation](early-late.md) now connects this ruler and flat FLRW distances through one matter/radiation, geometry, unit and parameter identity. It supplies conditional ratio predictions with a supplied drag epoch, not a physical-ruler BAO likelihood or qualification of a released compression. The current free-ruler likelihood remains a separate conditional calculation. Predicting the drag epoch still requires its thermal/ionization contract.
 
 Background plus thermal/ionization history can subsequently support a declared perturbation closure, primordial modes, transfer functions and line-of-sight projection. Each later observable needs its own reference and likelihood allocation.
 

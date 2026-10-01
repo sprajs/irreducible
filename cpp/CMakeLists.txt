@@ -255,3 +255,15 @@ add_executable(test_calibration_ladder_peer tests/test_calibration_ladder_peer.c
 target_link_libraries(test_calibration_ladder_peer PRIVATE irred_core)
 target_compile_options(test_calibration_ladder_peer PRIVATE -Wall -Wextra -Wpedantic -fno-fast-math -ffp-contract=off)
 add_test(NAME calibration_ladder_peer_contract COMMAND test_calibration_ladder_peer)
+
+add_executable(test_early_late_peer tests/test_early_late_peer.cpp)
+target_link_libraries(test_early_late_peer PRIVATE irred_core)
+target_compile_options(test_early_late_peer PRIVATE -Wall -Wextra -Wpedantic -fno-fast-math -ffp-contract=off)
+add_test(NAME early_late_peer_contract COMMAND test_early_late_peer)
+
+# One native early/late physical identity and conditional supplied-drag predictions.
+target_sources(irred_core PRIVATE src/early_late.cpp)
+add_executable(test_early_late tests/test_early_late.cpp)
+target_link_libraries(test_early_late PRIVATE irred_core)
+target_compile_options(test_early_late PRIVATE -Wall -Wextra -Wpedantic -fno-fast-math -ffp-contract=off)
+add_test(NAME early_late_contract COMMAND test_early_late)

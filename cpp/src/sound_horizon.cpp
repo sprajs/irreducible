@@ -1,5 +1,6 @@
 #include "irred/sound_horizon.hpp"
 #include "flat_geometry.hpp"
+#include "early_flat_state.hpp"
 #include "payload_accounting.hpp"
 #include <algorithm>
 #include <cmath>
@@ -8,39 +9,20 @@
 
 namespace irred::cosmology {
 namespace {
-struct State {
-  long double radiation, matter, lambda, baryon_loading, a_drag;
-};
+struct State : detail::EarlyFlatState { long double a_drag; };
 numerics::Status state(const SoundHorizonRequest &r, State &s) {
-  const auto &m = r.model;
-  const double values[]{m.h0_km_s_mpc, m.omega_m, m.omega_r, m.omega_b,
-                        m.omega_gamma, r.z_drag};
-  for (double x : values)
-    if (!std::isfinite(x))
-      return numerics::Status::nonfinite_input;
-  if (!(m.h0_km_s_mpc > 0) || m.omega_m < 0 || !(m.omega_r > 0) ||
-      m.omega_b < 0 || m.omega_b > m.omega_m || !(m.omega_gamma > 0) ||
-      m.omega_gamma > m.omega_r || r.z_drag < 0 || r.drag_origin.empty())
-    return numerics::Status::outside_domain;
-  // Subtract the larger fraction first. When it exceeds 1/2, 1-largest
-  // is exact for binary64 inputs (Sterbenz); otherwise closure is safely
-  // below 1. This rejects 1+minpositive in either order even when a sum rounds1.
-  const long double largest = std::max(m.omega_m, m.omega_r);
-  const long double smaller = std::min(m.omega_m, m.omega_r);
-  const long double remaining = 1.L - largest;
-  if (largest > 1 || smaller > remaining)
-    return numerics::Status::outside_domain;
-  s = {(long double)m.omega_r, (long double)m.omega_m, remaining - smaller,
-       (3.L * m.omega_b) / (4.L * m.omega_gamma),
-       1.L / (1.L + (long double)r.z_drag)};
+  if (!std::isfinite(r.z_drag)) return numerics::Status::nonfinite_input;
+  const auto status = detail::prepare_early_flat(r.model, s);
+  if (status != numerics::Status::ok) return status;
+  if (r.z_drag < 0 || r.drag_origin.empty()) return numerics::Status::outside_domain;
+  s.a_drag = 1.L / (1.L + (long double)r.z_drag);
   return numerics::Status::ok;
 }
 double integrand(double t, const void *context) {
   const auto &s = *static_cast<const State *>(context);
   const long double a = s.a_drag * (long double)t;
-  const long double a2 = a * a;
   const long double denominator =
-      std::sqrt(s.radiation + s.matter * a + s.lambda * a2 * a2) *
+      std::sqrt(detail::early_flat_polynomial(s, a)) *
       std::sqrt(1.L + s.baryon_loading * a);
   return static_cast<double>(1.L / denominator);
 }

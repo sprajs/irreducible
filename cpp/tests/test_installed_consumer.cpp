@@ -3,6 +3,7 @@
 #include <irred/gaussian_design.hpp>
 #include <irred/sampled_photometry.hpp>
 #include <irred/calibration_ladder.hpp>
+#include <irred/early_late.hpp>
 #include <array>
 #include <cmath>
 #include <numbers>
@@ -66,5 +67,14 @@ int main() {
  auto profile=DesignProfile::prepare(std::move(gaussian),design,source_metadata.ordered_ids,std::move(metadata));
  const auto fitted=profile.evaluate(residual,source_metadata.ordered_ids);
  if (!(fitted.status==DensityStatus::finite && fitted.coefficients.size()==2 && std::abs(fitted.coefficients[0]-1)<2e-12 && std::abs(fitted.coefficients[1]+.5)<2e-12 && std::abs(fitted.quadratic-.25)<1e-10)) return 3;
+ using namespace irred::cosmology;
+ const SoundHorizonRequest radiation{{70,0,1,0,.1},1059,"installed synthetic supplied drag"};
+ const std::array<double,1> redshifts{1};
+ const EarlyLatePolicy policy{1e-9,2e-11,1e-11,5e-11,100000,200000,40,4,4*1024*1024,{1e-9,2e-11,100000,40,4,200000,4*1024*1024}};
+ const auto geometry=evaluate_early_late(radiation,redshifts,early_late_mask(EarlyLateOutput::dm_mpc)|early_late_mask(EarlyLateOutput::dl_mpc),policy);
+ if (geometry.status!=irred::numerics::Status::ok || geometry.rows.size()!=1 || geometry.ruler) return 4;
+ const auto &dm=geometry.rows[0].outputs[static_cast<unsigned>(EarlyLateOutput::dm_mpc)], &dl=geometry.rows[0].outputs[static_cast<unsigned>(EarlyLateOutput::dl_mpc)];
+ const double exact_dm=299792.458/70/2;
+ if (!(dm.status==irred::numerics::Status::ok && dl.status==irred::numerics::Status::ok && dm.value && dl.value && std::abs(*dm.value-exact_dm)<1e-7 && std::abs(*dl.value-2*exact_dm)<1e-7)) return 5;
  return installed_ladder();
 }
