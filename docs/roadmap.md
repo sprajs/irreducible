@@ -16,8 +16,8 @@ its own identity. A passing fixed-point test does not reproduce a posterior or
 qualify all modalities. The diagnostic is an input to this plan, not another plan.
 
 Dependency-ready next work is the smallest consumer supported by that evidence:
-source-defined released-ladder parameter mapping and conditional estimator
-uncertainty after the successful unchanged-budget native QR comparison; a source-defined parameter/temperature mapping and distance/ruler consumer
+source-defined released-ladder parameter mapping and a declared estimator contrast
+after the successful unchanged-budget native QR comparison; a source-defined parameter/temperature mapping and distance/ruler consumer
 for the native explicit thermal-neutrino background; then thermal/ionization/drag prediction before a predicted physical BAO
 ruler. Perturbations and CMB need their own closure and comparisons. Native SDK
 execution can test current functions before adding a CLI/ABI route justified by
@@ -65,6 +65,15 @@ This supplies a practical simulation-first foundation for spectra, photometry an
 **Native executable increment:** the [synthetic calibration ladder](calibration-ladder.md) now predicts and jointly recovers host moduli, empirical Cepheid coefficients, SN luminosity, one shared zero point and H₀ under an explicitly supplied fixed reference distance shape. Two anchors and a distinct calibration measurement give an identifiable synthetic control with ordered covariance. Independent KKT, direct/compressed relative-score and remove/refit held-out anchor/Cepheid tests establish named numerical recovery. Released-data fitting, uncertainty qualification and a normalized parameter posterior remain separate work.
 
 **Linear prerequisite:** the standalone C++ [Gaussian design profile](gaussian-design.md) retains an ordered multi-column design and covariance factor, declares shared nuisance identities and uses conservative rank/conditioning admission. The native ladder consumes this prerequisite; the scalar CLI offset remains a separate relative shape calculation. The separate native [correlated calibration operator](correlated-calibration.md) now integrates a declared proper full correlated latent prior into a normalized observed-residual density for fixed response. Named cofactor and independent prior-integration controls test this statistical contract. Parameter posterior/evidence, released-data fitting and observational qualification remain separate contracts.
+
+The retained QR now supplies a requested linear-estimator contrast variance under
+fixed design and supplied Gaussian observation covariance. The synthetic ladder
+uses it for an explicitly centered H₀ estimator sampling law, with nominal
+projection, biased sampling expectation and requested quantiles kept distinct.
+Exact linear-noise responses, independent KKT/cofactor and high-precision
+quantile controls test the declared synthetic cases. This supplies conditional
+sampling uncertainty; released parameter mapping and observational coverage,
+proper-prior posterior and model/selection sensitivity remain separate work.
 
 **Inputs:** named anchor likelihoods, Cepheid periods, fluxes/colours, metallicities, host and instrument identities, covariance/calibration responses, selection/crowding/extinction declarations, calibrator SN observations and Hubble-flow SN observations. Every duplicated object or calibrator has one identity.
 

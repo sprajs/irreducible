@@ -34,8 +34,12 @@ the exact same 3492-row/47-column compact products with both covariance arithmet
 profiles and unchanged budgets. All coefficients and the objective agree with
 independent LAPACK QR/SVD references; q=3552.759330295523. This closes the named
 numerical admission blocker. Physical parameter labels, the released calibration
-assumptions, estimator uncertainty and observational H0 reconstruction still need
-separate qualification. The relative profile is not a normalized posterior.
+assumptions, the released estimator contrast and observational H0 reconstruction
+still need separate qualification. Native QR contrast variance and a synthetic
+ladder H0 sampling law now supply conditional uncertainty under fixed Gaussian
+observation noise and an explicitly assumed generating mean. Named synthetic
+checks do not qualify released-data parameter mapping or coverage. The relative
+profile is not a normalized posterior.
 
 No current operator predicts matter transfer/growth, lensing potentials or
 images, recombination/drag, CMB spectra, stellar/source populations, detector

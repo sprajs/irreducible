@@ -24,6 +24,7 @@ Read [AGENTS.md](../AGENTS.md) first, then choose a guide:
 | Evaluate a supplied-drag BAO density with that same state in C++ | [Conditional BAO](bao-conditional.md) |
 | Check scientific assumptions | [Scientific contracts](scientific-contracts.md) |
 | Profile an ordered multi-column Gaussian model in C++ | [Gaussian design](gaussian-design.md) |
+| Calculate conditional estimator variance and a synthetic H0 sampling law | [Gaussian design](gaussian-design.md) and [calibration ladder](calibration-ladder.md) |
 | Marginalize a correlated proper calibration prior in C++ | [Correlated calibration](correlated-calibration.md) |
 | Predict and recover a synthetic anchor/Cepheid/SN ladder in C++ | [Calibration ladder](calibration-ladder.md) |
 | Run tests or add a fixture | [Testing](testing.md) and [fixture provenance](../cpp/tests/fixtures/README.md) |

@@ -189,3 +189,13 @@ The prepared owner's copies, moves, self moves and failed source use are tested;
 the original moved-source failure remains preserved in local research evidence.
 These controls cover species states and E/H, without qualifying distances,
 recombination, drag, perturbations or a Planck posterior.
+
+Conditional estimator-variance controls compare analytic contrasts, independent
+cofactor/KKT calculations and summed deterministic Gaussian-noise responses.
+They challenge covariance/parameter permutations, unit scaling, retained
+ownership, quotas and positive unrepresentable outputs. Synthetic H0 sampling
+quantiles use independent high-precision inversion of the exact binary64
+probabilities, including unequal complementary endpoint tails. They test the
+explicit fixed-design sampling law, without establishing a posterior,
+observational H0 uncertainty or confidence coverage. The original failed-wrapper
+move-status witness is preserved separately from successful-owner controls.
