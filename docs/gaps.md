@@ -25,8 +25,9 @@ independent high-precision and matched CLASS controls. The native
 [thermal distance/ruler consumer](thermal-observables.md) now maps supplied
 physical densities and explicit temperatures/species and retains one state for
 distances and the conditional supplied-drag ruler. It preserves the massless
-model as a distinct physical identity. Thermal predictions have not yet been
-composed with the retained conditional BAO density. No operator predicts
+model as a distinct physical identity. The native [thermal BAO density](bao-thermal.md)
+now composes these predictions with retained ordered covariance and density-level
+projection checks. Released compression validity remains unqualified. No operator predicts
 thermal/ionization history or drag; there is no implicit Neff/mass hierarchy. The CLI late LCDM background omits radiation and has a
 different physical identity; native early/late and conditional BAO currently
 require a C++ SDK consumer rather than a CLI/C ABI request.

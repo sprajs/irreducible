@@ -330,3 +330,12 @@ add_executable(test_sampled_photometry_abi_hostile tests/test_sampled_photometry
 target_link_libraries(test_sampled_photometry_abi_hostile PRIVATE irred_core)
 target_compile_options(test_sampled_photometry_abi_hostile PRIVATE -Wall -Wextra -Wpedantic -fno-fast-math -ffp-contract=off)
 add_test(NAME sampled_photometry_abi_hostile_contract COMMAND test_sampled_photometry_abi_hostile)
+
+# Ordered retained Gaussian with the same explicit thermal distance/ruler state.
+target_sources(irred_core PRIVATE src/bao_thermal.cpp)
+foreach(thermal_bao_test IN ITEMS bao_thermal bao_thermal_peer bao_thermal_installed)
+  add_executable(test_${thermal_bao_test} tests/test_${thermal_bao_test}.cpp)
+  target_link_libraries(test_${thermal_bao_test} PRIVATE irred_core)
+  target_compile_options(test_${thermal_bao_test} PRIVATE -Wall -Wextra -Wpedantic -fno-fast-math -ffp-contract=off)
+  add_test(NAME ${thermal_bao_test}_contract COMMAND test_${thermal_bao_test})
+endforeach()

@@ -5,10 +5,15 @@
 #include <span>
 #include <string>
 #include <vector>
-namespace irred::cosmology { struct SoundHorizonRequest; }
+namespace irred::cosmology {
+struct SoundHorizonRequest;
+struct ThermalObservableRequest;
+} // namespace irred::cosmology
 namespace irred::bao {
 struct ConditionalDensityPolicy;
 struct ConditionalDensityBatch;
+struct ThermalDensityPolicy;
+struct ThermalDensityBatch;
 enum class Observable : std::uint32_t {
   transverse_over_ruler,
   hubble_over_ruler,
@@ -69,9 +74,9 @@ std::optional<size_t>
 retained_source_payload_bound(const DensityInput &) noexcept;
 // Simultaneous preparation payload, including transferred source capacities
 // and copied ID/provenance storage. Excludes borrowed input, allocator/RSS.
-std::optional<size_t> preparation_payload_bound(
-    size_t rows, size_t source_payload_bytes,
-    size_t copied_identity_payload_bytes) noexcept;
+std::optional<size_t>
+preparation_payload_bound(size_t rows, size_t source_payload_bytes,
+                          size_t copied_identity_payload_bytes) noexcept;
 struct PreparationPolicy {
   size_t maximum_queries = 0, maximum_matrix_elements = 0,
          maximum_string_bytes = 0, maximum_native_bytes = 0;
@@ -142,8 +147,13 @@ public:
     return gaussian_.metadata();
   }
   DensityBatch evaluate(std::span<const ModelPoint>, DensityPolicy) const;
-  ConditionalDensityBatch evaluate_conditional(
-      std::span<const cosmology::SoundHorizonRequest>, ConditionalDensityPolicy) const;
+  ConditionalDensityBatch
+      evaluate_conditional(std::span<const cosmology::SoundHorizonRequest>,
+                           ConditionalDensityPolicy) const;
+
+  ThermalDensityBatch
+      evaluate_thermal(std::span<const cosmology::ThermalObservableRequest>,
+                       ThermalDensityPolicy) const;
 
 private:
   DensityInput source_;

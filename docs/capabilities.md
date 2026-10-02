@@ -67,6 +67,10 @@ mapping, thermal/ionization history or perturbations. The distinct native
 [thermal observables](thermal-observables.md) consumer explicitly maps physical
 baryon/CDM/other-massless densities and Kelvin temperatures, then uses this same
 retained state for E/H, flat distances and a supplied-drag ruler/ratios. It adds no
-CLI/C ABI operation, automatic Neff/mass hierarchy, drag prediction, thermal BAO
-density or observational qualification. The existing conditional BAO density
-continues to consume its declared massless early/late model.
+CLI/C ABI operation, automatic Neff/mass hierarchy or drag prediction. The native
+[thermal conditional BAO density](bao-thermal.md) now composes this same state
+with the retained ordered observation covariance and an unchanged 1e-8 density
+projection gate. Independent cofactor, polynomial/refinement and matched massive
+reference controls supply named numerical evidence. Fixed physical densities
+do not imply H0 cancellation. Released compression validity and observational
+qualification remain separate; the massless conditional model keeps its identity.
