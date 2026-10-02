@@ -43,7 +43,8 @@ struct BandVariance {
   PrimordialBand primordial{};
   double scale_factor = 0, radius_mpc = 0;
   std::optional<double> variance, sigma;
-  // The first diagnostic has variance units; sigma has its own propagation.
+  // sigma_absolute_error_estimate has sigma units; absolute_error_estimate,
+  // window_refinement and transfer_error_estimate have variance units.
   double sigma_absolute_error_estimate = 0;
   double absolute_error_estimate = 0, window_refinement = 0,
          transfer_error_estimate = 0;
