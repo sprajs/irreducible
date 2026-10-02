@@ -167,3 +167,13 @@ history controls exercise the opt-in route, with actual node and failed-fallback
 work observed separately from self-reported counters. Read the
 [thermal neutrino guide](thermal-neutrino.md) for the empirical diagnostic and
 method contract. Acceleration supplies no new physical closure.
+
+The native [conditional growth/RSD consumer](growth-rsd.md) composes the
+radiation-free pressureless GR growing mode with an explicitly supplied linear
+sigma8 normalization and reference epoch. It predicts sigma8 and f*sigma8,
+reusing one reference growth value. A synthetic ordered full-covariance
+Gaussian density retains its factor and has a separate projection-error gate;
+predictions survive density refusal. Independent original ODE, high-precision
+integration and cofactor controls test named cases. This supplies neither a
+transfer-derived sigma8, radiation/relic perturbations, survey/AP/window
+mapping, released-compression validity nor a CLI/ABI operation.

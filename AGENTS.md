@@ -73,6 +73,10 @@ Keep proper-posterior H0 projection distinct from fixed-truth estimator sampling
 and released box targets. Read their guides before composing a new consumer.
 
 Use [GR growth](docs/gr-growth.md) only with its compatible radiation-free pressureless LCDM state and D/a→1 normalization. Growth does not supply radiation/relic perturbations or a scale-dependent transfer function.
+Read [conditional growth/RSD](docs/growth-rsd.md) before composing supplied
+sigma8 amplitudes. Preserve the reference epoch and 8 h^-1 Mpc window identity,
+shared reference diagnostics and separate density projection gate. Synthetic
+rows do not qualify a released RSD compression or predict sigma8 from a spectrum.
 
 Read [hydrogen equilibrium](docs/hydrogen-equilibrium.md) and the
 [conditional pure-H history](docs/recombination-drag.md) before composing thermal
