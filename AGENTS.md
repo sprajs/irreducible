@@ -66,6 +66,13 @@ never apply an already-marginalized prior twice. Read their guides before compos
 
 Use [GR growth](docs/gr-growth.md) only with its compatible radiation-free pressureless LCDM state and D/a→1 normalization. Growth does not supply radiation/relic perturbations or a scale-dependent transfer function.
 
+Use the [synthetic SIS thin lens](docs/sis-thin-lens.md) only with its compatible
+massless-radiation early/late distances and bounded tangent-plane geometry.
+Propagate inherited distance diagnostics through images, delays and pixels.
+The explicit mass sheet preserves synthetic degeneracies; its base SIS velocity
+parameter is not an observed stellar-kinematics constraint. A measured system
+needs separate mass/source/environment, instrument and inference contracts.
+
 Read [temporal photometry](docs/temporal-photometry.md) before composing spectral-time grids: the mean uses the full observer exposure and an explicit source epoch; zero outside supplied support is a declared source model.
 Read [detector and censoring](docs/detector-selection.md) before generating counts: a supplied expectation needs an explicit arrival law, quantum efficiency follows optical transmission, and probability, ADU density and log numerical allocations have distinct units. Preserve seed/address identities and nondetections; synthetic recovery does not qualify a measured camera or population.
 

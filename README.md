@@ -10,6 +10,11 @@ Today you can run flat-FLRW background calculations, conditional supernova and B
 
 The native [pressureless GR growing mode](docs/gr-growth.md) predicts D(a) and f(a) under an explicit radiation-free LCDM approximation, with independent differential-equation controls.
 
+The native [synthetic SIS thin lens](docs/sis-thin-lens.md) composes compatible
+massless-radiation distances with an axial point source, an explicit mass sheet
+and Gaussian PSF pixels. It predicts images and relative arrival delays;
+synthetic recovery and degeneracy controls do not qualify a measured lens system.
+
 The native [spectral-time photometry](docs/temporal-photometry.md) operator integrates finite source grids over declared observer exposures, with explicit clipping and source epoch.
 The native [detector and censoring](docs/detector-selection.md) calculation composes expected photons with a declared Poisson/read-noise law, addressed random draws and a threshold likelihood retaining nondetections.
 

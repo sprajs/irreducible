@@ -10,7 +10,7 @@ No current runtime request receives a named scientific qualification. Passing th
 
 Shared source ownership and retained factors support repeated evaluations. Named original-input SN and BAO comparisons and analytic/adversarial controls provide evidence for stated cases. They do not establish all-domain accuracy, physical completeness, a joint fit or a new H₀ measurement. The current SN free-offset profile does not retain absolute calibration information; free H₀r_d BAO does not identify H₀ or r_d independently. A supplied dimensional H₀ in a background projection is an input, not a measured result.
 
-The main missing capability is a coherent forward physical state and its observational operators: source spectra/light curves, instrument/pixel response and selection; an observationally qualified absolute distance-ladder calibration model; early thermal/perturbation evolution; specific lenses; nonlinear initial conditions/dynamics/light cones; and qualified GPU/distributed execution. Current historical performance evidence does not benchmark the consolidated interface or these future workloads. A new benchmark must measure representative phases, setup/memory and matched scientific quality.
+The main missing capability is a coherent forward physical state and its observational operators: source spectra/light curves, qualified instrument/pixel response and selection; an observationally qualified absolute distance-ladder calibration model; early thermal/perturbation evolution; measured specific lens systems; nonlinear initial conditions/dynamics/light cones; and qualified GPU/distributed execution. Current historical performance evidence does not benchmark the consolidated interface or these future workloads. A new benchmark must measure representative phases, setup/memory and matched scientific quality.
 
 Engineering remains serial CPU execution with bounded dense matrices and narrow source-specific ASCII adapters. General survey image/spectrum ingestion is absent; the optional FITS codec has test-only synthetic BINTABLE coverage and is unavailable in the product. There is no qualified distributed restart/sharding, RNG or device execution, nor a consolidated-interface throughput benchmark. Adding a model currently requires coordinated native variants/validation and Rust descriptors, schema, ABI, discovery and records. Centralize structural descriptors where useful; keep equations in compiled scientific owners.
 
@@ -58,10 +58,19 @@ logarithmic-coordinate check and independent synthetic constraint-row sensitivit
 comparisons do not reproduce the paper's posterior or systematic H0 uncertainty.
 See [Gaussian design](gaussian-design.md).
 
-The native [GR growth](gr-growth.md) operator now supplies a bounded radiation-free pressureless growing mode. Matter transfer, radiation/relic perturbations, lensing potentials or images, recombination/drag, CMB spectra, stellar/source populations, detector noise, detection and survey recovery remain separate gaps. A known cosmology makes these missing
+The native [GR growth](gr-growth.md) operator now supplies a bounded radiation-free pressureless growing mode. Matter transfer, radiation/relic perturbations, general lensing potentials and propagation, recombination/drag, CMB spectra, stellar/source populations, measured detector-noise and detection laws, and survey recovery remain separate gaps. A known cosmology makes these missing
 sectors concrete; an H(z) or distance match does not supply them. Use the
 [roadmap](roadmap.md) to choose the next qualified prerequisite after the
 experiment identifies a blocker.
+
+The native [synthetic SIS slice](sis-thin-lens.md) now supplies one bounded
+point-source image/delay and Gaussian-PSF pixel calculation using compatible
+massless-radiation distances. Its synthetic mass-sheet/H0 controls demonstrate
+remaining degeneracies. Actual system images, PSF/noise, source variability,
+mass/environment constraints and kinematics have not been qualified; neither
+these synthetic controls nor background distances determine a lens mass.
+General or multi-plane propagation and cosmological/CMB lensing remain separate
+physics consumers.
 
 ## Data products are not interchangeable
 

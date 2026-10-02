@@ -358,6 +358,13 @@ target_link_libraries(test_gr_growth PRIVATE irred_core)
 target_compile_options(test_gr_growth PRIVATE -Wall -Wextra -Wpedantic -fno-fast-math -ffp-contract=off)
 add_test(NAME gr_growth_contract COMMAND test_gr_growth)
 
+# Named synthetic SIS point source with explicit mass-sheet/PSF conventions.
+target_sources(irred_core PRIVATE src/sis_thin_lens.cpp)
+add_executable(test_sis_thin_lens tests/test_sis_thin_lens.cpp)
+target_link_libraries(test_sis_thin_lens PRIVATE irred_core)
+target_compile_options(test_sis_thin_lens PRIVATE -Wall -Wextra -Wpedantic -fno-fast-math -ffp-contract=off)
+add_test(NAME sis_thin_lens_contract COMMAND test_sis_thin_lens)
+
 # Declared finite spectral-time interpolation; shared sampled radiometry owner.
 target_sources(irred_core PRIVATE src/temporal_photometry.cpp)
 foreach(temporal_test IN ITEMS temporal_photometry temporal_photometry_peer)
