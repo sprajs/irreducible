@@ -598,6 +598,38 @@ void repeated_conditioning() {
                .rows[0]
                .status == DensityStatus::finite,
        "retained owner usable after all allocation failures");
+  auto setup_p = posterior();
+  auto setup_noise = noise();
+  calls = 0;
+  fail_on = SIZE_MAX;
+  armed = true;
+  auto setup_measure = GaussianPredictiveConditioning::prepare(
+      std::move(setup_p), setup_noise, response, md);
+  armed = false;
+  const auto setup_sites = calls.load();
+  need(setup_measure.status() == DensityStatus::finite && setup_sites > 0,
+       "measure fixed-owner preparation allocation sites");
+  for (size_t point = 1; point <= setup_sites; ++point) {
+    auto candidate = posterior();
+    auto candidate_noise = noise();
+    const auto before = live.load();
+    {
+      calls = 0;
+      fail_on = point;
+      armed = true;
+      auto rejected = GaussianPredictiveConditioning::prepare(
+          std::move(candidate), candidate_noise, response, md);
+      armed = false;
+      need(rejected.status() != DensityStatus::finite &&
+               rejected.numerical_status() == S::work_limit &&
+               candidate.status() == DensityStatus::finite &&
+               candidate_noise.status() == DensityStatus::finite,
+           "every fixed-owner preparation allocation failure preserves inputs");
+    }
+    need(live.load() == before && candidate.condition(training, rows).status ==
+                                      DensityStatus::finite,
+         "failed fixed preparation leaks no payload and source remains usable");
+  }
 }
 void allocations() {
   auto p = posterior();

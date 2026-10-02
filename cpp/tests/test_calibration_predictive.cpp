@@ -477,6 +477,50 @@ void repeated_conditioning() {
     }
     need(live.load() == before, "failed ladder batches leak no storage");
   }
+  auto setup_g = noise(m);
+  auto setup_p = LadderPosterior::prepare(std::move(setup_g), m, prior(m));
+  auto setup_noise = noise(f);
+  auto setup_model = f;
+  auto setup_md = metadata(setup_p, f);
+  calls = 0;
+  fail_on = SIZE_MAX;
+  armed = true;
+  auto setup_measure = LadderPredictiveConditioning::prepare(
+      std::move(setup_p), setup_noise, std::move(setup_model),
+      std::move(setup_md));
+  armed = false;
+  const auto setup_sites = calls.load();
+  need(setup_measure.status() == DensityStatus::finite && setup_sites > 0,
+       "measure fixed ladder preparation allocation sites");
+  for (size_t point = 1; point <= setup_sites; ++point) {
+    auto candidate_g = noise(m);
+    auto candidate =
+        LadderPosterior::prepare(std::move(candidate_g), m, prior(m));
+    auto candidate_noise = noise(f);
+    const auto before = live.load();
+    {
+      auto candidate_model = f;
+      auto candidate_md = metadata(candidate, f);
+      calls = 0;
+      fail_on = point;
+      armed = true;
+      auto rejected = LadderPredictiveConditioning::prepare(
+          std::move(candidate), candidate_noise, std::move(candidate_model),
+          std::move(candidate_md));
+      armed = false;
+      need(
+          rejected.status() != DensityStatus::finite &&
+              rejected.numerical_status() == N::work_limit &&
+              candidate.status() == DensityStatus::finite &&
+              candidate_noise.status() == DensityStatus::finite,
+          "every fixed ladder preparation allocation failure preserves inputs");
+    }
+    need(candidate.condition(std::span(y).first(1), rows).status ==
+             DensityStatus::finite,
+         "failed fixed ladder preparation preserves usable posterior");
+    need(live.load() == before,
+         "fixed ladder preparation failure leaks no payload");
+  }
 }
 } // namespace
 int main() {
