@@ -236,7 +236,7 @@ target_link_libraries(test_gaussian_design_peer PRIVATE irred_core)
 target_compile_options(test_gaussian_design_peer PRIVATE -Wall -Wextra -Wpedantic -fno-fast-math -ffp-contract=off)
 add_test(NAME gaussian_design_peer_contract COMMAND test_gaussian_design_peer)
 
-target_sources(irred_core PRIVATE src/sampled_photometry.cpp)
+target_sources(irred_core PRIVATE src/sampled_photometry.cpp src/sampled_photometry_abi.cpp)
 add_executable(test_sampled_photometry tests/test_sampled_photometry.cpp)
 target_link_libraries(test_sampled_photometry PRIVATE irred_core)
 target_compile_options(test_sampled_photometry PRIVATE -Wall -Wextra -Wpedantic -fno-fast-math -ffp-contract=off)
@@ -336,6 +336,11 @@ add_executable(test_gaussian_posterior_peer tests/test_gaussian_posterior_peer.c
 target_link_libraries(test_gaussian_posterior_peer PRIVATE irred_core)
 target_compile_options(test_gaussian_posterior_peer PRIVATE -Wall -Wextra -Wpedantic -fno-fast-math -ffp-contract=off)
 add_test(NAME gaussian_posterior_peer_contract COMMAND test_gaussian_posterior_peer)
+
+add_executable(test_sampled_photometry_abi_hostile tests/test_sampled_photometry_abi_hostile.cpp)
+target_link_libraries(test_sampled_photometry_abi_hostile PRIVATE irred_core)
+target_compile_options(test_sampled_photometry_abi_hostile PRIVATE -Wall -Wextra -Wpedantic -fno-fast-math -ffp-contract=off)
+add_test(NAME sampled_photometry_abi_hostile_contract COMMAND test_sampled_photometry_abi_hostile)
 
 # Ordered retained Gaussian with the same explicit thermal distance/ruler state.
 target_sources(irred_core PRIVATE src/bao_thermal.cpp)

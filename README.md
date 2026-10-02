@@ -25,6 +25,8 @@ now maps explicitly supplied physical densities and temperatures into one retain
 state for distances and a conditional supplied-drag ruler. The native
 [thermal BAO density](docs/bao-thermal.md) reuses that state and the retained
 ordered covariance, with explicit density-level numerical admission.
+`photometry.predict` accepts finite sampled spectra and optical passbands in a
+bounded pooled batch, preserving declared input roles and calibration limits.
 [Conditional estimator variance](docs/gaussian-design.md) and the
 [synthetic ladder's H₀ sampling law](docs/calibration-ladder.md) test a separate
 calibration prerequisite. A [proper Gaussian parameter posterior](docs/gaussian-posterior.md)

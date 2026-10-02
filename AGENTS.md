@@ -18,6 +18,11 @@ Use coarse batches and explicit ownership. Acquire/validate an immutable observa
 
 State equations, assumptions, domains and justified error budgets before coding or optimizing. Test analytic limits, independent algorithms, high precision/refinement and adversarial invalid inputs. Shared ancestry is not independent evidence. Preserve a failed result before changing an expectation; never hide discrepancies with jitter, dropped rows or weaker budgets.
 
+Sampled photometry uses pooled coarse ABI2 batches and strict inline CLI inputs.
+Preserve source roles and exact sample order; optical transmission excludes
+quantum efficiency and electronic gain. Calibration uncertainty is separately
+excluded or propagated by its declared native law; read [photometry](docs/photometry.md).
+
 Keep observations, fitted summaries, assumptions and synthetic controls distinct. Track units, frames, calibration, source/axis order, selection and dependence; unknown overlap is not independence. Numerical acceptance does not establish inference or interpretation. Operation code owns output IDs, method/arithmetic and check status; the common recorder must not infer them from operation names.
 
 Measure performance at matched quality and resource limits, including setup/memory. Keep a portable baseline and explicit arithmetic/ISA contracts. Review affected consumers whenever shared kernels change. Review licensing before copying code/assets.
