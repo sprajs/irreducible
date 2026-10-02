@@ -1,4 +1,4 @@
-# Conditional pure-hydrogen recombination and truncated drag history
+# Conditional pure-hydrogen thermal, opacity and truncated drag history
 
 The native C++20 SDK `irred/recombination_drag.hpp` prepares an owned, bounded
 pure-hydrogen non-equilibrium history. It returns the electron fraction `x_e`,
@@ -6,8 +6,12 @@ a positive baryon-drag optical depth measured from a supplied late endpoint,
 and a separately accepted unit-depth root. The compiled identity is
 `pure-H-Peebles3level-F1-prescribed-Tm-equals-Tr-truncated-drag/v1`.
 
-This is a conditional effective three-level approximation with prescribed
-matter temperature `T_m=T_r=T_CMB,0(1+z)`. It does not evolve matter temperature.
+The default remains the prescribed effective three-level approximation with
+`T_m=T_r=T_CMB,0(1+z)`. Explicitly selecting
+`HydrogenTemperatureModel::evolved_compton_adiabatic` evolves matter temperature
+and qualifies additional finite-endpoint Thomson opacity and visibility groups.
+`model_identity()` and `method_identity()` declare the selected physical and
+numerical profiles.
 There is no helium, reionization, molecular physics, calibrated multilevel
 correction, perturbation calculation, CMB likelihood or observational
 qualification. Residual ionization and the finite late endpoint affect the
@@ -17,13 +21,13 @@ thermal distance/ruler and BAO consumers retain their separate route.
 ## Equations, atomic assets and source boundary
 
 [Peebles 1968, equations 26, 30 and 31](https://articles.adsabs.harvard.edu/pdf/1968ApJ...153....1P)
-and [Seager, Sasselov and Scott 1999, equations 1–3 and 6](https://arxiv.org/abs/astro-ph/9909275)
+and [Seager, Sasselov and Scott 1999 v2, equation 1, equation 3 and the unnumbered beta relation on page 4](https://arxiv.org/abs/astro-ph/9909275v2)
 supply the effective three-level structure and hydrogen rate fit. This slice
 uses `F=1`; it does not transfer their empirically calibrated `F=1.14` to a
 pure-hydrogen model. The latter paper warns about the approximate history below
 redshift 300, which is outside this history's domain.
 
-For `T=T_m=T_r`, `t=T/10000 K`, hydrogen nuclei density `n_H` and the same owned
+For `T=T_m` (equal to `T_r` in the prescribed variant), `t=T/10000 K`, hydrogen nuclei density `n_H` and the same owned
 background's physical Hubble rate `H`:
 
 ```
@@ -74,7 +78,9 @@ one, as declared by the atomic consumer.
 
 ## Admission and retained ownership
 
-The first bounded slice admits `1550<=z_initial<=1650`,
+The prescribed slice admits `1550<=z_initial<=1650`; the evolved slice admits
+`1550<=z_initial<=1600`. The latter is a bounded numerical qualification scope,
+not a physical boundary. Both admit
 `300<=z_late<=600`, `60<=H0<=80 km/s/Mpc`, physical baryon density
 `0.015<=omega_b<=0.03`, physical CDM density `0.08<=omega_cdm<=0.15`,
 `2.70<=T_CMB,0<=2.75 K` and other physical massless density from zero to
@@ -89,7 +95,7 @@ moves invalidate the source object. Preparation/query allocation failures return
 `work_limit`; ordinary value copies can throw `std::bad_alloc`. Copy assignment
 constructs a complete replacement first, preserving the destination if allocation
 fails. Ordered `evaluate(redshifts, mask)` batches
-request `hydrogen_electron_fraction`, `hydrogen_drag_depth` or both. Invalid
+request independently masked scalar groups listed below. Invalid
 redshifts fail individually, preserving valid rows. An unrequested group has no
 value. Evaluation performs interpolation, with no new background or ODE work.
 The unit-depth root has its own status; its numerical refusal does not erase
@@ -98,7 +104,7 @@ accepted history coordinates.
 ## Numerical profile and resource accounting
 
 Strict floating-point compilation, `FE_TONEAREST` and long double with at least
-64 mantissa bits and exponent range 16384 are required. The solver uses
+64 mantissa bits and exponent range 16384 are required. The prescribed solver uses
 backward Euler with the unique monotone scalar implicit root, safeguarded
 Newton/bisection and a fixed 80-iteration ceiling. Three meshes at `N`, `2N`
 and `4N` support Richardson extrapolation. Nonpositive or super-unit fractions
@@ -138,3 +144,107 @@ changes, finite-difference ODE residuals, numerical mesh refinement, supplied
 Saha departure, masks, source lifetime, quotas and invalid closures. These are
 synthetic model controls, not additional measured data or a validation of the
 physical closure against the real universe.
+
+
+## Evolved matter temperature and finite-endpoint photon measure
+
+The evolved identity is
+`pure-H-Peebles3level-F1-SSS1999-Tm-rates-Compton-adiabatic-finite-endpoint-Thomson/v1`.
+It uses the literal source's `T_m` throughout `alpha`, `beta` and the
+hydrogen ground-to-excited exponential. `T_r` enters the radiation energy
+and the Compton target. This convention is explicit; it is not a mixed
+radiation-temperature photoionization scheme or calibrated RECFAST/HyRec.
+Equation **5** of SSS1999v2 supplies the temperature closure; equation 4 is a
+helium rate and equation 6 is HeII Saha, neither the temperature nor beta source.
+For pure hydrogen `x_e=x_p=x`, `f_He=0`:
+
+```
+u = 1+z, T_r = T_CMB,0*u
+u_gamma = Omega_gamma*rho_critical_energy(H0)*u^4 [J/m^3]
+Gamma_C = 8*sigma_T*u_gamma/(3*m_e*c)*x/(1+x) [1/s]
+dT_m/dz = (Gamma_C*(T_m-T_r)+2*H*T_m)/(H*u) [K per redshift]
+q_T = c*sigma_T*n_H*x/(H*u) [per redshift]
+tau_T(z;z_late) = integral[z_late,z] q_T dz
+g_z = q_T*exp(-tau_T) [per redshift]
+S(z;z_late) = exp(-tau_T)
+```
+
+The radiation energy reuses the thermal mapper's photon state. Its exact SI
+identity is `a_R=8*pi^5*kB^4/(15*h^3*c^3)`, without a separately rounded
+radiation constant. Mapped photon rounding and H estimates enter the temperature
+diagnostic separately. The heat equation includes only adiabatic expansion and
+Compton coupling; other heating, cooling and a variable-particle-number energy
+term are excluded. The boundary is one shared Saha fraction with
+`T_m(z_initial)=T_r(z_initial)`, rather than equilibrium imposed throughout.
+The finite endpoint excludes all later ionization and reionization.
+
+A finite-cell positive linear opacity has an exact quadratic integral for
+`tau_T`. Both query `q_T` and `g_z` use that same cell definition, giving
+`integral g_z dz = 1-S(z_initial)` plus surviving boundary mass
+`S(z_initial)`. Visibility is not renormalized. This per-redshift measure is
+not a distribution per conformal time, today's optical depth or a full CMB
+last-scattering prediction. Drag retains the separate `q_T/R` equation and
+endpoint-dependent unit-depth root.
+
+| Mask | Row group | Units |
+|---|---|---|
+| 1 | `electron_fraction` | dimensionless |
+| 2 | `drag_depth` | dimensionless |
+| 4 | `matter_temperature_kelvin` | K |
+| 8 | `thomson_depth` | dimensionless |
+| 16 | `thomson_opacity_per_redshift` | per redshift |
+| 32 | `visibility_per_redshift` | per redshift |
+| 64 | `finite_endpoint_survival` | dimensionless |
+
+The prescribed variant exposes its explicit radiation temperature under mask4;
+its new photon groups are individually `outside_domain`, preserving accepted
+legacy groups. Unknown mask bits and an empty mask are invalid. Each requested
+group has its own optional scalar, status and absolute empirical error estimate.
+
+The coupled solver eliminates the backward-Euler temperature equation at each
+trial fraction. With decreasing-redshift step `h`, `A=Gamma_C/(H*u)`:
+
+```
+T_new = (T_previous+h*A(x_new)*T_r,new)/(1+h*A(x_new)+2*h/u_new)
+R_x = x_new-x_previous+h*f(x_new,T_new)
+J = 1+h*(f_x+f_T*dT_new/dx_new)
+```
+
+A safeguarded bracket and at most80 Newton/bisection trials check the effective
+Jacobian and both equation residuals. No global coupled monotonicity/uniqueness
+proof is asserted. Unresolved, ill-conditioned or nonphysical steps refuse;
+there is no clipping or Saha substitution. Nested quadratic-redshift meshes
+`z_i=z_initial-(z_initial-z_late)*(i/N)^2` resolve the initial stiff Compton
+boundary. Richardson states and interpolation must retain `0<x<1` and
+`0<T_m<=T_r`. The prescribed uniform mesh and scalar output bits retain their
+original arithmetic identity.
+
+Additional accepted allocations are `2e-5 K+2e-7*abs(T_m)` for temperature,
+`2e-7+1e-6*abs(tau_T)` for Thomson depth, `2e-9+2e-6*abs(q_T)` per redshift
+for opacity, `2e-9+3e-6*abs(g_z)` per redshift for visibility and
+`1e-5*abs(S)` for survival. The finite visibility-mass allocation is `2e-7`
+absolute. Opacity propagates fraction and H errors. Partial-cell depth errors integrate
+nonnegative endpoint opacity errors with the same positive primitive weights;
+cumulative refinement and curvature allowances are retained. Exponential diagnostics
+use `e_S=S*expm1(e_tau)` and
+`e_g=S*(e_q+(abs(q)+e_q)*expm1(e_tau))`, plus arithmetic. A tiny positive
+value/product/diagnostic cannot silently become zero; projection refuses if it
+is unrepresentable or exceeds its own allocation.
+
+Evolved preparation counts both ionization and temperature RHS evaluations,
+including failed trials. Actual enlarged row/header sizes and evolved auxiliary
+storage are charged by the payload helper; tight old byte caps may now refuse.
+The default finest32768 grid fits the default16MiB preparation cap; finest65536
+requires an explicitly larger cap. These are payload bounds, not RSS estimates.
+
+Independent thermal controls use original direct-SI equations and a separately
+authored two-stage order3 L-stable RadauIIA algorithm in logarithmic expansion,
+with stage Newton/finite-difference Jacobian, resolved initial Compton layer,
+positive stages and no clipping. Reference refinement must use at most five
+percent of every named downstream allocation. Constant-coupling/adiabatic
+analytic limits and independent opacity quadrature challenge temperature signs,
+units, finite-interval visibility mass and boundary survival. Both compiled
+routes use long double/system libm with declared shared constants; this is
+algorithm/refinement evidence, not an independent high-precision certificate.
+Atomic, rate-fit and truncated thermal-model errors remain excluded from these
+numerical allocations.
