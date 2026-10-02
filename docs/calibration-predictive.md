@@ -142,3 +142,15 @@ prior-predictive ensemble, the conditional future law instead has covariance W;
 its whitened joint ellipsoid has the exact corresponding chi-square probability.
 Analytic Gaussian controls precede stochastic coverage; a seeded empirical
 receipt cannot replace those distinctions or qualify observational coverage.
+
+The independent peer freezes a separate eleven-row, two-host/eight-parameter
+rational fixture with correlated full prior/noise and nonzero Hubble offsets.
+Covariance conditioning and independently formed prior/noise precision agree
+exactly in Fraction arithmetic before native evaluation. A prior-whitened
+two-coordinate quadrature integrates prior × training × future noise directly;
+16/24-order composite refinement is below five percent of the density allocation.
+A noiseless fixed-truth response checks posterior bias and the resulting eta/H0
+credible-interval coverage formula. Numerical integration of the conditional
+two-row joint ellipsoid agrees with the chi-square2 mass 1-exp(-radius²/2),
+with separate refinement. These are analytic synthetic law checks; no empirical
+coverage campaign or observational held-out claim is made.

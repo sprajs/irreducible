@@ -143,3 +143,12 @@ controls, direct prior/noise integration and normalized native mass quadrature
 test the synthetic scope. Disjoint ordered row/event IDs, units and measures are
 explicit declarations. This adds no observational qualification, nonlinear
 prediction, train/future cross-noise covariance or released finite-box inference.
+
+The native [proper-prior ladder consumer](calibration-predictive.md) now shares
+the compiled anchor/Cepheid/SN design and offsets with relative recovery. It
+retains a proper Gaussian parameter posterior and a full joint law for disjoint
+synthetic future rows, including shared calibration covariance and a lognormal
+H0 projection with numerical diagnostics. Exact rational correlated controls,
+independent prior/noise integration, fixed-truth bias/coverage and conditional
+chi-square ellipsoid mass checks test this scope. It supplies no released-box
+posterior, cross-noise inference or measured-data qualification.
