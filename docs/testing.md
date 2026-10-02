@@ -32,7 +32,7 @@ C++ tests exercise scientific/numerical contracts and hostile ABI cases. Rust te
 
 ## Exclusive build-identity test
 
-This test changes source comments and CMake flags, then rebuilds and restores them. Run it in an isolated checkout, with no other build using that tree:
+This test changes source comments, an actually included CMake fragment and CMake flags, then rebuilds and restores them. Run it in an isolated checkout, with no other build using that tree:
 
 ```sh
 cargo test --locked --offline -j4 --test build_identity --no-run
@@ -44,7 +44,7 @@ Cargo prints the compiled test executable path. Run **that exact path**, followe
 --ignored --exact source_receipt_flags_and_cache_identity
 ```
 
-Do not launch it through a nested Cargo test invocation. Ordinary Cargo testing intentionally ignores it. It checks that source changes affect build identity, mutable local files do not, unsupported overrides fail, and poisoned CMake flags are reset. Preserve the original checkout if the process is forcibly terminated before restoration.
+Do not launch it through a nested Cargo test invocation. Ordinary Cargo testing intentionally ignores it. It checks that source changes (including `cpp/**/*.cmake` fragment digests) affect build identity, mutable local files do not, unsupported overrides fail, and poisoned CMake flags are reset. The fragment probe verifies actual CMake inclusion and restores both its bytes and the original include list before removal. Preserve the original checkout if the process is forcibly terminated before restoration.
 
 ## Fixture ancestry
 
