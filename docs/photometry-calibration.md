@@ -18,6 +18,16 @@ valid and receives no jitter. This is variance of expected signal, not photon sh
 noise, detection/electronic noise, source, distance or population uncertainty.
 Incident flux is fixed under transmission changes and is not a stochastic axis.
 
+`CalibrationResult::normalized_state_mass` retains the owner's wide normalized
+weights in input state order, including very small positive states. The default
+`CalibrationAggregation::population_moments` retains the existing full moment
+calculation and sensitivity gates. An explicit `state_resolved_only` request
+returns the same required state-band predictions and weights while omitting
+population moments and their aggregate sensitivity gates. This supports the
+[joint detector composition](optical-detector.md), whose likelihood uses each
+conditional signal directly. It does not substitute unresolved rounded spread
+for a zero calibration covariance; every required state/output still must pass.
+
 Axes follow input band order, energy before photons when both are requested.
 Energy means use joules, photon means use expected counts; covariance units are
 products of the corresponding axis units. Source, calibration, distribution and

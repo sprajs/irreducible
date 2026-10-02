@@ -104,6 +104,15 @@ int main() {
     check(r.status == irred::numerics::Status::conditioning_budget_exceeded &&
               !r.moments,
           "unresolved spread refused");
+    auto state_policy = CalibrationPolicy{};
+    state_policy.aggregation = CalibrationAggregation::state_resolved_only;
+    auto state_law = evaluate_calibration(in, state_policy);
+    check(state_law.status == irred::numerics::Status::ok && !state_law.moments &&
+              state_law.attempts.size() == 4 && state_law.normalized_state_mass.size() == 2,
+          "explicit state law does not request unresolved population moments");
+    check(state_law.normalized_state_mass[0] == .25L &&
+              state_law.normalized_state_mass[1] == .75L,
+          "retained normalized masses share one owner");
     low = {0.25, 0.25};
     high = {0.75, 0.75};
     high[1] = 2;
@@ -111,6 +120,10 @@ int main() {
     check(r.status != irred::numerics::Status::ok && !r.moments &&
               r.attempts.size() == 4,
           "partial failures retained");
+    state_law = evaluate_calibration(in, state_policy);
+    check(state_law.status != irred::numerics::Status::ok && !state_law.moments &&
+              state_law.attempts.size() == 4 && state_law.normalized_state_mass.size() == 2,
+          "state-only preserves every required refusal and normalized mass");
     high[1] = 0.75;
     for (double mass : {0.0, -1.0, std::numeric_limits<double>::denorm_min(),
                         std::numeric_limits<double>::infinity()}) {
