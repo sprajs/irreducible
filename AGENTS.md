@@ -74,7 +74,10 @@ separate from numerical error.
 The shared Saha operator supplies only the initial condition. A truncated
 late-endpoint unit-depth root must not replace a source-defined physical drag
 epoch or imply full recombination, helium or CMB closure. Finite-endpoint
-Thomson visibility retains survival mass; it is not present-day CMB visibility.
+Bounded positive-mass relics use the same retained thermal H state and distinct
+model IDs; they need an explicit larger work cap because direct momentum
+callbacks count. Never silently increase defaults or double-count explicit relics
+in the additional massless density. Thomson visibility retains survival mass; it is not present-day CMB visibility.
 Use the same within-cell scattering rate and optical-depth derivative; never
 renormalize missing boundary mass or silently replace a positive unresolved
 quantity with zero.

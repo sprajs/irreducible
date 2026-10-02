@@ -66,12 +66,14 @@ See [Gaussian design](gaussian-design.md).
 The native [hydrogen equilibrium](hydrogen-equilibrium.md) model now supplies
 separate ground-state pure-H fractions under supplied temperature/density. The
 [conditional history](recombination-drag.md) advances a bounded effective
-three-level model with a massless thermal background and explicit choice of
+three-level model with the shared thermal background and explicit choice of
 prescribed Tm=Tr or coupled Compton/adiabatic matter temperature. The coupled
 variant supplies Thomson depth, per-redshift scattering rate and unnormalized
 finite-endpoint visibility with boundary survival. Both integrate drag optical
 depth from an explicit late endpoint. Its unit-depth
-root depends on that endpoint and physical approximation; it is not a qualified
+root depends on that endpoint and physical approximation;
+bounded positive-mass relics now feed the same retained H source, with direct
+momentum costs charged. No hierarchy/Neff mapping or helium kinetics is added; it is not a qualified
 cosmological drag epoch. Helium, multilevel rates, atomic/model uncertainty,
 qualified full optical-depth endpoints and reionization remain prerequisites
 before physical-ruler or CMB coupling. Finite-endpoint visibility does not

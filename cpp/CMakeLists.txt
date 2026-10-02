@@ -417,3 +417,11 @@ foreach(hydrogen_thermal_test IN ITEMS hydrogen_thermal hydrogen_thermal_peer)
   target_compile_options(test_${hydrogen_thermal_test} PRIVATE -Wall -Wextra -Wpedantic -fno-fast-math -ffp-contract=off)
   add_test(NAME ${hydrogen_thermal_test}_contract COMMAND test_${hydrogen_thermal_test})
 endforeach()
+
+# Explicit collisionless relics in the same conditional pure-H history state.
+foreach(relic_history_test IN ITEMS hydrogen_relics hydrogen_relics_peer)
+  add_executable(test_${relic_history_test} tests/test_${relic_history_test}.cpp)
+  target_link_libraries(test_${relic_history_test} PRIVATE irred_core)
+  target_compile_options(test_${relic_history_test} PRIVATE -Wall -Wextra -Wpedantic -fno-fast-math -ffp-contract=off)
+  add_test(NAME ${relic_history_test}_contract COMMAND test_${relic_history_test})
+endforeach()
