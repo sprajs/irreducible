@@ -491,6 +491,18 @@ foreach(abundance_test IN ITEMS baryon_abundance baryon_abundance_peer)
   add_test(NAME ${abundance_test}_contract COMMAND test_${abundance_test})
 endforeach()
 
+# Supplied finite joint abundance/mass/temperature law, full population moments.
+target_sources(irred_core PRIVATE src/baryon_abundance_law.cpp)
+add_executable(test_baryon_abundance_law tests/test_baryon_abundance_law.cpp)
+target_link_libraries(test_baryon_abundance_law PRIVATE irred_core)
+target_compile_options(test_baryon_abundance_law PRIVATE -Wall -Wextra -Wpedantic -fno-fast-math -ffp-contract=off)
+add_test(NAME baryon_abundance_law_contract COMMAND test_baryon_abundance_law)
+
+add_executable(test_baryon_abundance_law_peer tests/test_baryon_abundance_law_peer.cpp)
+target_link_libraries(test_baryon_abundance_law_peer PRIVATE irred_core)
+target_compile_options(test_baryon_abundance_law_peer PRIVATE -Wall -Wextra -Wpedantic -fno-fast-math -ffp-contract=off)
+add_test(NAME baryon_abundance_law_peer_contract COMMAND test_baryon_abundance_law_peer)
+
 # Conditional supplied-amplitude GR growth and bounded synthetic RSD density.
 target_sources(irred_core PRIVATE src/growth_amplitude.cpp src/rsd.cpp)
 foreach(growth_rsd_test IN ITEMS growth_amplitude rsd)

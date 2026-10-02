@@ -1,3 +1,5 @@
+#include <irred/baryon_abundance_law.hpp>
+
 #include <irred/growth_amplitude.hpp>
 #include <irred/rsd.hpp>
 // Standalone installed-library linkage contract; no survey/science qualification.
@@ -341,6 +343,21 @@ int installed_nested_fd() {
  const auto batch=background.evaluate(std::array{.1},thermal_e,p);
  return moments.status==irred::numerics::Status::ok && moments.rho_moment && std::abs(*moments.rho_moment-6.045645184985879)<1e-9 && background.momentum_method()==p.momentum_method && batch.status==irred::numerics::Status::ok && batch.rows.size()==1 && batch.rows[0].e.value && std::abs(*batch.rows[0].e.value-17.398718835753673)<1e-8 ? 0:22;
 }
+int installed_abundance_law() {
+ using namespace irred::cosmology;
+ const std::array<BaryonAbundanceLawRow,1> rows{{{"synthetic row",1}}};
+ const std::array<double,1> temperature{10000};
+ const std::array<BaryonAbundanceLawState,2> states{{
+  {"low",1,{.02,.25,1.6735328383153192e-27,6.646479071583153e-27,"synthetic physical density","supplied synthetic neutral masses"},temperature,"supplied synthetic matter temperature"},
+  {"high",3,{.04,.25,1.6735328383153192e-27,6.646479071583153e-27,"synthetic physical density","supplied synthetic neutral masses"},temperature,"supplied synthetic matter temperature"}}};
+ const auto op=prepare_baryon_abundance_law({rows,states,"finite synthetic masses1/3","one joint density state"});
+ const auto r=op.evaluate_density();
+ if(r.status!=irred::numerics::Status::ok || !r.moments || r.attempts.size()!=2) return 24;
+ const double h=*r.attempts[0].rows[0].hydrogen_nuclei.value;
+ return std::abs(r.moments->mean[0]/(1.75*h)-1)<2e-15 &&
+  std::abs(r.moments->covariance[0]/(.1875*h*h)-1)<2e-8 &&
+  r.moments->covariance[1]==r.moments->covariance[2] ? 0:24;
+}
 int installed_growth_rsd() {
  using namespace irred;
  const cosmology::FixedSigma8Source amplitude{.8,1,cosmology::Sigma8Convention::linear_pressureless_total_matter_top_hat_8_over_h_mpc,cosmology::AmplitudeTreatment::fixed_supplied,"installed supplied linear amplitude","synthetic8/h Mpc convention"};
@@ -412,6 +429,8 @@ int main() {
  if(const auto ladder_future_status=installed_ladder_predictive();ladder_future_status!=0) return ladder_future_status;
  if(const auto abundance_status=installed_baryon_abundance();abundance_status!=0) return abundance_status;
  if(const auto nested_status=installed_nested_fd();nested_status!=0) return nested_status;
+ if(const auto law_status=installed_abundance_law();law_status!=0) return law_status;
+
  if(const auto rsd_status=installed_growth_rsd();rsd_status!=0) return rsd_status;
  return installed_correlated_calibration();
 }

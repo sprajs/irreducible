@@ -90,6 +90,12 @@ consumer maps explicit physical omega_b, He4 mass fraction and neutral effective
 masses into that LTE state. Abundance prediction and helium kinetics remain
 separate; preserve mass conventions, supplied matter-temperature provenance
 and combined density/atomic diagnostics.
+The [finite joint abundance law](docs/baryon-abundance-law.md) retains complete
+supplied abundance/mass/temperature states and population cross-row covariance.
+Keep its physical spread separate from numerical sensitivity; required state
+refusals withhold moments without dropping or renormalizing states. A constant
+raw-input witness is needed for exact zero variance. G and atomic assets remain
+fixed; this is not a BBN prediction or a qualified cosmological input law.
 The shared Saha operator supplies only the initial condition. A truncated
 late-endpoint unit-depth root must not replace a source-defined physical drag
 epoch or imply full recombination, helium or CMB closure.
