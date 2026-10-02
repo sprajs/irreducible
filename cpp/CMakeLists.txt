@@ -360,7 +360,7 @@ foreach(hydrogen_test IN ITEMS hydrogen_equilibrium hydrogen_equilibrium_peer hy
   add_test(NAME ${hydrogen_test}_contract COMMAND test_${hydrogen_test})
 endforeach()
 
-# Pure-H effective three-level / prescribed-temperature conditional history.
+# Pure-H effective three-level histories; explicit temperature closure.
 target_sources(irred_core PRIVATE src/recombination_drag.cpp)
 add_executable(test_recombination_drag tests/test_recombination_drag.cpp)
 target_link_libraries(test_recombination_drag PRIVATE irred_core)
@@ -409,3 +409,11 @@ add_executable(test_detector_peer tests/test_detector_peer.cpp)
 target_link_libraries(test_detector_peer PRIVATE irred_core)
 target_compile_options(test_detector_peer PRIVATE -Wall -Wextra -Wpedantic -fno-fast-math -ffp-contract=off)
 add_test(NAME detector_peer_contract COMMAND test_detector_peer)
+
+# Coupled pure-H Compton/adiabatic history and finite-endpoint visibility.
+foreach(hydrogen_thermal_test IN ITEMS hydrogen_thermal hydrogen_thermal_peer)
+  add_executable(test_${hydrogen_thermal_test} tests/test_${hydrogen_thermal_test}.cpp)
+  target_link_libraries(test_${hydrogen_thermal_test} PRIVATE irred_core)
+  target_compile_options(test_${hydrogen_thermal_test} PRIVATE -Wall -Wextra -Wpedantic -fno-fast-math -ffp-contract=off)
+  add_test(NAME ${hydrogen_thermal_test}_contract COMMAND test_${hydrogen_thermal_test})
+endforeach()

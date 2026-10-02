@@ -204,10 +204,28 @@ int installed_hydrogen_history() {
  const double redshifts[]{300,1000};
  const auto history=owner.evaluate(redshifts,hydrogen_electron_fraction|hydrogen_drag_depth);
  const auto root=owner.conditional_unit_depth_redshift();
- return owner.status()==irred::numerics::Status::ok && history.rows.size()==2 &&
+ if (!(owner.status()==irred::numerics::Status::ok && history.rows.size()==2 &&
   history.rows[0].drag_depth.value==0 && history.rows[1].electron_fraction.value &&
   *history.rows[1].electron_fraction.value>0 && *history.rows[1].electron_fraction.value<1 &&
-  root.value && *root.value>1000 && *root.value<1100 ? 0 : 16;
+  root.value && *root.value>1000 && *root.value<1100)) return 16;
+ auto coupled_source=source;
+ coupled_source.temperature_model=HydrogenTemperatureModel::evolved_compton_adiabatic;
+ const auto coupled=prepare_pure_hydrogen_history(coupled_source);
+ if(coupled.status()!=irred::numerics::Status::ok ||
+  coupled.model_identity()!=evolved_hydrogen_history_id ||
+  coupled.work().temperature_rhs_evaluations==0) return 17;
+ const auto before=coupled.work().total();
+ const auto optical=coupled.evaluate(redshifts,hydrogen_matter_temperature|
+  hydrogen_thomson_depth|hydrogen_thomson_opacity|hydrogen_visibility|hydrogen_survival);
+ if(optical.rows.size()!=2 || coupled.work().total()!=before ||
+  optical.rows[0].thomson_depth.value!=0 || optical.rows[0].finite_endpoint_survival.value!=1) return 17;
+ const auto& middle=optical.rows[1];
+ return middle.matter_temperature_kelvin.value && middle.thomson_depth.value &&
+  middle.thomson_opacity_per_redshift.value && middle.visibility_per_redshift.value &&
+  middle.finite_endpoint_survival.value && *middle.matter_temperature_kelvin.value>0 &&
+  *middle.matter_temperature_kelvin.value<source.model.tcmb_kelvin*1001 &&
+  *middle.thomson_depth.value>0 && *middle.visibility_per_redshift.value>0 &&
+  *middle.finite_endpoint_survival.value>0 && *middle.finite_endpoint_survival.value<1 ? 0 : 17;
 }
 int main() {
  const auto result=irred::numerics::log1p_checked(0.5);

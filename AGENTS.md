@@ -69,10 +69,15 @@ Use [GR growth](docs/gr-growth.md) only with its compatible radiation-free press
 Read [hydrogen equilibrium](docs/hydrogen-equilibrium.md) and the
 [conditional pure-H history](docs/recombination-drag.md) before composing thermal
 consumers. Atomic central values/uncertainty, equilibrium assumptions and
-prescribed-temperature/rate approximations are separate from numerical error.
+prescribed or evolved Compton/adiabatic temperature and rate approximations are
+separate from numerical error.
 The shared Saha operator supplies only the initial condition. A truncated
 late-endpoint unit-depth root must not replace a source-defined physical drag
-epoch or imply full recombination, helium, visibility or CMB closure.
+epoch or imply full recombination, helium or CMB closure. Finite-endpoint
+Thomson visibility retains survival mass; it is not present-day CMB visibility.
+Use the same within-cell scattering rate and optical-depth derivative; never
+renormalize missing boundary mass or silently replace a positive unresolved
+quantity with zero.
 
 Use the [synthetic SIS thin lens](docs/sis-thin-lens.md) only with its compatible
 massless-radiation early/late distances and bounded tangent-plane geometry.

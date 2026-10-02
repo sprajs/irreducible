@@ -257,7 +257,7 @@ int main() {
            "requested history groups only");
     }
     need(baseline_owner.evaluate(fixed_z, 0).rows.empty() &&
-             baseline_owner.evaluate(fixed_z, 4).rows.empty(),
+             baseline_owner.evaluate(fixed_z, 128).rows.empty(),
          "mask validation");
     need(baseline_owner.evaluate(fixed_z, 3, 0).rows.empty() &&
              baseline_owner.evaluate(fixed_z, 3, 4096, 1).rows.empty(),
