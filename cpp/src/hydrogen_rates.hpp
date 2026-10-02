@@ -29,6 +29,28 @@ inline HydrogenRates hydrogen_rates(long double temperature, long double B1,
                   (B1 - E21) / (boltzmann_constant_joule_per_kelvin *
                                 temperature * temperature))};
 }
+struct HydrogenRhs {
+  long double value, x_derivative, temperature_derivative;
+};
+// Single owner of the effective three-level C factor and scalar equation.
+// The f/f_x arithmetic is the original prescribed-temperature expression.
+inline HydrogenRhs hydrogen_three_level_rhs(long double A, long double B,
+                                            long double D, long double E,
+                                            long double x,
+                                            long double B_temperature = 0,
+                                            long double D_temperature = 0,
+                                            long double E_temperature = 0) {
+  const long double neutral = 1 - x, den = 1 + B * neutral,
+                    C = (1 + A * neutral) / den,
+                    fx = D * (2 * x * C + x * x * (B - A) / (den * den)) +
+                         E * (1 + 2 * A * neutral + A * B * neutral * neutral) /
+                             (den * den),
+                    CT = -(1 + A * neutral) * B_temperature * neutral /
+                         (den * den);
+  return {C * (D * x * x - E * neutral), fx,
+          C * (D_temperature * x * x - E_temperature * neutral) +
+              CT * (D * x * x - E * neutral)};
+}
 // Exact finite-cell primitive for a linearly interpolated opacity (or its
 // nonnegative absolute-error field); theta is measured upward from low z.
 inline long double hydrogen_opacity_cell_integral(long double low,

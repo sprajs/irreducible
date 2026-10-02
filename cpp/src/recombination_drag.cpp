@@ -54,13 +54,11 @@ struct Evolution {
       return 0;
     }
     ++work.rhs_evaluations;
-    W neutral = 1 - x, den = 1 + q.B * neutral, C = (1 + q.A * neutral) / den;
+    const auto dynamics =
+        detail::hydrogen_three_level_rhs(q.A, q.B, q.D, q.E, x);
     if (derivative)
-      *derivative =
-          q.D * (2 * x * C + x * x * (q.B - q.A) / (den * den)) +
-          q.E * (1 + 2 * q.A * neutral + q.A * q.B * neutral * neutral) /
-              (den * den);
-    return C * (q.D * x * x - q.E * neutral);
+      *derivative = dynamics.x_derivative;
+    return dynamics.value;
   }
   W implicit(const Coeff &q, W previous, W h) {
     W lower = 0, upper = 1, x = previous;
@@ -133,17 +131,12 @@ struct ThermalEvolution {
                     rates.beta * E21 /
                         (boltzmann_constant_joule_per_kelvin * T * T)) *
                    boltzmann / (q.H * q.u),
-              neutral = 1 - x, den = 1 + rateB * neutral,
-              C = (1 + A * neutral) / den, f = C * (D * x * x - E * neutral),
-              fx = D * (2 * x * C + x * x * (rateB - A) / (den * den)) +
-                   E * (1 + 2 * A * neutral + A * rateB * neutral * neutral) /
-                       (den * den),
-              CT = -(1 + A * neutral) * beta_factor *
-                   rates.beta_temperature_derivative * neutral / (den * den),
-              fT = C * (DT * x * x - ET * neutral) +
-                   CT * (D * x * x - E * neutral),
-              jacobian = 1 + h * (fx + fT * Tx),
-              residual = x - previous.x + h * f,
+              BT = beta_factor * rates.beta_temperature_derivative;
+      const auto dynamics =
+          detail::hydrogen_three_level_rhs(A, rateB, D, E, x, BT, DT, ET);
+      const W jacobian = 1 + h * (dynamics.x_derivative +
+                                  dynamics.temperature_derivative * Tx),
+              residual = x - previous.x + h * dynamics.value,
               temperature_residual =
                   T - previous.temperature +
                   h * (coupling * (T - q.radiation_temperature) + 2 * T / q.u),
