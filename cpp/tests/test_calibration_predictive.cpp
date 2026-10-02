@@ -385,9 +385,13 @@ void repeated_conditioning() {
            batch.rows[2].status == DensityStatus::numerical_failure &&
            batch.rows[2].numerical_status == N::conditioning_budget_exceeded,
        "original future rounded offset refusal retained without clipping");
-  near(batch.means[0], (31.L + 2 * 32) / 3 - 7.875L);
-  near(batch.means[1], 21.625L);
-  near(retained.covariance()[0], 23.L / 3);
+  // Independent scalar update: V_A=(1/2+1)^-1=2/3, mu_A=95/3.
+  // log10(P/day)=1 equals the source pivot, so the b response is zero.
+  // Future HF mean is 40 + M_SN - eta + delta = 40-19-1/2+1/8.
+  near(batch.means[0], 643.L / 24);
+  near(batch.means[1], 165.L / 8);
+  near(batch.means[2], 611.L / 24);
+  near(retained.covariance()[0], 17.L / 3);
   near(retained.covariance()[1], 2.25L);
   near(retained.covariance()[3], 7.L);
   auto original_ng = noise(f);
