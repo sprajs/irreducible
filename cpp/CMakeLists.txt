@@ -453,3 +453,12 @@ foreach(predictive_test IN ITEMS gaussian_predictive gaussian_predictive_peer)
   target_compile_options(test_${predictive_test} PRIVATE -Wall -Wextra -Wpedantic -fno-fast-math -ffp-contract=off)
   add_test(NAME ${predictive_test}_contract COMMAND test_${predictive_test})
 endforeach()
+
+# Supplied neutral-mass H/He abundance and conditional LTE consumer.
+target_sources(irred_core PRIVATE src/baryon_abundance.cpp)
+foreach(abundance_test IN ITEMS baryon_abundance baryon_abundance_peer)
+  add_executable(test_${abundance_test} tests/test_${abundance_test}.cpp)
+  target_link_libraries(test_${abundance_test} PRIVATE irred_core)
+  target_compile_options(test_${abundance_test} PRIVATE -Wall -Wextra -Wpedantic -fno-fast-math -ffp-contract=off)
+  add_test(NAME ${abundance_test}_contract COMMAND test_${abundance_test})
+endforeach()

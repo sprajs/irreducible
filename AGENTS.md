@@ -77,7 +77,11 @@ prescribed or evolved Compton/adiabatic temperature and rate approximations are
 separate from numerical error.
 The [H/He equilibrium](docs/hydrogen-helium-equilibrium.md) prerequisite uses
 one shared electron density and independently supplied nuclei densities. It
-provides ground-state LTE, not abundance mapping or helium kinetics.
+provides ground-state LTE. The [supplied baryon abundance](docs/baryon-abundance.md)
+consumer maps explicit physical omega_b, He4 mass fraction and neutral effective
+masses into that LTE state. Abundance prediction and helium kinetics remain
+separate; preserve mass conventions, supplied matter-temperature provenance
+and combined density/atomic diagnostics.
 The shared Saha operator supplies only the initial condition. A truncated
 late-endpoint unit-depth root must not replace a source-defined physical drag
 epoch or imply full recombination, helium or CMB closure.
