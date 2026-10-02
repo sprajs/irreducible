@@ -35,6 +35,7 @@ inline constexpr std::array<long double,2> ladder_future_coverage{0.959168004957
 #include <cstdlib>
 #include <new>
 namespace allocation_observation { inline bool active=false; inline size_t calls=0; }
+#ifdef IRRED_RECOVERY_CAPTURE
 #if defined(__GNUC__) || defined(__clang__)
 #define IRRED_RECOVERY_NOINLINE __attribute__((noinline))
 #else
@@ -50,6 +51,7 @@ IRRED_RECOVERY_NOINLINE void operator delete(void *p)noexcept{std::free(p);}
 IRRED_RECOVERY_NOINLINE void operator delete[](void *p)noexcept{::operator delete(p);}
 IRRED_RECOVERY_NOINLINE void operator delete(void *p,size_t)noexcept{::operator delete(p);}
 IRRED_RECOVERY_NOINLINE void operator delete[](void *p,size_t)noexcept{::operator delete(p);}
+#endif
 namespace recovery_controls {
 namespace s=irred::statistics;namespace n=irred::numerics;using W=long double;
 inline constexpr size_t attempts=32768,chunk=1024;
