@@ -29,6 +29,7 @@
 #include <irred/thermal_observables.hpp>
 #include <array>
 #include <cmath>
+#include <limits>
 #include <numbers>
 int installed_conditional_bao() {
  using namespace irred;
@@ -308,6 +309,110 @@ int installed_gaussian_predictive() {
  return std::abs(prediction.mean()[0]-2)<2e-12&&std::abs(prediction.covariance()[0]-2.5)<2e-12&&
  density.density.status==DensityStatus::finite&&std::abs(density.density.log_value+.5*std::log(5*std::numbers::pi))<2e-11 ? 0 : 19;
 }
+bool installed_predictive_close(long double actual, long double expected,
+                                 long double allocation) {
+  return std::isfinite(actual) &&
+         std::abs(actual - expected) <= allocation * (1 + std::abs(expected));
+}
+int installed_repeated_gaussian_predictive() {
+  using namespace irred::statistics;
+  const std::array<std::string, 1> training_ids{"training"}, future_ids{"future"};
+  // Independent scalar update: C=1, X=(1,0), m=0, S=I imply
+  // V_beta=1/2, mu_beta=r/2. A=(2,0), R=1/2 give b(r)=r, W=5/2.
+  // Setup locals are destroyed before any pooled evaluation.
+  auto owner = [&] {
+    Metadata source;
+    source.ordered_ids = {"training"};
+    source.measure = "product d(mag)";
+    source.source_semantics = "synthetic controls";
+    source.table_identity = "installed repeated scalar training";
+    source.uncertainty_identity = "unit conditional noise";
+    source.ordering_provenance = "one explicit original coordinate";
+    source.calibration_provenance = "synthetic calibration";
+    source.dependence_provenance = "independent conditional noise";
+    auto training = prepare_gaussian(
+        std::array<double, 1>{1}, MatrixKind::covariance, source, 1024, 1e-10,
+        irred::numerics::Arithmetic::longdouble_cpu_v1);
+    ParameterPrior prior;
+    prior.ordered_parameter_ids = {"beta", "unused"};
+    prior.parameter_units = {"mag", "mag"};
+    prior.mean = {0, 0};
+    prior.covariance = {1, 0, 0, 1};
+    prior.prior_identity = "installed independent proper scalar prior";
+    prior.design_identity = "installed X=(1,0)";
+    prior.residual_unit = "mag";
+    prior.parameter_measure = "product d(mag)";
+    prior.dependence_identity = "prior independent of training noise";
+    prior.noise_independence_declared = true;
+    auto posterior = GaussianPosterior::prepare(
+        std::move(training), std::array<double, 2>{1, 0}, training_ids, prior);
+    source.ordered_ids = {"future"};
+    source.table_identity = "installed repeated scalar future noise";
+    auto future = prepare_gaussian(
+        std::array<double, 1>{.5}, MatrixKind::covariance, source, 1024, 1e-10,
+        irred::numerics::Arithmetic::longdouble_cpu_v1);
+    PredictiveMetadata metadata;
+    metadata.ordered_parameter_ids = prior.ordered_parameter_ids;
+    metadata.parameter_units = prior.parameter_units;
+    metadata.response_units = {"mag/mag", "mag/mag"};
+    metadata.training_event_ids = {"training-event"};
+    metadata.future_event_ids = {"future-event"};
+    metadata.future_unit = "mag";
+    metadata.future_covariance_unit = "mag^2";
+    metadata.future_measure = "product d(mag)";
+    metadata.response_identity = "installed A=(2,0)";
+    metadata.conditioning_identity = "original scalar vector pool";
+    metadata.conditional_noise_identity = "independent future variance1/2";
+    metadata.dependence_identity = "future noise independent of prior/training";
+    metadata.future_noise_independence_declared = true;
+    metadata.noise_conditional_on_parameters_declared = true;
+    return GaussianPredictiveConditioning::prepare(
+        std::move(posterior), future, std::array<double, 2>{2, 0}, metadata);
+  }();
+  if (owner.status() != DensityStatus::finite || owner.covariance().size() != 1 ||
+      !installed_predictive_close(owner.covariance()[0], 2.5L, 2e-12L))
+    return 29;
+  const std::array<double, 4> training{2, -4, 0,
+                                      std::numeric_limits<double>::quiet_NaN()},
+      future{2, -3, 1, 0};
+  const auto batch = owner.evaluate(training, training_ids, future, future_ids, 4);
+  if (batch.status != DensityStatus::finite || batch.rows.size() != 4 ||
+      batch.means.size() != 4 || batch.mean_absolute_error_estimates.size() != 4 ||
+      batch.densities.size() != 4 ||
+      batch.rows[3].status != DensityStatus::invalid_input ||
+      !std::isnan(training[3]))
+    return 29;
+  const std::array<long double, 3> quadratic{0, .4L, .4L};
+  for (size_t i = 0; i < 3; ++i) {
+    const long double log_density =
+        -.5L * (quadratic[i] + std::log(5 * std::numbers::pi_v<long double>));
+    const auto &density = batch.densities[i];
+    if (batch.rows[i].status != DensityStatus::finite ||
+        !installed_predictive_close(batch.means[i], training[i], 2e-12L) ||
+        density.density.status != DensityStatus::finite ||
+        !installed_predictive_close(density.quadratic, quadratic[i], 2e-11L) ||
+        !installed_predictive_close(density.density.log_value, log_density,
+                                    2e-11L))
+      return 29;
+  }
+  const auto means = owner.evaluate(std::span(training).first(3), training_ids,
+                                    {}, {}, 3, {true, false});
+  const auto densities = owner.evaluate(training, training_ids, future,
+                                        future_ids, 4, {false, true});
+  if (means.status != DensityStatus::finite || means.rows.size() != 3 ||
+      means.means.size() != 3 || !means.densities.empty() ||
+      densities.status != DensityStatus::finite || densities.densities.size() != 4 ||
+      densities.rows.size() != 4 || !densities.means.empty() ||
+      !densities.mean_absolute_error_estimates.empty())
+    return 29;
+  for (size_t i = 0; i < 3; ++i)
+    if (means.rows[i].status != DensityStatus::finite ||
+        means.means[i] != batch.means[i] ||
+        densities.densities[i].density.log_value !=
+            batch.densities[i].density.log_value)
+      return 29;
+  return densities.rows[3].status == batch.rows[3].status ? 0 : 29;
+}
 int installed_hydrogen_helium() {
  const irred::atomic::HydrogenHeliumState source{10000,1e12,1e11};
  const auto result=irred::atomic::evaluate_hydrogen_helium_equilibrium({&source,1});
@@ -353,6 +458,141 @@ int installed_ladder_predictive() {
  md.future_noise_independence_declared=true;md.noise_conditional_on_parameters_declared=true;
  auto q=LadderPredictive::prepare(p,std::array<double,1>{32},l.ordered_row_ids,n,future,std::move(md));
  return q.status()==DensityStatus::finite && q.mean().size()==2 && std::abs(q.mean()[0]-31)<2e-12 && q.mean()[1]==0 && std::abs(q.covariance()[0]-2)<2e-12 && std::abs(q.covariance()[3]-2)<2e-12 ? 0:23;
+}
+int installed_repeated_ladder_predictive() {
+  using namespace irred::calibration;
+  using namespace irred::statistics;
+  const std::array<std::string, 1> training_ids{"training-A"};
+  const std::array<std::string, 2> future_ids{"future-cepheid", "future-SN"};
+  // A unit-noise anchor and proper diagonal S=I give V_A=1/2,
+  // mu_A=(30+y)/2. At the Cepheid period pivot, b and gamma contribute zero.
+  // Future means are (mu_A-5+1/8, 40-19-1/2+1/8). Shared delta yields
+  // W=((7/2,5/4),(5/4,4)), det(W)=199/16; q(1,-1)=160/199.
+  auto owner = [&] {
+    Model model;
+    model.ordered_host_ids = {"A", "B"};
+    model.magnitude_convention = "installed repeated synthetic mag";
+    model.metallicity_coordinate_identity = "installed dex";
+    model.distance_shape_identity = "installed supplied fixed shape";
+    model.calibration_identity = "one shared delta";
+    model.dependence_identity = "independent conditional original rows";
+    model.conditional_covariance_identity = "installed anchor unit noise";
+    model.rows = {{RowKind::anchor_modulus, "training-A", "A", "", 0, 0, 0, 0}};
+    auto noise = [](const Model &m, std::span<const double> covariance) {
+      Metadata metadata;
+      for (const auto &row : m.rows)
+        metadata.ordered_ids.push_back(row.row_id);
+      metadata.measure = "product d(mag)";
+      metadata.source_semantics = "synthetic controls";
+      metadata.table_identity = "installed original ladder noise";
+      metadata.ordering_provenance = "exact compiled row order";
+      metadata.calibration_provenance = m.calibration_identity;
+      metadata.dependence_provenance = m.dependence_identity;
+      metadata.uncertainty_identity = m.conditional_covariance_identity;
+      return prepare_gaussian(
+          covariance, MatrixKind::covariance, metadata, 1024, 1e-10,
+          irred::numerics::Arithmetic::longdouble_cpu_v1);
+    };
+    const auto linear = linearize(model);
+    ParameterPrior prior;
+    prior.ordered_parameter_ids = linear.metadata.ordered_parameter_ids;
+    prior.parameter_units = linear.metadata.parameter_units;
+    prior.shared_nuisance_ids = linear.metadata.shared_nuisance_ids;
+    prior.mean = {30, 31, -5, -3, .25, -19, .5, .125};
+    prior.covariance.resize(64);
+    for (size_t i = 0; i < 8; ++i)
+      prior.covariance[8 * i + i] = 1;
+    prior.prior_identity = "installed proper diagonal synthetic prior";
+    prior.design_identity = linear.metadata.design_identity;
+    prior.residual_unit = "mag";
+    prior.parameter_measure = "product parameter coordinate measure";
+    prior.dependence_identity = linear.metadata.dependence_identity;
+    prior.noise_independence_declared = true;
+    auto training = noise(model, std::array<double, 1>{1});
+    auto posterior =
+        LadderPosterior::prepare(std::move(training), model, std::move(prior));
+    auto future = model;
+    future.rows = {
+        {RowKind::cepheid, "future-cepheid", "A", "new-cepheid", 1, 1, 0, 0},
+        {RowKind::hubble_supernova, "future-SN", "", "new-SN", 1, 0, 0, 40}};
+    future.conditional_covariance_identity = "installed future noise1,1/4,1";
+    const auto future_linear = linearize(future);
+    auto future_noise = noise(future, std::array<double, 4>{1, .25, .25, 1});
+    PredictiveMetadata metadata;
+    metadata.ordered_parameter_ids = linear.metadata.ordered_parameter_ids;
+    metadata.parameter_units = linear.metadata.parameter_units;
+    for (const auto &unit : metadata.parameter_units)
+      metadata.response_units.push_back("mag/" + unit);
+    metadata.training_event_ids = linear.predictive_event_ids;
+    metadata.future_event_ids = future_linear.predictive_event_ids;
+    metadata.future_unit = "mag";
+    metadata.future_covariance_unit = "mag^2";
+    metadata.future_measure = "product d(mag)";
+    metadata.response_identity = future_linear.metadata.design_identity;
+    metadata.conditioning_identity = "installed original magnitude pools";
+    metadata.conditional_noise_identity = future.conditional_covariance_identity;
+    metadata.dependence_identity = future_linear.metadata.dependence_identity;
+    metadata.future_noise_independence_declared = true;
+    metadata.noise_conditional_on_parameters_declared = true;
+    return LadderPredictiveConditioning::prepare(
+        std::move(posterior), future_noise, std::move(future), std::move(metadata));
+  }();
+  const std::array<long double, 4> covariance{3.5L, 1.25L, 1.25L, 4};
+  if (owner.status() != DensityStatus::finite || owner.covariance().size() != 4)
+    return 30;
+  for (size_t i = 0; i < 4; ++i)
+    if (!installed_predictive_close(owner.covariance()[i], covariance[i],
+                                    2e-12L))
+      return 30;
+  const std::array<double, 3> training{32, 30, 31};
+  const std::array<double, 6> future{217. / 8, 157. / 8, 201. / 8, 165. / 8,
+                                     205. / 8, std::nextafter(16., 0.)};
+  const auto batch = owner.evaluate(training, training_ids, future, future_ids, 3);
+  if (batch.status != DensityStatus::finite || batch.rows.size() != 3 ||
+      batch.means.size() != 6 || batch.mean_absolute_error_estimates.size() != 6 ||
+      batch.densities.size() != 3 ||
+      batch.rows[2].status != DensityStatus::numerical_failure ||
+      batch.rows[2].numerical_status !=
+          irred::numerics::Status::conditioning_budget_exceeded ||
+      future[5] != std::nextafter(16., 0.))
+    return 30;
+  const std::array<long double, 4> expected_mean{209.L / 8, 165.L / 8,
+                                               201.L / 8, 165.L / 8};
+  const std::array<long double, 2> quadratic{160.L / 199, 0};
+  for (size_t i = 0; i < 2; ++i) {
+    for (size_t j = 0; j < 2; ++j) {
+      const auto expected = expected_mean[2 * i + j];
+      if (!installed_predictive_close(batch.means[2 * i + j], expected, 2e-12L))
+        return 30;
+    }
+    const long double log_density =
+        -.5L * (quadratic[i] + std::log(199.L / 16) +
+                 2 * std::log(2 * std::numbers::pi_v<long double>));
+    if (batch.rows[i].status != DensityStatus::finite ||
+        batch.densities[i].density.status != DensityStatus::finite ||
+        !installed_predictive_close(batch.densities[i].quadratic, quadratic[i],
+                                    2e-11L) ||
+        !installed_predictive_close(batch.densities[i].density.log_value,
+                                    log_density, 2e-11L))
+      return 30;
+  }
+  const auto means =
+      owner.evaluate(training, training_ids, {}, {}, 3, {true, false});
+  const auto densities = owner.evaluate(training, training_ids, future,
+                                        future_ids, 3, {false, true});
+  if (means.status != DensityStatus::finite || means.rows.size() != 3 ||
+      !means.densities.empty() || means.means.size() != 6 ||
+      means.rows[2].status != DensityStatus::finite ||
+      !installed_predictive_close(means.means[4], 205.L / 8, 2e-12L) ||
+      densities.status != DensityStatus::finite || densities.rows.size() != 3 ||
+      densities.densities.size() != 3 ||
+      !densities.means.empty() || !densities.mean_absolute_error_estimates.empty())
+    return 30;
+  for (size_t i = 0; i < 2; ++i)
+    if (densities.densities[i].density.log_value !=
+        batch.densities[i].density.log_value)
+      return 30;
+  return densities.rows[2].status == batch.rows[2].status ? 0 : 30;
 }
 int installed_baryon_abundance() {
  using namespace irred::cosmology;
@@ -471,8 +711,10 @@ int main() {
  if (const auto relic_status=installed_relic_hydrogen_history();relic_status!=0) return relic_status;
 
  if (const auto predictive_status=installed_gaussian_predictive();predictive_status!=0) return predictive_status;
+ if (const auto repeated_status=installed_repeated_gaussian_predictive();repeated_status!=0) return repeated_status;
  if (const auto mixture_status=installed_hydrogen_helium();mixture_status!=0) return mixture_status;
  if(const auto ladder_future_status=installed_ladder_predictive();ladder_future_status!=0) return ladder_future_status;
+ if(const auto repeated_ladder_status=installed_repeated_ladder_predictive();repeated_ladder_status!=0) return repeated_ladder_status;
  if(const auto abundance_status=installed_baryon_abundance();abundance_status!=0) return abundance_status;
  if(const auto nested_status=installed_nested_fd();nested_status!=0) return nested_status;
  if(const auto simulation_status=installed_gaussian_simulation();simulation_status!=0) return simulation_status;

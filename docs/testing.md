@@ -62,6 +62,11 @@ The product build deliberately reports FITS unavailable. A separate optional nat
 
 `check_install.py` installs to a fresh temporary prefix, rejects the old generic include root, and compiles/runs the durable `test_installed_consumer.cpp` against the installed `libirred_core.a`. It checks independent library usability and cleans its temporary installation.
 
+Retained generic and ladder predictive consumers evaluate multiple original
+vectors after setup inputs are destroyed, checking independently derived scalar
+means, covariance and normalized densities, requested masks and individual
+refusals. Existing one-conditioned-law consumers exercise their separate valid API.
+
 ## Explicit Release profile
 
 Build and test the optimized profile with the same native and Rust cases:

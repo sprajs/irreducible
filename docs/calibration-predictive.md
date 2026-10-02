@@ -156,8 +156,9 @@ two-coordinate quadrature integrates prior × training × future noise directly;
 A noiseless fixed-truth response checks posterior bias and the resulting eta/H0
 credible-interval coverage formula. Numerical integration of the conditional
 two-row joint ellipsoid agrees with the chi-square2 mass 1-exp(-radius²/2),
-with separate refinement. These are analytic synthetic law checks; no empirical
-coverage campaign or observational held-out claim is made.
+with separate refinement. These analytic synthetic law checks are supplemented
+by the named [addressed recovery campaigns](gaussian-simulation.md); neither
+supplies observational held-out qualification.
 
 ## Retained repeated ladder conditioning
 

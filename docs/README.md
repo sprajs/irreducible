@@ -40,6 +40,7 @@ Read [AGENTS.md](../AGENTS.md) first, then choose a guide:
 | Marginalize a correlated proper calibration prior in C++ | [Correlated calibration](correlated-calibration.md) |
 | Condition a proper Gaussian parameter prior in a fixed linear model | [Gaussian parameter posterior](gaussian-posterior.md) |
 | Predict a normalized joint future vector with proper prior and independent future noise | [Gaussian predictive](gaussian-predictive.md) |
+| Condition many original training vectors with one retained fixed future covariance | [Gaussian predictive](gaussian-predictive.md) and [ladder predictive](calibration-predictive.md) |
 | Condition a proper synthetic ladder prior and predict joint held-out rows | [Ladder predictive](calibration-predictive.md) |
 | Generate addressed full-covariance Gaussian vectors and run synthetic recovery campaigns | [Gaussian simulation](gaussian-simulation.md) |
 | Predict and recover a synthetic anchor/Cepheid/SN ladder in C++ | [Calibration ladder](calibration-ladder.md) |

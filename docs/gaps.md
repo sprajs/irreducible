@@ -68,8 +68,14 @@ It propagates shared parameter covariance without treating the predictive law
 as another measurement. Native [addressed Gaussian generation and bounded
 recovery campaigns](gaussian-simulation.md) now test distinct fixed-truth and
 prior-predictive laws, retaining covariance, random identities and every refusal.
-Seeded agreement does not prove RNG independence; predictive preparation still
-rebuilds its invariant covariance for each new training vector. Observational held-out qualification still requires
+The generic and ladder repeated-conditioning owners now retain the invariant
+future response/covariance factor across pooled original training vectors.
+Matched complete-preparation comparisons retain original inputs and per-vector
+statuses, including unavailable upstream vectors; independent scalar controls
+and actual factor observations check this bounded synthetic scope. Setup, output
+capture, allocations and common input storage remain explicit in the campaign
+diagnostics. Seeded agreement does not prove RNG independence or a universal
+performance gain. Observational held-out qualification still requires
 resolved object/calibration/selection dependence, and the released finite-box
 target remains a separate measure and normalization problem.
 See [Gaussian design](gaussian-design.md).
@@ -213,3 +219,5 @@ tests both ensembles with full error covariance and separately targeted coverage
 preserving every attempt and the finite emitted-law approximation. A released
 box-supported target, observational held-out event/calibration dependence and
 source-supported relation/selection variants remain separate work.
+Repeated synthetic conditioning is implemented with one retained covariance
+factor and shared compiled offsets; source-supported held-out validity is open.

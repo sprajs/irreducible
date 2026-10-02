@@ -43,7 +43,7 @@ its own identity and leaves the full scope open.
 
 | ID and scope | Current prerequisite and next bounded deliverable | Acceptance and dependency |
 | --- | --- | --- |
-| NEXT-01: repeated fixed-design predictive conditioning | Proper Gaussian posterior, future prediction and addressed generic/ladder recovery exist. Retain the invariant future response/covariance once and condition pooled original training vectors. | Compare complete preparation and retained evaluation at the same arithmetic, masks and target; independently check means/densities, offsets, ownership, refusals, actual factor counts, setup/work/memory and attempted counts. Observational held-out validity stays open. |
+| NEXT-01: repeated fixed-design predictive conditioning | Native generic/ladder owners now retain one invariant future response/covariance factor and condition pooled original training vectors. Next qualify a source-supported future design with resolved cross-noise, object/calibration linkage and selection. | Independent scalar/rational means/densities and matched complete-preparation captures check the synthetic scope, including masks, exact offsets, ownership, refusals, actual factors, setup/work/storage and attempted counts. Installed SDK consumers exercise both retained APIs. Observational held-out validity stays open. |
 | NEXT-02: normalized released fixed44 box target | The original 3492 rows, full covariance and active original axes 0–43,45,46 are pinned. Normalize the explicit 46-dimensional source box and return one declared original-coordinate marginal with controlled error. | Axis44 is a point mass outside the 46-coordinate Lebesgue measure. Independent truncated-Gaussian limits and distinct actual-target algorithms/refinement must agree. No added Gaussian prior, unboxed-profile replacement or inferred physical axis44 label. |
 | NEXT-03: supplied optical law through detector/censoring | Native state-resolved optical/detector composition now supplies the two-state/two-band synthetic SDK consumer. Next qualify its measured optical/detector inputs through NEXT-08 and NEXT-10, then its population consumer through NEXT-17. | Exact mixture sums, Poisson limits and independent read-noise density/CDF checks; selection uses the joint mixture denominator. Retain nondetections and every required state refusal. State conditional independence explicitly; population moments alone do not determine a count law. |
 | NEXT-04: released ladder axis/reduction identity | Host/nuisance joins are partly source-supported. Resolve original axis44, four preserved failed primary photometry joins and compact constraints with an exact source/reduction dictionary. | Independent original-byte extraction and declared printed-decimal/binary32 joins; keep unknown axes, count discrepancies and failed rows visible. Any repaired target has a separate identity. |
@@ -150,6 +150,10 @@ fixed synthetic design; this is not the released finite-box target.
 The native [joint Gaussian predictive prerequisite](gaussian-predictive.md) now
 conditions fixed synthetic linear training data once and retains a correlated
 future distribution with explicitly independent conditional future noise.
+The repeated-conditioning owner retains the invariant response/covariance factor
+across original training-vector pools; the ladder wrapper uses the same compiled
+offsets. Matched complete-preparation captures, scalar facts, masks, allocation
+refusals and actual factor observations check the bounded native SDK contract.
 Exact covariance-route and direct prior/noise integration controls check its
 proper measure; shared calibration covariance survives in `R*+A*V*A^T`.
 The native [proper-prior ladder consumer](calibration-predictive.md) now retains
