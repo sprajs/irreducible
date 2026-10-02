@@ -3,7 +3,6 @@
 #include <cfenv>
 #include <cmath>
 #include <limits>
-#include <numbers>
 namespace irred::detector {
 namespace {
 using W = long double;
@@ -56,7 +55,6 @@ S admit(const Input &p) {
     return S::outside_domain;
   return S::ok;
 }
-W halfbin(std::uint32_t x) { return (W(x) + .5L) / 4294967296.L; }
 } // namespace
 Moments moments(const Input &p) noexcept {
   Moments out;
@@ -92,20 +90,7 @@ Moments moments(const Input &p) noexcept {
 }
 std::array<std::uint32_t, 4> random_words(std::uint64_t seed,
                                           Address a) noexcept {
-  // Original transcription of the published Philox4x32 round, not library code.
-  std::array<std::uint32_t, 4> c{
-      std::uint32_t(a.sample), std::uint32_t(a.sample >> 32),
-      std::uint32_t(a.stream), std::uint32_t(a.stream >> 32)};
-  std::uint32_t k0 = seed, k1 = seed >> 32;
-  for (unsigned r = 0; r < 10; ++r) {
-    const std::uint64_t p0 = std::uint64_t(0xD2511F53u) * c[0],
-                        p1 = std::uint64_t(0xCD9E8D57u) * c[2];
-    c = {std::uint32_t(p1 >> 32) ^ c[1] ^ k0, std::uint32_t(p1),
-         std::uint32_t(p0 >> 32) ^ c[3] ^ k1, std::uint32_t(p0)};
-    k0 += 0x9E3779B9u;
-    k1 += 0xBB67AE85u;
-  }
-  return c;
+  return random::words(seed, a);
 }
 std::optional<std::size_t> output_payload_bound(std::size_t n) noexcept {
   if (n > (SIZE_MAX - sizeof(Batch)) / (sizeof(Draw) + sizeof(Address)))
@@ -147,7 +132,7 @@ Batch simulate(std::span<const Request> inputs, std::uint64_t seed, Policy p) {
       continue;
     const W lambda = *m.poisson_mean_electrons;
     W weight = std::exp(-lambda), cdf = weight;
-    const W u = halfbin(d.words[0]);
+    const W u = random::halfbin(d.words[0]);
     unsigned n = 0;
     while (u > cdf && n < 255) {
       ++n;
@@ -158,8 +143,7 @@ Batch simulate(std::span<const Request> inputs, std::uint64_t seed, Policy p) {
       d.status = S::work_limit;
       continue;
     }
-    const W normal = std::sqrt(-2 * std::log(halfbin(d.words[1]))) *
-                     std::cos(2 * std::numbers::pi_v<W> * halfbin(d.words[2]));
+    const W normal = random::normal_cosine(d.words);
     const W read = normal * x.source.read_noise_rms_electrons;
     std::optional<double> r, y;
     d.status = store(read, r);
