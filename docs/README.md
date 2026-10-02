@@ -22,11 +22,13 @@ Read [AGENTS.md](../AGENTS.md) first, then choose a guide:
 | Use one early/late state for distances and conditional ruler ratios in C++ | [Early and late expansion](early-late.md) |
 | Evaluate explicit thermal relic density, pressure and flat E/H in C++ | [Thermal neutrino background](thermal-neutrino.md) |
 | Map physical densities/temperatures and evaluate thermal distances/ruler ratios | [Thermal observables](thermal-observables.md) |
-| Evaluate a supplied-drag BAO density with that same state in C++ | [Conditional BAO](bao-conditional.md) |
+| Evaluate a supplied-drag BAO density with a retained ordered covariance in C++ | [Massless conditional BAO](bao-conditional.md) or [thermal conditional BAO](bao-thermal.md) |
+| Calculate a pressureless GR growing mode in C++ | [GR growth](gr-growth.md) |
 | Check scientific assumptions | [Scientific contracts](scientific-contracts.md) |
 | Profile an ordered multi-column Gaussian model in C++ | [Gaussian design](gaussian-design.md) |
 | Calculate conditional estimator variance and a synthetic H0 sampling law | [Gaussian design](gaussian-design.md) and [calibration ladder](calibration-ladder.md) |
 | Marginalize a correlated proper calibration prior in C++ | [Correlated calibration](correlated-calibration.md) |
+| Condition a proper Gaussian parameter prior in a fixed linear model | [Gaussian parameter posterior](gaussian-posterior.md) |
 | Predict and recover a synthetic anchor/Cepheid/SN ladder in C++ | [Calibration ladder](calibration-ladder.md) |
 | Run tests or add a fixture | [Testing](testing.md) and [fixture provenance](../cpp/tests/fixtures/README.md) |
 | Maintain these docs | [Maintenance](maintenance.md) |

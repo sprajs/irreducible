@@ -8,6 +8,8 @@ The goal is to share the physics behind those predictions, from simulated source
 
 Today you can run flat-FLRW background calculations, conditional supernova and BAO comparisons, and Gaussian calculations through the **`irred`** CLI or C++ library. These are the starting tools, not yet a complete simulator or joint cosmological analysis. [Current capabilities](docs/capabilities.md) explain their scope; the [roadmap](docs/roadmap.md) shows what comes next.
 
+The native [pressureless GR growing mode](docs/gr-growth.md) predicts D(a) and f(a) under an explicit radiation-free LCDM approximation, with independent differential-equation controls.
+
 ## Test an established baseline
 
 The [bounded LambdaCDM baseline](docs/lcdm-baseline.md) connects reviewed papers in
@@ -22,10 +24,15 @@ The native library now also has an explicit thermal-neutrino
 [density/pressure and E/H provider](docs/thermal-neutrino.md), tested against
 matched CLASS controls. The native [thermal distance/ruler consumer](docs/thermal-observables.md)
 now maps explicitly supplied physical densities and temperatures into one retained
-state for distances and a conditional supplied-drag ruler.
+state for distances and a conditional supplied-drag ruler. The native
+[thermal BAO density](docs/bao-thermal.md) reuses that state and the retained
+ordered covariance, with explicit density-level numerical admission.
+`photometry.predict` accepts finite sampled spectra and optical passbands in a
+bounded pooled batch, preserving declared input roles and calibration limits.
 [Conditional estimator variance](docs/gaussian-design.md) and the
 [synthetic ladder's H₀ sampling law](docs/calibration-ladder.md) test a separate
-calibration prerequisite. These native calculations are available through the
+calibration prerequisite. A [proper Gaussian parameter posterior](docs/gaussian-posterior.md)
+adds normalized fixed-linear conditioning under a declared Gaussian prior. These native calculations are available through the
 C++ SDK; their guides distinguish tested controls from observational inference.
 The [next bounded choices](docs/roadmap.md#next-bounded-choices) cover statistical,
 photometric, thermal, growth and lensing work with separate prerequisites and gates.

@@ -13,7 +13,7 @@ Use the executable's `describe --json` output for its exact build, ABI revision 
 | `statistics.gaussian` | Normalized Gaussian density, offset profile or proper latent prior | Explicit ordered residuals and nuisance assumptions |
 | `supernova.profile` | Conditional single-offset magnitude profile | Same expansion types, with no source effect or an explicit grey magnitude effect |
 | `bao.density` | Conditional normalized free-ruler Gaussian density | Same expansion types and explicit H0rd |
-| `photometry.predict` | Deterministic flat-spectrum rectangular-passband prediction | Supplied distance/redshift; incident flux, collected energy and transmitted photon expectation |
+| `photometry.predict` | Deterministic rectangular or sampled spectrum/passband prediction | Supplied distance/redshift; incident flux, collected energy and transmitted photon expectation |
 
 Background requests select expansion, radial, luminosity_shape, clock, physical or kinematics groups. Dimensionless E and clock integrals remain usable when a requested dimensional H or lookback-time projection fails. Observer and physical-scale failures do not erase independent outputs. E-only and DH-only calculations avoid radial integration. Exact redshift bits share nodes within a model batch; repeated model specifications across model rows currently recompute their geometry under the same global work budget.
 
@@ -35,7 +35,7 @@ See [photometry](photometry.md) for the bounded deterministic projection.
 
 The standalone C++ library also provides a retained multi-column Gaussian design profile. Preparation consumes a Gaussian owner and retains its covariance factor and design calculations across residual evaluations. Ordered row/parameter identities, units and declared shared nuisance coordinates are explicit. This native API has no CLI request or C ABI exposure yet; its relative score is not a normalized density or evidence. See [Gaussian design](gaussian-design.md) for its retained covariance-whitened pivoted QR, conditioning admission and limits.
 
-The standalone C++ library also provides `photometry::evaluate_sampled` for finite piecewise-linear rest-wavelength luminosity and observed optical transmission. It integrates the declared interpolation model, with supplied distance and redshift, to incident band flux, transmitted energy and expected photons. This native API has no CLI request or C ABI exposure yet. Sample interpolation and fixed calibration are assumptions; their uncertainty is not a numerical error estimate. See the sampled contract in [photometry](photometry.md).
+The standalone C++ library also provides `photometry::evaluate_sampled` for finite piecewise-linear rest-wavelength luminosity and observed optical transmission. It integrates the declared interpolation model, with supplied distance and redshift, to incident band flux, transmitted energy and expected photons. A coarse ABI2 batch and the same `photometry.predict` CLI operation now own pooled curves once and evaluate indexed exposures; source roles/provenance remain explicit. Sample interpolation and fixed calibration are assumptions; their uncertainty is not a numerical error estimate. See the sampled contract in [photometry](photometry.md).
 
 The standalone C++ [synthetic calibration ladder](calibration-ladder.md) predicts anchor moduli, Cepheid period/metallicity relations, calibrator SNe and Hubble-flow SNe with a supplied reference distance shape and one shared calibration coordinate. A retained ordered covariance/design supports a relative joint fit and a checked H0 projection. Exact Gaussian/model provenance, conventions, identities and rank admission are required. Named noiseless, correlated, KKT, direct-versus-compressed and held-out anchor/Cepheid controls establish numerical recovery within their allocations. This native API supplies no CLI/C ABI route, observational H0 measurement, normalized posterior or model evidence.
 
@@ -67,6 +67,20 @@ mapping, thermal/ionization history or perturbations. The distinct native
 [thermal observables](thermal-observables.md) consumer explicitly maps physical
 baryon/CDM/other-massless densities and Kelvin temperatures, then uses this same
 retained state for E/H, flat distances and a supplied-drag ruler/ratios. It adds no
-CLI/C ABI operation, automatic Neff/mass hierarchy, drag prediction, thermal BAO
-density or observational qualification. The existing conditional BAO density
-continues to consume its declared massless early/late model.
+CLI/C ABI operation, automatic Neff/mass hierarchy or drag prediction. The native
+[thermal conditional BAO density](bao-thermal.md) now composes this same state
+with the retained ordered observation covariance and an unchanged 1e-8 density
+projection gate. Independent cofactor, polynomial/refinement and matched massive
+reference controls supply named numerical evidence. Fixed physical densities
+do not imply H0 cancellation. Released compression validity and observational
+qualification remain separate; the massless conditional model keeps its identity.
+
+The native [proper Gaussian parameter posterior](gaussian-posterior.md) retains
+fixed observation/design factors and an explicitly independent full proper
+Gaussian prior. It returns conditional mean, covariance and normalized density
+in declared parameter units/order/measure. Analytic rational, independent
+cofactor and direct joint integration/refinement controls cover named synthetic
+cases, including rank deficiency. This adds no CLI/C ABI route, nonlinear
+cosmological posterior, released-box prior or observational qualification.
+
+The native [GR growth](gr-growth.md) consumer retains the radiation-free flat LCDM background for a pressureless growing mode D(a) and f(a), normalized by D/a→1. Exact Einstein–de Sitter and independent ODE/refinement controls test its bounded domain. It adds no CLI/ABI operation, scale-dependent transfer, radiation/relic perturbations, RSD likelihood or observational qualification.

@@ -18,8 +18,8 @@ qualify all modalities. The diagnostic is an input to this plan, not another pla
 Dependency-ready next work is the smallest consumer supported by that evidence:
 resolve the released ladder's remaining constraint/measure identity and calibration/model sensitivity
 after the successful unchanged-budget native QR comparison and source-linked host audit;
-compose the tested native thermal distance/ruler state with the retained conditional
-BAO density; then thermal/ionization/drag prediction before a predicted physical BAO
+use the tested thermal conditional BAO composition while reviewing released
+compression validity; then thermal/ionization/drag prediction before a predicted physical BAO
 ruler. Perturbations and CMB need their own closure and comparisons. Native SDK
 execution can test current functions before adding a CLI/ABI route justified by
 an actual consumer. Do not add noise, lensing or growth labels to unsupported
@@ -35,19 +35,19 @@ and synthetic controls can proceed alongside it.
 
 | Proposed scope | Prerequisite and concrete deliverable | Independent acceptance before a larger claim |
 | --- | --- | --- |
-| Thermal conditional BAO density | Compose the tested thermal distance/ruler state with the existing retained ordered ratio covariance and projection gate | Matched fixed-point references, full covariance and numerical sensitivity at density level; supplied drag stays explicit |
+| Thermal conditional BAO density | Native composition implemented; next review one released compression under its explicit physical identity | Named massive/massless, full covariance and density-level controls pass; supplied drag and observational validity stay separate |
 | Released ladder constrained target | Resolve source axis/constraint identities and specify the released box support, including any fixed coordinate, separately from the full-design relative profile | Exact constrained linear controls and a source-defined measure; a zero-width coordinate is not a proper full-dimensional prior |
 | Ladder calibration/model sensitivity | Declare one source-supported change to anchor, zero-point, metallicity or extinction assumptions at a time | Refit and held-out prediction with preserved failures and dependence; do not fold arbitrary variants into one Gaussian error |
-| Proper Gaussian parameter posterior | Add a declared proper parameter prior to an identifiable fixed-design consumer with explicit units/order/normalization | Analytic posterior and independent integration controls; distinguish parameter posterior from observation density and estimator sampling law |
+| Proper Gaussian parameter posterior | Native fixed-linear proper-Gaussian conditioning implemented; next qualify a concrete prior/consumer | Analytic posterior, independent cofactor and joint integration controls pass; nonlinear or released-box posterior remains separate |
 | Released SN observer/velocity contract | Pin redshift frames, observer convention, peculiar-velocity corrections and covariance for one selected sample | Analytic frame/low-z controls, exact object linkage and released conventions; no new calibration information from a free offset |
-| Sampled photometry ingestion | Expose the tested sampled spectra/passbands through one coarse ABI/CLI batch with immutable source ownership | Sample-order, units, density convention, lifetime, quota and record parity with native controls |
+| Sampled photometry ingestion | Coarse pooled ABI2/CLI batch implemented; next consume pinned measured-response assets | Sample-order/bits, units, lifetime, exception/quotas and native/stream/record parity controls pass; calibration uncertainty stays excluded |
 | Measured passband calibration | Acquire one instrument response and a source-supported joint calibration distribution | Exact bytes/version, wavelength units, photon/energy response and calibration dependence; compare independent spectral coordinates |
 | Time-dependent source photometry | Add one declared sampled spectral-time interpolation model with rest/observer exposure conventions | Constant/linear-time controls and temporal/spectral refinement before using a trained SN template |
 | Detector counts and random streams | Add a bounded photon-to-electron/noise model with declared gain, background and generator/stream identity | Analytic mean/variance and distribution controls, replay and stream independence; distinguish count noise from calibration uncertainty |
 | Detection and censoring | Compose one explicit detection rule with the same simulated measurement law | Exact truncated/censored probability controls and synthetic recovery including non-detections; never drop failed or undetected rows |
 | Homogeneous ionization control | Freeze atomic assets, abundance, temperature and equilibrium assumptions for a small thermal-state calculation | Analytic equilibrium/limiting controls; equilibrium alone does not predict the actual drag history |
 | Recombination and drag history | Add a source-defined non-equilibrium thermal/ionization evolution and baryon-drag optical depth | Independent stiff evolution, atomic-input sensitivity and likelihood-relevant refinement before replacing supplied z_drag |
-| Scoped GR growth | Declare pressureless/subhorizon assumptions and compatible background components, with explicit initial normalization | Einstein–de Sitter and independent ODE controls; a scale-independent growth approximation is not massive-neutrino transfer or full perturbation closure |
+| Scoped GR growth | Bounded radiation-free pressureless native D/f implemented; next qualify one compatible observational consumer | Einstein–de Sitter and independent ODE/refinement controls pass; a scale-independent growth approximation is not massive-neutrino transfer or full perturbation closure |
 | A named thin-lens system | Combine compatible distances with an explicit analytic lens/source and instrument operator | Analytic deflection/magnification, synthetic image/delay recovery and degeneracy controls; distances do not identify the lens mass |
 | Linear transfer and CMB projection | Complete radiation/metric/massive-neutrino perturbations, primordial modes and thermal state, then one projection | Conservation/initial-mode controls and independent transfers/spectra with refinement at observable and likelihood level |
 
@@ -77,13 +77,13 @@ The common numerical/data layer should support units and frames, stable linear a
 
 ## Dependency graph and first executable verticals
 
-The forward model advances through small complete calculations. [Deterministic photometry](photometry.md), its native sampled extension and [the supplied-drag sound horizon](sound-horizon.md) implement bounded first pieces; their named numerical checks do not complete the verticals below. A native finite passband-calibration law and synthetic joint ladder provide further bounded pieces. Measured calibration-distribution qualification, noise/recovery, observational ladder fitting and predicted thermal/drag history remain open. A scoped joint fit can start as soon as the forward models and dependence contracts for that subset qualify; it need not wait for CMB or nonlinear simulations.
+The forward model advances through small complete calculations. [Deterministic photometry](photometry.md), its sampled extension and [the supplied-drag sound horizon](sound-horizon.md) implement bounded first pieces; their named numerical checks do not complete the verticals below. A native finite passband-calibration law and synthetic joint ladder provide further bounded pieces. Measured calibration-distribution qualification, noise/recovery, observational ladder fitting and predicted thermal/drag history remain open. A scoped joint fit can start as soon as the forward models and dependence contracts for that subset qualify; it need not wait for CMB or nonlinear simulations.
 
 ### 1. Synthetic photometric observation and recovery
 
 **Bounded first increment:** deterministic radiometry for a finite constant rest-frame wavelength spectrum, a rectangular observed passband and optical transmission. `photometry.predict` supplies incident flux, collected energy and expected transmitted photons under a supplied distance and explicit propagation convention; see [photometry](photometry.md). This is not a noisy experiment or recovery model.
 
-**Native sampled increment:** the standalone C++ photometry API integrates finite piecewise-linear wavelength spectra and optical passbands with explicit support, normalization and fixed-calibration assumptions; see [photometry](photometry.md). Its constant/linear controls and independent frequency-coordinate refinement concern the declared sampled model. The native [finite shared calibration law](photometry-calibration.md) propagates a supplied joint ensemble through multi-band energy/photon expectations and covariance. Independent frequency-coordinate and weighted-moment controls test numerical propagation; they do not establish a measured calibration law. CLI ingestion and actual calibrated-response acquisition remain next prerequisites. Noise, recorded random streams, selection and recovery need their own scope and checks.
+**Sampled increment:** the standalone C++ photometry API integrates finite piecewise-linear wavelength spectra and optical passbands with explicit support, normalization and fixed-calibration assumptions; see [photometry](photometry.md). Its constant/linear controls and independent frequency-coordinate refinement concern the declared sampled model. The native [finite shared calibration law](photometry-calibration.md) propagates a supplied joint ensemble through multi-band energy/photon expectations and covariance. Independent frequency-coordinate and weighted-moment controls test numerical propagation; they do not establish a measured calibration law. Coarse pooled CLI/ABI ingestion is implemented; actual calibrated-response and calibration-distribution acquisition remain next prerequisites. Noise, recorded random streams, selection and recovery need their own scope and checks.
 
 **Inputs:** an explicitly identified source spectrum or empirical time-dependent SN spectral template, redshift/time convention, distance or flux normalization, extinction hypothesis, measured passband and detector response, observation times, noise and selection parameters. Begin with one passband and a simple analytic source before a multi-band SN.
 
@@ -99,7 +99,7 @@ This supplies a practical simulation-first foundation for spectra, photometry an
 
 **Native executable increment:** the [synthetic calibration ladder](calibration-ladder.md) now predicts and jointly recovers host moduli, empirical Cepheid coefficients, SN luminosity, one shared zero point and H₀ under an explicitly supplied fixed reference distance shape. Two anchors and a distinct calibration measurement give an identifiable synthetic control with ordered covariance. Independent KKT, direct/compressed relative-score and remove/refit held-out anchor/Cepheid tests establish named numerical recovery. Released-data fitting, uncertainty qualification and a normalized parameter posterior remain separate work.
 
-**Linear prerequisite:** the standalone C++ [Gaussian design profile](gaussian-design.md) retains an ordered multi-column design and covariance factor, declares shared nuisance identities and uses conservative rank/conditioning admission. The native ladder consumes this prerequisite; the scalar CLI offset remains a separate relative shape calculation. The separate native [correlated calibration operator](correlated-calibration.md) now integrates a declared proper full correlated latent prior into a normalized observed-residual density for fixed response. Named cofactor and independent prior-integration controls test this statistical contract. Parameter posterior/evidence, released-data fitting and observational qualification remain separate contracts.
+**Linear prerequisite:** the standalone C++ [Gaussian design profile](gaussian-design.md) retains an ordered multi-column design and covariance factor, declares shared nuisance identities and uses conservative rank/conditioning admission. The native ladder consumes this prerequisite; the scalar CLI offset remains a separate relative shape calculation. The separate native [correlated calibration operator](correlated-calibration.md) now integrates a declared proper full correlated latent prior into a normalized observed-residual density for fixed response. Named cofactor and independent prior-integration controls test this statistical contract. The native [proper Gaussian parameter posterior](gaussian-posterior.md) now conditions a declared fixed-linear proper Gaussian prior; evidence, nonlinear/released-box fitting and observational qualification remain separate contracts.
 
 The retained QR now supplies a requested linear-estimator contrast variance under
 fixed design and supplied Gaussian observation covariance. The synthetic ladder
@@ -143,8 +143,9 @@ and matched CLASS controls test explicit inputs and conservation. The native
 [thermal observables](thermal-observables.md) consumer now uses that same state
 for distances and a conditional supplied-drag ruler, with explicit
 species/temperature/physical-density mapping and propagated numerical budgets.
-The retained conditional BAO density remains a separate massless-model consumer
-until a scoped composition passes its own density-level allocation. Neither
+The native [thermal BAO density](bao-thermal.md) now composes this state with the
+retained ordered covariance and its unchanged density-level projection allocation.
+The massless conditional model retains its separate identity. Neither
 provider predicts drag or recombination.
 
 Background plus thermal/ionization history can subsequently support a declared perturbation closure, primordial modes, transfer functions and line-of-sight projection. Each later observable needs its own reference and likelihood allocation.
