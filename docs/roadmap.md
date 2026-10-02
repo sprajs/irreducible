@@ -162,6 +162,13 @@ Thomson depth, scattering rate and per-redshift visibility, retaining survival m
 Drag depth still starts from an explicit late endpoint. Its unit-depth root remains distinct from a
 qualified physical drag epoch and is not coupled to the supplied-drag ruler.
 
+The native [H/He LTE prerequisite](hydrogen-helium-equilibrium.md) now solves
+shared-electron neutrality for supplied temperature and both nuclei densities.
+Its stage/atomic identities, polynomial/Decimal controls and truthful tiny-output
+refusals precede any abundance or kinetic-history consumer. Next freeze the
+helium kinetic/radiative rates and abundance-to-nuclei mapping separately; an
+LTE mixture is not a substitute for cosmological helium recombination.
+
 Background plus thermal/ionization history can subsequently support a declared perturbation closure, primordial modes, transfer functions and line-of-sight projection. Each later observable needs its own reference and likelihood allocation.
 
 These three verticals share foundations and can progress independently where inputs are available. Their outcomes determine the next useful consumer rather than creating empty modules in advance.
