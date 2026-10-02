@@ -8,6 +8,7 @@
 #include <cmath>
 #include <limits>
 #include <numbers>
+#include <type_traits>
 #include <utility>
 
 namespace irred::cosmology {
@@ -300,6 +301,11 @@ ThermalBackground prepare_thermal_background(const ThermalFlatModel &m,
   if (!(out.critical_ev4_>0) || !std::isfinite(out.critical_ev4_)) {
     out.status_=S::outside_domain; return out;
   }
+  // Acquire storage before any FD callbacks: a source-copy allocation failure
+  // must not discard already performed normalization work in an outer owner.
+  // Keep failed/default source semantics; publish this owner only on success.
+  ThermalFlatModel owned_source=m;
+  static_assert(std::is_nothrow_move_assignable_v<ThermalFlatModel>);
   for (std::size_t i=0; i<m.species.size(); ++i) {
     auto v=species(m.species[i],1,p,p.maximum_total_callbacks-out.callbacks_,false);
     out.callbacks_+=v.callbacks;
@@ -320,7 +326,7 @@ ThermalBackground prepare_thermal_background(const ThermalFlatModel &m,
     out.status_=S::conditioning_budget_exceeded; return out;
   }
   out.lambda_=remainder;
-  out.source_=m;
+  out.source_=std::move(owned_source);
   out.status_=S::ok;
   return out;
 }
