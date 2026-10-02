@@ -325,3 +325,9 @@ add_executable(test_thermal_observables_peer tests/test_thermal_observables_peer
 target_link_libraries(test_thermal_observables_peer PRIVATE irred_core)
 target_compile_options(test_thermal_observables_peer PRIVATE -Wall -Wextra -Wpedantic -fno-fast-math -ffp-contract=off)
 add_test(NAME thermal_observables_peer_contract COMMAND test_thermal_observables_peer)
+
+target_sources(irred_core PRIVATE src/gaussian_posterior.cpp)
+add_executable(test_gaussian_posterior tests/test_gaussian_posterior.cpp)
+target_link_libraries(test_gaussian_posterior PRIVATE irred_core)
+target_compile_options(test_gaussian_posterior PRIVATE -Wall -Wextra -Wpedantic -fno-fast-math -ffp-contract=off)
+add_test(NAME gaussian_posterior_contract COMMAND test_gaussian_posterior)
