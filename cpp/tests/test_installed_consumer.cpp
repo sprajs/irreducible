@@ -9,6 +9,7 @@
 #include <irred/numerics.hpp>
 #include <irred/gaussian_design.hpp>
 #include <irred/gr_growth.hpp>
+#include <irred/linear_transfer.hpp>
 #include <irred/hydrogen_equilibrium.hpp>
 #include <irred/hydrogen_helium_equilibrium.hpp>
 #include <irred/baryon_abundance.hpp>
@@ -30,6 +31,34 @@
 #include <array>
 #include <cmath>
 #include <numbers>
+int installed_perfect_fluid_transfer() {
+ using namespace irred::cosmology;
+ const auto background=prepare_thermal_background({70,0,0,0,1,{}});
+ const auto transfer=prepare_perfect_fluid_transfer(background,1e-9);
+ const std::array<double,2> k{.001,.002};
+ const auto rows=transfer.evaluate(k,.5,transfer_comoving_cdm|transfer_metric);
+ if (rows.status!=irred::numerics::Status::ok || rows.rows.size()!=k.size()) return 29;
+ for (std::size_t i=0;i<k.size();++i) {
+  const auto &row=rows.rows[i];
+  const long double expected=.2L*k[i]*k[i]*std::pow(299792.458L/70,2);
+  if (row.comoving_cdm.status!=irred::numerics::Status::ok || !row.comoving_cdm.value ||
+      row.metric.status!=irred::numerics::Status::ok || !row.metric.value ||
+      std::abs(*row.comoving_cdm.value/expected-1)>2e-7L ||
+      std::abs(*row.metric.value+.6L)>1e-12L || row.maximum_constraint_residual>1e-6)
+   return 29;
+ }
+ // Compact primordial support, ns=1, and kR<=2e-9: W=1 to this allocation.
+ // EdS T=(2/5)k^2 a/(H0/c)^2 gives this analytic band variance.
+ const PrimordialBand spectrum{2.1e-9,1,.05,.001,.002};
+ BandVariancePolicy policy;policy.base_panels=16;policy.absolute_tolerance=0;
+ const auto band=transfer.band_variance(spectrum,1,1e-6,policy);
+ const long double expected=2.1e-9L*.16L*std::pow(299792.458L/70,4)*
+  (std::pow(.002L,4)-std::pow(.001L,4))/4;
+ return band.status==irred::numerics::Status::ok && band.variance && band.sigma &&
+  band.primordial_support_is_finite_band && band.sigma_absolute_error_estimate>0 &&
+  std::abs(*band.variance/expected-1)<2e-7L &&
+  std::abs(*band.sigma/std::sqrt(expected)-1)<2e-7L ? 0 : 29;
+}
 int installed_conditional_bao() {
  using namespace irred;
  bao::DensityInput input;
@@ -464,6 +493,7 @@ int main() {
  if (const auto thermal_status=installed_thermal_observables();thermal_status!=0) return thermal_status;
  if (const auto posterior_status=installed_gaussian_posterior();posterior_status!=0) return posterior_status;
  if (const auto growth_status=installed_gr_growth();growth_status!=0) return growth_status;
+ if (const auto transfer_status=installed_perfect_fluid_transfer();transfer_status!=0) return transfer_status;
  if (const auto hydrogen_status=installed_hydrogen_history();hydrogen_status!=0) return hydrogen_status;
  if (const auto lens_status=installed_sis_thin_lens();lens_status!=0) return lens_status;
  if (const auto temporal_status=installed_temporal();temporal_status!=0) return temporal_status;

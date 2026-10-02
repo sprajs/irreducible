@@ -106,7 +106,15 @@ The native [GR growth](gr-growth.md) operator supplies a bounded radiation-free
 pressureless growing mode. The [conditional amplitude/RSD consumer](growth-rsd.md)
 now adds supplied-reference sigma8/f*sigma8 and a retained full-covariance
 synthetic density. Source amplitude and survey-estimator/AP/window validity
-remain explicit prerequisites for measured RSD. Matter transfer, radiation/relic perturbations, general lensing potentials and propagation, CMB spectra, stellar/source populations, measured detector/selection laws and survey recovery remain separate gaps. A known cosmology makes these missing
+remain explicit prerequisites for measured RSD. The native
+[perfect-fluid transfer](linear-transfer.md) now supplies an explicitly restricted
+self-interacting radiation/CDM/Lambda scalar transfer and primordial finite-band
+variance. Its source and numerical controls do not qualify standard baryon/relic
+matter transfer, ordinary full-support sigma8 or an observed RSD amplitude.
+The [primary CMB contract](primary-cmb-projection.md) remains open without photon
+transport and a qualified complete visibility state. General lensing potentials
+and propagation, CMB spectra, stellar/source populations, measured detector and
+selection laws and survey recovery remain separate gaps. A known cosmology makes these missing
 sectors concrete; an H(z) or distance match does not supply them. Use the
 [roadmap](roadmap.md) to choose the next qualified prerequisite after the
 experiment identifies a blocker.
