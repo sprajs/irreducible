@@ -91,6 +91,7 @@ quantiles, asymmetric[-7,9] median and mass, and the rational2D cofactor
 normalizing prefactor. Maximum reference refinement is2.67e-70; these fixtures
 have ancestry distinct from native Simpson/rational-tail arithmetic. The two
 affected retained-design suites pass84 owner and626 peer controls. These tests
-qualify their named small cases; actual released active46 source normalization,
-its independent numerical reference and integrated SDK identity remain separate
-acceptance work.
+qualify their named small cases. The integrated strict Release build, five
+affected native suites and fresh installed-library normalization/median consumer
+also pass. Actual released active46 source normalization and its independently
+refined numerical reference remain separate acceptance work.
