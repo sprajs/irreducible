@@ -26,9 +26,11 @@ Read [AGENTS.md](../AGENTS.md) first, then choose a guide:
 | Map physical densities/temperatures and evaluate thermal distances/ruler ratios | [Thermal observables](thermal-observables.md) |
 | Evaluate a supplied-drag BAO density with a retained ordered covariance in C++ | [Massless conditional BAO](bao-conditional.md) or [thermal conditional BAO](bao-thermal.md) |
 | Calculate a pressureless GR growing mode in C++ | [GR growth](gr-growth.md) |
+| Predict supplied-amplitude growth and a synthetic full-covariance RSD density | [Conditional growth/RSD](growth-rsd.md) |
 | Evaluate supplied-temperature/density hydrogen ionization in C++ | [Hydrogen equilibrium](hydrogen-equilibrium.md) |
 | Evaluate supplied-temperature/density H/He equilibrium with shared electrons | [Hydrogen–helium equilibrium](hydrogen-helium-equilibrium.md) |
 | Map supplied neutral-mass baryon/He abundance and compose shared-electron LTE | [Baryon abundance](baryon-abundance.md) |
+| Propagate a supplied joint abundance/mass/temperature law | [Finite abundance law](baryon-abundance-law.md) |
 | Prepare pure-H ionization/temperature and finite-endpoint optical histories | [Recombination and drag](recombination-drag.md) |
 | Predict a synthetic SIS point-source image, delay and Gaussian PSF pixels in C++ | [SIS thin lens](sis-thin-lens.md) |
 | Check scientific assumptions | [Scientific contracts](scientific-contracts.md) |

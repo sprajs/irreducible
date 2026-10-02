@@ -79,6 +79,10 @@ Preserve actual address ranges, original training/future vectors and every
 refusal. Distinct addresses do not prove random independence.
 
 Use [GR growth](docs/gr-growth.md) only with its compatible radiation-free pressureless LCDM state and D/a→1 normalization. Growth does not supply radiation/relic perturbations or a scale-dependent transfer function.
+Read [conditional growth/RSD](docs/growth-rsd.md) before composing supplied
+sigma8 amplitudes. Preserve the reference epoch and 8 h^-1 Mpc window identity,
+shared reference diagnostics and separate density projection gate. Synthetic
+rows do not qualify a released RSD compression or predict sigma8 from a spectrum.
 
 Read [hydrogen equilibrium](docs/hydrogen-equilibrium.md) and the
 [conditional pure-H history](docs/recombination-drag.md) before composing thermal
@@ -92,6 +96,12 @@ consumer maps explicit physical omega_b, He4 mass fraction and neutral effective
 masses into that LTE state. Abundance prediction and helium kinetics remain
 separate; preserve mass conventions, supplied matter-temperature provenance
 and combined density/atomic diagnostics.
+The [finite joint abundance law](docs/baryon-abundance-law.md) retains complete
+supplied abundance/mass/temperature states and population cross-row covariance.
+Keep its physical spread separate from numerical sensitivity; required state
+refusals withhold moments without dropping or renormalizing states. A constant
+raw-input witness is needed for exact zero variance. G and atomic assets remain
+fixed; this is not a BBN prediction or a qualified cosmological input law.
 The shared Saha operator supplies only the initial condition. A truncated
 late-endpoint unit-depth root must not replace a source-defined physical drag
 epoch or imply full recombination, helium or CMB closure.

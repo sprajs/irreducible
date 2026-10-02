@@ -275,3 +275,23 @@ Each campaign emits its complete attempt ledger; the named local runs produce
 approximately 43 MB and 68 MB of stdout. CTest capture adds this payload to
 the executable's memory use. Runtime and peak-memory comparisons must include
 logging/capture separately from the retained numerical factors.
+
+## Finite abundance-law controls
+
+`baryon_abundance_law_contract` and `baryon_abundance_law_peer_contract` run
+without external assets or a Python reference dependency. The peer facts were
+frozen from original Decimal110/150 exact-binary input calculations with
+Machin pi and direct charge-neutrality bisection. Shared physical constants
+and equations are reference ancestry; native mapping/Newton outputs are not
+expected-value oracles. Density/LTE means and full signed covariance use the
+separate allocations in [the contract](baryon-abundance-law.md).
+
+## Conditional growth/RSD controls
+
+The growth amplitude, RSD owner and `growth_rsd_peer_contract` tests run in
+ordinary native CI. Frozen original mpmath110/150 facts use the original-a
+Heath integral, while production uses its existing adaptive transformed
+integral; an original growing-mode ODE route provides a distinct physical
+comparison. The density facts use an explicit correlated 3x3 adjugate. These
+are named numerical controls under [the declared model](growth-rsd.md),
+without external data or an mpmath runtime dependency.

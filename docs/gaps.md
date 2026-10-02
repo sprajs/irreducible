@@ -80,7 +80,11 @@ The [H/He mixture equilibrium](hydrogen-helium-equilibrium.md) now supplies
 shared-electron ground-state LTE fractions for independently supplied nuclei
 densities. [Supplied baryon abundance](baryon-abundance.md) now maps explicit
 physical density, He4 mass fraction and neutral effective masses into that LTE
-consumer. Abundance prediction, helium kinetic rates and history remain open;
+consumer. The native [finite joint abundance law](baryon-abundance-law.md)
+propagates supplied correlated density/mass/temperature states into full
+population moments, with separate numerical diagnostics and truthful required
+state refusals. The law itself needs source qualification; G and atomic-asset
+uncertainty remain excluded. Abundance prediction, helium kinetic rates and history remain open;
 LTE cannot replace the missing helium kinetics. The
 [conditional history](recombination-drag.md) advances a bounded effective
 three-level model with the shared thermal background and explicit choice of
@@ -98,7 +102,11 @@ qualified full optical-depth endpoints and reionization remain prerequisites
 before physical-ruler or CMB coupling. Finite-endpoint visibility does not
 predict the present-day last-scattering distribution or CMB spectra.
 
-The native [GR growth](gr-growth.md) operator now supplies a bounded radiation-free pressureless growing mode. Matter transfer, radiation/relic perturbations, general lensing potentials and propagation, CMB spectra, stellar/source populations, measured detector/selection laws and survey recovery remain separate gaps. A known cosmology makes these missing
+The native [GR growth](gr-growth.md) operator supplies a bounded radiation-free
+pressureless growing mode. The [conditional amplitude/RSD consumer](growth-rsd.md)
+now adds supplied-reference sigma8/f*sigma8 and a retained full-covariance
+synthetic density. Source amplitude and survey-estimator/AP/window validity
+remain explicit prerequisites for measured RSD. Matter transfer, radiation/relic perturbations, general lensing potentials and propagation, CMB spectra, stellar/source populations, measured detector/selection laws and survey recovery remain separate gaps. A known cosmology makes these missing
 sectors concrete; an H(z) or distance match does not supply them. Use the
 [roadmap](roadmap.md) to choose the next qualified prerequisite after the
 experiment identifies a blocker.
