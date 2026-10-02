@@ -85,6 +85,22 @@ cosmological posterior, released-box prior or observational qualification.
 
 The native [GR growth](gr-growth.md) consumer retains the radiation-free flat LCDM background for a pressureless growing mode D(a) and f(a), normalized by D/a→1. Exact Einstein–de Sitter and independent ODE/refinement controls test its bounded domain. It adds no CLI/ABI operation, scale-dependent transfer, radiation/relic perturbations, RSD likelihood or observational qualification.
 
+The native [ground-state hydrogen equilibrium](hydrogen-equilibrium.md) operator
+solves the supplied-temperature/physical-density Saha model with separately
+represented positive ionized and neutral fractions. Exact SI definitions and
+sourced atomic central values have distinct identities. Rational, Decimal and
+independent logit/refinement controls test the declared dilute pure-H model;
+LTE, partition truncation and atomic uncertainty remain physical assumptions.
+
+The retained native [pure-H history](recombination-drag.md) composes that initial
+condition with the shared massless thermal background and source-defined
+effective three-level rates. It predicts a non-equilibrium electron fraction
+with prescribed matter/radiation temperature, a late-endpoint drag depth and a
+separate conditional unit-depth root. Independent direct-SI RK4 controls test
+the implicit/refined solver. It adds no CLI/ABI route, evolved matter temperature,
+helium, multilevel correction, reionization, physical drag-epoch qualification,
+visibility or perturbation/CMB prediction. The supplied-drag ruler remains separate.
+
 The native [temporal photometry](temporal-photometry.md) owner retains finite bilinear rest-time/wavelength luminosity grids and fixed optical passbands. Coarse observer exposures return full-interval mean flux, collected energy and expected photons with explicit source epoch and time-coverage status. Analytic and independent time/frequency integration controls test the declared model. It adds no template reader, source/calibration uncertainty, noise, selection, inference or CLI/ABI operation.
 
 The native [detector and censoring](detector-selection.md) operator separately composes expected photons with declared Poisson arrivals, fixed quantum efficiency/background/dark current and Gaussian read noise. Caller-owned seed/stream/sample addresses support exact integer replay and bounded simulation. The same measurement law scores discrete or continuous detections and threshold-only nondetections, with an explicit selected-only measure. Analytic, characteristic-function/refinement and synthetic censored-recovery controls test this bounded model. Source/calibration uncertainty, measured-instrument qualification, saturation/digitization, population recovery and CLI/ABI ingestion remain open.

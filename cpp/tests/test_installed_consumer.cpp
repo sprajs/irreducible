@@ -2,6 +2,8 @@
 #include <irred/numerics.hpp>
 #include <irred/gaussian_design.hpp>
 #include <irred/gr_growth.hpp>
+#include <irred/hydrogen_equilibrium.hpp>
+#include <irred/recombination_drag.hpp>
 #include <irred/gaussian_posterior.hpp>
 #include <irred/sampled_photometry.hpp>
 #include <irred/temporal_photometry.hpp>
@@ -169,6 +171,23 @@ int installed_measurement_pipeline() {
  const double expected=k>=1 ? -lambda+k*std::log(lambda)-std::lgamma(k+1.) : -lambda;
  return std::abs(*scored.rows[0].log_value-expected)<2e-12 ? 0 : 14;
 }
+int installed_hydrogen_history() {
+ namespace a=irred::atomic;
+ using namespace irred::cosmology;
+ const a::HydrogenState state[]{ {10000,6.769876143152199e20} };
+ const auto fractions=a::evaluate_hydrogen_equilibrium(state);
+ if(fractions.rows.size()!=1 || !fractions.rows[0].ionized.value || !fractions.rows[0].neutral.value ||
+  std::abs(*fractions.rows[0].ionized.value-.5)>1e-12 || std::abs(*fractions.rows[0].neutral.value-.5)>1e-12) return 16;
+ const PureHydrogenRequest source{{67.4,.02237,.12,2.7255,1.7e-5,{}},1600,300};
+ const auto owner=prepare_pure_hydrogen_history(source);
+ const double redshifts[]{300,1000};
+ const auto history=owner.evaluate(redshifts,hydrogen_electron_fraction|hydrogen_drag_depth);
+ const auto root=owner.conditional_unit_depth_redshift();
+ return owner.status()==irred::numerics::Status::ok && history.rows.size()==2 &&
+  history.rows[0].drag_depth.value==0 && history.rows[1].electron_fraction.value &&
+  *history.rows[1].electron_fraction.value>0 && *history.rows[1].electron_fraction.value<1 &&
+  root.value && *root.value>1000 && *root.value<1100 ? 0 : 16;
+}
 int main() {
  const auto result=irred::numerics::log1p_checked(0.5);
  if(result.status!=irred::numerics::Status::ok || std::abs(result.value-0.4054651081081643819780131154643491)>=1e-14) return 1;
@@ -211,6 +230,7 @@ int main() {
  if (const auto thermal_status=installed_thermal_observables();thermal_status!=0) return thermal_status;
  if (const auto posterior_status=installed_gaussian_posterior();posterior_status!=0) return posterior_status;
  if (const auto growth_status=installed_gr_growth();growth_status!=0) return growth_status;
+ if (const auto hydrogen_status=installed_hydrogen_history();hydrogen_status!=0) return hydrogen_status;
  if (const auto temporal_status=installed_temporal();temporal_status!=0) return temporal_status;
  if (const auto pipeline_status=installed_measurement_pipeline();pipeline_status!=0) return pipeline_status;
  return installed_correlated_calibration();

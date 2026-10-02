@@ -10,6 +10,13 @@ Today you can run flat-FLRW background calculations, conditional supernova and B
 
 The native [pressureless GR growing mode](docs/gr-growth.md) predicts D(a) and f(a) under an explicit radiation-free LCDM approximation, with independent differential-equation controls.
 
+The native [hydrogen equilibrium](docs/hydrogen-equilibrium.md) calculation uses
+supplied temperature/density and fixed atomic assets. A separate
+[pure-hydrogen history](docs/recombination-drag.md) solves a bounded effective
+three-level model with prescribed matter temperature and a truncated drag
+optical depth. Its conditional unit-depth root is distinct from a physical drag
+epoch and the existing supplied-drag ruler.
+
 The native [spectral-time photometry](docs/temporal-photometry.md) operator integrates finite source grids over declared observer exposures, with explicit clipping and source epoch.
 The native [detector and censoring](docs/detector-selection.md) calculation composes expected photons with a declared Poisson/read-noise law, addressed random draws and a threshold likelihood retaining nondetections.
 
