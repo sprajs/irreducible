@@ -70,12 +70,20 @@ int main() {try {
   auto lower=evaluate(b,{0,.025}),upper=evaluate(b,{0,.975});
   check(lower.status==DensityStatus::finite&&upper.status==DensityStatus::finite,
         "two tail quantiles admitted");
-  // Independently tabulated standard Gaussian quantile. Removed8sigma mass
-  // alters these quantiles by less3e-14; expected interval width is1e-8.
-  check(contains(lower.requested_quantile,-1.9599639845400542355),
-        "analytic lower Gaussian quantile limit");
-  check(contains(upper.requested_quantile,1.9599639845400542355),
-        "analytic upper Gaussian quantile limit");
+  // Independent90/120-digit Decimal Machin-pi/integrated Gaussian power
+  // series/bisection reference, refined difference<3e-70 for these facts.
+  // These are the finite[-8,8] marginal quantiles, not unboxed replacements.
+  check(contains(lower.requested_quantile,-1.9599639845400441236),
+        "analytic lower finite box quantile");
+  check(contains(upper.requested_quantile,1.9599639845400441236),
+        "analytic upper finite box quantile");
+  auto asym_profile=profile();
+  auto asym=GaussianBox::prepare(std::move(asym_profile),support(-7,9,-10,11));
+  const auto ar=evaluate(asym);
+  check(ar.status==DensityStatus::finite&&contains(ar.requested_quantile,1.6040070129182506649e-12),
+        "independent asymmetric singly truncated marginal median");
+  check(contains(ar.box_probability,.9999999999987201873432553244),
+        "independent separable asymmetric finite mass");
   auto correlated_profile=profile({1,.6,.6,1});
   auto correlated=GaussianBox::prepare(std::move(correlated_profile),support(-9,9,-9,9));
   auto cr=evaluate(correlated);
@@ -84,6 +92,8 @@ int main() {try {
   near(cr.unboxed_variance[0],1,"correlated first diagonal variance");
   near(cr.unboxed_variance[1],1,"correlated second diagonal variance");
   near(cr.log_design_precision_determinant,-std::log(.64),"independent2x2 cofactor determinant");
+  near((cr.log_relative_box_integral.lower+cr.log_relative_box_integral.upper)/2,
+       1.61473351509513572779,"independent high precision cofactor normalization; source arithmetic comparison");
   // Original-coordinate Jacobian: X'=X diag(2,.5), beta'=diag(.5,2)beta.
   auto scaled_profile=profile({1,0,0,1},{2,0,0,.5});
   auto scaled=GaussianBox::prepare(std::move(scaled_profile),support(-4,4,-20,20));
@@ -94,7 +104,7 @@ int main() {try {
   near(sr.log_prior_volume.lower,r.log_prior_volume.lower,"unit product Jacobian unity");
   auto moved=std::move(b);
   check(b.status()==DensityStatus::invalid_input&&evaluate(moved).status==DensityStatus::finite,
-        "move invalidates old owner");moved=std::move(moved);
+        "move invalidates old owner");auto *self=&moved;moved=std::move(*self);
   check(moved.status()==DensityStatus::finite,"self move retains owner");
   auto invalid_profile=profile();auto invalid=support();invalid.lower[0]=invalid.upper[0];
   check(GaussianBox::prepare(std::move(invalid_profile),invalid).status()==DensityStatus::invalid_input&&

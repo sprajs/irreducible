@@ -83,3 +83,14 @@ refusal retains already admitted normalization intervals and actual work.
 Unadmitted intervals stay unavailable even though their storage defaults to zero.
 Only a complete result receives finite status. Preserved diagnostic stages do
 not convert a refused requested calculation into a qualified result.
+
+The named synthetic owner suite passes51 controls. A separate original Decimal
+reference uses Machin's pi identity, the integrated Gaussian alternating power
+series and monotone bisection at90 and120 digits. It checks the finite[-8,8]
+quantiles, asymmetric[-7,9] median and mass, and the rational2D cofactor
+normalizing prefactor. Maximum reference refinement is2.67e-70; these fixtures
+have ancestry distinct from native Simpson/rational-tail arithmetic. The two
+affected retained-design suites pass84 owner and626 peer controls. These tests
+qualify their named small cases; actual released active46 source normalization,
+its independent numerical reference and integrated SDK identity remain separate
+acceptance work.
