@@ -20,3 +20,5 @@ A future recipe format would put the data sources, model choices and calculation
 - Have a model, reader or useful test to add? [Contributions](https://github.com/sprajs/irreducible/blob/main/CONTRIBUTING.md) are welcome, including agent-written pull requests. Start with [agent instructions](https://github.com/sprajs/irreducible/blob/main/AGENTS.md) and the [development guide](https://github.com/sprajs/irreducible/blob/main/docs/development.md).
 
 The [documentation index](https://github.com/sprajs/irreducible/blob/main/docs/README.md) has the full guides. They live alongside the code so that the instructions and calculations can be reviewed together.
+
+The native [addressed Gaussian simulation and recovery campaigns](https://github.com/sprajs/irreducible/blob/main/docs/gaussian-simulation.md) preserve full generating covariance and distinguish fixed-truth coverage from prior prediction. The emitted pseudo-Gaussian law, finite seeds, numerical allocations and refused attempts stay explicit.

@@ -65,7 +65,11 @@ The native [Gaussian predictive](gaussian-predictive.md) prerequisite now retain
 a normalized joint future distribution for fixed synthetic linear responses
 under the proper Gaussian parameter prior and declared independent future noise.
 It propagates shared parameter covariance without treating the predictive law
-as another measurement. Observational held-out qualification still requires
+as another measurement. Native [addressed Gaussian generation and bounded
+recovery campaigns](gaussian-simulation.md) now test distinct fixed-truth and
+prior-predictive laws, retaining covariance, random identities and every refusal.
+Seeded agreement does not prove RNG independence; predictive preparation still
+rebuilds its invariant covariance for each new training vector. Observational held-out qualification still requires
 resolved object/calibration/selection dependence, and the released finite-box
 target remains a separate measure and normalization problem.
 See [Gaussian design](gaussian-design.md).

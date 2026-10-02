@@ -71,6 +71,12 @@ predictive law is not another measurement or observational qualification. The
 design/offset owner, tagged row/event lineage and exact offset translation gate.
 Keep proper-posterior H0 projection distinct from fixed-truth estimator sampling
 and released box targets. Read their guides before composing a new consumer.
+The native [Gaussian simulation](docs/gaussian-simulation.md) requires a declared
+generating mean and synthetic fixed covariance. Keep ideal Gaussian working
+targets distinct from the finite addressed emitted law; fixed-truth coverage
+uses its bias and sampling covariance, rather than a nominal posterior level.
+Preserve actual address ranges, original training/future vectors and every
+refusal. Distinct addresses do not prove random independence.
 
 Use [GR growth](docs/gr-growth.md) only with its compatible radiation-free pressureless LCDM state and D/a→1 normalization. Growth does not supply radiation/relic perturbations or a scale-dependent transfer function.
 
