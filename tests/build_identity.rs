@@ -1,8 +1,10 @@
 //! Run this ignored, exclusive build test by executing its compiled test binary.
-//! It temporarily edits source comments, restores bytes on unwind, and rebuilds.
+//! It temporarily edits sources and an included CMake fragment, restoring on unwind.
 use serde_json::Value;
+use sha2::{Digest, Sha256};
 use std::{
     fs,
+    io::Write,
     path::{Path, PathBuf},
     process::Command,
 };
@@ -29,7 +31,8 @@ fn build(root: &Path) -> String {
         .unwrap();
     assert!(
         out.status.success(),
-        "{}",
+        "stdout:\n{}\nstderr:\n{}",
+        String::from_utf8_lossy(&out.stdout),
         String::from_utf8_lossy(&out.stderr)
     );
     let m: Value =
@@ -62,6 +65,68 @@ fn source_receipt_flags_and_cache_identity() {
         drop(restore);
         assert_eq!(build(&root), base, "restored source identity differs");
     }
+    let fragment_path = "cpp/tests/build_identity_probe.cmake";
+    let mut fragment_file = fs::OpenOptions::new()
+        .write(true)
+        .create_new(true)
+        .open(root.join(fragment_path))
+        .expect("exclusive fragment path must not replace an existing file");
+    let fragment = Remove(root.join(fragment_path));
+    let marker_path = root.join("build/native/build-identity-probe.txt");
+    assert!(
+        !marker_path.exists(),
+        "exclusive marker path already exists"
+    );
+    let marker = Remove(marker_path);
+    let original_fragment =
+        b"file(WRITE \"${CMAKE_BINARY_DIR}/build-identity-probe.txt\" \"original\")\n";
+    fragment_file.write_all(original_fragment).unwrap();
+    drop(fragment_file);
+    let cmake = Restore {
+        path: root.join("cpp/CMakeLists.txt"),
+        bytes: fs::read(root.join("cpp/CMakeLists.txt")).unwrap(),
+    };
+    let mut included = cmake.bytes.clone();
+    included.extend_from_slice(
+        b"\ninclude(\"${CMAKE_CURRENT_LIST_DIR}/tests/build_identity_probe.cmake\")\n",
+    );
+    fs::write(&cmake.path, included).unwrap();
+    let included_base = build(&root);
+    let original_digest = format!("{:x}", Sha256::digest(original_fragment));
+    let manifest = || -> Value {
+        serde_json::from_slice(&fs::read(root.join("build/build-manifest.json")).unwrap()).unwrap()
+    };
+    assert_eq!(manifest()["sources"][fragment_path], original_digest);
+    assert_eq!(fs::read(&marker.0).unwrap(), b"original");
+    let fragment_restore = Restore {
+        path: fragment.0.clone(),
+        bytes: original_fragment.to_vec(),
+    };
+    let changed_fragment =
+        b"file(WRITE \"${CMAKE_BINARY_DIR}/build-identity-probe.txt\" \"changed\")\n";
+    fs::write(&fragment.0, changed_fragment).unwrap();
+    assert_ne!(
+        build(&root),
+        included_base,
+        "included CMake fragment mutation missing from identity"
+    );
+    let changed_digest = format!("{:x}", Sha256::digest(changed_fragment));
+    assert_ne!(changed_digest, original_digest);
+    assert_eq!(manifest()["sources"][fragment_path], changed_digest);
+    assert_eq!(fs::read(&marker.0).unwrap(), b"changed");
+    drop(fragment_restore);
+    assert_eq!(
+        build(&root),
+        included_base,
+        "restored CMake fragment identity differs"
+    );
+    assert_eq!(manifest()["sources"][fragment_path], original_digest);
+    assert_eq!(fs::read(&marker.0).unwrap(), b"original");
+    drop(cmake);
+    drop(fragment);
+    drop(marker);
+    assert_eq!(build(&root), base, "removed CMake probe identity differs");
+    assert!(manifest()["sources"].get(fragment_path).is_none());
     for name in [
         "RUSTFLAGS",
         "CARGO_ENCODED_RUSTFLAGS",
