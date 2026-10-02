@@ -383,6 +383,13 @@ add_executable(test_recombination_drag_allocations tests/test_recombination_drag
 target_link_libraries(test_recombination_drag_allocations PRIVATE irred_core)
 target_compile_options(test_recombination_drag_allocations PRIVATE -Wall -Wextra -Wpedantic -fno-fast-math -ffp-contract=off)
 add_test(NAME recombination_drag_allocations_contract COMMAND test_recombination_drag_allocations)
+# Named synthetic SIS point source with explicit mass-sheet/PSF conventions.
+target_sources(irred_core PRIVATE src/sis_thin_lens.cpp)
+add_executable(test_sis_thin_lens tests/test_sis_thin_lens.cpp)
+target_link_libraries(test_sis_thin_lens PRIVATE irred_core)
+target_compile_options(test_sis_thin_lens PRIVATE -Wall -Wextra -Wpedantic -fno-fast-math -ffp-contract=off)
+add_test(NAME sis_thin_lens_contract COMMAND test_sis_thin_lens)
+
 # Declared finite spectral-time interpolation; shared sampled radiometry owner.
 target_sources(irred_core PRIVATE src/temporal_photometry.cpp)
 foreach(temporal_test IN ITEMS temporal_photometry temporal_photometry_peer)

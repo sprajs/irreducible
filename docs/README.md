@@ -28,6 +28,7 @@ Read [AGENTS.md](../AGENTS.md) first, then choose a guide:
 | Calculate a pressureless GR growing mode in C++ | [GR growth](gr-growth.md) |
 | Evaluate supplied-temperature/density hydrogen ionization in C++ | [Hydrogen equilibrium](hydrogen-equilibrium.md) |
 | Prepare a conditional pure-H non-equilibrium and truncated drag history | [Recombination and drag](recombination-drag.md) |
+| Predict a synthetic SIS point-source image, delay and Gaussian PSF pixels in C++ | [SIS thin lens](sis-thin-lens.md) |
 | Check scientific assumptions | [Scientific contracts](scientific-contracts.md) |
 | Profile an ordered multi-column Gaussian model in C++ | [Gaussian design](gaussian-design.md) |
 | Calculate conditional estimator variance and a synthetic H0 sampling law | [Gaussian design](gaussian-design.md) and [calibration ladder](calibration-ladder.md) |

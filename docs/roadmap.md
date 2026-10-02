@@ -19,7 +19,7 @@ Dependency-ready next work is the smallest consumer supported by that evidence:
 resolve the released ladder's remaining constraint/measure identity and calibration/model sensitivity
 after the successful unchanged-budget native QR comparison and source-linked host audit;
 use the tested thermal conditional BAO composition while reviewing released
-compression validity; then thermal/ionization/drag prediction before a predicted physical BAO
+compression validity; extend the bounded pure-H history to qualified thermal/ionization/drag prediction before a predicted physical BAO
 ruler. Perturbations and CMB need their own closure and comparisons. Native SDK
 execution can test current functions before adding a CLI/ABI route justified by
 an actual consumer. Do not add noise, lensing or growth labels to unsupported
@@ -48,7 +48,7 @@ and synthetic controls can proceed alongside it.
 | Homogeneous ionization control | Native supplied-temperature/density ground-state pure-H Saha implemented; next qualify a physical abundance/thermal consumer | Rational, Decimal/logit and positivity/domain controls pass; equilibrium and fixed atomic central values do not predict a cosmic history |
 | Recombination and drag history | Native bounded effective three-level pure-H history and truncated drag depth implemented; next evolve matter temperature, add helium/multilevel closure and physical optical-depth endpoints | Independent resolved RK4/implicit refinement and boundary controls pass; prescribed Tm=Tr and the conditional unit-depth root cannot replace physical z_drag |
 | Scoped GR growth | Bounded radiation-free pressureless native D/f implemented; next qualify one compatible observational consumer | Einstein–de Sitter and independent ODE/refinement controls pass; a scale-independent growth approximation is not massive-neutrino transfer or full perturbation closure |
-| A named thin-lens system | Combine compatible distances with an explicit analytic lens/source and instrument operator | Analytic deflection/magnification, synthetic image/delay recovery and degeneracy controls; distances do not identify the lens mass |
+| A named thin-lens system | Native bounded SIS point-source/mass-sheet and Gaussian-PSF pixel slice implemented; next pin one system's mass/source/environment and instrument constraints | Independent potential/Jacobian and pixel integration, synthetic image/delay recovery and mass-sheet/H0 controls pass; inherited distance errors and degeneracies remain explicit, without measured-system qualification |
 | Linear transfer and CMB projection | Not implemented: first freeze gauge/metric and species perturbations, primordial modes and qualified thermal/visibility state, then one projection | Initial-mode/conservation and independent hierarchy/transfer/spectra controls are required; background, pressureless D/f and a truncated pure-H history do not close this route |
 
 For each chosen scope, freeze equations, source identity, domains, output masks,
@@ -73,11 +73,19 @@ A reusable computation needs a concrete scientific owner, not a universal physic
 
 A concrete ownership proposal is a cosmology module for theory-specific background, thermal and perturbation state; reusable spectra and image operations for source radiation, convolution and measurement; and observational-analysis consumers that compose those with instrument, selection and probability contracts. Common units, frames, numerics and instrument response have one owner. Add compiled types/functions only when a real consumer exists: this is an ownership boundary, not a promise of empty namespaces or folders.
 
+The native [synthetic SIS consumer](sis-thin-lens.md) is one bounded instance:
+it reuses compatible massless-radiation distances, propagates their numerical
+diagnostics, and projects an axial source through a thin-lens tangent-plane
+approximation and fixed Gaussian PSF. It evaluates no supplied-drag ruler.
+Its explicit mass sheet exposes image/flux and time-delay degeneracies before
+introducing actual system data. Source variability, stellar kinematics, line-of-
+sight structure, measured PSF/noise and a system likelihood remain next contracts.
+
 The common numerical/data layer should support units and frames, stable linear algebra, quadrature, differential equations, interpolation with stated errors, probability, spectra, images and uncertainty propagation. Add each operation for a real consumer and verify its contract. Rendering and interactive visualization belong in external tools and are the lowest implementation priority.
 
 ## Dependency graph and first executable verticals
 
-The forward model advances through small complete calculations. [Deterministic photometry](photometry.md), its sampled extension and [the supplied-drag sound horizon](sound-horizon.md) implement bounded first pieces; their named numerical checks do not complete the verticals below. Native finite passband calibration, temporal photometry, bounded [detector/censoring](detector-selection.md) and a synthetic joint ladder provide further pieces. Measured calibration/selection qualification, astrophysical recovery, observational ladder fitting and predicted thermal/drag history remain open. A scoped joint fit can start as soon as its forward models and dependence contracts qualify; it need not wait for CMB or nonlinear simulations.
+The forward model advances through small complete calculations. [Deterministic photometry](photometry.md), its sampled extension and [the supplied-drag sound horizon](sound-horizon.md) implement bounded first pieces; their named numerical checks do not complete the verticals below. Native finite passband calibration, temporal photometry, bounded [detector/censoring](detector-selection.md), a synthetic joint ladder and the [conditional pure-H history](recombination-drag.md) provide further pieces. Measured calibration/selection qualification, astrophysical recovery, observational ladder fitting and a qualified physical thermal/drag history remain open. A scoped joint fit can start as soon as its forward models and dependence contracts qualify; it need not wait for CMB or nonlinear simulations.
 
 ### 1. Synthetic photometric observation and recovery
 
@@ -146,7 +154,11 @@ species/temperature/physical-density mapping and propagated numerical budgets.
 The native [thermal BAO density](bao-thermal.md) now composes this state with the
 retained ordered covariance and its unchanged density-level projection allocation.
 The massless conditional model retains its separate identity. Neither
-provider predicts drag or recombination.
+provider predicts drag or recombination. The separate [conditional pure-H history](recombination-drag.md)
+uses the massless background and shared Saha initial condition, evolves an effective
+three-level model with prescribed matter temperature and integrates drag depth
+from an explicit late endpoint. Its unit-depth root remains distinct from a
+qualified physical drag epoch and is not coupled to the supplied-drag ruler.
 
 Background plus thermal/ionization history can subsequently support a declared perturbation closure, primordial modes, transfer functions and line-of-sight projection. Each later observable needs its own reference and likelihood allocation.
 

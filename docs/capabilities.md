@@ -101,6 +101,20 @@ the implicit/refined solver. It adds no CLI/ABI route, evolved matter temperatur
 helium, multilevel correction, reionization, physical drag-epoch qualification,
 visibility or perturbation/CMB prediction. The supplied-drag ruler remains separate.
 
+The native [synthetic SIS thin lens](sis-thin-lens.md) retains a compatible
+massless-radiation early/late source and computes two distances once, without
+evaluating its supplied-drag ruler. An axial point source, SIS template and
+explicit nonnegative mass sheet give image positions, signed magnifications,
+fluxes and relative observer delays. A circular Gaussian PSF integrates image
+flux into rectangular pixels, including an explicit half-open point limit.
+Inherited distance diagnostics, topology margins, separate output masks and
+bounded pixel work retain typed failures. Independent potential/Jacobian and
+Gaussian-density integration controls test named synthetic recovery and
+mass-sheet/H0 degeneracies. The tangent-plane, thin-lens and fixed source/PSF
+assumptions remain explicit. This SDK adds no CLI/C ABI route, measured-system
+mass or kinematics qualification, lens-mass inference, posterior, arbitrary
+multi-plane propagation or CMB lensing prediction.
+
 The native [temporal photometry](temporal-photometry.md) owner retains finite bilinear rest-time/wavelength luminosity grids and fixed optical passbands. Coarse observer exposures return full-interval mean flux, collected energy and expected photons with explicit source epoch and time-coverage status. Analytic and independent time/frequency integration controls test the declared model. It adds no template reader, source/calibration uncertainty, noise, selection, inference or CLI/ABI operation.
 
 The native [detector and censoring](detector-selection.md) operator separately composes expected photons with declared Poisson arrivals, fixed quantum efficiency/background/dark current and Gaussian read noise. Caller-owned seed/stream/sample addresses support exact integer replay and bounded simulation. The same measurement law scores discrete or continuous detections and threshold-only nondetections, with an explicit selected-only measure. Analytic, characteristic-function/refinement and synthetic censored-recovery controls test this bounded model. Source/calibration uncertainty, measured-instrument qualification, saturation/digitization, population recovery and CLI/ABI ingestion remain open.

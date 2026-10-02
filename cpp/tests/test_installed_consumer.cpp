@@ -4,6 +4,7 @@
 #include <irred/gr_growth.hpp>
 #include <irred/hydrogen_equilibrium.hpp>
 #include <irred/recombination_drag.hpp>
+#include <irred/sis_thin_lens.hpp>
 #include <irred/gaussian_posterior.hpp>
 #include <irred/sampled_photometry.hpp>
 #include <irred/temporal_photometry.hpp>
@@ -137,6 +138,26 @@ int installed_gr_growth() {
  const double a[]{.125,1}; auto result=owner.evaluate(a,growth_d|growth_f);
  return result.rows.size()==2 && result.rows[0].d.value==.125 && result.rows[1].d.value==1 && result.rows[0].f.value==1 && result.rows[1].f.value==1 ? 0 : 12;
 }
+int installed_sis_thin_lens() {
+ using namespace irred::lensing;
+ const long double theta=2*std::numbers::pi_v<long double>*std::pow(220/299792.458L,2);
+ const SISSource source{{{70,0,1,0,1},1059,"installed synthetic radiation-only geometry"},
+  .5,2,220,double(.4L*theta),1,double(.2L*theta),1};
+ const auto owner=prepare_sis_thin_lens(source);
+ const auto images=owner.predict(lens_positions|lens_magnifications|lens_fluxes|lens_delays);
+ const std::array<PixelRectangle,1> rectangles{{{-1e-3,1e-3,-1e-3,1e-3}}};
+ const auto pixels=owner.pixels(rectangles);
+ if(owner.status()!=irred::numerics::Status::ok || images.status!=irred::numerics::Status::ok ||
+  images.image_count!=2 || pixels.status!=irred::numerics::Status::ok || pixels.rows.size()!=1) return 15;
+ const auto &positive=images.images[0], &negative=images.images[1];
+ return positive.x_radians.value && negative.x_radians.value && positive.flux.value && negative.flux.value &&
+  positive.relative_delay_seconds.value==0 && negative.relative_delay_seconds.value && *negative.relative_delay_seconds.value>0 &&
+  positive.parity==1 && negative.parity==-1 &&
+  std::abs(*positive.x_radians.value/(1.4L*theta)-1)<1e-8 &&
+  std::abs(*negative.x_radians.value/(-.6L*theta)-1)<1e-8 &&
+  std::abs(*positive.flux.value-3.5)<1e-8 && std::abs(*negative.flux.value-1.5)<1e-8 &&
+  pixels.rows[0].flux.value && std::abs(*pixels.rows[0].flux.value-5)<1e-8 ? 0 : 15;
+}
 int installed_temporal() {
  using namespace irred::photometry;
  const double time[]{0,1},wave[]{1,2},lum[]{1,1,1,1},transmission[]{1,1};
@@ -231,6 +252,7 @@ int main() {
  if (const auto posterior_status=installed_gaussian_posterior();posterior_status!=0) return posterior_status;
  if (const auto growth_status=installed_gr_growth();growth_status!=0) return growth_status;
  if (const auto hydrogen_status=installed_hydrogen_history();hydrogen_status!=0) return hydrogen_status;
+ if (const auto lens_status=installed_sis_thin_lens();lens_status!=0) return lens_status;
  if (const auto temporal_status=installed_temporal();temporal_status!=0) return temporal_status;
  if (const auto pipeline_status=installed_measurement_pipeline();pipeline_status!=0) return pipeline_status;
  return installed_correlated_calibration();

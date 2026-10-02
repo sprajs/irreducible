@@ -54,6 +54,7 @@ different parameter variation.
 | Absolute calibration | Native synthetic ladder, conditional estimator variance/sampling law and proper correlated calibration density | Named synthetic recovery, exact noise-response and held-out controls; released physical-axis mapping, coverage and observational reconstruction remain separate |
 | Pressureless growth | Native radiation-free GR D/f | EdS and independent ODE/refinement controls; no radiation/relic transfer, RSD or shear likelihood |
 | Hydrogen thermal prerequisites | Native supplied-state Saha and conditional pure-H history | Rational/Decimal/logit and independent resolved RK4 controls; prescribed temperature, ground/effective states and truncated drag root, without full thermal/physical-epoch qualification |
+| Synthetic thin-lens images and delays | Native SIS point source, explicit mass sheet and Gaussian PSF pixels | Independent potential/Jacobian and pixel integration controls; compatible massless distances and synthetic degeneracies, without measured-system mass or instrument qualification |
 | CMB and physical drag prediction | Conditional background/ruler and bounded hydrogen pieces | Evolved temperature, helium/multilevel/visibility closure, radiation/metric/massive-neutrino perturbations, primordial modes and line-of-sight predictions remain missing |
 
 The DESI DR2 mean/covariance products are

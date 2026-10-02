@@ -87,6 +87,15 @@ block an observational SN fit. A fitted 102-coordinate zero-point covariance and
 nine systematic template variants do not provide a measured optical-state law;
 the 102-versus-105 calibration mapping and joint probability masses remain open.
 
+The native [synthetic SIS slice](sis-thin-lens.md) now supplies one bounded
+point-source image/delay and Gaussian-PSF pixel calculation using compatible
+massless-radiation distances. Its synthetic mass-sheet/H0 controls demonstrate
+remaining degeneracies. Actual system images, PSF/noise, source variability,
+mass/environment constraints and kinematics have not been qualified; neither
+these synthetic controls nor background distances determine a lens mass.
+General or multi-plane propagation and cosmological/CMB lensing remain separate
+physics consumers.
+
 ## Data products are not interchangeable
 
 The historical research collection contains several levels of information:
