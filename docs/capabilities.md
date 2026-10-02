@@ -92,6 +92,13 @@ sourced atomic central values have distinct identities. Rational, Decimal and
 independent logit/refinement controls test the declared dilute pure-H model;
 LTE, partition truncation and atomic uncertainty remain physical assumptions.
 
+The native [hydrogen–helium equilibrium](hydrogen-helium-equilibrium.md)
+operator closes ground-state H/4He stage fractions with one charge-neutral
+electron density. Temperature and both physical nuclei densities are supplied.
+Original polynomial and Decimal110/150 controls, trace-species limits and tiny
+positive output/refusal tests support its numerical contract. This supplies an
+LTE state, not a helium kinetic history or abundance/cosmology mapping.
+
 The retained native [pure-H history](recombination-drag.md) composes that initial
 condition with the shared massless thermal background and source-defined
 effective three-level rates. It predicts a non-equilibrium electron fraction

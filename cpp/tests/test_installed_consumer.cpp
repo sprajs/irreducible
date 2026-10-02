@@ -3,6 +3,7 @@
 #include <irred/gaussian_design.hpp>
 #include <irred/gr_growth.hpp>
 #include <irred/hydrogen_equilibrium.hpp>
+#include <irred/hydrogen_helium_equilibrium.hpp>
 #include <irred/recombination_drag.hpp>
 #include <irred/sis_thin_lens.hpp>
 #include <irred/gaussian_posterior.hpp>
@@ -227,6 +228,16 @@ int installed_hydrogen_history() {
   *middle.thomson_depth.value>0 && *middle.visibility_per_redshift.value>0 &&
   *middle.finite_endpoint_survival.value>0 && *middle.finite_endpoint_survival.value<1 ? 0 : 17;
 }
+int installed_hydrogen_helium() {
+ const irred::atomic::HydrogenHeliumState source{10000,1e12,1e11};
+ const auto result=irred::atomic::evaluate_hydrogen_helium_equilibrium({&source,1});
+ if(result.rows.size()!=1 || !result.rows[0].electron_density.value ||
+    !result.rows[0].helium_doubly_ionized.value || !result.rows[0].hydrogen_neutral.value ||
+    !result.rows[0].helium_singly_ionized.value || !result.rows[0].hydrogen_ionized.value) return 18;
+ const auto& row=result.rows[0];
+ const double charge=1e12* *row.hydrogen_ionized.value+1e11*( *row.helium_singly_ionized.value+2* *row.helium_doubly_ionized.value);
+ return std::abs(*row.electron_density.value/charge-1)<2e-12 ? 0 : 18;
+}
 int main() {
  const auto result=irred::numerics::log1p_checked(0.5);
  if(result.status!=irred::numerics::Status::ok || std::abs(result.value-0.4054651081081643819780131154643491)>=1e-14) return 1;
@@ -273,5 +284,6 @@ int main() {
  if (const auto lens_status=installed_sis_thin_lens();lens_status!=0) return lens_status;
  if (const auto temporal_status=installed_temporal();temporal_status!=0) return temporal_status;
  if (const auto pipeline_status=installed_measurement_pipeline();pipeline_status!=0) return pipeline_status;
+ if (const auto mixture_status=installed_hydrogen_helium();mixture_status!=0) return mixture_status;
  return installed_correlated_calibration();
 }
