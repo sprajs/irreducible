@@ -226,3 +226,23 @@ allocation failures are separate engineering gates. Read
 [the history guide](recombination-drag.md) before composing this native SDK.
 These tests do not qualify helium, a physical drag epoch, present-day CMB
 visibility, observational uncertainty or a full LambdaCDM recombination model.
+
+## Explicit relics in the conditional pure-H history
+
+The direct-SI reference independently integrates FD density with composite
+GL16/32 quadrature and an explicit momentum tail, then advances the declared
+history with resolved coupled Radau stages. Three evolved mass/temperature
+profiles and the prescribed-temperature initial boundary test the applicable
+outputs and conditional roots. Independent opacity/visibility quadrature retains
+survival mass. Split-weight and three-positive-species availability are distinct
+owner controls, not extra independent history comparisons. Fixed-density H0
+controls test the retained expansion law with explicit cancellation diagnostics.
+All momentum work is charged; the default cap can refuse these profiles.
+
+A linker-only forwarding observer of the unchanged native integration entry
+point verifies actual momentum callbacks at each measured provider/history
+allocation site. Source acquisition precedes momentum work and successful
+transfer cannot allocate. GCC/Clang Unix linkage is the scope of this fault
+instrumentation; the installed scientific library uses ordinary linkage.
+Successful values/counters and affected distance/ruler/BAO consumers are checked
+separately from failure accounting.

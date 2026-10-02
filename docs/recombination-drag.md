@@ -293,17 +293,27 @@ with an explicit500,000,000 cap accepted with178,512,172 operations, including
 178,135,936 momentum callbacks,32769 background evaluations,171733 ionization
 and171733 temperature RHS evaluations and one Saha solve. The measured single
 GCC16.2.1 Release pilot took15.25 seconds; this is a pinned case cost, not a
-portable runtime guarantee. Failed provider calls contribute their actual work;
+portable runtime guarantee. A fault-injection witness exposed an allocation after present-normalization FD
+work that could lose its callback count. The shared provider now acquires its
+owned source before momentum work and transfers it without allocation on
+success. A linker-only forwarding integrator observer tests every measured
+provider/outer-history preparation allocation for one/two/three positive
+species, including faults after work; no numerical equation is replaced.
+Failed provider calls contribute their actual work;
 queries perform no new momentum or ODE calls. The existing payload accounting,
 16MiB default,1GiB hard cap and output masks remain in force.
 
 Separate original direct-SI momentum and Radau controls use composite GL16/32
 on `[0,64]` with an exponential tail control, independent of production adaptive
 momentum integration. Reference stage coefficients may be reused at their own
-stage redshift during nonlinear iteration. Named reference gates include the
-light/heavy transition, standard-like one-massive plus two-massless profile,
-three positive species, split populated-state weights, initial boundary and
-fixed-physical-density H0 behavior. The H comparison allocation is2e-10 relative;
+stage redshift during nonlinear iteration. Three independent evolved cases cover
+light/heavy transitions and one-massive plus two-massless inputs; a separate
+prescribed-temperature case covers the initial1650 boundary. Split populated-state
+weights and three-positive-species availability are owner controls, not additional
+independent Radau comparisons. A retained-H comparison varies only H0 at fixed
+physical densities and species, checks the explicit flat-Lambda difference law
+and records high-redshift cancellation sensitivity; it is not an alternate full
+history run. The H comparison allocation is2e-10 relative;
 reference refinement consumes at most five percent of each unchanged downstream
 allocation. These controls share fixed SI/atomic input ancestry and long-double
 system arithmetic, and qualify numerical composition rather than full
