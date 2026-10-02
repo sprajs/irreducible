@@ -109,16 +109,20 @@ int installed_gaussian_box() {
  source.ordered_ids={"row-a","row-b"}; source.measure="product d(residual)";
  source.ordering_provenance="installed synthetic order";
  const std::array<double,4> covariance{1,0,0,1};
- const std::array<double,2> design{1,1}, residual{0,0};
+ const std::array<double,4> design{1,0,0,1};
+ const std::array<double,2> residual{0,0};
  auto gaussian=prepare_gaussian(covariance,MatrixKind::covariance,source,4,1e-10,
   irred::numerics::Arithmetic::longdouble_cpu_v1);
- DesignMetadata metadata{{"active0"},{"dimensionless"},{},"dimensionless",
-  "installed two-row shared coefficient","independent synthetic residuals"};
+ DesignMetadata metadata{{"active0","active2"},{"dimensionless","dimensionless"},{},"dimensionless",
+  "installed two-row two-coordinate design","independent synthetic residuals"};
  auto profile=DesignProfile::prepare(std::move(gaussian),design,source.ordered_ids,std::move(metadata));
- auto box=GaussianBox::prepare(std::move(profile),{{"active0"},{-8},{8},"d(active0)",
+ auto box=GaussianBox::prepare(std::move(profile),{{"active0","active2"},{-8,-10},{8,10},"d(active0)d(active2)",
   "normalized uniform finite synthetic box","fixed1=0 point mass outside active measure"});
  const auto result=box.evaluate(residual,source.ordered_ids,{0,.5});
- const long double expected=-std::log(32.L)-.5L*std::log(std::numbers::pi_v<long double>);
+ // Independent separable mass: Q(8) and Q(10) from high-precision Gaussian
+ // integration; fixed1 contributes no Lebesgue-volume factor.
+ const long double expected=-std::log(320.L)-2*6.2209605742717841235e-16L
+  -2*7.619853024160526066e-24L;
  return result.status==DensityStatus::finite && result.stage==BoxStage::complete &&
   result.normalization_enclosures_available && result.quantile_enclosure_available &&
   result.requested_quantile.lower<=0 && result.requested_quantile.upper>=0 &&
