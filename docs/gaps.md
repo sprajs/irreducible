@@ -58,7 +58,7 @@ logarithmic-coordinate check and independent synthetic constraint-row sensitivit
 comparisons do not reproduce the paper's posterior or systematic H0 uncertainty.
 See [Gaussian design](gaussian-design.md).
 
-The native [GR growth](gr-growth.md) operator now supplies a bounded radiation-free pressureless growing mode. Matter transfer, radiation/relic perturbations, general lensing potentials and propagation, recombination/drag, CMB spectra, stellar/source populations, detector noise, detection and survey recovery remain separate gaps. A known cosmology makes these missing
+The native [GR growth](gr-growth.md) operator now supplies a bounded radiation-free pressureless growing mode. Matter transfer, radiation/relic perturbations, general lensing potentials and propagation, recombination/drag, CMB spectra, stellar/source populations, measured detector-noise and detection laws, and survey recovery remain separate gaps. A known cosmology makes these missing
 sectors concrete; an H(z) or distance match does not supply them. Use the
 [roadmap](roadmap.md) to choose the next qualified prerequisite after the
 experiment identifies a blocker.
