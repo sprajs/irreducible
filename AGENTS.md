@@ -48,7 +48,9 @@ in the sole active roadmap.
 Use the native thermal distance/ruler consumer only with its explicitly mapped
 physical densities, temperatures and species. It shares the thermal E/H state;
 the massless early/late and conditional-density consumers retain their distinct
-physical identity. Read [thermal observables](docs/thermal-observables.md) before
+physical identity. Thermal BAO uses the same mapped state and retained ordered
+covariance; fixed physical densities do not imply H0 cancellation. Read
+[thermal BAO](docs/bao-thermal.md) and [thermal observables](docs/thermal-observables.md) before
 composing a new consumer; do not substitute one model for another silently. Conditional estimator variance assumes fixed design and supplied
 Gaussian observation noise; a synthetic H0 sampling law requires an explicitly
 declared generating mean. Neither calculation supplies a parameter posterior or

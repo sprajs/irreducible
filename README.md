@@ -22,7 +22,9 @@ The native library now also has an explicit thermal-neutrino
 [density/pressure and E/H provider](docs/thermal-neutrino.md), tested against
 matched CLASS controls. The native [thermal distance/ruler consumer](docs/thermal-observables.md)
 now maps explicitly supplied physical densities and temperatures into one retained
-state for distances and a conditional supplied-drag ruler.
+state for distances and a conditional supplied-drag ruler. The native
+[thermal BAO density](docs/bao-thermal.md) reuses that state and the retained
+ordered covariance, with explicit density-level numerical admission.
 [Conditional estimator variance](docs/gaussian-design.md) and the
 [synthetic ladder's H₀ sampling law](docs/calibration-ladder.md) test a separate
 calibration prerequisite. These native calculations are available through the
