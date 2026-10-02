@@ -357,3 +357,23 @@ add_executable(test_gr_growth tests/test_gr_growth.cpp)
 target_link_libraries(test_gr_growth PRIVATE irred_core)
 target_compile_options(test_gr_growth PRIVATE -Wall -Wextra -Wpedantic -fno-fast-math -ffp-contract=off)
 add_test(NAME gr_growth_contract COMMAND test_gr_growth)
+
+# Declared finite spectral-time interpolation; shared sampled radiometry owner.
+target_sources(irred_core PRIVATE src/temporal_photometry.cpp)
+foreach(temporal_test IN ITEMS temporal_photometry temporal_photometry_peer)
+  add_executable(test_${temporal_test} tests/test_${temporal_test}.cpp)
+  target_link_libraries(test_${temporal_test} PRIVATE irred_core)
+  target_compile_options(test_${temporal_test} PRIVATE -Wall -Wextra -Wpedantic -fno-fast-math -ffp-contract=off)
+  add_test(NAME ${temporal_test}_contract COMMAND test_${temporal_test})
+endforeach()
+
+target_sources(irred_core PRIVATE src/detector.cpp src/detector_selection.cpp)
+add_executable(test_detector tests/test_detector.cpp)
+target_link_libraries(test_detector PRIVATE irred_core)
+target_compile_options(test_detector PRIVATE -Wall -Wextra -Wpedantic -fno-fast-math -ffp-contract=off)
+add_test(NAME detector_contract COMMAND test_detector)
+
+add_executable(test_detector_peer tests/test_detector_peer.cpp)
+target_link_libraries(test_detector_peer PRIVATE irred_core)
+target_compile_options(test_detector_peer PRIVATE -Wall -Wextra -Wpedantic -fno-fast-math -ffp-contract=off)
+add_test(NAME detector_peer_contract COMMAND test_detector_peer)
