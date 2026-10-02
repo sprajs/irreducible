@@ -13,6 +13,8 @@ struct BoxPolicy {
   DesignPolicy design;
   double maximum_log_probability_width = 1e-9;
   double maximum_quantile_width = 1e-8;
+  // Standard-normal quadrature allocation only. Reported conditional-box CDF
+  // diagnostics additionally include the excluded-mass bound.
   double cdf_absolute_radius = 2e-11;
   std::size_t maximum_cdf_nodes = 8192;
   std::size_t maximum_bisections = 96;
@@ -24,9 +26,21 @@ struct BoxMarginalRequest {
   std::size_t active_parameter_index = 0;
   double cumulative_probability = .5;
 };
+enum class BoxStage {
+  unassessed, gaussian_completion, endpoint_margins, rectangle_enclosure,
+  normalization_enclosures, quantile_enclosure, complete
+};
 struct GaussianBoxResult {
   DensityStatus status = DensityStatus::invalid_input;
   numerics::Status numerical_status = numerics::Status::invalid_input;
+  BoxStage stage = BoxStage::unassessed;
+  // The operation sets availability explicitly. Refusals retain earned
+  // diagnostics, while zero-initialized absent fields are never predictions.
+  bool gaussian_completion_available = false, endpoint_margins_available = false,
+      rectangle_enclosure_available = false,
+      normalization_enclosures_available = false,
+      quantile_enclosure_available = false,
+      endpoint_cdf_enclosures_available = false;
   // These completion inputs have empirical arithmetic diagnostics, not a
   // certified enclosure against the original supplied X,C,y.
   std::vector<double> unboxed_mean, unboxed_variance;

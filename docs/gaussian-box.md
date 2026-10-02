@@ -26,7 +26,7 @@ exp(-x)<=(1+x/65536)^(-65536). This rational majorant is evaluated with outward
 basic arithmetic and sixteen squarings. Negative distances receive upper bound
 one. If E is the sum of all endpoint tail upper bounds, P_G(B) is enclosed by
 [1-E,1] when E<1, irrespective of correlation. E>=1 or a log-width beyond the
-request withholds every usable normalization/marginal output. The proper finite
+request withholds the inadmitted normalization/marginal output. The proper finite
 box still exists mathematically when this algorithm refuses it.
 
 For a requested coordinate with Gaussian marginal CDF F, arbitrary dependence
@@ -39,6 +39,8 @@ exp(v), v<=73/256, with a geometric remainder, eight squarings and reciprocal
 encloses exp(-x^2/2). Logarithms use the positive atanh series after binary range
 reduction. Parsed decimal bounds for pi are widened before use. No certificate
 is obtained by putting nextafter around an unbounded libm exp/log result.
+The inverse search endpoints at±12 are witnessed by the rational tail bound,
+avoiding long-interval quadrature merely to admit that search.
 
 The elementary interval contract requires round-to-nearest binary floating
 arithmetic, long double with at least 64 mantissa bits and exponent range16384,
@@ -47,10 +49,14 @@ root proposals are accepted only after outward squared inequalities witness
 both bounds. Overflow, subnormal arithmetic, unresolved interval width or
 resource exhaustion refuses the calculation. Every CDF node/attempt is charged,
 including failed refinement and bisection. Default allocations are log box-mass
-width1e-9, requested original-coordinate quantile width1e-8 and CDF absolute
-radius2e-11, with8192 nodes (including endpoints) per CDF,96 bisections per
+width1e-9, requested original-coordinate quantile width1e-8 and standard-normal
+quadrature absolute radius2e-11, with8192 nodes (including endpoints) per CDF,96 bisections per
 inverse and256 CDF attempts per evaluation. Thus the total CDF node budget is
 at most8192*256, and every refinement attempt remains within that charge.
+The reported box-conditional endpoint CDF intervals also include the excluded
+mass bound and can be wider than that quadrature allocation; their actual
+widths are retained. Final original-coordinate quantile width is admitted
+independently, including binary64 outward reporting.
 
 These are **conditional arithmetic and truncation enclosures for the reported
 Gaussian completion**. The retained covariance/QR completion has the existing
@@ -69,3 +75,11 @@ jitter, widened box or changed budget repairs a refusal. Public tests use
 analytic separable truncated controls, correlated broad-box witnesses, original
 unit/axis transformations and near-bound/tail refusals. External original-source
 inputs and failed receipts remain in their experiment owner.
+
+Each result carries an operation-owned stage and explicit availability flags.
+An input/setup refusal is unassessed, with no completion. A later tail refusal
+retains the completed Gaussian and all endpoint margins; a later inversion
+refusal retains already admitted normalization intervals and actual work.
+Unadmitted intervals stay unavailable even though their storage defaults to zero.
+Only a complete result receives finite status. Preserved diagnostic stages do
+not convert a refused requested calculation into a qualified result.

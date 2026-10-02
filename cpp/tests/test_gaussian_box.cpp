@@ -104,8 +104,11 @@ int main() {try {
         "exact active source axis order required");
   auto cut_profile=profile();auto cut=GaussianBox::prepare(std::move(cut_profile),support(0,8,-10,10));
   auto refused=evaluate(cut);
-  check(refused.status==DensityStatus::numerical_failure&&refused.unboxed_mean.empty(),
-        "boundary cutting proper box refused at frozen tail allocation");
+  check(refused.status==DensityStatus::numerical_failure&&refused.gaussian_completion_available&&
+        refused.endpoint_margins_available&&!refused.rectangle_enclosure_available&&
+        !refused.normalization_enclosures_available&&!refused.quantile_enclosure_available&&
+        refused.stage==BoxStage::endpoint_margins&&refused.unboxed_mean.size()==2,
+        "boundary refusal retains earned completion and every tail margin");
   auto negative_profile=profile();auto negative=GaussianBox::prepare(std::move(negative_profile),support(1,8,-10,10));
   check(evaluate(negative).status==DensityStatus::numerical_failure,
         "negative signed distance never squared into small tail");
@@ -117,14 +120,26 @@ int main() {try {
         "actual Simpson endpoints charged to node quota");
   quota={};quota.maximum_cdf_evaluations=1;
   auto fq=evaluate(moved,{0,.5},quota);
-  check(fq.numerical_status==irred::numerics::Status::work_limit&&fq.cdf_evaluations>0&&fq.unboxed_mean.empty(),
-        "failed CDF attempts charged and payload withheld");
+  check(fq.numerical_status==irred::numerics::Status::work_limit&&fq.cdf_evaluations>0&&
+        fq.normalization_enclosures_available&&!fq.quantile_enclosure_available&&
+        fq.gaussian_completion_available&&fq.stage==BoxStage::normalization_enclosures,
+        "late inversion refusal retains earned normalization with explicit availability");
+  const std::vector<double> invalid_y={std::numeric_limits<double>::quiet_NaN(),0};
+  const auto no_completion=moved.evaluate(invalid_y,metadata().ordered_ids,{0,.5});
+  check(no_completion.status==DensityStatus::invalid_input&&no_completion.stage==BoxStage::unassessed&&
+        !no_completion.gaussian_completion_available&&no_completion.unboxed_mean.empty(),
+        "invalid input has no fabricated zero completion");
   quota={};quota.maximum_bisections=1;
   check(evaluate(moved,{0,.975},quota).numerical_status==irred::numerics::Status::work_limit,
         "insufficient inversion refuses");
   quota={};quota.maximum_quantile_width=1e-30;
   check(evaluate(moved,{0,.5},quota).status==DensityStatus::numerical_failure,
         "unrepresentable requested quantile width refuses");
+  auto large_profile=profile();
+  auto large=GaussianBox::prepare(std::move(large_profile),support(1e9-10,1e9+10,-10,10));
+  const std::vector<double> large_y={1e9,0};
+  check(large.evaluate(large_y,metadata().ordered_ids,{0,.5}).status==DensityStatus::numerical_failure,
+        "binary64 returned coordinate width independently admitted");
   const auto old=std::fegetround();std::fesetround(FE_UPWARD);
   check(evaluate(moved).status==DensityStatus::unsupported_domain,"rounding environment contract");
   std::fesetround(old);

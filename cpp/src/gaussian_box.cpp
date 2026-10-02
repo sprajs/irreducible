@@ -131,7 +131,17 @@ BoxInterval report(I a) {
     throw Refusal{numerics::Status::outside_domain};
   if (static_cast<LD>(l)>a.lo) l=std::nextafter(l,-std::numeric_limits<double>::infinity());
   if (static_cast<LD>(h)<a.hi) h=std::nextafter(h,std::numeric_limits<double>::infinity());
+  if ((l!=0&&std::fpclassify(l)!=FP_NORMAL)||
+      (h!=0&&std::fpclassify(h)!=FP_NORMAL))
+    throw Refusal{numerics::Status::outside_domain};
   return {l,h};
+}
+double scalar(LD x) {
+  checked(x);
+  const double d=static_cast<double>(x);
+  if (!std::isfinite(d)||(x!=0&&(d==0||std::fpclassify(d)!=FP_NORMAL)))
+    throw Refusal{numerics::Status::outside_domain};
+  return d;
 }
 bool valid_policy(const BoxPolicy &p) {
   return std::isfinite(p.maximum_log_probability_width)&&p.maximum_log_probability_width>0&&
@@ -159,7 +169,7 @@ struct CdfWork {
     I h,error;
     for (;;) {
       h=div(point(b),point(n));
-      error=mul(div(mul(point(12*b),mul(mul(h,h),mul(h,h))),point(180)),norm);
+      error=mul(div(mul(mul(point(12),point(b)),mul(mul(h,h),mul(h,h))),point(180)),norm);
       if (error.hi<=radius/2 && n+1<=policy.maximum_cdf_nodes) break;
       if (n>=policy.maximum_cdf_nodes/2)
         throw Refusal{numerics::Status::work_limit};
@@ -187,7 +197,8 @@ struct CdfWork {
     LD lo=-12,hi=12,radius=policy.cdf_absolute_radius;
     // Endpoints must witness the requested probability rather than assuming
     // the finite inverse search domain covers an arbitrarily extreme request.
-    if (cdf(lo,radius).hi>probability||cdf(hi,radius).lo<probability)
+    const LD endpoint_tail=tail_upper(12);
+    if (endpoint_tail>probability||sub(point(1),point(endpoint_tail)).lo<probability)
       throw Refusal{numerics::Status::conditioning_budget_exceeded};
     for (std::size_t iteration=0;iteration<policy.maximum_bisections;++iteration) {
       if (hi-lo<=tolerance) return {lo,hi};
@@ -229,8 +240,16 @@ std::optional<std::size_t> GaussianBox::retained_payload_bound() const noexcept 
 std::optional<std::size_t> GaussianBox::evaluation_payload_bound() const noexcept {
   detail::PayloadAccounting b(sizeof(GaussianBoxResult));
   const auto n=profile_.metadata().ordered_ids.size(),p=support_.lower.size();
-  b.embedded(profile_.evaluation_payload_bound(),sizeof(DesignResult));
+  b.embedded(profile_.evaluation_payload_bound(),0);
   b.add(n,4*sizeof(LD));b.add(p,20*sizeof(LD)+8*sizeof(double)+2*sizeof(BoxInterval));
+  // Only one variance metadata object is live at once. Arbitrarily long
+  // declared IDs/units still count; a fixed per-coordinate charge alone would
+  // not bound these copied strings.
+  std::size_t largest_id=0,largest_unit=0;
+  for (const auto &id:support_.ordered_parameter_ids) largest_id=std::max(largest_id,id.capacity());
+  for (const auto &unit:profile_.design_metadata().parameter_units) largest_unit=std::max(largest_unit,unit.capacity());
+  b.add(p,sizeof(std::string)+64);b.add(1,largest_id);b.add(1,largest_unit);
+  b.add(1,sizeof(LinearFunctionalMetadata)+128);
   return b.result();
 }
 GaussianBox GaussianBox::prepare(DesignProfile &&d,BoxSupport s,BoxPolicy policy) {
@@ -258,9 +277,21 @@ GaussianBoxResult GaussianBox::evaluate(std::span<const double> r,
   GaussianBoxResult out;
   CdfWork work{policy};
   auto fail=[&](DensityStatus status,numerics::Status numerical) {
-    GaussianBoxResult f;f.status=status;f.numerical_status=numerical;
-    f.cdf_node_evaluations=work.nodes;f.cdf_evaluations=work.evaluations;f.bisections=work.bisections;
-    return f;
+    if (!out.gaussian_completion_available) out=GaussianBoxResult{};
+    if (!out.endpoint_margins_available) {
+      out.standardized_lower_margins.clear();out.standardized_upper_margins.clear();
+      out.excluded_mass_upper=0;out.log_prior_volume={};
+    }
+    if (!out.rectangle_enclosure_available) {out.box_probability={};out.log_box_probability={};}
+    if (!out.normalization_enclosures_available) {
+      out.log_relative_box_integral={};out.log_prior_normalized_relative_evidence={};
+      out.log_observation_normalized_evidence={};
+    }
+    if (!out.quantile_enclosure_available) out.requested_quantile={};
+    if (!out.endpoint_cdf_enclosures_available) {out.lower_endpoint_cdf={};out.upper_endpoint_cdf={};}
+    out.status=status;out.numerical_status=numerical;
+    out.cdf_node_evaluations=work.nodes;out.cdf_evaluations=work.evaluations;out.bisections=work.bisections;
+    return std::move(out);
   };
   if (!supported()) return fail(DensityStatus::unsupported_domain,numerics::Status::outside_domain);
   if (status_!=DensityStatus::finite) return fail(status_,numerics::Status::invalid_input);
@@ -288,8 +319,8 @@ GaussianBoxResult GaussianBox::evaluate(std::span<const double> r,
     for (std::size_t i=p;i<n;++i) q+=wr.value[i]*wr.value[i];
     for (std::size_t j=0;j<p;++j)
       logdet+=2*(std::log(profile_.scales_[j])+std::log(std::abs(profile_.qr_[j*p+j])));
-    out.minimum_quadratic=static_cast<double>(checked(q));
-    out.log_design_precision_determinant=static_cast<double>(checked(logdet));
+    out.minimum_quadratic=scalar(q);
+    out.log_design_precision_determinant=scalar(logdet);
     out.reported_profile_quadratic=fit.quadratic;
     out.profile_stationarity=fit.normalized_normal_equation_residual;
     out.unboxed_mean=std::move(fit.coefficients);out.unboxed_variance.resize(p);
@@ -308,6 +339,7 @@ GaussianBoxResult GaussianBox::evaluate(std::span<const double> r,
     const auto source=profile_.gaussian_.evaluate(zero,ids,policy.design.maximum_forward_sensitivity);
     if (source.density.status!=DensityStatus::finite) throw Refusal{source.density.numerical_status};
     out.source_covariance_log_determinant=source.log_determinant;
+    out.gaussian_completion_available=true;out.stage=BoxStage::gaussian_completion;
     I excluded=point(0),volume=point(0);
     out.standardized_lower_margins.resize(p);out.standardized_upper_margins.resize(p);
     for (std::size_t j=0;j<p;++j) {
@@ -320,14 +352,17 @@ GaussianBoxResult GaussianBox::evaluate(std::span<const double> r,
       volume=add(volume,log_interval(sub(point(support_.upper[j]),point(support_.lower[j]))));
     }
     const LD e=excluded.hi;
+    out.excluded_mass_upper=report({0,e}).upper;
+    out.log_prior_volume=report(volume);
+    out.endpoint_margins_available=true;out.stage=BoxStage::endpoint_margins;
     if (!(e<1)) throw Refusal{numerics::Status::conditioning_budget_exceeded};
     // -log(1-e)<=e/(1-e): no transcendental error is hidden in the tail gate.
     const I tail_log={-div(point(e),sub(point(1),point(e))).hi,0};
     if (-tail_log.lo>policy.maximum_log_probability_width)
       throw Refusal{numerics::Status::conditioning_budget_exceeded};
-    out.excluded_mass_upper=report({0,e}).upper;
     out.box_probability=report({sub(point(1),point(e)).lo,1});
-    out.log_box_probability=report(tail_log);out.log_prior_volume=report(volume);
+    out.log_box_probability=report(tail_log);
+    out.rectangle_enclosure_available=true;out.stage=BoxStage::rectangle_enclosure;
     const I log2pi=log_interval(mul(point(2),pi()));
     const I unboxed=sub(add(point(-out.minimum_quadratic/2),mul(point(static_cast<LD>(p)/2),log2pi)),
                          point(out.log_design_precision_determinant/2));
@@ -336,6 +371,7 @@ GaussianBoxResult GaussianBox::evaluate(std::span<const double> r,
     out.log_prior_normalized_relative_evidence=report(prior);
     out.log_observation_normalized_evidence=report(sub(prior,mul(point(.5),add(
         point(out.source_covariance_log_determinant),mul(point(n),log2pi)))));
+    out.normalization_enclosures_available=true;out.stage=BoxStage::normalization_enclosures;
     const auto j=request.active_parameter_index;
     const I sigma=sqrt_point(out.unboxed_variance[j]);
     const I probability=point(request.cumulative_probability);
@@ -350,6 +386,10 @@ GaussianBoxResult GaussianBox::evaluate(std::span<const double> r,
     if (quantile.lo>quantile.hi||quantile.hi-quantile.lo>policy.maximum_quantile_width)
       throw Refusal{numerics::Status::conditioning_budget_exceeded};
     out.requested_quantile=report(quantile);
+    if (static_cast<LD>(out.requested_quantile.upper)-out.requested_quantile.lower>
+        policy.maximum_quantile_width)
+      throw Refusal{numerics::Status::conditioning_budget_exceeded};
+    out.quantile_enclosure_available=true;out.stage=BoxStage::quantile_enclosure;
     auto conditional_cdf=[&](LD x) {
       const I z=div(sub(point(x),point(out.unboxed_mean[j])),sigma);
       const I f={work.cdf(z.lo,policy.cdf_absolute_radius).lo,
@@ -357,8 +397,9 @@ GaussianBoxResult GaussianBox::evaluate(std::span<const double> r,
       return I{std::max(LD(0),div(sub(f,point(e)),sub(point(1),point(e))).lo),
                std::min(LD(1),div(f,sub(point(1),point(e))).hi)};
     };
-    out.lower_endpoint_cdf=report(conditional_cdf(quantile.lo));
-    out.upper_endpoint_cdf=report(conditional_cdf(quantile.hi));
+    out.lower_endpoint_cdf=report(conditional_cdf(out.requested_quantile.lower));
+    out.upper_endpoint_cdf=report(conditional_cdf(out.requested_quantile.upper));
+    out.endpoint_cdf_enclosures_available=true;out.stage=BoxStage::complete;
     out.cdf_node_evaluations=work.nodes;out.cdf_evaluations=work.evaluations;out.bisections=work.bisections;
     out.status=DensityStatus::finite;out.numerical_status=numerics::Status::ok;
     return out;
