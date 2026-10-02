@@ -10,11 +10,12 @@ anisotropic stress and the photon hierarchy are excluded. This is a NEXT-14
 prerequisite, not a standard matter transfer, ordinary sigma8, Planck base LCDM
 or a [primary CMB prediction](primary-cmb-projection.md).
 
-The native owner is `irred/linear_transfer.hpp`. The bounded implementation and
-the native owner/independent-peer controls below have run in a serial standalone
-strict-compiler check. Integrated product manifest, installed library and CI
-qualification remain pending integration. No CLI/ABI route is needed for the
-bounded SDK experiment.
+The native owner is `irred/linear_transfer.hpp`. The bounded owner and independent
+peer controls below pass in the integrated strict Release build. Its source,
+header and CMake fragment are bound by the product manifest. A fresh installed
+library consumer checks analytic EdS transfer and compact-band variance using
+only public headers and the archive. Final integrated candidate CI remains a
+publication gate. There is no CLI/C ABI route for this bounded SDK consumer.
 
 ## Physical identity and equations
 
