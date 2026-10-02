@@ -66,7 +66,11 @@ never apply an already-marginalized prior twice. The native
 [Gaussian predictive](docs/gaussian-predictive.md) retains a joint future law
 for fixed synthetic linear responses and independent future noise. Preserve
 shared parameter covariance and ordered disjoint row/event lineage; the
-predictive law is not another measurement or observational qualification. Read their guides before composing a new consumer.
+predictive law is not another measurement or observational qualification. The
+[proper-prior ladder](docs/calibration-predictive.md) uses the same compiled
+design/offset owner, tagged row/event lineage and exact offset translation gate.
+Keep proper-posterior H0 projection distinct from fixed-truth estimator sampling
+and released box targets. Read their guides before composing a new consumer.
 
 Use [GR growth](docs/gr-growth.md) only with its compatible radiation-free pressureless LCDM state and D/a→1 normalization. Growth does not supply radiation/relic perturbations or a scale-dependent transfer function.
 

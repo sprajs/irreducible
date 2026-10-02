@@ -29,6 +29,22 @@ struct Model {
   // contribution of the same shared calibration uncertainty.
   std::string conditional_covariance_identity;
 };
+// Fixed rows from the single compiled ladder equation owner. Proper-prior
+// consumers use prediction-valid rows, without the relative-fit rank gate.
+struct Linearization {
+  statistics::DensityStatus status = statistics::DensityStatus::invalid_input;
+  numerics::Status numerical_status = numerics::Status::invalid_input;
+  std::vector<double> design, offsets_mag;
+  std::vector<std::string> ordered_row_ids, predictive_event_ids;
+  statistics::DesignMetadata metadata;
+  std::optional<std::size_t> retained_payload_bound() const noexcept;
+};
+std::optional<std::size_t>
+linearization_preparation_payload_bound(const Model &) noexcept;
+Linearization linearize(const Model &, statistics::DesignPolicy = {});
+// Shared H0 coordinate equation; returns NaN for unrepresentable projection.
+double project_h0(const Model &, double eta);
+long double log_h0_scale() noexcept;
 struct Prediction {
   statistics::DensityStatus status = statistics::DensityStatus::invalid_input;
   numerics::Status numerical_status = numerics::Status::invalid_input;

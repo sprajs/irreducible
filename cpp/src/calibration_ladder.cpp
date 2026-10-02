@@ -163,6 +163,20 @@ bool equation(const Model &m, const Row &r, std::span<double> x,
   x[h + 5] = r.calibration_response;
   return std::all_of(x.begin(), x.end(), representable);
 }
+statistics::DesignMetadata metadata_for(const Model &m,
+                                        const std::vector<std::string> &ids) {
+  statistics::DesignMetadata md;
+  md.ordered_parameter_ids = ids;
+  md.parameter_units.assign(ids.size(), "mag");
+  md.parameter_units[m.ordered_host_ids.size() + 1] = "mag per log10(day)";
+  md.parameter_units[m.ordered_host_ids.size() + 2] = "mag per dex";
+  md.shared_nuisance_ids = {ids.back()};
+  md.residual_unit = "mag";
+  md.design_identity = "empirical-synthetic-absolute-ladder/supplied-shape/v1";
+  md.dependence_identity = m.dependence_identity + "; conditional covariance=" +
+                           m.conditional_covariance_identity;
+  return md;
+}
 bool model_work(const Model &m, statistics::DesignPolicy p,
                 std::size_t &charge) {
   if (m.ordered_host_ids.size() > SIZE_MAX - 6)
@@ -198,6 +212,105 @@ std::vector<std::string> parameter_ids(const Model &m) {
                         "eta_5log10_H0_over_Href", "delta_shared_calibration"})
     ids.emplace_back(s);
   return ids;
+}
+std::optional<std::size_t>
+Linearization::retained_payload_bound() const noexcept {
+  detail::PayloadAccounting b(sizeof(Linearization));
+  b.vector(design);
+  b.vector(offsets_mag);
+  b.strings(ordered_row_ids);
+  b.strings(predictive_event_ids);
+  b.strings(metadata.ordered_parameter_ids);
+  b.strings(metadata.parameter_units);
+  b.strings(metadata.shared_nuisance_ids);
+  b.string(metadata.residual_unit);
+  b.string(metadata.design_identity);
+  b.string(metadata.dependence_identity);
+  return b.result();
+}
+long double log_h0_scale() noexcept { return eta_log_h0_scale(); }
+double project_h0(const Model &m, double eta) {
+  const auto v = std::exp(log_h0_projection(m, eta));
+  const auto d = static_cast<double>(v);
+  return std::isfinite(v) && std::isnormal(d)
+             ? d
+             : std::numeric_limits<double>::quiet_NaN();
+}
+std::optional<std::size_t>
+linearization_preparation_payload_bound(const Model &m) noexcept {
+  detail::PayloadAccounting b(sizeof(Linearization));
+  const auto model = payload(m);
+  if (!model || m.ordered_host_ids.size() > SIZE_MAX - 6)
+    return {};
+  const auto p = m.ordered_host_ids.size() + 6, n = m.rows.size();
+  std::size_t cells;
+  if (!product(n, p, cells))
+    return {};
+  b.add(*model, 2); // simultaneous validation sets and generated IDs
+  b.add(cells, sizeof(double));
+  b.add(n, sizeof(double) + 2 * sizeof(std::string));
+  for (const auto &r : m.rows) {
+    b.add(r.row_id.size(), 4);
+    b.add(r.event_id.size(), 2);
+    b.add(128, 1);
+  }
+  b.add(p, 3 * sizeof(std::string) + 256);
+  for (const auto &h : m.ordered_host_ids)
+    b.add(h.size(), 2);
+  b.add(m.dependence_identity.size(), 2);
+  b.add(m.conditional_covariance_identity.size(), 2);
+  b.add(1024, 1);
+  return b.result();
+}
+Linearization linearize(const Model &m, statistics::DesignPolicy policy) {
+  Linearization out;
+  if (!arithmetic_supported()) {
+    out.status = DensityStatus::unsupported_domain;
+    return out;
+  }
+  std::size_t charge;
+  const auto preparation_bound = linearization_preparation_payload_bound(m);
+  if (!preparation_bound || *preparation_bound > policy.maximum_payload_bytes ||
+      !model_work(m, policy, charge)) {
+    out.status = DensityStatus::numerical_failure;
+    out.numerical_status = numerics::Status::work_limit;
+    return out;
+  }
+  try {
+    if (!valid(m, false))
+      return out;
+    auto ids = parameter_ids(m);
+    out.metadata = metadata_for(m, ids);
+    out.design.resize(m.rows.size() * ids.size());
+    out.offsets_mag.resize(m.rows.size());
+    out.ordered_row_ids.reserve(m.rows.size());
+    out.predictive_event_ids.reserve(m.rows.size());
+    for (std::size_t i = 0; i < m.rows.size(); ++i) {
+      if (!equation(
+              m, m.rows[i],
+              std::span<double>(out.design).subspan(i * ids.size(), ids.size()),
+              out.offsets_mag[i]))
+        return Linearization{};
+      out.ordered_row_ids.push_back(m.rows[i].row_id);
+      out.predictive_event_ids.push_back(m.rows[i].event_id.empty()
+                                             ? "measurement:" + m.rows[i].row_id
+                                             : "event:" + m.rows[i].event_id);
+    }
+    const auto bound = out.retained_payload_bound();
+    if (!bound || *bound > policy.maximum_payload_bytes) {
+      out = Linearization{};
+      out.status = DensityStatus::numerical_failure;
+      out.numerical_status = numerics::Status::work_limit;
+      return out;
+    }
+    out.status = DensityStatus::finite;
+    out.numerical_status = numerics::Status::ok;
+  } catch (const std::bad_alloc &) {
+    out = Linearization{};
+    out.status = DensityStatus::numerical_failure;
+    out.numerical_status = numerics::Status::work_limit;
+  }
+  return out;
 }
 Prediction predict(const Model &m, std::span<const double> b,
                    std::span<const std::string> ids,
@@ -293,16 +406,7 @@ Ladder Ladder::prepare(statistics::Gaussian &&g, Model m,
   }
 
   auto ids = parameter_ids(m);
-  statistics::DesignMetadata md;
-  md.ordered_parameter_ids = ids;
-  md.parameter_units.assign(ids.size(), "mag");
-  md.parameter_units[m.ordered_host_ids.size() + 1] = "mag per log10(day)";
-  md.parameter_units[m.ordered_host_ids.size() + 2] = "mag per dex";
-  md.shared_nuisance_ids = {ids.back()};
-  md.residual_unit = "mag";
-  md.design_identity = "empirical-synthetic-absolute-ladder/supplied-shape/v1";
-  md.dependence_identity = m.dependence_identity + "; conditional covariance=" +
-                           m.conditional_covariance_identity;
+  auto md = metadata_for(m, ids);
   const auto bound =
       statistics::DesignProfile::preparation_payload_bound(g, ids.size(), md);
   if (!bound || !add(charge, *bound) || charge > policy.maximum_payload_bytes) {

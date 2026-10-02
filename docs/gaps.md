@@ -192,3 +192,10 @@ The native [synthetic ladder](calibration-ladder.md) now implements an empirical
 The native early/late operator now shares the sound-horizon model's matter/radiation and flat geometry identity with distance and conditional BAO-ratio predictions. The native [conditional BAO density](bao-conditional.md) composes those predictions with a retained ordered ratio covariance. Its supplied drag epoch, fixed matter content and named numerical controls do not establish a predicted thermal history, physical validity of a released compression or perturbation/CMB closure; see [early and late expansion](early-late.md).
 
 The native [correlated proper calibration](correlated-calibration.md) calculation supplies normalized observed-residual densities for fixed response and an explicitly independent proper latent prior. It closes this statistical prerequisite for named synthetic controls; response construction, calibrated-data dependencies, posterior inference and propagation through a physical observation model remain separate work.
+
+Synthetic proper-prior ladder conditioning and joint future prediction are now
+implemented in the [native consumer](calibration-predictive.md). The exact
+linear controls distinguish fixed-truth sampling coverage from a conditional
+prior-predictive law. A released box-supported target, observational held-out
+event/calibration dependence, relation/selection variants and empirical
+synthetic coverage campaigns remain separate work.

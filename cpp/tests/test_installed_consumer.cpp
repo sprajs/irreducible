@@ -14,6 +14,7 @@
 #include <irred/detector_selection.hpp>
 #include <irred/photometry_calibration.hpp>
 #include <irred/calibration_ladder.hpp>
+#include <irred/calibration_predictive.hpp>
 #include <irred/early_late.hpp>
 #include <irred/bao_conditional.hpp>
 #include <irred/correlated_calibration.hpp>
@@ -287,13 +288,41 @@ int installed_hydrogen_helium() {
  const double charge=1e12* *row.hydrogen_ionized.value+1e11*( *row.helium_singly_ionized.value+2* *row.helium_doubly_ionized.value);
  return std::abs(*row.electron_density.value/charge-1)<2e-12 ? 0 : 18;
 }
-int installed_nested_fd() {
- using namespace irred::cosmology;
- ThermalPolicy p;p.momentum_method=ThermalMomentumMethod::nested_clenshaw_curtis;
- const auto moments=evaluate_thermal_moments(1,p);
- const auto background=prepare_thermal_background({70,5e-5,2e-5,.05,.25,{{.06,.000168,2}}},p);
- const auto batch=background.evaluate(std::array{.1},thermal_e,p);
- return moments.status==irred::numerics::Status::ok && moments.rho_moment && std::abs(*moments.rho_moment-6.045645184985879)<1e-9 && background.momentum_method()==p.momentum_method && batch.status==irred::numerics::Status::ok && batch.rows.size()==1 && batch.rows[0].e.value && std::abs(*batch.rows[0].e.value-17.398718835753673)<1e-8 ? 0:22;
+int installed_ladder_predictive() {
+ using namespace irred::calibration;using namespace irred::statistics;
+ Model m;m.ordered_host_ids={"A","B"};m.magnitude_convention="installed synthetic mag";
+ m.metallicity_coordinate_identity="installed dex";m.distance_shape_identity="supplied fixed shape";
+ m.calibration_identity="shared delta";m.dependence_identity="explicit independent synthetic noise";
+ m.conditional_covariance_identity="conditional identity noise";
+ m.rows={{RowKind::anchor_modulus,"train-A","A","",0,0,0,0}};
+ auto noise=[](const Model&model,std::span<const double> c){Metadata md;
+  for(const auto&r:model.rows)md.ordered_ids.push_back(r.row_id);
+  md.measure="product d(mag)";md.source_semantics="synthetic controls";
+  md.table_identity="installed synthetic covariance";md.ordering_provenance="exact rows";
+  md.calibration_provenance=model.calibration_identity;md.dependence_provenance=model.dependence_identity;
+  md.uncertainty_identity=model.conditional_covariance_identity;
+  return prepare_gaussian(c,MatrixKind::covariance,md,1000,1e-10,irred::numerics::Arithmetic::longdouble_cpu_v1);};
+ auto l=linearize(m);ParameterPrior prior;prior.ordered_parameter_ids=l.metadata.ordered_parameter_ids;
+ prior.parameter_units=l.metadata.parameter_units;prior.shared_nuisance_ids=l.metadata.shared_nuisance_ids;
+ prior.mean={30,31,0,0,0,0,0,0};prior.covariance.resize(64);
+ for(unsigned i=0;i<8;++i)prior.covariance[i*8+i]=1;
+ prior.prior_identity="proper original installed Gaussian";prior.design_identity=l.metadata.design_identity;
+ prior.residual_unit="mag";prior.parameter_measure="product parameter coordinate measure";
+ prior.dependence_identity=l.metadata.dependence_identity;prior.noise_independence_declared=true;
+ auto g=noise(m,std::array<double,1>{1});auto p=LadderPosterior::prepare(std::move(g),m,std::move(prior));
+ if(p.status()!=DensityStatus::finite)return 23;
+ auto future=m;future.rows={{RowKind::anchor_modulus,"future-B","B","",0,0,0,0},
+  {RowKind::calibration_measurement,"future-delta","","",1,0,0,0}};
+ auto fl=linearize(future);auto n=noise(future,std::array<double,4>{1,0,0,1});PredictiveMetadata md;
+ md.ordered_parameter_ids=l.metadata.ordered_parameter_ids;md.parameter_units=l.metadata.parameter_units;
+ for(const auto&u:md.parameter_units)md.response_units.push_back("mag/"+u);
+ md.training_event_ids=l.predictive_event_ids;md.future_event_ids=fl.predictive_event_ids;
+ md.future_unit="mag";md.future_covariance_unit="mag^2";md.future_measure="product d(mag)";
+ md.response_identity=fl.metadata.design_identity;md.conditioning_identity="installed training vector";
+ md.conditional_noise_identity=future.conditional_covariance_identity;md.dependence_identity=fl.metadata.dependence_identity;
+ md.future_noise_independence_declared=true;md.noise_conditional_on_parameters_declared=true;
+ auto q=LadderPredictive::prepare(p,std::array<double,1>{32},l.ordered_row_ids,n,future,std::move(md));
+ return q.status()==DensityStatus::finite && q.mean().size()==2 && std::abs(q.mean()[0]-31)<2e-12 && q.mean()[1]==0 && std::abs(q.covariance()[0]-2)<2e-12 && std::abs(q.covariance()[3]-2)<2e-12 ? 0:23;
 }
 int installed_baryon_abundance() {
  using namespace irred::cosmology;
@@ -301,6 +330,14 @@ int installed_baryon_abundance() {
  const std::array<BaryonAbundanceLteQuery,1> query{{{1./1601,4500}}};
  const auto result=owner.evaluate_equilibrium(query,"installed supplied matter temperature");
  return owner.status()==irred::numerics::Status::ok && result.status==irred::numerics::Status::ok && result.solves==1 && result.rows.size()==1 && result.rows[0].equilibrium.electron_density.value && *result.rows[0].equilibrium.electron_density.value>0 ? 0:21;
+}
+int installed_nested_fd() {
+ using namespace irred::cosmology;
+ ThermalPolicy p;p.momentum_method=ThermalMomentumMethod::nested_clenshaw_curtis;
+ const auto moments=evaluate_thermal_moments(1,p);
+ const auto background=prepare_thermal_background({70,5e-5,2e-5,.05,.25,{{.06,.000168,2}}},p);
+ const auto batch=background.evaluate(std::array{.1},thermal_e,p);
+ return moments.status==irred::numerics::Status::ok && moments.rho_moment && std::abs(*moments.rho_moment-6.045645184985879)<1e-9 && background.momentum_method()==p.momentum_method && batch.status==irred::numerics::Status::ok && batch.rows.size()==1 && batch.rows[0].e.value && std::abs(*batch.rows[0].e.value-17.398718835753673)<1e-8 ? 0:22;
 }
 int main() {
  const auto result=irred::numerics::log1p_checked(0.5);
@@ -352,7 +389,8 @@ int main() {
 
  if (const auto predictive_status=installed_gaussian_predictive();predictive_status!=0) return predictive_status;
  if (const auto mixture_status=installed_hydrogen_helium();mixture_status!=0) return mixture_status;
- if(const auto nested_status=installed_nested_fd();nested_status!=0) return nested_status;
+ if(const auto ladder_future_status=installed_ladder_predictive();ladder_future_status!=0) return ladder_future_status;
  if(const auto abundance_status=installed_baryon_abundance();abundance_status!=0) return abundance_status;
+ if(const auto nested_status=installed_nested_fd();nested_status!=0) return nested_status;
  return installed_correlated_calibration();
 }

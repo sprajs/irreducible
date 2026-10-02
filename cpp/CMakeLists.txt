@@ -453,6 +453,14 @@ foreach(predictive_test IN ITEMS gaussian_predictive gaussian_predictive_peer)
   target_compile_options(test_${predictive_test} PRIVATE -Wall -Wextra -Wpedantic -fno-fast-math -ffp-contract=off)
   add_test(NAME ${predictive_test}_contract COMMAND test_${predictive_test})
 endforeach()
+# Compiled ladder consumer of proper posterior and joint future law.
+target_sources(irred_core PRIVATE src/calibration_predictive.cpp)
+foreach(ladder_predictive_test IN ITEMS calibration_predictive calibration_predictive_peer)
+  add_executable(test_${ladder_predictive_test} tests/test_${ladder_predictive_test}.cpp)
+  target_link_libraries(test_${ladder_predictive_test} PRIVATE irred_core)
+  target_compile_options(test_${ladder_predictive_test} PRIVATE -Wall -Wextra -Wpedantic -fno-fast-math -ffp-contract=off)
+  add_test(NAME ${ladder_predictive_test}_contract COMMAND test_${ladder_predictive_test})
+endforeach()
 
 # Explicit nested FD quadrature; portable direct default remains available.
 target_sources(irred_core PRIVATE src/thermal_cc_sample.cpp)

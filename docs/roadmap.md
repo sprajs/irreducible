@@ -40,14 +40,14 @@ and synthetic controls can proceed alongside it.
 | Ladder calibration/model sensitivity | Three released constraint-mean sensitivity pairs are recorded at fixed design/covariance; next resolve source-supported relation/selection variants and held-out dependence | Fixed-linear response controls pass; a mean shift is not full systematic uncertainty, and unresolved event/calibration overlap blocks observational held-out claims |
 | Explicit accelerated FD momentum integration | Native nested Clenshaw–Curtis opt-in with retained method identity and charged direct fallback; portable direct default remains | Original high-precision/CLASS and independent distance/BAO/GL–Radau controls plus real callback/fault instrumentation; matched setup/work/memory/history timings gate any default promotion |
 | Proper Gaussian parameter posterior | Native fixed-linear proper-Gaussian conditioning implemented; next qualify a concrete prior/consumer | Analytic posterior, independent cofactor and joint integration controls pass; nonlinear or released-box posterior remains separate |
-| Joint Gaussian future prediction | Native fixed synthetic linear predictive law implemented; next qualify ladder held-out recovery/coverage and observational dependence | Exact covariance-route, direct prior/noise and normalized joint mass controls pass; future cross-noise, nonlinear/box inference and measured-data qualification remain open |
+| Joint Gaussian future prediction | Native fixed synthetic linear predictive law implemented; proper-prior synthetic ladder consumer and analytic fixed-truth/prior-predictive coverage controls implemented; next test empirical recovery and observational dependence | Exact covariance-route, direct prior/noise and normalized joint mass controls pass; future cross-noise, nonlinear/box inference and measured-data qualification remain open |
 | Released SN observer/velocity contract | Reproducible checks 321 source pairs and twins under coasting/chosen LCDM; next close event, sky/frame and velocity-map lineage | 6093 combined observer/optical comparisons pass with refined independent controls; unresolved physical joins and calibrated photometry units/error law remain explicit |
 | Sampled photometry ingestion | Coarse pooled ABI2/CLI batch implemented; next consume pinned measured-response assets | Sample-order/bits, units, lifetime, exception/quotas and native/stream/record parity controls pass; calibration uncertainty stays excluded |
 | Measured passband calibration | Historical 910-knot optical response and released 102-axis zero-point covariance are pinned; next close 102-versus-105 mapping and acquire a measured joint optical law | Independent wavelength/frequency controls pass; fitted zero-point covariance and systematic template variants are not optical-state probability masses |
 | Time-dependent source photometry | Finite bilinear spectral-time native consumer implemented; next qualify a source/template and its clock/uncertainty | Constant/linear-time, independent time/frequency and temporal/spectral refinement controls pass; trained SN templates remain separate |
 | Detector counts and random streams | Native bounded Poisson/read-noise law and addressed Philox simulation implemented; next qualify a measured response | Analytic moments, distribution/refinement and replay controls pass; distinct counters and empirical cross moments are not proof of independence |
 | Detection and censoring | Native threshold joint/selected-only likelihood and synthetic censored recovery implemented; next qualify a population/selection model | Exact censored masses, independent continuous density/CDF and synthetic recovery retain nondetections; measured selection and posterior coverage remain open |
-| Homogeneous ionization control | Native supplied-temperature/density pure-H and shared-electron H/He LTE implemented; supplied neutral-mass abundance mapping and its LTE consumer implemented; next qualify abundance inputs and helium kinetics | Rational, independent polynomial/Decimal and positivity/domain controls pass; equilibrium and fixed atomic central values do not predict a cosmic history |
+| Homogeneous ionization control | Native pure-H and shared-electron H/He LTE plus supplied neutral-mass abundance mapping implemented; next qualify abundance inputs and helium kinetics | Rational, independent polynomial/Decimal and positivity/domain controls pass; equilibrium and fixed atomic central values do not predict a cosmic history |
 | Recombination and drag history | Native bounded effective three-level pure-H history and truncated drag depth implemented; coupled Compton/adiabatic matter temperature and finite-endpoint Thomson visibility implemented; bounded massive-relic H composition implemented; next add helium/multilevel closure and physical endpoints | Independent resolved RK4 and coupled Radau/refinement controls test distinct temperature identities; finite visibility and conditional drag root cannot replace full CMB visibility or physical z_drag |
 | Scoped GR growth | Bounded radiation-free pressureless native D/f implemented; next qualify one compatible observational consumer | Einstein–de Sitter and independent ODE/refinement controls pass; a scale-independent growth approximation is not massive-neutrino transfer or full perturbation closure |
 | A named thin-lens system | Native bounded SIS point-source/mass-sheet and Gaussian-PSF pixel slice implemented; next pin one system's mass/source/environment and instrument constraints | Independent potential/Jacobian and pixel integration, synthetic image/delay recovery and mass-sheet/H0 controls pass; inherited distance errors and degeneracies remain explicit, without measured-system qualification |
@@ -118,7 +118,10 @@ projection, biased sampling expectation and requested quantiles kept distinct.
 Exact linear-noise responses, independent KKT/cofactor and high-precision
 quantile controls test the declared synthetic cases. This supplies conditional
 sampling uncertainty; released parameter mapping and observational coverage,
-proper-prior posterior and model/selection sensitivity remain separate work.
+prior qualification and model/selection sensitivity remain separate work. The
+distinct native [proper-prior ladder](calibration-predictive.md) now supplies a
+normalized Gaussian posterior and its nonlinear H0 projection under its declared
+fixed synthetic design; this is not the released finite-box target.
 
 **Inputs:** named anchor likelihoods, Cepheid periods, fluxes/colours, metallicities, host and instrument identities, covariance/calibration responses, selection/crowding/extinction declarations, calibrator SN observations and Hubble-flow SN observations. Every duplicated object or calibrator has one identity.
 
@@ -131,10 +134,15 @@ conditions fixed synthetic linear training data once and retains a correlated
 future distribution with explicitly independent conditional future noise.
 Exact covariance-route and direct prior/noise integration controls check its
 proper measure; shared calibration covariance survives in `R*+A*V*A^T`.
-Next qualify one synthetic ladder held-out recovery/coverage consumer, then pin
-an observational future design and resolve cross-noise/object/calibration
-linkage before using released assets. The released fixed-coordinate finite-box
-target requires its own normalization/sampling and sensitivity controls.
+The native [proper-prior ladder consumer](calibration-predictive.md) now retains
+this law for ordered, disjoint future anchor/Cepheid/SN rows, sharing the same
+compiled equations and calibration parameter. Exact linear controls, direct
+prior/noise integration and analytic fixed-truth coverage checks distinguish
+posterior uncertainty from repeated-observation sampling. Next run a declared
+empirical recovery/coverage campaign, then pin an observational future design
+and resolve cross-noise/object/calibration linkage before using released assets.
+The released fixed-coordinate finite-box target requires its own
+normalization/sampling and sensitivity controls.
 
 **Gate:** synthetic ladder recovery, exact linear Gaussian limits, covariance and shared-nuisance controls, direct versus compressed likelihood comparison, source/host linkage and held-out anchor/host prediction. A historical correlated host-distance compression may be a reference fixture only under its released selection, relation and nuisance measure. Do not multiply it into a likelihood that already used those calibration observations.
 
@@ -175,17 +183,22 @@ The same history now admits up to three bounded explicit positive-mass relics,
 using the retained physical thermal state and distinct model IDs. Independent
 SI momentum/Radau controls and massless regression checks preserve scientific
 budgets; direct momentum integration requires an explicit larger work allowance.
-Next measure a controlled momentum/background acceleration at matched downstream
-accuracy before replacing this portable baseline. The default cap remains fixed.
+The explicit nested Clenshaw–Curtis momentum option now has independent
+moment, distance, ruler, BAO and history controls at unchanged allocations, with
+matched local timing and memory evidence. Direct integration remains the
+default and the default cap remains fixed; further layout or multicore work
+needs its own matched workload evidence.
 Drag depth still starts from an explicit late endpoint. Its unit-depth root remains distinct from a
 qualified physical drag epoch and is not coupled to the supplied-drag ruler.
 
 The native [H/He LTE prerequisite](hydrogen-helium-equilibrium.md) now solves
 shared-electron neutrality for supplied temperature and both nuclei densities.
 Its stage/atomic identities, polynomial/Decimal controls and truthful tiny-output
-refusals precede any abundance or kinetic-history consumer. Next freeze the
-helium kinetic/radiative rates and abundance-to-nuclei mapping separately; an
-LTE mixture is not a substitute for cosmological helium recombination.
+refusals precede kinetic-history consumers. The native
+[supplied abundance mapping](baryon-abundance.md) now composes explicit physical
+density, He4 mass fraction and neutral effective masses with this state. Next
+qualify those physical inputs and freeze the helium kinetic/radiative rates;
+an LTE mixture is not a substitute for cosmological helium recombination.
 
 Background plus thermal/ionization history can subsequently support a declared perturbation closure, primordial modes, transfer functions and line-of-sight projection. Each later observable needs its own reference and likelihood allocation.
 
