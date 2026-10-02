@@ -13,8 +13,8 @@ namespace irred::cosmology {
 namespace {
 using S = numerics::Status;
 constexpr long double pi = std::numbers::pi_v<long double>;
-constexpr long double ev_joule = 1.602176634e-19L;
-constexpr long double boltzmann_ev_kelvin = 1.380649e-23L / ev_joule;
+constexpr long double ev_joule = electron_volt_joule;
+constexpr long double boltzmann_ev_kelvin = boltzmann_constant_joule_per_kelvin / ev_joule;
 constexpr long double gravitational_constant = 6.67430e-11L;
 constexpr long double arithmetic_relative =
     64.L * std::numeric_limits<double>::epsilon();

@@ -7,6 +7,9 @@ inline constexpr std::string_view constant_set_id = "SI-IAU-definitions-v1";
 inline constexpr double speed_of_light_m_per_s = 299792458.0;
 // Exact SI 2019 definition, shared by radiometry and thermal energy densities.
 inline constexpr long double planck_constant_joule_second = 6.62607015e-34L;
+// Exact SI 2019 definitions; physical atomic assets have separate identities.
+inline constexpr long double boltzmann_constant_joule_per_kelvin = 1.380649e-23L;
+inline constexpr long double electron_volt_joule = 1.602176634e-19L;
 enum class Dimension : std::uint32_t { dimensionless, length, time, inverse_time };
 template<Dimension D> struct Scalar { double value; };
 using Length = Scalar<Dimension::length>;
