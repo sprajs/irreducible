@@ -334,3 +334,10 @@ foreach(thermal_bao_test IN ITEMS bao_thermal bao_thermal_peer bao_thermal_insta
   target_compile_options(test_${thermal_bao_test} PRIVATE -Wall -Wextra -Wpedantic -fno-fast-math -ffp-contract=off)
   add_test(NAME ${thermal_bao_test}_contract COMMAND test_${thermal_bao_test})
 endforeach()
+
+# Named synthetic SIS point source with explicit mass-sheet/PSF conventions.
+target_sources(irred_core PRIVATE src/sis_thin_lens.cpp)
+add_executable(test_sis_thin_lens tests/test_sis_thin_lens.cpp)
+target_link_libraries(test_sis_thin_lens PRIVATE irred_core)
+target_compile_options(test_sis_thin_lens PRIVATE -Wall -Wextra -Wpedantic -fno-fast-math -ffp-contract=off)
+add_test(NAME sis_thin_lens_contract COMMAND test_sis_thin_lens)
