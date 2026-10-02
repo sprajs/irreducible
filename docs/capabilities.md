@@ -82,3 +82,5 @@ in declared parameter units/order/measure. Analytic rational, independent
 cofactor and direct joint integration/refinement controls cover named synthetic
 cases, including rank deficiency. This adds no CLI/C ABI route, nonlinear
 cosmological posterior, released-box prior or observational qualification.
+
+The native [GR growth](gr-growth.md) consumer retains the radiation-free flat LCDM background for a pressureless growing mode D(a) and f(a), normalized by D/a→1. Exact Einstein–de Sitter and independent ODE/refinement controls test its bounded domain. It adds no CLI/ABI operation, scale-dependent transfer, radiation/relic perturbations, RSD likelihood or observational qualification.

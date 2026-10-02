@@ -58,9 +58,7 @@ logarithmic-coordinate check and independent synthetic constraint-row sensitivit
 comparisons do not reproduce the paper's posterior or systematic H0 uncertainty.
 See [Gaussian design](gaussian-design.md).
 
-No current operator predicts matter transfer/growth, lensing potentials or
-images, recombination/drag, CMB spectra, stellar/source populations, detector
-noise, detection or survey recovery. A known cosmology makes these missing
+The native [GR growth](gr-growth.md) operator now supplies a bounded radiation-free pressureless growing mode. Matter transfer, radiation/relic perturbations, lensing potentials or images, recombination/drag, CMB spectra, stellar/source populations, detector noise, detection and survey recovery remain separate gaps. A known cosmology makes these missing
 sectors concrete; an H(z) or distance match does not supply them. Use the
 [roadmap](roadmap.md) to choose the next qualified prerequisite after the
 experiment identifies a blocker.
@@ -133,7 +131,7 @@ The analytic one-passband experiment, native synthetic shared-calibration ladder
 
 The next useful work is to choose an actual vertical from the [roadmap](roadmap.md), pin its inputs and forward assumptions, and qualify its own observable and downstream error. Neither broad inventory completion nor a successful numerical call closes these physical and data gaps.
 
-Deterministic photometry predicts three radiometric outputs for a finite constant rest spectrum and supplied distance through the CLI. The standalone C++ sampled operator extends this to declared piecewise-linear wavelength spectra and optical passbands. Sampled CLI ingestion, time dependence, source populations, noise, selection and recovery remain proposed. The native [finite calibration law](photometry-calibration.md) now propagates a declared shared passband ensemble; acquiring and qualifying an actual calibration distribution remains separate.
+Deterministic photometry predicts three radiometric outputs for a finite constant rest spectrum and supplied distance through the CLI. The standalone C++ sampled operator extends this to declared piecewise-linear wavelength spectra and optical passbands. Pooled sampled CLI/ABI ingestion is implemented. Time dependence, source populations, noise, selection and recovery remain proposed. The native [finite calibration law](photometry-calibration.md) now propagates a declared shared passband ensemble; acquiring and qualifying an actual calibration distribution remains separate.
 
 The native [synthetic ladder](calibration-ladder.md) now implements an empirical supplied-shape joint relative fit with anchors, Cepheids, calibrator/Hubble-flow SNe and one shared calibration coordinate. Named independent recovery and held-out controls do not establish fitting of the released ladder, posterior uncertainty or an observed H0 result. Actual source/selection/calibration reconstruction and any proper-prior normalization remain separate gates.
 
