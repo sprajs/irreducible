@@ -28,6 +28,7 @@ bool cast(long double x, double &y) {
 CalibrationResult evaluate_calibration(const CalibrationInput &in,
                                        CalibrationPolicy p) {
   CalibrationResult out;
+  out.aggregation = p.aggregation;
   auto fail = [&](S s) {
     out.status = s;
     out.moments.reset();
@@ -37,7 +38,9 @@ CalibrationResult evaluate_calibration(const CalibrationInput &in,
   if (std::numeric_limits<long double>::digits < 64)
     return fail(S::conditioning_budget_exceeded);
   const auto mask = p.requested_outputs;
-  if (!mask || (mask & ~(collected_energy | transmitted_photons)) ||
+  if ((p.aggregation != CalibrationAggregation::population_moments &&
+       p.aggregation != CalibrationAggregation::state_resolved_only) ||
+      !mask || (mask & ~(collected_energy | transmitted_photons)) ||
       !std::isfinite(p.mean_relative_sensitivity) ||
       !std::isfinite(p.covariance_relative_sensitivity) ||
       p.mean_relative_sensitivity <= 0 ||
@@ -131,8 +134,12 @@ CalibrationResult evaluate_calibration(const CalibrationInput &in,
     }
     if (!std::isfinite(mass) || mass <= 0)
       return fail(S::overflow);
-    std::vector<long double> weights(ns), f(values), err(values), mean(axes),
-        me(axes), cov(cells), ce(cells);
+    out.normalized_state_mass.resize(ns);
+    auto &weights = out.normalized_state_mass;
+    const bool aggregate = p.aggregation == CalibrationAggregation::population_moments;
+    std::vector<long double> f(aggregate ? values : 0), err(aggregate ? values : 0),
+        mean(aggregate ? axes : 0), me(aggregate ? axes : 0),
+        cov(aggregate ? cells : 0), ce(aggregate ? cells : 0);
     std::vector<bool> constant(axes, true);
     out.axes.reserve(axes);
     out.attempts.reserve(attempts);
@@ -190,9 +197,9 @@ CalibrationResult evaluate_calibration(const CalibrationInput &in,
                 o.numerical_status != S::ok) {
               failure = o.numerical_status == S::ok ? result.admission_status
                                                     : o.numerical_status;
-            } else {
+            } else if (aggregate) {
               f[s * axes + a] = *o.value;
-              err[s * axes + a] = 3e-12L * std::abs(*o.value);
+              err[s * axes + a] = calibration_sampled_relative_sensitivity * std::abs(*o.value);
               mean[a] += weights[s] * f[s * axes + a];
               me[a] += weights[s] * err[s * axes + a];
             }
@@ -202,6 +209,10 @@ CalibrationResult evaluate_calibration(const CalibrationInput &in,
     }
     if (failure != S::ok)
       return fail(failure);
+    if (!aggregate) {
+      out.status = S::ok;
+      return out;
+    }
     for (a = 0; a < axes; ++a) {
       me[a] += (ns + 4) * eps * std::abs(mean[a]);
       if (mean[a] > 0 && me[a] > p.mean_relative_sensitivity * mean[a])

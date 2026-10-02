@@ -528,3 +528,6 @@ add_executable(test_growth_rsd_peer tests/test_growth_rsd_peer.cpp)
 target_link_libraries(test_growth_rsd_peer PRIVATE irred_core)
 target_compile_options(test_growth_rsd_peer PRIVATE -Wall -Wextra -Wpedantic -fno-fast-math -ffp-contract=off)
 add_test(NAME growth_rsd_peer_contract COMMAND test_growth_rsd_peer)
+
+# Joint finite optical-state detector and all-band selection consumer.
+include(cmake/optical_detector.cmake)

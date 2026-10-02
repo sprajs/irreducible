@@ -45,6 +45,16 @@ The standalone C++ [correlated calibration operator](correlated-calibration.md) 
 
 The native [finite passband calibration law](photometry-calibration.md) propagates explicitly shared, physically valid optical-transmission states through the sampled operator. It returns multi-band energy/photon expectations and full calibration covariance, with numerical sensitivity reported separately. Required state failures or unresolved spread withhold aggregate moments. This adds no CLI/C ABI route, photon shot noise, source/distance uncertainty or qualification of a measured calibration distribution.
 
+The native [joint optical-state detector](optical-detector.md) uses each retained
+state's photon expectations and normalized mass to marginalize a declared
+conditionally independent Poisson/read-noise law across bands. It retains
+nondetections and uses the same joint all-band event for selected-only
+normalization. Required optical, detector and sensitivity-endpoint failures
+withhold mixtures. State-resolved calibration can omit unrelated moments while
+the existing moment gates remain unchanged. Independent Poisson/polynomial and
+Fourier controls test named synthetic cases. This adds no CLI/C ABI operation,
+measured instrument/population law or observational qualification.
+
 The native [conditional BAO density](bao-conditional.md) reuses the retained full covariance factor and one shared early/late physical state for supplied-drag ruler ratios. Projection sensitivity has a separate admission gate; predictions survive a refused density. Ratios and density are H0 invariant at fixed fractions and drag. This adds no CLI/C ABI route, drag prediction, observational H0 inference, or automatic validity of a released distance compression.
 
 For a source-backed standard-cosmology comparison, use the [bounded LambdaCDM baseline](lcdm-baseline.md). Its native consumer and blocked full-model sectors are separate from CLI discovery and runtime qualification.
