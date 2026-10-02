@@ -1,6 +1,7 @@
 // Standalone installed-library linkage contract; no survey/science qualification.
 #include <irred/numerics.hpp>
 #include <irred/gaussian_design.hpp>
+#include <irred/gr_growth.hpp>
 #include <irred/gaussian_posterior.hpp>
 #include <irred/sampled_photometry.hpp>
 #include <irred/photometry_calibration.hpp>
@@ -126,6 +127,12 @@ int installed_gaussian_posterior() {
   std::abs(mean.value[0]-20604./25511)<2e-12 && std::abs(mean.value[1]+7125./51022)<2e-12 &&
   density.density.status==DensityStatus::finite ? 0 : 11;
 }
+int installed_gr_growth() {
+ using namespace irred::cosmology;
+ auto owner=prepare_gr_growth(prepare(LCDM(1),FlatFLRW{}));
+ const double a[]{.125,1}; auto result=owner.evaluate(a,growth_d|growth_f);
+ return result.rows.size()==2 && result.rows[0].d.value==.125 && result.rows[1].d.value==1 && result.rows[0].f.value==1 && result.rows[1].f.value==1 ? 0 : 12;
+}
 int main() {
  const auto result=irred::numerics::log1p_checked(0.5);
  if(result.status!=irred::numerics::Status::ok || std::abs(result.value-0.4054651081081643819780131154643491)>=1e-14) return 1;
@@ -167,5 +174,6 @@ int main() {
  if (const auto bao_status=installed_conditional_bao();bao_status!=0) return bao_status;
  if (const auto thermal_status=installed_thermal_observables();thermal_status!=0) return thermal_status;
  if (const auto posterior_status=installed_gaussian_posterior();posterior_status!=0) return posterior_status;
+ if (const auto growth_status=installed_gr_growth();growth_status!=0) return growth_status;
  return installed_correlated_calibration();
 }

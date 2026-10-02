@@ -64,6 +64,8 @@ requires an independent proper SPD Gaussian parameter prior and fixed linear
 design. It does not normalize a zero-width coordinate or a released box target;
 never apply an already-marginalized prior twice. Read their guides before composing a new consumer.
 
+Use [GR growth](docs/gr-growth.md) only with its compatible radiation-free pressureless LCDM state and D/a→1 normalization. Growth does not supply radiation/relic perturbations or a scale-dependent transfer function.
+
 ## Repository traps and publication
 
 [schema/abi.json](schema/abi.json) owns the shared C/Rust ABI; regenerate with `tools/generate_abi.py`, never hand-edit bindings. No cross-language exception unwinding or per-row FFI. Public documentation is in `docs/`; keep executable discovery and docs consistent with actual gates.

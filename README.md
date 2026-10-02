@@ -8,6 +8,8 @@ The goal is to share the physics behind those predictions, from simulated source
 
 Today you can run flat-FLRW background calculations, conditional supernova and BAO comparisons, and Gaussian calculations through the **`irred`** CLI or C++ library. These are the starting tools, not yet a complete simulator or joint cosmological analysis. [Current capabilities](docs/capabilities.md) explain their scope; the [roadmap](docs/roadmap.md) shows what comes next.
 
+The native [pressureless GR growing mode](docs/gr-growth.md) predicts D(a) and f(a) under an explicit radiation-free LCDM approximation, with independent differential-equation controls.
+
 ## Test an established baseline
 
 The [bounded LambdaCDM baseline](docs/lcdm-baseline.md) connects reviewed papers in

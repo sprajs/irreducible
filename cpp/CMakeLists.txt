@@ -350,3 +350,10 @@ foreach(thermal_bao_test IN ITEMS bao_thermal bao_thermal_peer bao_thermal_insta
   target_compile_options(test_${thermal_bao_test} PRIVATE -Wall -Wextra -Wpedantic -fno-fast-math -ffp-contract=off)
   add_test(NAME ${thermal_bao_test}_contract COMMAND test_${thermal_bao_test})
 endforeach()
+
+# Bounded pressureless GR growing mode; no radiation/thermal/RSD closure.
+target_sources(irred_core PRIVATE src/gr_growth.cpp)
+add_executable(test_gr_growth tests/test_gr_growth.cpp)
+target_link_libraries(test_gr_growth PRIVATE irred_core)
+target_compile_options(test_gr_growth PRIVATE -Wall -Wextra -Wpedantic -fno-fast-math -ffp-contract=off)
+add_test(NAME gr_growth_contract COMMAND test_gr_growth)

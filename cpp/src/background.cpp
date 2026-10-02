@@ -1,5 +1,6 @@
 #include "irred/background.hpp"
 #include "flat_geometry.hpp"
+#include "lcdm_state.hpp"
 #include "irred/piecewise_background.hpp"
 #include <algorithm>
 #include <bit>
@@ -24,8 +25,7 @@ long double expansion(const ExpansionSpec &s, long double z) {
       [&](const auto &p) -> long double {
         using T = std::decay_t<decltype(p)>;
         if constexpr (std::is_same_v<T, LCDM>)
-          return std::sqrt(p.omega_m * u * u * u +
-                           (1 - (long double)p.omega_m));
+          return detail::lcdm_expansion(p.omega_m, z);
         else if constexpr (std::is_same_v<T, CPL>)
           return std::sqrt(p.omega_m * u * u * u +
                            (p.omega_m == 1
