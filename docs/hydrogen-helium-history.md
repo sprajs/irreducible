@@ -68,6 +68,20 @@ Neither `q` nor the helium/hydrogen number ratio is a helium mass fraction.
 The shared quantum-density owner and atomic assets are the same as
 [ground-state H/He LTE](hydrogen-helium-equilibrium.md):
 
+Their adopted engine serializations at the original base are pinned by SHA256:
+`hydrogen_equilibrium.hpp` is
+`a96ec02bc050f837b857f48dfa015d5bbf6cbb6a52164dea5db62c876eaf0597`,
+`hydrogen_helium_equilibrium.hpp` is
+`eb8e4de5f4894b11762eb61fd2c4b97623171b5b18995c0971533f525b2258cc`,
+and the shared quantum-density helper is
+`3030df1e422bf77c8417f055d66fb04e74a8a1eae2ae082d72988a5113f4e102`.
+These identify compiled scalar/equation bytes, not original NIST query or
+CODATA download bytes. Earlier engine source-read records support adoption
+of the central values; this history packet does not supply a new independent
+audit or original-download serialization hash for those atomic sources.
+That original atomic-source hash/serialization qualification remains separate
+from the conditional IVP and its numerical acceptance.
+
 ```
 Q_e = (2*pi*m_e*kB*T_m/h^2)^(3/2)
 chi_H = 13.598434599702 eV; chi_HeI = 24.587389011 eV
@@ -100,7 +114,10 @@ zeroing. It retains all finite positive He states. `b_i` combines the two
 detailed-balance exponentials before underflow; it is the same declared
 `beta_i*exp(-E_i/kB/T_m)` equation.
 
-The only heat processes are Compton coupling and adiabatic expansion:
+Paper equation 5 supplies the truncated Compton/adiabatic heat structure,
+with the same shared charge and the explicitly supplied helium/hydrogen nuclei
+ratio. Equations 6/7 are the paper's helium Saha relations, not heat equations.
+The only retained heat processes are Compton coupling and adiabatic expansion:
 
 ```
 T_r = T_CMB,0*u
@@ -177,6 +194,12 @@ refuses the history; no fraction clipping or equilibrium substitution occurs.
 Nested quadratic-redshift meshes at N, 2N and 4N form order-two Richardson
 states. Their separate old/new extrapolants, interpolation curvature, inherited
 H diagnostics and wide/cast arithmetic provide empirical error estimates.
+Intermediate middle/coarse interpolation can cancel in the mesh difference.
+Writing their signed errors as `e_m,e_c`, the leading Richardson error is
+`-Delta/3-2*e_m+e_c/3`; the estimate therefore separately charges
+`2*E_m+E_c/3`, plus the final query curvature. The preserved first independent
+comparison found an underestimated diagnostic before these terms were retained;
+the consumer allocations were unchanged.
 Strict floating point, nearest rounding and long double with at least 64
 mantissa bits and exponent range 16384 are required.
 
@@ -188,7 +211,8 @@ nuclei arithmetic. These are numerical consumer allocations, not physical
 rate/atomic uncertainty. Independent reference refinement must consume at
 most five percent of each named allocation.
 
-Default N is 8192, finest nodes are bounded by 65536 intervals, work is
+Default N is 8192 (minimum two intervals for a curvature stencil), finest nodes
+are bounded by 65536 intervals, work is
 bounded by four million charged background evaluations, momentum callbacks,
 initial neutrality evaluations and coupled RHS/Jacobian evaluations. Failed
 trials consume the original work cap. The default explicit payload cap is
@@ -196,12 +220,36 @@ trials consume the original work cap. The default explicit payload cap is
 buffers, retained request/background and returned rows, excluding allocator
 metadata and process RSS. Allocation failure returns `work_limit`.
 
-The independent comparison must use a separately authored stiff Radau/implicit
-route, direct physical equations without production-helper readback, reference
-refinement, equilibrium/charge/temperature limits and adversarial invalid
-inputs. Shared constants/equations/system libm are declared ancestry; algorithm
-agreement does not qualify the physical model or provide independent atomic
-uncertainty. Actual executed control results must accompany any accepted claim.
+The named full-group comparison consumer explicitly requests N=16384 with
+the original work, byte and numerical allocations. The default N=8192 remains
+unchanged and can refuse a trace-He fraction while preserving H, electron,
+temperature and opacity groups. The strengthened interpolation diagnostic
+first exposed that refusal at redshift 1300; both the original diagnostic
+failure and the subsequent default full-group refusal are preserved. A larger
+mesh is an explicit caller request, not an automatic fallback or budget change.
+
+The permanent independent comparison uses an original three-variable order3
+L-stable Radau IIA algorithm in log expansion, a direct scaled-cubic Saha
+initialization and a separately authored escape-rate form. It imports no
+engine helpers or native results. Three named nominal/boundary states include
+an explicit massless thermal species. Two reference resolutions must refine
+within five percent of each unchanged allocation; every actual discrepancy
+also must fit the reported native diagnostic plus reference refinement and
+wide reference arithmetic. A default/finer native comparison checks the
+accepted groups separately from the trace-He refusal.
+
+Frozen rate/escape facts at 800, 5000 and 7600 K come from original
+Decimal110/150 direct-SI calculations with Machin pi and decimal exp/ln/sqrt.
+Their maximum relative refinement is `3.837e-108`; the permanent native
+allocation is `2e-15` relative. They use no engine outputs or system libm and
+are not regenerated during builds. The complete stiff histories still use
+long double/system libm on both routes; these rate facts are not a
+high-precision certificate for the entire trajectory.
+
+Shared constants/equations are declared physical ancestry. Numerical agreement
+does not qualify the physical model or provide independent atomic/rate
+uncertainty. Owner tests retain charge, positivity, temperature, source lifetime,
+masked outputs, strict rounding, explicit resource refusal and invalid inputs.
 
 The absent late history remains consequential. A root integrated only to
 redshift 300–600 cannot be presented as physical `z_drag`. A source-defined

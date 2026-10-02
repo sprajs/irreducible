@@ -20,6 +20,7 @@ constexpr W kb = 1.380649e-23L, h = 6.62607015e-34L, c = 299792458,
 struct Model {
   double H0 = 67.4, baryon = .02237, cdm = .12, T0 = 2.7255,
       other = 1.7e-5, nH0 = .19, nHe0 = .015, initial = 2700, late = 300;
+  std::vector<std::array<double, 2>> massless_species;
 };
 struct Stats { std::size_t steps = 0, rhs = 0, newton = 0; W root_correction = 0; };
 W mpc() { return 1e6L * 648000 / std::numbers::pi_v<W> * 149597870700.L; }
@@ -33,7 +34,10 @@ struct Physics {
     H100 = 100000 / mpc();
     const W critical = 3 * H100 * H100 / (8 * std::numbers::pi_v<W> * G);
     photon = radiation_constant() * std::pow(W(m.T0), 4) / (c * c * critical);
-    radiation = photon + m.other; matter = W(m.baryon) + m.cdm;
+    radiation = photon + m.other;
+    for (const auto &s : m.massless_species)
+      radiation += 7.L / 16 * s[1] * radiation_constant() * std::pow(W(s[0]), 4) / (c * c * critical);
+    matter = W(m.baryon) + m.cdm;
     lambda = std::pow(W(m.H0) / 100, 2) - radiation - matter;
     if (!(lambda >= 0)) throw std::runtime_error("reference flat closure");
   }

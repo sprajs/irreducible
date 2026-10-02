@@ -61,7 +61,12 @@ struct Evolution {
   HydrogenHeliumHistoryWork &work;
   std::size_t cap;
   State accumulated_root_error{};
-  struct Residual { std::array<W, 2> r; std::array<std::array<W, 2>, 2> J; State state; };
+  struct Residual {
+    std::array<W, 2> r;
+    std::array<std::array<W, 2>, 2> J;
+    State state;
+    std::array<W, 2> temperature_derivative{};
+  };
   Residual residual(const Coeff &c, State previous, W h,
                     const std::array<W, 2> &x) {
     if (work.total() >= cap) { status = S::work_limit; return {}; }
@@ -77,6 +82,7 @@ struct Evolution {
       for (unsigned j = 0; j < 2; ++j) {
         const W Tj = h * c.compton * M * n[j] * (c.Tr - T) /
                      ((M + ne) * (M + ne) * den);
+        out.temperature_derivative[j] = Tj;
         out.J[i][j] = (i == j ? 1 : 0) +
             h * (f.fraction_derivative[i][j] + f.temperature_derivative[i] * Tj);
       }
@@ -106,13 +112,10 @@ struct Evolution {
       // the dimensionless convergence criterion. Both coupled rows are used.
       const W norm = std::max(std::abs(d[0]) / x[0], std::abs(d[1]) / x[1]);
       if (norm <= 64 * std::numeric_limits<W>::epsilon()) {
-        const W ne = c.nH * x[0] + c.nHe * x[1], M = c.nH + c.nHe,
-            den = 1 + h * c.compton * ne / (M + ne) + 2 * h / c.u,
-            common = h * c.compton * M * std::abs(c.Tr - r.state[2]) /
-                     ((M + ne) * (M + ne) * den);
         accumulated_root_error[0] += std::abs(d[0]);
         accumulated_root_error[1] += std::abs(d[1]);
-        accumulated_root_error[2] += common * (c.nH * std::abs(d[0]) + c.nHe * std::abs(d[1]));
+        accumulated_root_error[2] += std::abs(r.temperature_derivative[0] * d[0]) +
+                                    std::abs(r.temperature_derivative[1] * d[1]);
         return r.state;
       }
       bool accepted = false;
@@ -187,7 +190,7 @@ HydrogenHeliumHistory prepare_hydrogen_helium_history(
   if (!arithmetic() || !budget(p.absolute_fraction_tolerance, p.relative_fraction_tolerance) ||
       !budget(p.absolute_temperature_tolerance_kelvin, p.relative_temperature_tolerance) ||
       !budget(p.absolute_opacity_tolerance, p.relative_opacity_tolerance) ||
-      !p.base_intervals || s.nuclei_origin.empty()) return out;
+      p.base_intervals < 2 || s.nuclei_origin.empty()) return out;
   if (p.base_intervals > 16384 || 4 * p.base_intervals > p.maximum_fine_intervals ||
       s.model.species.size() > 16 || s.nuclei_origin.size() > 65536) {
     out.status_ = S::work_limit; return out;
@@ -294,19 +297,44 @@ HydrogenHeliumHistory prepare_hydrogen_helium_history(
       State x{}; for (unsigned k = 0; k < 3; ++k) x[k] = (1 - f) * v[j][k] + f * v[j + 1][k];
       return x;
     };
-    std::vector<State> older(N / 2 + 1);
-    for (std::size_t i = 0; i < older.size(); ++i) {
-      const auto a = interpolate(coarse, 4, 2 * i);
-      for (unsigned k = 0; k < 3; ++k) older[i][k] = 2 * middle[i][k] - a[k];
-    }
+    auto interpolation_error = [&](const std::vector<State> &v, std::size_t stride,
+                                   std::size_t i, unsigned k) {
+      if (i % stride == 0) return W(0);
+      const std::size_t j = i / stride;
+      const W high = c[j * stride].z, low = c[(j + 1) * stride].z,
+          width = high - low, f = (high - c[i].z) / width,
+          slope = (v[j][k] - v[j + 1][k]) / width;
+      W second = 0;
+      if (j > 0) {
+        const W previous = c[(j - 1) * stride].z;
+        second = std::max(second, std::abs((v[j - 1][k] - v[j][k]) / (previous - high) - slope) /
+                                           ((previous - low) / 2));
+      }
+      if (j + 2 < v.size()) {
+        const W next = c[(j + 2) * stride].z;
+        second = std::max(second, std::abs(slope - (v[j + 1][k] - v[j + 2][k]) / (low - next)) /
+                                           ((high - next) / 2));
+      }
+      return f * (1 - f) * width * width * second / 2;
+    };
     out.nodes_.resize(N + 1);
     W maximum_log = initial_log;
     for (std::size_t i = 0; i <= N; ++i) {
-      const auto mid = interpolate(middle, 2, i), old = interpolate(older, 2, i);
+      const auto mid = interpolate(middle, 2, i), old_coarse = interpolate(coarse, 4, i);
       State state{}, error{};
       for (unsigned k = 0; k < 3; ++k) {
         state[k] = 2 * fine[i][k] - mid[k];
-        error[k] = std::abs(state[k] - old[k]) / 3 + evolution.accumulated_root_error[k] +
+        // Richardson coefficients (2,-1) require at least twice the combined
+        // mesh root contribution; adding the three unweighted totals would
+        // undercount a correction occurring only in the fine mesh.
+        // The interpolated-middle and interpolated-coarse errors can cancel
+        // the three-mesh difference. For BE's leading two orders, actual
+        // R2 error = -Delta/3 - 2*e_middle + e_coarse/3, so retain both
+        // curvature terms with their algebraic weights.
+        error[k] = std::abs(state[k] - (2 * mid[k] - old_coarse[k])) / 3 +
+                   2 * interpolation_error(middle, 2, i, k) +
+                   interpolation_error(coarse, 4, i, k) / 3 +
+                   2 * evolution.accumulated_root_error[k] +
                    (arithmetic_floor + max_H_error * span) * std::abs(state[k]);
       }
       if (!physical(state) || state[2] > c[i].Tr) {

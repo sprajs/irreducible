@@ -24,10 +24,14 @@ int main() {
       if (case_id == 1) { model.H0 = 60; model.baryon = .015; model.cdm = .08; model.T0 = 2.7;
         model.other = 0; model.nH0 = .1; model.nHe0 = .005; model.initial = 2600; model.late = 600; }
       if (case_id == 2) { model.H0 = 80; model.baryon = .03; model.cdm = .15; model.T0 = 2.75;
-        model.other = 3e-5; model.nH0 = .3; model.nHe0 = .035; model.initial = 2800; model.late = 300; }
+        model.other = 3e-5; model.nH0 = .3; model.nHe0 = .035; model.initial = 2800; model.late = 300;
+        model.massless_species.push_back({1.95, 2}); }
       HydrogenHeliumHistoryRequest s{{model.H0, model.baryon, model.cdm, model.T0, model.other, {}},
         model.nH0, model.nHe0, "synthetic independent numerical comparison", model.initial, model.late};
-      auto native = prepare_hydrogen_helium_history(s);
+      for (const auto &v : model.massless_species) s.model.species.push_back({0, v[0], v[1]});
+      std::cerr << "starting_case=" << case_id << " initial=" << model.initial << " late=" << model.late << '\n';
+      HydrogenHeliumHistoryPolicy policy; policy.base_intervals = 16384;
+      auto native = prepare_hydrogen_helium_history(s, policy);
       need(native.status() == S::ok, "named bounded case prepared");
       const std::vector<ref::W> z{model.initial, model.initial - .01, 2500, 2200, 1900, 1600, 1300, 1100, 800, model.late};
       auto a = ref::integrate(model, z, 1), b = ref::integrate(model, z, 2);
@@ -47,9 +51,21 @@ int main() {
             refined[]{bb.hydrogen, bb.helium, bb.temperature, bb.electrons, bb.opacity};
         const double observed[]{value(r.hydrogen_ionized_fraction), value(r.helium_singly_ionized_fraction),
             value(r.matter_temperature_kelvin), value(r.electron_number_density_per_cubic_metre), value(r.thomson_opacity_per_redshift)};
+        const double diagnostics[]{r.hydrogen_ionized_fraction.absolute_error_estimate,
+            r.helium_singly_ionized_fraction.absolute_error_estimate, r.matter_temperature_kelvin.absolute_error_estimate,
+            r.electron_number_density_per_cubic_metre.absolute_error_estimate, r.thomson_opacity_per_redshift.absolute_error_estimate};
         for (unsigned k = 0; k < 5; ++k) {
+          if (std::abs(observed[k] - refined[k]) > diagnostics[k] + std::abs(coarse[k] - refined[k]) +
+              128 * std::numeric_limits<ref::W>::epsilon() * std::abs(refined[k]))
+            std::cerr << "diagnostic_case=" << case_id << " z=" << z[j] << " group=" << k
+                      << " actual=" << observed[k] << " reference=" << refined[k]
+                      << " native_error=" << diagnostics[k] << " reference_refinement="
+                      << std::abs(coarse[k] - refined[k]) << '\n';
           compare(coarse[k], refined[k], budgets[k] * .05L, "Radau reference refinement consumes <=5% allocation");
           compare(observed[k], refined[k], budgets[k], "native versus independent stiff history");
+          compare(observed[k], refined[k], diagnostics[k] + std::abs(coarse[k] - refined[k]) +
+                  128 * std::numeric_limits<ref::W>::epsilon() * std::abs(refined[k]),
+                  "retained native diagnostic covers independent discrepancy");
         }
       }
       std::cerr << "case=" << case_id << " work=" << native.work().total() << " reference_steps="

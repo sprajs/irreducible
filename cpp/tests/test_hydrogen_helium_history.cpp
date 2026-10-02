@@ -1,5 +1,6 @@
 #include "irred/hydrogen_helium_history.hpp"
 #include "../src/hydrogen_helium_rates.hpp"
+#include "hydrogen_helium_rate_peer_facts.hpp"
 #include <cfenv>
 #include <cmath>
 #include <iostream>
@@ -21,6 +22,14 @@ HydrogenHeliumHistoryRequest request() {
 } // namespace
 int main() {
   try {
+    for (const auto &r : hydrogen_helium_rate_peer_facts::rows) {
+      const auto h = detail::hhe_rates(r[0], false), he = detail::hhe_rates(r[0], true);
+      const auto f = detail::hhe_rhs(.7L, .4L, r[0], 2e9L, 1.5e8L, 1e-13L, 1800);
+      const long double actual[]{h.alpha, he.alpha, h.beta, he.beta, h.photo, he.photo, f.value[0], f.value[1]};
+      for (unsigned k = 0; k < 8; ++k)
+        need(std::abs(actual[k] - r[k + 1]) <= 2e-15L * std::abs(r[k + 1]),
+             "independent Decimal110/150 rate and escape facts");
+    }
     // Analytic production derivatives face an original centered-difference
     // calculation; the independent history peer uses its own direct equations.
     const long double p = .7L, q = .4L, T = 5000, nH = 2e9L, nHe = 1.5e8L,
@@ -39,7 +48,9 @@ int main() {
       need(std::abs((up.value[i] - down.value[i]) / .002L - a.temperature_derivative[i]) <
                2e-8L * std::abs(a.temperature_derivative[i]), "temperature derivative");
     const auto s = request();
-    auto owner = prepare_hydrogen_helium_history(s);
+    HydrogenHeliumHistoryPolicy fine_policy;
+    fine_policy.base_intervals = 16384;
+    auto owner = prepare_hydrogen_helium_history(s, fine_policy);
     std::cerr << "prepare=" << int(owner.status()) << " work=" << owner.work().total()
               << " rhs=" << owner.work().rhs_evaluations << '\n';
     need(owner.status() == S::ok && owner.source() && owner.background(), "retained history prepared");
@@ -121,6 +132,25 @@ int main() {
     need(prepare_hydrogen_helium_history(s, low).status() == S::work_limit, "mesh quota");
     low = {}; low.absolute_fraction_tolerance = -1;
     need(prepare_hydrogen_helium_history(s, low).status() == S::invalid_input, "negative numerical allocation");
+    low = {}; low.base_intervals = 1;
+    need(prepare_hydrogen_helium_history(s, low).status() == S::invalid_input,
+         "coarse curvature needs a resolved stencil");
+    auto ordinary = prepare_hydrogen_helium_history(s);
+    auto ordinary_row = ordinary.evaluate(std::span(z + 6, 1), 31);
+    need(ordinary.status() == S::ok && ordinary_row.status == S::ok &&
+             ordinary_row.rows.front().helium_singly_ionized_fraction.status == S::conditioning_budget_exceeded &&
+             !ordinary_row.rows.front().helium_singly_ionized_fraction.value &&
+             ordinary_row.rows.front().hydrogen_ionized_fraction.value &&
+             ordinary_row.rows.front().matter_temperature_kelvin.value,
+         "default trace-He diagnostic refusal preserves other groups at unchanged allocation");
+    const auto &a8 = ordinary_row.rows.front(), &a16 = batch.rows[6];
+    const HydrogenHeliumHistoryValue *c8[]{&a8.hydrogen_ionized_fraction, &a8.electron_number_density_per_cubic_metre,
+        &a8.matter_temperature_kelvin, &a8.thomson_opacity_per_redshift};
+    const HydrogenHeliumHistoryValue *c16[]{&a16.hydrogen_ionized_fraction, &a16.electron_number_density_per_cubic_metre,
+        &a16.matter_temperature_kelvin, &a16.thomson_opacity_per_redshift};
+    for (unsigned k = 0; k < 4; ++k)
+      need(std::abs(value(*c8[k]) - value(*c16[k])) <= c8[k]->absolute_error_estimate + c16[k]->absolute_error_estimate,
+           "explicit native refinement respects retained accepted-group diagnostics");
     low = {}; low.absolute_fraction_tolerance = 1e-30; low.relative_fraction_tolerance = 1e-30;
     auto strict = prepare_hydrogen_helium_history(s, low);
     need(strict.status() == S::ok, "preparation distinct from per-group admission");
