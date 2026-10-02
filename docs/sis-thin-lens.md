@@ -55,6 +55,8 @@ point limit assigns flux to half-open rectangles [xlo,xhi) × [ylo,yhi).
 An image position whose diagnostic interval intersects an x boundary is refused;
 y=0 is exact and follows the half-open convention. Positive Gaussian flux that
 underflows is refused rather than replaced by zero.
+This includes wide joint-probability, weighted-term and diagnostic products:
+positive marginals cannot silently become a zero pixel or a dropped image.
 
 Images can be projected with separate position, magnification/parity, flux and
 delay masks. Pixel failures leave those retained predictions available.

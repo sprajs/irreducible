@@ -327,6 +327,29 @@ int main() {
     PixelRectangle distant{.01, .02, .01, .02};
     need(!lens.pixels(std::span(&distant, 1)).rows[0].flux.value,
          "positive Gaussian underflow refuses rather than zero");
+    // Both Gaussian marginals remain positive in wide arithmetic, but their
+    // joint probability is below its exponent range. The former implementation
+    // exposed an available flux0/error0 here. Preserve a typed refusal rather
+    // than changing the unchanged analytic/GL comparison allocation.
+    const double width = s.psf_sigma_radians;
+    const PixelRectangle positive_product{115 * width, 116 * width,
+                                          108 * width, 109 * width};
+    const auto joint = lens.pixels(std::span(&positive_product, 1));
+    need(joint.rows[0].flux.status == S::conditioning_budget_exceeded &&
+             !joint.rows[0].flux.value && joint.image_pixel_terms == 1 &&
+             joint.cdf_evaluations == 4,
+         "positive Gaussian joint underflow refuses with attempted work");
+    // A representable wide probability can still lose its positive weighted
+    // term before summation. The same rule excludes a silently dropped image.
+    auto dim = source();
+    dim.source_flux = std::numeric_limits<double>::denorm_min();
+    const auto dim_lens = prepare_sis_thin_lens(dim);
+    const PixelRectangle positive_weighted{112 * width, 113 * width,
+                                           105 * width, 106 * width};
+    const auto weighted = dim_lens.pixels(std::span(&positive_weighted, 1));
+    need(weighted.rows[0].flux.status == S::conditioning_budget_exceeded &&
+             !weighted.rows[0].flux.value,
+         "positive Gaussian weighted-term underflow refuses");
     need(lens.predict(0).image_count == 0 &&
              lens.predict(16).image_count == 0 &&
              lens.predict(1, std::numeric_limits<double>::quiet_NaN())

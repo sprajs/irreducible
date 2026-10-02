@@ -320,10 +320,23 @@ SISPixelBatch SISThinLens::pixels(std::span<const PixelRectangle> pixels,
               x_error_[i] / (std::sqrt(2 * std::numbers::pi_v<W>) * sigma) *
               (std::exp(-dlo * dlo / 2) + std::exp(-dhi * dhi / 2));
         fraction_error = ex * py + ey * px + ex * ey + location_error * py;
+        // Positive Gaussian marginals do not guarantee a representable joint
+        // probability or diagnostic. Refuse wide-product underflow before it
+        // can masquerade as the exact-zero point limit or a dropped image.
+        if (!(fraction > 0) || !(fraction_error > 0)) {
+          cause = S::conditioning_budget_exceeded;
+          break;
+        }
       }
-      flux += flux_[i] * fraction;
-      error += flux_error_[i] * fraction +
-               (flux_[i] + flux_error_[i]) * fraction_error;
+      const W term = flux_[i] * fraction,
+              term_error = flux_error_[i] * fraction +
+                           (flux_[i] + flux_error_[i]) * fraction_error;
+      if (fraction > 0 && (!(term > 0) || !(term_error > 0))) {
+        cause = S::conditioning_budget_exceeded;
+        break;
+      }
+      flux += term;
+      error += term_error;
     }
     if (cause != S::ok)
       row.flux.status = cause;
