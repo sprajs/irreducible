@@ -4,6 +4,7 @@
 #include <irred/gr_growth.hpp>
 #include <irred/gaussian_posterior.hpp>
 #include <irred/sampled_photometry.hpp>
+#include <irred/temporal_photometry.hpp>
 #include <irred/photometry_calibration.hpp>
 #include <irred/calibration_ladder.hpp>
 #include <irred/early_late.hpp>
@@ -133,6 +134,16 @@ int installed_gr_growth() {
  const double a[]{.125,1}; auto result=owner.evaluate(a,growth_d|growth_f);
  return result.rows.size()==2 && result.rows[0].d.value==.125 && result.rows[1].d.value==1 && result.rows[0].f.value==1 && result.rows[1].f.value==1 ? 0 : 12;
 }
+int installed_temporal() {
+ using namespace irred::photometry;
+ const double time[]{0,1},wave[]{1,2},lum[]{1,1,1,1},transmission[]{1,1};
+ const TemporalGrid grid[]{ {"constant","synthetic",time,wave,lum} };
+ const TemporalBand band[]{ {"optical","fixed",{wave,transmission}} };
+ auto owner=prepare_temporal(grid,band);
+ const TemporalExposure exposure[]{ {0,0,1,0,1,0,0,1} };
+ auto result=evaluate_temporal(owner,exposure);
+ return result.rows.size()==1 && result.rows[0].coverage==TemporalCoverage::full && result.rows[0].mean_flux_watt_per_square_metre.value && std::abs(*result.rows[0].mean_flux_watt_per_square_metre.value-1/(4*std::acos(-1.)))<2e-12 && result.rows[0].energy_joule.value && result.rows[0].expected_photons.value ? 0 : 13;
+}
 int main() {
  const auto result=irred::numerics::log1p_checked(0.5);
  if(result.status!=irred::numerics::Status::ok || std::abs(result.value-0.4054651081081643819780131154643491)>=1e-14) return 1;
@@ -175,5 +186,6 @@ int main() {
  if (const auto thermal_status=installed_thermal_observables();thermal_status!=0) return thermal_status;
  if (const auto posterior_status=installed_gaussian_posterior();posterior_status!=0) return posterior_status;
  if (const auto growth_status=installed_gr_growth();growth_status!=0) return growth_status;
+ if (const auto temporal_status=installed_temporal();temporal_status!=0) return temporal_status;
  return installed_correlated_calibration();
 }
