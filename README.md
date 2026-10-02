@@ -10,6 +10,9 @@ Today you can run flat-FLRW background calculations, conditional supernova and B
 
 The native [pressureless GR growing mode](docs/gr-growth.md) predicts D(a) and f(a) under an explicit radiation-free LCDM approximation, with independent differential-equation controls.
 
+The native [spectral-time photometry](docs/temporal-photometry.md) operator integrates finite source grids over declared observer exposures, with explicit clipping and source epoch.
+The native [detector and censoring](docs/detector-selection.md) calculation composes expected photons with a declared Poisson/read-noise law, addressed random draws and a threshold likelihood retaining nondetections.
+
 ## Test an established baseline
 
 The [bounded LambdaCDM baseline](docs/lcdm-baseline.md) connects reviewed papers in

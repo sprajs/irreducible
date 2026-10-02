@@ -14,6 +14,8 @@ Read [AGENTS.md](../AGENTS.md) first, then choose a guide:
 | See what is implemented | [Capabilities](capabilities.md), then `irred describe --json` |
 | Plan a repeatable paper workflow (proposed) | [Run recipes](run-recipes.md) |
 | Predict a synthetic rectangular or sampled-passband observation | [Photometry](photometry.md) |
+| Integrate a declared spectral-time source over observer exposures in C++ | [Temporal photometry](temporal-photometry.md) |
+| Simulate bounded detector counts and score threshold censoring in C++ | [Detector and censoring](detector-selection.md) |
 | Propagate a finite shared passband calibration law in C++ | [Photometry calibration](photometry-calibration.md) |
 | Make a request | [CLI contract](cli.md) |
 | Interpret an output | [Run records](run-records.md) |
