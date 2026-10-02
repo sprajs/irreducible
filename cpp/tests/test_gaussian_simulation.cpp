@@ -52,6 +52,15 @@ void run(){auto g=source();auto m=mean();const std::array<irred::random::Address
  need(s::GaussianSimulation::simulate(g,m,overlap,17,p).rows.empty(),"coordinate interval overlap refused");
  const std::array<irred::random::Address,1> overflow{{{UINT64_MAX,5}}};
  need(s::GaussianSimulation::simulate(g,m,overflow,17,p).rows.empty(),"counter overflow refused");
+ // Shape must be rejected before metadata payload traversal or byte admission.
+ for(unsigned field=0;field<3;++field)for(size_t size:{0u,1u,3u,1024u}){
+  auto malformed=m;if(field==0)malformed.value.resize(size);else if(field==1)malformed.ordered_ids.resize(size);else malformed.coordinate_units.resize(size);
+  need(!s::GaussianSimulation::payload_bound(g,malformed,3,7),"malformed mean shape has no public payload bound");
+  auto tiny=p;tiny.maximum_payload_bytes=1;armed=true;calls=0;fail_on=1;
+  const auto rejected=s::GaussianSimulation::simulate(g,malformed,a,17,tiny);armed=false;
+  need(rejected.status==n::Status::invalid_input&&rejected.rows.empty()&&rejected.work_units==0,"structural mean mismatch precedes tiny quota refusal");
+  need(calls==0,"malformed mean shape refused without allocation");
+ }
  auto bad=m;std::swap(bad.ordered_ids[0],bad.ordered_ids[1]);need(s::GaussianSimulation::simulate(g,bad,a,17,p).rows.empty(),"exact mean axes");
  bad=m;bad.coordinate_measure="wrong";need(s::GaussianSimulation::simulate(g,bad,a,17,p).rows.empty(),"coordinate measure");
  bad=m;bad.value[0]=std::numeric_limits<double>::denorm_min();need(s::GaussianSimulation::simulate(g,bad,a,17,p).rows.empty(),"subnormal mean");

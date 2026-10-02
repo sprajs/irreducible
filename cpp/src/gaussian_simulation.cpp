@@ -32,6 +32,10 @@ void metadata_bytes(detail::PayloadAccounting &b, const Metadata &m) noexcept {
        &m.dependence_provenance, &m.source_semantics, &m.input_matrix_convention,
        &m.treatment}) copied_string(b,*s);
 }
+bool mean_shape(const GeneratingMean &m, size_t d) noexcept {
+  return m.value.size() == d && m.ordered_ids.size() == d &&
+         m.coordinate_units.size() == d;
+}
 bool normal(double x) { return std::isfinite(x) && (x == 0 || std::isnormal(x)); }
 bool environment() { return std::numeric_limits<W>::digits >= 64 &&
   std::numeric_limits<W>::max_exponent >= 16384 && std::fegetround() == FE_TONEAREST; }
@@ -48,7 +52,7 @@ std::optional<size_t> GaussianSimulation::work_bound(size_t d, size_t n) noexcep
 std::optional<size_t> GaussianSimulation::payload_bound(
     const Gaussian &g, const GeneratingMean &m, size_t count, unsigned outputs) noexcept {
   const auto d = g.metadata().ordered_ids.size();
-  if (!d || (count && d > SIZE_MAX/count) || !outputs || (outputs & ~7u)) return {};
+  if (!d || !mean_shape(m,d) || (count && d > SIZE_MAX/count) || !outputs || (outputs & ~7u)) return {};
   detail::PayloadAccounting b(sizeof(GaussianSimulationBatch));
   b.add(g.retained_payload_bound().value_or(SIZE_MAX), 1);
   mean_bytes(b,m); metadata_bytes(b,g.metadata());
@@ -69,7 +73,7 @@ GaussianSimulationBatch GaussianSimulation::simulate(
   out.dimension=g.metadata().ordered_ids.size(); out.outputs=policy.outputs;
   const auto d=out.dimension;
   if (!environment()) {out.status=N::outside_domain; return out;}
-  if (g.status()!=DensityStatus::finite || !d || addresses.empty() ||
+  if (g.status()!=DensityStatus::finite || !d || !mean_shape(m,d) || addresses.empty() ||
       !policy.outputs || (policy.outputs&~7u) || !policy.maximum_vectors ||
       !policy.maximum_elements || !policy.maximum_payload_bytes ||
       !policy.maximum_work_units || !std::isfinite(policy.maximum_scaled_arithmetic_error) ||
@@ -82,8 +86,7 @@ GaussianSimulationBatch GaussianSimulation::simulate(
       *work>policy.maximum_work_units) {out.status=N::work_limit; return out;}
   if (g.metadata().source_semantics!="synthetic controls" ||
       !g.priors().empty() || !g.mean_shift().empty() ||
-      m.ordered_ids!=g.metadata().ordered_ids || m.value.size()!=d ||
-      m.coordinate_units.size()!=d || m.identity.empty() || m.generating_law_identity.empty() ||
+      m.ordered_ids!=g.metadata().ordered_ids || m.identity.empty() || m.generating_law_identity.empty() ||
       m.coordinate_measure.empty() || m.coordinate_measure!=g.metadata().measure)
     return out;
   for (size_t j=0;j<d;++j) if(!normal(m.value[j]) || m.coordinate_units[j].empty()) return out;
