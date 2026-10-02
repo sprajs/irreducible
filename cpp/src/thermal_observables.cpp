@@ -245,6 +245,10 @@ ThermalObservables::evaluate(std::span<const double> zs, unsigned mask,
     out.status = status_;
     return out;
   }
+  // Admit the retained numerical identity before zero-distance shortcuts,
+  // output masks or an empty batch can bypass background evaluation.
+  if (p.thermal.momentum_method != background_.momentum_method())
+    return out;
   std::size_t origins = 0;
   if (!irred::detail::checked_payload_add(origins, source_.source_origin.size(),
                                           1) ||

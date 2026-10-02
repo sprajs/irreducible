@@ -36,6 +36,9 @@ inline cosmology::ThermalObservableRequest massless() {
 }
 inline bao::ThermalDensityPolicy policy() {
   bao::ThermalDensityPolicy p;
+#ifdef IRRED_TEST_NESTED_CC
+  p.predictions.thermal.momentum_method=cosmology::ThermalMomentumMethod::nested_clenshaw_curtis;
+#endif
   p.maximum_models = 16;
   p.maximum_queries = 16;
   p.maximum_string_bytes = 4096;

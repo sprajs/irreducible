@@ -100,15 +100,48 @@ no usable fractions or evaluation rows. Self move preserves the owner. These
 lifetime rules prevent a lost species vector from being evaluated with a
 stale successful closure.
 
-`evaluate_thermal_moments` takes finite binary64 y>=0. Production integrates
+`evaluate_thermal_moments` takes finite binary64 y>=0. Both compiled methods integrate
 I_rho/s and s I_P, where s=hypot(1,y), with binary64 callbacks and wide scaled
-arithmetic. Direct momentum intervals of width four resolve the known smooth
-FD support before adaptive quadrature. A bounded search selects a cutoff up to
+arithmetic. The default `ThermalMomentumMethod::direct_adaptive` retains direct momentum
+intervals of width four before adaptive quadrature. A bounded search selects a cutoff up to
 256. The omitted tail uses f(q)<=exp(-q), sqrt(q^2+y^2)<=q+y and the
 upper envelopes for inverse energy, integrated with integer incomplete-gamma
 polynomials. This is an analytic envelope for the omitted mathematical tail;
 the quadrature estimate and floating-point diagnostics are empirical, not
 universal error bounds.
+
+An explicit `ThermalPolicy::momentum_method =
+ThermalMomentumMethod::nested_clenshaw_curtis` selects the portable opt-in
+nested cosine quadrature. Each width-four panel evaluates 17/33/65-node
+Clenshaw–Curtis levels, sharing already evaluated nodes and the density/pressure
+energy and occupation factors. Compiled binary64 nodes and weights come from
+the cosine-series quadrature formula; wide sums retain the existing arithmetic
+allowance. The panel diagnostic is eight times the maximum of its last two
+refinement changes, summed over accepted panels. It bisects unresolved panels
+within the declared depth and work caps; unresolved depth or arithmetic
+resolution falls back to the unchanged direct integration, retaining all
+already attempted work. Work exhaustion returns immediately. Tail, arithmetic
+and storage diagnostics are still added, and no caller tolerance is changed.
+These refinement diagnostics are empirical, not certified quadrature bounds.
+
+One actual shared node charges one scalar callback for density-only evaluation
+and two when pressure is also requested. Counts include unsuccessful nodes,
+parent refinements discarded by bisection, and direct fallback; quotas never
+reset. The separate private sample translation unit permits a forwarding-only
+test observer to verify actual opt-in work without replacing physical equations.
+No expansion interpolation, retained momentum table, runtime model or cache is
+introduced. Stack scratch remains outside the existing owned-payload allowance.
+
+Prepared backgrounds retain `momentum_method()` alongside normalization.
+Later evaluation must supply the same selector; mismatch returns `invalid_input`,
+including at the present-day normalization endpoint. Copies and moves transfer
+that selection with the physical owner. The `thermal_momentum_method_id` and
+`thermal_momentum_arithmetic_id` functions report the selector's numerical
+identity; the existing string constants retain their direct-method identities.
+Physical model and constants identities do not change. Exactly massless
+calculations retain their original scalar bits and zero momentum work. The
+direct route remains the default; this opt-in route does not establish a
+portable speedup or arbitrary-domain scientific qualification.
 
 The policy applies absolute plus relative tolerance separately to each
 normalized moment. The total diagnostic adds quadrature, omitted-tail and
@@ -129,6 +162,16 @@ admission, with individual query failures retained. Species dependence and
 present closure diagnostics propagate additively to E and H, with no
 independent-random-error assumption. The exact a=1 identities carry zero
 numerical diagnostics because they reuse the model's defined normalization.
+
+The opt-in owner controls include exact massless scalar bits, retained method
+selection/copy/move, uniform empty/zero-distance selector admission and paired
+scalar callback caps. Separate compiled CC consumer-peer targets select the
+method explicitly: the same original high-precision/CLASS distance/ruler facts,
+BAO ratio/cofactor density controls and direct-SI GL16/32/Radau hydrogen cases
+retain their equations, reference ancestry and acceptance allocations. Forwarding
+observers count accepted, refined/discarded-parent and failed direct-fallback
+work independently. A depth-zero policy can refuse both algorithms; fallback
+does not acquire a fresh quota or a larger permitted depth.
 
 Named owner controls test analytic limits, continuity, state weight,
 component closure, callback/payload limits, invalid inputs and dimensional

@@ -441,7 +441,7 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Linux" AND CMAKE_CXX_COMPILER_ID MATCHES "^(GNU|C
   add_executable(test_thermal_allocation_work tests/test_thermal_allocation_work.cpp)
   target_link_libraries(test_thermal_allocation_work PRIVATE irred_core)
   target_compile_options(test_thermal_allocation_work PRIVATE -Wall -Wextra -Wpedantic -fno-fast-math -ffp-contract=off)
-  target_link_options(test_thermal_allocation_work PRIVATE "-Wl,--wrap=_ZN5irred8numerics9integrateEPFddPKvES2_ddNS0_17IntegrationPolicyE")
+  target_link_options(test_thermal_allocation_work PRIVATE "-Wl,--wrap=_ZN5irred8numerics9integrateEPFddPKvES2_ddNS0_17IntegrationPolicyE" "-Wl,--wrap=_ZN5irred9cosmology6detail17thermal_cc_sampleEdeeb")
   add_test(NAME thermal_allocation_work_contract COMMAND test_thermal_allocation_work)
 endif()
 
@@ -452,6 +452,26 @@ foreach(predictive_test IN ITEMS gaussian_predictive gaussian_predictive_peer)
   target_link_libraries(test_${predictive_test} PRIVATE irred_core)
   target_compile_options(test_${predictive_test} PRIVATE -Wall -Wextra -Wpedantic -fno-fast-math -ffp-contract=off)
   add_test(NAME ${predictive_test}_contract COMMAND test_${predictive_test})
+endforeach()
+
+# Explicit nested FD quadrature; portable direct default remains available.
+target_sources(irred_core PRIVATE src/thermal_cc_sample.cpp)
+add_executable(test_thermal_cc tests/test_thermal_cc.cpp)
+target_link_libraries(test_thermal_cc PRIVATE irred_core)
+target_compile_options(test_thermal_cc PRIVATE -Wall -Wextra -Wpedantic -fno-fast-math -ffp-contract=off)
+add_test(NAME thermal_cc_contract COMMAND test_thermal_cc)
+add_executable(test_thermal_cc_peer tests/test_thermal_cc_peer.cpp)
+target_link_libraries(test_thermal_cc_peer PRIVATE irred_core)
+target_compile_options(test_thermal_cc_peer PRIVATE -Wall -Wextra -Wpedantic -fno-fast-math -ffp-contract=off)
+add_test(NAME thermal_cc_peer_contract COMMAND test_thermal_cc_peer)
+
+# Explicit CC opt-in through unchanged independently authored consumer peers.
+foreach(cc_peer IN ITEMS thermal_observables_peer bao_thermal_peer hydrogen_relics_peer)
+  add_executable(test_${cc_peer}_cc tests/test_${cc_peer}.cpp)
+  target_compile_definitions(test_${cc_peer}_cc PRIVATE IRRED_TEST_NESTED_CC=1)
+  target_link_libraries(test_${cc_peer}_cc PRIVATE irred_core)
+  target_compile_options(test_${cc_peer}_cc PRIVATE -Wall -Wextra -Wpedantic -fno-fast-math -ffp-contract=off)
+  add_test(NAME ${cc_peer}_cc_contract COMMAND test_${cc_peer}_cc)
 endforeach()
 
 # Supplied neutral-mass H/He abundance and conditional LTE consumer.

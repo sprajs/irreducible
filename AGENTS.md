@@ -89,7 +89,10 @@ epoch or imply full recombination, helium or CMB closure.
 Bounded positive-mass relics use the same retained thermal H state and distinct
 model IDs; they need an explicit larger work cap because direct momentum
 callbacks count. Never silently increase defaults or double-count explicit relics
-in the additional massless density.
+in the additional massless density. Explicit nested CC momentum integration
+retains its numerical method selection; preparation/evaluation policies must
+agree even at endpoints. Direct adaptive remains the default; failed nodes and
+fallback callbacks count against the original cap.
 
 Finite-endpoint Thomson visibility retains survival mass; it is not present-day
 CMB visibility.
