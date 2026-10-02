@@ -5,6 +5,7 @@
 #include <cmath>
 #include <limits>
 #include <numeric>
+#include <stdexcept>
 #include <type_traits>
 namespace irred::numerics {
 void Factorization::swap(Factorization &other) noexcept {
@@ -442,6 +443,53 @@ struct FactorAccess {
     return out;
   }
   template <class Real>
+  static ColouringResult colour_impl(const Factorization &f,
+                                    std::span<const long double> z,
+                                    std::size_t cap, std::size_t bytes,
+                                    double budget) {
+    if (!wide_environment())
+      return {Status::outside_domain, {}, {}};
+    const auto &l = lower<Real>(f);
+    if (f.status_ != Status::ok || !f.n_ ||
+        f.n_ > std::numeric_limits<size_t>::max() / f.n_ ||
+        l.size() != f.n_ * f.n_ ||
+        z.size() != f.n_ || !std::isfinite(budget) || budget <= 0)
+      return {};
+    const auto bound = colouring_payload_bound(f.n_);
+    if (!bound || f.n_ > cap || *bound > bytes)
+      return {Status::work_limit, {}, {}};
+    for (auto x : z) {
+      if (!std::isfinite(x))
+        return {Status::nonfinite_input, {}, {}};
+      if (x != 0 && !std::isnormal(x))
+        return {Status::outside_domain, {}, {}};
+    }
+    ColouringResult out;
+    out.value.resize(f.n_);
+    out.absolute_error_estimates.resize(f.n_);
+    for (size_t i = 0; i < f.n_; ++i) {
+      long double v = 0, absolute = 0;
+      for (size_t j = 0; j <= i; ++j) {
+        const auto t = static_cast<long double>(l[i * f.n_ + j]) * z[j];
+        v += t;
+        absolute += std::abs(t);
+      }
+      const auto error = (4 * f.n_ + 4) *
+                         std::numeric_limits<long double>::epsilon() * absolute;
+      if (!std::isfinite(v) || !std::isfinite(error))
+        return {Status::overflow, {}, {}};
+      if ((v != 0 && !std::isnormal(v)) ||
+          (absolute > 0 && (error == 0 || !std::isnormal(error))))
+        return {Status::outside_domain, {}, {}};
+      if (error / (1 + std::abs(v)) > budget)
+        return {Status::conditioning_budget_exceeded, {}, {}};
+      out.value[i] = v;
+      out.absolute_error_estimates[i] = error;
+    }
+    out.status = Status::ok;
+    return out;
+  }
+  template <class Real>
   static Factorization factor(std::span<const double> matrix, std::size_t n,
                               std::size_t cap, Arithmetic arithmetic) {
     Factorization f;
@@ -623,5 +671,35 @@ WhiteningResult whiten(const Factorization &f, std::span<const double> rhs,
 WhiteningResult whiten(const Factorization &f, std::span<const long double> rhs,
                        std::size_t cap, std::size_t bytes, double budget) {
   return whiten_dispatch(f, rhs, cap, bytes, budget);
+}
+std::optional<std::size_t> colouring_payload_bound(std::size_t n) noexcept {
+  if (!n)
+    return {};
+  detail::PayloadAccounting bytes(sizeof(ColouringResult));
+  bytes.add(n, 2 * sizeof(long double));
+  return bytes.result();
+}
+ColouringResult colour(const Factorization &f, std::span<const long double> z,
+                       std::size_t cap, std::size_t bytes, double budget) {
+  try {
+    WideRangeGuard guard;
+    if (!guard.supported)
+      return {Status::outside_domain, {}, {}};
+    ColouringResult out;
+    if (f.arithmetic() == Arithmetic::longdouble_cpu_v1)
+      out = FactorAccess::colour_impl<long double>(f, z, cap, bytes, budget);
+    else if (f.arithmetic() == Arithmetic::binary64_legacy_v1)
+      out = FactorAccess::colour_impl<double>(f, z, cap, bytes, budget);
+    else
+      return {};
+    const auto status = guard.status();
+    if (status != Status::ok)
+      return {status, {}, {}};
+    return out;
+  } catch (const std::bad_alloc &) {
+    return {Status::work_limit, {}, {}};
+  } catch (const std::length_error &) {
+    return {Status::work_limit, {}, {}};
+  }
 }
 } // namespace irred::numerics

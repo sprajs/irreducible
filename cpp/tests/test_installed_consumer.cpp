@@ -1,3 +1,6 @@
+#include <irred/gaussian_simulation.hpp>
+#include <irred/random.hpp>
+
 #include <irred/baryon_abundance_law.hpp>
 
 #include <irred/growth_amplitude.hpp>
@@ -343,6 +346,25 @@ int installed_nested_fd() {
  const auto batch=background.evaluate(std::array{.1},thermal_e,p);
  return moments.status==irred::numerics::Status::ok && moments.rho_moment && std::abs(*moments.rho_moment-6.045645184985879)<1e-9 && background.momentum_method()==p.momentum_method && batch.status==irred::numerics::Status::ok && batch.rows.size()==1 && batch.rows[0].e.value && std::abs(*batch.rows[0].e.value-17.398718835753673)<1e-8 ? 0:22;
 }
+int installed_gaussian_simulation() {
+ using namespace irred;
+ statistics::Metadata metadata;metadata.ordered_ids={"coordinate-a","coordinate-b"};metadata.measure="product d(mag)";metadata.source_semantics="synthetic controls";metadata.table_identity="installed correlated synthetic generating noise";metadata.ordering_provenance="two declared axes";
+ const auto covariance=statistics::prepare_gaussian(std::array<double,4>{1,.5,.5,2},statistics::MatrixKind::covariance,metadata,4,1e-10,numerics::Arithmetic::longdouble_cpu_v1);
+ statistics::GeneratingMean mean{{1,2},metadata.ordered_ids,{"mag","mag"},"installed supplied synthetic mean",metadata.measure,"ideal normal/discrete addressed approximation"};
+ const std::array<random::Address,2> addresses{{{0x1100,0},{0x1100,1}}};
+ statistics::GaussianSimulationPolicy policy;policy.outputs=7;
+ const auto r=statistics::GaussianSimulation::simulate(covariance,mean,addresses,17,policy);
+ if(r.status!=numerics::Status::ok || r.rows.size()!=2 || r.values.size()!=4 || r.words.size()!=4) return 26;
+ for(unsigned i=0;i<2;++i){
+  if(r.rows[i].status!=numerics::Status::ok) return 26;
+  std::array<long double,2> z{};
+  for(unsigned j=0;j<2;++j){const auto w=random::words(17,{0x1100+j,i});if(w!=r.words[2*i+j]) return 26;
+   const long double u=(static_cast<long double>(w[1])+.5L)/4294967296.L,v=(static_cast<long double>(w[2])+.5L)/4294967296.L;
+   z[j]=std::sqrt(-2*std::log(u))*std::cos(2*std::numbers::pi_v<long double>*v);}
+  if(std::abs(r.values[2*i]-(1+z[0]))>2e-12L || std::abs(r.values[2*i+1]-(2+.5L*z[0]+std::sqrt(1.75L)*z[1]))>2e-12L) return 26;
+ }
+ return 0;
+}
 int installed_abundance_law() {
  using namespace irred::cosmology;
  const std::array<BaryonAbundanceLawRow,1> rows{{{"synthetic row",1}}};
@@ -429,6 +451,8 @@ int main() {
  if(const auto ladder_future_status=installed_ladder_predictive();ladder_future_status!=0) return ladder_future_status;
  if(const auto abundance_status=installed_baryon_abundance();abundance_status!=0) return abundance_status;
  if(const auto nested_status=installed_nested_fd();nested_status!=0) return nested_status;
+ if(const auto simulation_status=installed_gaussian_simulation();simulation_status!=0) return simulation_status;
+
  if(const auto law_status=installed_abundance_law();law_status!=0) return law_status;
 
  if(const auto rsd_status=installed_growth_rsd();rsd_status!=0) return rsd_status;

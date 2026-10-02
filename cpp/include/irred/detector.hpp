@@ -1,5 +1,6 @@
 #pragma once
 #include "irred/numerics.hpp"
+#include "irred/random.hpp"
 #include <array>
 #include <cstdint>
 #include <optional>
@@ -9,8 +10,7 @@
 namespace irred::detector {
 inline constexpr std::string_view model_id =
     "DETECTOR/Poisson-arrivals-fixed-QE-Gaussian-read/v1";
-inline constexpr std::string_view generator_id =
-    "RNG/Philox4x32-10-halfbin32-BoxMuller/v1";
+inline constexpr std::string_view generator_id = random::generator_id;
 enum class PhotonLaw { unspecified, poisson_arrivals };
 struct Input {
   PhotonLaw photon_law = PhotonLaw::unspecified;
@@ -25,9 +25,7 @@ struct Moments {
       variance_adu;
 };
 Moments moments(const Input &) noexcept;
-struct Address {
-  std::uint64_t stream = 0, sample = 0;
-};
+using Address = random::Address;
 // Counter mapping is injective in (stream,sample) for each caller-owned seed.
 // Distinct counter addresses are not a mathematical independence certificate.
 std::array<std::uint32_t, 4> random_words(std::uint64_t seed, Address) noexcept;

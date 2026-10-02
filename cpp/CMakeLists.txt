@@ -491,6 +491,18 @@ foreach(abundance_test IN ITEMS baryon_abundance baryon_abundance_peer)
   add_test(NAME ${abundance_test}_contract COMMAND test_${abundance_test})
 endforeach()
 
+# Addressed full-covariance synthetic Gaussian generation and seeded campaigns.
+target_sources(irred_core PRIVATE src/random.cpp src/gaussian_simulation.cpp)
+foreach(simulation_test IN ITEMS gaussian_simulation gaussian_simulation_peer gaussian_recovery calibration_recovery)
+  add_executable(test_${simulation_test} tests/test_${simulation_test}.cpp)
+  target_link_libraries(test_${simulation_test} PRIVATE irred_core)
+  target_compile_options(test_${simulation_test} PRIVATE -Wall -Wextra -Wpedantic -fno-fast-math -ffp-contract=off)
+endforeach()
+add_test(NAME gaussian_simulation_contract COMMAND test_gaussian_simulation)
+add_test(NAME gaussian_simulation_peer_contract COMMAND test_gaussian_simulation_peer)
+add_test(NAME gaussian_recovery_contract COMMAND test_gaussian_recovery)
+add_test(NAME calibration_recovery_contract COMMAND test_calibration_recovery)
+
 # Supplied finite joint abundance/mass/temperature law, full population moments.
 target_sources(irred_core PRIVATE src/baryon_abundance_law.cpp)
 add_executable(test_baryon_abundance_law tests/test_baryon_abundance_law.cpp)

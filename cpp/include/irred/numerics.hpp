@@ -123,4 +123,15 @@ WhiteningResult whiten(const Factorization &, std::span<const long double> rhs,
                        std::size_t maximum_elements,
                        std::size_t maximum_payload_bytes,
                        double maximum_backward_error);
+// Multiply the retained triangle L*z, without copying L or reading original C.
+// Errors concern accumulation against stored L, not covariance reconstruction.
+struct ColouringResult {
+  Status status = Status::invalid_input;
+  std::vector<long double> value, absolute_error_estimates;
+};
+std::optional<std::size_t> colouring_payload_bound(std::size_t) noexcept;
+ColouringResult colour(const Factorization &, std::span<const long double>,
+                       std::size_t maximum_elements,
+                       std::size_t maximum_payload_bytes,
+                       double maximum_scaled_arithmetic_error);
 } // namespace irred::numerics

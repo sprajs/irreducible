@@ -259,6 +259,23 @@ lifetime, all measured allocation sites and independent noise/event declarations
 remain separate gates. See [Gaussian predictive](gaussian-predictive.md); these
 controls do not qualify observational coverage or a released finite-box target.
 
+## Addressed Gaussian recovery campaigns
+
+Ordinary CI runs `gaussian_simulation_contract` and
+`gaussian_simulation_peer_contract` for replay, original mathematical facts,
+source order, retained-factor colouring and hostile resource/lifetime cases.
+The `gaussian_recovery_contract` and `calibration_recovery_contract` tests also
+run the frozen two-seed campaigns in ordinary CTest and required compiler CI
+under [the simulation contract](gaussian-simulation.md).
+Preserve the raw receipt for every attempt and failed cell. Ideal
+Gaussian moments/coverage, finite-grid approximation, arithmetic and empirical
+discrepancy have separate allocations. Seeded comparisons are not an
+independence certificate or a universal coverage guarantee.
+Each campaign emits its complete attempt ledger; the named local runs produce
+approximately 43 MB and 68 MB of stdout. CTest capture adds this payload to
+the executable's memory use. Runtime and peak-memory comparisons must include
+logging/capture separately from the retained numerical factors.
+
 ## Finite abundance-law controls
 
 `baryon_abundance_law_contract` and `baryon_abundance_law_peer_contract` run

@@ -40,6 +40,7 @@ Read [AGENTS.md](../AGENTS.md) first, then choose a guide:
 | Condition a proper Gaussian parameter prior in a fixed linear model | [Gaussian parameter posterior](gaussian-posterior.md) |
 | Predict a normalized joint future vector with proper prior and independent future noise | [Gaussian predictive](gaussian-predictive.md) |
 | Condition a proper synthetic ladder prior and predict joint held-out rows | [Ladder predictive](calibration-predictive.md) |
+| Generate addressed full-covariance Gaussian vectors and run synthetic recovery campaigns | [Gaussian simulation](gaussian-simulation.md) |
 | Predict and recover a synthetic anchor/Cepheid/SN ladder in C++ | [Calibration ladder](calibration-ladder.md) |
 | Run tests or add a fixture | [Testing](testing.md) and [fixture provenance](../cpp/tests/fixtures/README.md) |
 | Maintain these docs | [Maintenance](maintenance.md) |

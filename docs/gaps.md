@@ -65,7 +65,11 @@ The native [Gaussian predictive](gaussian-predictive.md) prerequisite now retain
 a normalized joint future distribution for fixed synthetic linear responses
 under the proper Gaussian parameter prior and declared independent future noise.
 It propagates shared parameter covariance without treating the predictive law
-as another measurement. Observational held-out qualification still requires
+as another measurement. Native [addressed Gaussian generation and bounded
+recovery campaigns](gaussian-simulation.md) now test distinct fixed-truth and
+prior-predictive laws, retaining covariance, random identities and every refusal.
+Seeded agreement does not prove RNG independence; predictive preparation still
+rebuilds its invariant covariance for each new training vector. Observational held-out qualification still requires
 resolved object/calibration/selection dependence, and the released finite-box
 target remains a separate measure and normalization problem.
 See [Gaussian design](gaussian-design.md).
@@ -195,7 +199,7 @@ The next useful work is to choose an actual vertical from the [roadmap](roadmap.
 
 Deterministic photometry predicts three radiometric outputs for a finite constant rest spectrum and supplied distance through the CLI. The standalone C++ sampled operator extends this to declared piecewise-linear wavelength spectra and optical passbands. Pooled sampled CLI/ABI ingestion is implemented. The native [temporal photometry](temporal-photometry.md) consumer adds declared spectral-time grids and observer exposures. Native [detector and censoring](detector-selection.md) now adds a bounded declared Poisson/Gaussian measurement law, addressed simulation and a threshold likelihood with synthetic recovery. Measured instrument laws, source populations and astrophysical recovery remain open. The native [finite calibration law](photometry-calibration.md) propagates a declared shared passband ensemble; acquiring and qualifying an actual calibration distribution remains separate.
 
-The native [synthetic ladder](calibration-ladder.md) now implements an empirical supplied-shape joint relative fit with anchors, Cepheids, calibrator/Hubble-flow SNe and one shared calibration coordinate. Named independent recovery and held-out controls do not establish fitting of the released ladder, posterior uncertainty or an observed H0 result. Actual source/selection/calibration reconstruction and any proper-prior normalization remain separate gates.
+The native [synthetic ladder](calibration-ladder.md) implements an empirical supplied-shape joint relative fit with anchors, Cepheids, calibrator/Hubble-flow SNe and one shared calibration coordinate. That relative fit has no posterior measure. The separate [proper-prior consumer](calibration-predictive.md) supplies normalized Gaussian conditioning and joint future prediction for declared synthetic inputs. Actual source/selection/calibration reconstruction, the released box target and an observed H0 result remain separate gates.
 
 The native early/late operator now shares the sound-horizon model's matter/radiation and flat geometry identity with distance and conditional BAO-ratio predictions. The native [conditional BAO density](bao-conditional.md) composes those predictions with a retained ordered ratio covariance. Its supplied drag epoch, fixed matter content and named numerical controls do not establish a predicted thermal history, physical validity of a released compression or perturbation/CMB closure; see [early and late expansion](early-late.md).
 
@@ -204,6 +208,8 @@ The native [correlated proper calibration](correlated-calibration.md) calculatio
 Synthetic proper-prior ladder conditioning and joint future prediction are now
 implemented in the [native consumer](calibration-predictive.md). The exact
 linear controls distinguish fixed-truth sampling coverage from a conditional
-prior-predictive law. A released box-supported target, observational held-out
-event/calibration dependence, relation/selection variants and empirical
-synthetic coverage campaigns remain separate work.
+prior-predictive law. [Seeded synthetic recovery](gaussian-simulation.md) now
+tests both ensembles with full error covariance and separately targeted coverage,
+preserving every attempt and the finite emitted-law approximation. A released
+box-supported target, observational held-out event/calibration dependence and
+source-supported relation/selection variants remain separate work.

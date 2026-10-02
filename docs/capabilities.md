@@ -168,6 +168,17 @@ work observed separately from self-reported counters. Read the
 [thermal neutrino guide](thermal-neutrino.md) for the empirical diagnostic and
 method contract. Acceleration supplies no new physical closure.
 
+The native [Gaussian simulation](gaussian-simulation.md) API borrows a retained
+synthetic covariance factor and colours pooled addressed normal coordinates
+under an explicit generating mean, axis order and measure. A shared RNG owner
+preserves detector replay. The emitted law is a discrete pseudo-Gaussian
+approximation; finite halfbin words and platform arithmetic remain explicit.
+Bounded generic and ladder campaigns compare fixed-truth and prior-predictive
+means, full covariance and coverage with independently derived targets, keeping
+all refusals in the attempted denominator. They do not establish Philox
+independence, measured-data qualification or a released-box posterior. This
+adds no CLI/ABI operation.
+
 The native [finite abundance law](baryon-abundance-law.md) retains explicitly
 ordered joint states for physical baryon density, He4 fraction, supplied neutral
 masses and matter temperatures. Existing density/LTE owners evaluate each
