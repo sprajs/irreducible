@@ -139,9 +139,11 @@ The native [proper-prior ladder consumer](calibration-predictive.md) now retains
 this law for ordered, disjoint future anchor/Cepheid/SN rows, sharing the same
 compiled equations and calibration parameter. Exact linear controls, direct
 prior/noise integration and analytic fixed-truth coverage checks distinguish
-posterior uncertainty from repeated-observation sampling. Next run a declared
-empirical recovery/coverage campaign, then pin an observational future design
-and resolve cross-noise/object/calibration linkage before using released assets.
+posterior uncertainty from repeated-observation sampling. The native addressed
+Gaussian generator and named fixed-truth/prior-predictive recovery campaigns now
+test both ensembles with frozen covariance and coverage targets, retaining every
+attempt and emitted-law limits. Next pin an observational future design and
+resolve cross-noise/object/calibration linkage before using released assets.
 The released fixed-coordinate finite-box target requires its own
 normalization/sampling and sensitivity controls.
 
