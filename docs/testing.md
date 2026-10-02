@@ -295,3 +295,19 @@ integral; an original growing-mode ODE route provides a distinct physical
 comparison. The density facts use an explicit correlated 3x3 adjugate. These
 are named numerical controls under [the declared model](growth-rsd.md),
 without external data or an mpmath runtime dependency.
+
+## Repeated fixed-design prediction
+
+The existing generic/ladder owner and recovery tests now exercise retained
+`GaussianPredictiveConditioning` and `LadderPredictiveConditioning` batches.
+One-shot and repeated consumers share compiled projection/offset equations; their
+exact equality is a regression check, not independent mathematical evidence.
+Original rational/cofactor, direct density-quadrature and scalar conjugate
+references remain the independent named controls at unchanged allocations.
+Tests challenge masks, original order, rank deficiency, full correlations,
+rounded offsets, cumulative quotas, allocation failures and moved owners.
+A generating refusal never becomes a zero-filled observation sent to prediction.
+On Linux GCC/Clang with a compatible ELF linker, forwarding observation verifies
+one invariant setup factor and no batch refactorization, while counting actual
+training whitenings and density solves. The same original routines and arithmetic
+execute through these hooks; other toolchains retain portable mathematical tests.

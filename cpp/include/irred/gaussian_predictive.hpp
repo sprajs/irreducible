@@ -1,5 +1,9 @@
 #pragma once
 #include "irred/gaussian_posterior.hpp"
+namespace irred::calibration {
+class LadderPredictiveConditioning;
+class LadderPredictive;
+} // namespace irred::calibration
 namespace irred::statistics {
 struct PredictiveMetadata {
   std::vector<std::string> ordered_parameter_ids, parameter_units,
@@ -15,6 +19,22 @@ struct PredictivePolicy {
   std::size_t maximum_payload_bytes = 256 * 1024 * 1024;
   std::size_t maximum_work_units = 100000000;
   double maximum_forward_sensitivity = 1e-10;
+};
+struct PredictiveOutputs {
+  bool means = true, densities = true;
+};
+struct PredictiveRow {
+  DensityStatus status = DensityStatus::invalid_input;
+  numerics::Status numerical_status = numerics::Status::invalid_input;
+};
+struct PredictiveBatch {
+  // finite means batch admission succeeded; inspect every row before outputs.
+  DensityStatus status = DensityStatus::invalid_input;
+  numerics::Status numerical_status = numerics::Status::invalid_input;
+  std::vector<PredictiveRow> rows;
+  std::vector<double> means, mean_absolute_error_estimates;
+  std::vector<GaussianResult> densities;
+  std::size_t work_units = 0, payload_bound = 0;
 };
 // Fixed training r and response A: y*|r ~ N(A mu,R*+A V A^T).
 // The explicit independent future noise is conditional on the same beta.
@@ -99,6 +119,32 @@ public:
   }
 
 private:
+  friend class GaussianPredictiveConditioning;
+  friend class irred::calibration::LadderPredictiveConditioning;
+  friend class irred::calibration::LadderPredictive;
+  static GaussianPredictive
+  prepare_impl(const GaussianPosterior &, std::span<const double>,
+               std::span<const std::string>, const Gaussian &,
+               std::span<const double>, const PredictiveMetadata &,
+               PredictivePolicy, bool fixed);
+  PosteriorMean project(const PosteriorMean &, PredictivePolicy) const;
+  GaussianResult log_density_at_mean(std::span<const double>,
+                                     std::span<const std::string>,
+                                     std::span<const double>,
+                                     std::span<const double>,
+                                     PredictivePolicy) const;
+  PredictiveBatch condition_batch(const GaussianPosterior &,
+                                  std::span<const double>,
+                                  std::span<const std::string>,
+                                  std::span<const double>,
+                                  std::span<const std::string>, std::size_t,
+                                  PredictiveOutputs, PredictivePolicy,
+                                  std::span<const double> training_offsets = {},
+                                  std::span<const double> future_offsets = {},
+                                  std::size_t extra_retained_bytes = 0) const;
+  std::optional<std::size_t>
+  batch_payload_bound(const GaussianPosterior &, std::size_t, PredictiveOutputs,
+                      std::size_t extra_retained_bytes = 0) const noexcept;
   void invalidate() noexcept;
   std::optional<Gaussian> predictive_;
   PredictiveMetadata metadata_;
@@ -116,5 +162,55 @@ private:
   std::size_t preparation_work_units_ = 0;
   DensityStatus status_ = DensityStatus::invalid_input;
   numerics::Status numerical_status_ = numerics::Status::invalid_input;
+};
+// Fixed-design repeated conditioning owns its posterior. Future noise is
+// borrowed only during preparation. Failed preparation preserves the posterior.
+class GaussianPredictiveConditioning {
+public:
+  GaussianPredictiveConditioning() = default;
+  GaussianPredictiveConditioning(const GaussianPredictiveConditioning &) =
+      delete;
+  GaussianPredictiveConditioning &
+  operator=(const GaussianPredictiveConditioning &) = delete;
+  GaussianPredictiveConditioning(GaussianPredictiveConditioning &&) noexcept;
+  GaussianPredictiveConditioning &
+  operator=(GaussianPredictiveConditioning &&) noexcept;
+  static GaussianPredictiveConditioning
+  prepare(GaussianPosterior &&, const Gaussian &, std::span<const double>,
+          const PredictiveMetadata &, PredictivePolicy = {});
+  DensityStatus status() const noexcept { return law_.status(); }
+  numerics::Status numerical_status() const noexcept {
+    return law_.numerical_status();
+  }
+  // Requires status()==finite; views are invalidated by moves/destruction.
+  const GaussianPosterior &posterior() const noexcept { return *posterior_; }
+  std::span<const double> covariance() const noexcept {
+    return law_.covariance();
+  }
+  const PredictiveMetadata &metadata() const noexcept {
+    return law_.metadata();
+  }
+  numerics::Arithmetic arithmetic() const noexcept { return law_.arithmetic(); }
+  const char *method_id() const noexcept {
+    return "proper-Gaussian-repeated-joint-predictive/retained-covariance/v1";
+  }
+  std::size_t preparation_work_units() const noexcept {
+    return law_.preparation_work_units();
+  }
+  static std::optional<std::size_t>
+  preparation_payload_bound(const GaussianPosterior &, const Gaussian &,
+                            const PredictiveMetadata &) noexcept;
+  std::optional<std::size_t> retained_payload_bound() const noexcept;
+  std::optional<std::size_t>
+  batch_payload_bound(std::size_t, PredictiveOutputs = {}) const noexcept;
+  PredictiveBatch evaluate(std::span<const double> row_major_training,
+                           std::span<const std::string>,
+                           std::span<const double> row_major_future,
+                           std::span<const std::string>, std::size_t count,
+                           PredictiveOutputs = {}, PredictivePolicy = {}) const;
+
+private:
+  std::optional<GaussianPosterior> posterior_;
+  GaussianPredictive law_;
 };
 } // namespace irred::statistics
