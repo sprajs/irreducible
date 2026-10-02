@@ -85,7 +85,10 @@ function or radiation-free sound/ruler admission is introduced.
 
 `prepare_pure_hydrogen_history(request, policy)` owns the source, one prepared
 thermal state and history mesh. Copies retain independent owned storage;
-moves invalidate the source object. Ordered `evaluate(redshifts, mask)` batches
+moves invalidate the source object. Preparation/query allocation failures return
+`work_limit`; ordinary value copies can throw `std::bad_alloc`. Copy assignment
+constructs a complete replacement first, preserving the destination if allocation
+fails. Ordered `evaluate(redshifts, mask)` batches
 request `hydrogen_electron_fraction`, `hydrogen_drag_depth` or both. Invalid
 redshifts fail individually, preserving valid rows. An unrequested group has no
 value. Evaluation performs interpolation, with no new background or ODE work.
@@ -123,7 +126,11 @@ maximum 1 GiB; allocator metadata and process RSS are excluded.
 Permanent tests contain original direct-SI equations with an independent
 resolved explicit RK4 algorithm, without engine headers or production
 readback. The constants and physical closure ancestry are shared and declared;
-algorithm and arithmetic implementation are independent. Steps `0.01` and
+algorithm and arithmetic implementation are independently authored. Both routes
+use long double and the same system `libm`; this is an algorithm/refinement
+control, not an independent high-precision arithmetic certificate. The separate
+Decimal controls of the atomic consumer qualify Saha fractions, not this whole
+history. Steps `0.01` and
 `0.005` redshift must refine to within five percent of each frozen named
 allocation, maintain stage positivity and have a resolved stiffness diagnostic.
 Controls cover three distinct physical models, initial and late endpoint

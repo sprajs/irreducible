@@ -377,3 +377,8 @@ add_executable(test_gr_growth tests/test_gr_growth.cpp)
 target_link_libraries(test_gr_growth PRIVATE irred_core)
 target_compile_options(test_gr_growth PRIVATE -Wall -Wextra -Wpedantic -fno-fast-math -ffp-contract=off)
 add_test(NAME gr_growth_contract COMMAND test_gr_growth)
+
+add_executable(test_recombination_drag_allocations tests/test_recombination_drag_allocations.cpp)
+target_link_libraries(test_recombination_drag_allocations PRIVATE irred_core)
+target_compile_options(test_recombination_drag_allocations PRIVATE -Wall -Wextra -Wpedantic -fno-fast-math -ffp-contract=off)
+add_test(NAME recombination_drag_allocations_contract COMMAND test_recombination_drag_allocations)

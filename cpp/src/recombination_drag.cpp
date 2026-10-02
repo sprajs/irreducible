@@ -100,6 +100,14 @@ std::optional<size_t> pure_hydrogen_payload_bound(size_t fine, size_t outputs,
   b.add(species, 4 * (sizeof(ThermalPhysicalSpecies) + sizeof(ThermalSpecies)));
   return b.result();
 }
+PureHydrogenHistory &
+PureHydrogenHistory::operator=(const PureHydrogenHistory &o) {
+  if (this != &o) {
+    PureHydrogenHistory copy(o);
+    *this = std::move(copy);
+  }
+  return *this;
+}
 PureHydrogenHistory::PureHydrogenHistory(PureHydrogenHistory &&o) noexcept {
   *this = std::move(o);
 }

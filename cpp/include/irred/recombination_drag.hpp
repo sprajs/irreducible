@@ -47,7 +47,7 @@ class PureHydrogenHistory {
 public:
   PureHydrogenHistory() = default;
   PureHydrogenHistory(const PureHydrogenHistory &) = default;
-  PureHydrogenHistory &operator=(const PureHydrogenHistory &) = default;
+  PureHydrogenHistory &operator=(const PureHydrogenHistory &);
   PureHydrogenHistory(PureHydrogenHistory &&) noexcept;
   PureHydrogenHistory &operator=(PureHydrogenHistory &&) noexcept;
   numerics::Status status() const noexcept { return status_; }
