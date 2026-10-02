@@ -165,8 +165,9 @@ and preserves prior rows; bad references/scalars receive their own causes.
 A configured row or result/scratch-byte failure returns an empty batch diagnostic.
 
 One reused mapped-time interval array, one temporal integral array and one
-binary64 mean-spectrum array serve the batch. Result rows and their fixed scalar
-storage remain charged even when some outputs are omitted. Existing prepared
+binary64 mean-spectrum array serve the batch, sized only for referenced grids.
+Unreferenced prepared pools impose no evaluation scratch. Result rows and their
+fixed scalar storage remain charged even when some outputs are omitted. Existing prepared
 source storage is owned/charged separately and is not copied into results.
 Native allocation failures propagate ordinary `std::bad_alloc`; scoped failure
 sweeps verify preparation/evaluation RAII cleanup. No exception crosses a C ABI

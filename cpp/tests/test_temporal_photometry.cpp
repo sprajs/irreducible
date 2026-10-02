@@ -254,6 +254,21 @@ int main() {
       check(no_scan.status() == S::work_limit && allocations == 0,
             "hard axis cap before nonfinite scans/allocation");
     }
+    {
+      std::vector<double> large_times(4096), large_luminosity(8192, 4);
+      for (std::size_t i = 0; i < large_times.size(); ++i)
+        large_times[i] = i;
+      const p::TemporalGrid unused{"unused-grid",
+                                   "synthetic unrequested source", large_times,
+                                   wave, large_luminosity};
+      const std::array pooled{grids[0], unused};
+      auto pooled_owner = p::prepare_temporal(pooled, bands);
+      policy = {};
+      policy.maximum_native_bytes = 1024;
+      const auto subset = p::evaluate_temporal(pooled_owner, rows, policy);
+      check(subset.status == S::ok && subset.rows[0].admission_status == S::ok,
+            "unrequested grid imposes no batch scratch or byte refusal");
+    }
     const auto payload = *prepared.retained_payload_bytes();
     p::TemporalPreparationPolicy prep;
     prep.maximum_native_bytes = payload;

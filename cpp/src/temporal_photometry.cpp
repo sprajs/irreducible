@@ -306,7 +306,13 @@ TemporalBatch evaluate_temporal(const PreparedTemporal &prepared,
   }
   const auto &storage = *prepared.storage_;
   std::size_t max_time = 0, max_wave = 0;
-  for (const auto &g : storage.grids) {
+  // Prepared pools may serve many consumers. Unreferenced grids do not impose
+  // scratch on this batch; invalid references need only their failed row.
+  for (const auto &e : exposures) {
+    if (e.grid_index >= storage.grids.size() ||
+        e.band_index >= storage.bands.size())
+      continue;
+    const auto &g = storage.grids[e.grid_index];
     max_time = std::max(max_time, g.time.size());
     max_wave = std::max(max_wave, g.wavelength.size());
   }
