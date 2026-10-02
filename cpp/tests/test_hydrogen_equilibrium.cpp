@@ -11,7 +11,12 @@
 #include <numbers>
 #include <stdexcept>
 static long fail_at = -1, allocations = 0, live = 0;
-void *operator new(std::size_t n) {
+#if defined(__GNUC__) || defined(__clang__)
+#define NOINLINE __attribute__((noinline))
+#else
+#define NOINLINE
+#endif
+NOINLINE void *operator new(std::size_t n) {
   if (fail_at >= 0 && allocations++ == fail_at)
     throw std::bad_alloc();
   if (void *p = std::malloc(n ? n : 1)) {
@@ -20,16 +25,20 @@ void *operator new(std::size_t n) {
   }
   throw std::bad_alloc();
 }
-void *operator new[](std::size_t n) { return ::operator new(n); }
-void operator delete(void *p) noexcept {
+NOINLINE void *operator new[](std::size_t n) { return ::operator new(n); }
+NOINLINE void operator delete(void *p) noexcept {
   if (p) {
     --live;
     std::free(p);
   }
 }
-void operator delete[](void *p) noexcept { ::operator delete(p); }
-void operator delete(void *p, std::size_t) noexcept { ::operator delete(p); }
-void operator delete[](void *p, std::size_t) noexcept { ::operator delete(p); }
+NOINLINE void operator delete[](void *p) noexcept { ::operator delete(p); }
+NOINLINE void operator delete(void *p, std::size_t) noexcept {
+  ::operator delete(p);
+}
+NOINLINE void operator delete[](void *p, std::size_t) noexcept {
+  ::operator delete(p);
+}
 namespace {
 namespace a = irred::atomic;
 using S = irred::numerics::Status;
@@ -56,7 +65,8 @@ int main() {
     static_assert(irred::electron_volt_joule == 1.602176634e-19L);
     // Exact rational x controls: density derived at 110 decimal digits, then
     // frozen as binary64. Rounding shifts x by <1e-16 relative. Public peer
-    // retains exact-input high-precision controls, independent of this algebra.
+    // retains separate exact-input high-precision regimes, independent of this
+    // rational algebra.
     const std::array densities{2.0309628429456599e21, 6.769876143152199e20,
                                2.5387035536820748e20, 4.178935890834691e19};
     const std::array<long double, 4> exact{1.L / 3, .5L, 2.L / 3, .9L};
@@ -161,6 +171,16 @@ int main() {
               one.rows[1].admission_status == S::outside_domain &&
               one.rows[1].solves == 0,
           "nondegeneracy guard sides");
+    if (std::numeric_limits<long double>::digits == 64) {
+      // Frozen binary64 input within the 64-bit-wide density admission margin;
+      // cannot label a scientifically unresolved boundary as admitted/clipped.
+      std::array unresolved{
+          a::HydrogenState{0x1.38e8p+13, 0x1.0029c8c569159p+81}};
+      const auto edge = a::evaluate_hydrogen_equilibrium(unresolved);
+      check(edge.rows[0].admission_status == S::conditioning_budget_exceeded &&
+                edge.rows[0].solves == 0 && !edge.rows[0].ionized.value,
+            "unresolved nondegeneracy boundary refusal");
+    }
     p = {};
     p.maximum_solves = 1;
     one = a::evaluate_hydrogen_equilibrium(boundary, p);
