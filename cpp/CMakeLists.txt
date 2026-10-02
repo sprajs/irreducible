@@ -331,3 +331,8 @@ add_executable(test_gaussian_posterior tests/test_gaussian_posterior.cpp)
 target_link_libraries(test_gaussian_posterior PRIVATE irred_core)
 target_compile_options(test_gaussian_posterior PRIVATE -Wall -Wextra -Wpedantic -fno-fast-math -ffp-contract=off)
 add_test(NAME gaussian_posterior_contract COMMAND test_gaussian_posterior)
+
+add_executable(test_gaussian_posterior_peer tests/test_gaussian_posterior_peer.cpp)
+target_link_libraries(test_gaussian_posterior_peer PRIVATE irred_core)
+target_compile_options(test_gaussian_posterior_peer PRIVATE -Wall -Wextra -Wpedantic -fno-fast-math -ffp-contract=off)
+add_test(NAME gaussian_posterior_peer_contract COMMAND test_gaussian_posterior_peer)
