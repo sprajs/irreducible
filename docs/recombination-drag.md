@@ -62,7 +62,9 @@ n_H,0 = rho_critical(H100)*omega_b_physical/m_H
 n_H(z) = n_H,0*(1+z)^3
 ```
 
-The private critical-density helper shares the original thermal background's
+A private electron quantum-density equation is shared with the Saha consumer,
+preserving its original scalar arithmetic and phase-space prefactor. The
+private critical-density helper shares the original thermal background's
 fixed `G=6.67430e-11 SI` and arithmetic. Binding-energy changes do not feed back
 into that pressureless background. `R`, photons, `H` and `n_H` use this same
 physical model. A ground-state Saha calculation supplies only the initial

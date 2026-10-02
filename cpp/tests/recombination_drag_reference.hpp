@@ -1,6 +1,7 @@
 #pragma once
 // Original direct-SI, resolved fixed-step RK4 reference. No engine headers or
 // production equations are read back. Source/reference contract frozen first.
+#include <algorithm>
 #include <array>
 #include <cmath>
 #include <iomanip>

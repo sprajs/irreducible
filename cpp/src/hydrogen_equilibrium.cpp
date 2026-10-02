@@ -1,10 +1,10 @@
 #include "irred/hydrogen_equilibrium.hpp"
+#include "hydrogen_quantum_density.hpp"
 #include "irred/quantities.hpp"
 #include "payload_accounting.hpp"
 #include <cfenv>
 #include <cmath>
 #include <limits>
-#include <numbers>
 namespace irred::atomic {
 namespace {
 using S = numerics::Status;
@@ -50,7 +50,7 @@ evaluate_hydrogen_equilibrium(std::span<const HydrogenState> states,
     return out;
   }
   std::size_t bytes = sizeof(HydrogenBatch);
-  if (!detail::checked_payload_add(bytes, states.size(), sizeof(HydrogenRow)) ||
+  if (!irred::detail::checked_payload_add(bytes, states.size(), sizeof(HydrogenRow)) ||
       bytes > q.maximum_native_bytes) {
     out.status = S::work_limit;
     return out;
@@ -77,10 +77,7 @@ evaluate_hydrogen_equilibrium(std::span<const HydrogenState> states,
     }
     // One owned quantum-density equation serves physical admission and Saha.
     const W kT = boltzmann_constant_joule_per_kelvin * s.temperature_kelvin,
-            qbase =
-                2 * std::numbers::pi_v<W> * hydrogen_electron_mass_kg * kT /
-                (planck_constant_joule_second * planck_constant_joule_second),
-            nq = qbase * std::sqrt(qbase),
+            nq = detail::electron_quantum_density_si(kT),
             density_ratio = W(s.hydrogen_nuclei_per_cubic_metre) / nq;
     if (density_ratio * (1 - arithmetic) > 1e-3L) {
       fail(row, S::outside_domain, q.requested_outputs);

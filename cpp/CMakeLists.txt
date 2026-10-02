@@ -355,3 +355,8 @@ add_executable(test_recombination_drag tests/test_recombination_drag.cpp)
 target_link_libraries(test_recombination_drag PRIVATE irred_core)
 target_compile_options(test_recombination_drag PRIVATE -Wall -Wextra -Wpedantic -fno-fast-math -ffp-contract=off)
 add_test(NAME recombination_drag_contract COMMAND test_recombination_drag)
+
+add_executable(test_recombination_drag_installed tests/test_recombination_drag_installed.cpp)
+target_link_libraries(test_recombination_drag_installed PRIVATE irred_core)
+target_compile_options(test_recombination_drag_installed PRIVATE -Wall -Wextra -Wpedantic -fno-fast-math -ffp-contract=off)
+add_test(NAME recombination_drag_installed_contract COMMAND test_recombination_drag_installed)

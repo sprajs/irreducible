@@ -129,6 +129,58 @@ int main() {
       }
       retained = std::move(owner);
     }
+    // Ground-state detailed balance, from direct SI equations; no solver
+    // readback.
+    for (long double z : {1500.L, 1600.L}) {
+      rr::Model m;
+      auto q = rr::coefficients(m, z);
+      auto x = rr::saha(m, z);
+      near(q.D * x * x, q.E * (1 - x), 2e-12L * std::abs(q.D * x * x),
+           "atomic detailed balance limit");
+    }
+    // An explicit massless FD population has an independent radiation density.
+    auto massless_source = request();
+    massless_source.model.species.push_back({0, 1.95, 2});
+    rr::Model radiation;
+    radiation.other += rr::photon_physical(radiation) * 7.L / 8 *
+                       std::pow(1.95L / radiation.T0, 4);
+    auto radiation_old = rr::integrate(radiation, 1600, 300, .01),
+         radiation_fine = rr::integrate(radiation, 1600, 300, .005);
+    auto massless = prepare_pure_hydrogen_history(massless_source);
+    need(massless.status() == S::ok && massless.work().momentum_callbacks == 0,
+         "massless FD retained analytic background");
+    double radiation_z[]{1200, 1000};
+    auto radiation_rows = massless.evaluate(radiation_z, 3);
+    for (unsigned i = 0; i < 2; ++i) {
+      auto r = rr::sample(radiation_fine, radiation_z[i]),
+           older = rr::sample(radiation_old, radiation_z[i]);
+      auto xa = 1e-8L + 1e-6L * r.x, ta = 2e-7L + 1e-6L * r.tau;
+      near(r.x, older.x, .05L * xa, "massless reference xe refinement");
+      near(r.tau, older.tau, .05L * ta, "massless reference tau refinement");
+      near(scalar(radiation_rows.rows[i].electron_fraction), r.x, xa,
+           "independent massless FD evolution");
+      near(scalar(radiation_rows.rows[i].drag_depth), r.tau, ta,
+           "independent massless FD drag");
+    }
+    // Declared endpoints remain exact for nonbinary mesh spacing.
+    for (std::size_t base : {8191u, 8003u}) {
+      auto endpoint_source = request();
+      endpoint_source.initial_redshift = 1600.1;
+      endpoint_source.late_redshift = 300.3;
+      PureHydrogenPolicy endpoint_policy;
+      endpoint_policy.base_intervals = base;
+      auto endpoint =
+          prepare_pure_hydrogen_history(endpoint_source, endpoint_policy);
+      double endpoint_z[]{300.3, 1600.1, 300.3};
+      auto e = endpoint.evaluate(endpoint_z, 3);
+      need(endpoint.status() == S::ok && e.rows.size() == 3,
+           "nonbinary mesh domain");
+      need(scalar(e.rows[0].drag_depth) == 0 &&
+               scalar(e.rows[2].drag_depth) == 0,
+           "exact late endpoint optical depth");
+      near(scalar(e.rows[1].electron_fraction), rr::saha({}, 1600.1L),
+           2e-12L * rr::saha({}, 1600.1L), "independent initial Saha boundary");
+    }
     // Frozen baseline reference facts, independently obtained before
     // production.
     rr::Model baseline;
@@ -182,6 +234,13 @@ int main() {
            2e-7 + 1e-6 * scalar(fixed.rows[i].drag_depth),
            "owner mesh refinement tau");
     }
+    double ordered_z[]{1000, 1200, 1000};
+    auto ordered = baseline_owner.evaluate(ordered_z, 3);
+    need(scalar(ordered.rows[0].electron_fraction) ==
+                 scalar(ordered.rows[2].electron_fraction) &&
+             scalar(ordered.rows[1].electron_fraction) ==
+                 scalar(fixed.rows[0].electron_fraction),
+         "query axis order preserved");
     double mixed_z[]{1000, -1, std::numeric_limits<double>::quiet_NaN(), 1700,
                      1000};
     auto mixed = baseline_owner.evaluate(mixed_z, 3);
@@ -228,6 +287,19 @@ int main() {
     p.maximum_output_points = 1;
     auto bounded = prepare_pure_hydrogen_history(request(), p);
     need(bounded.evaluate(fixed_z, 3).rows.empty(), "retained query ceiling");
+    p = {};
+    p.maximum_native_bytes = *pure_hydrogen_payload_bound(32768, 0, 0);
+    auto retained_cap = prepare_pure_hydrogen_history(request(), p);
+    need(retained_cap.status() == S::ok &&
+             retained_cap.evaluate(fixed_z, 3).rows.empty(),
+         "retained payload ceiling applies to output");
+    p = {};
+    p.absolute_root_tolerance = 1e-30;
+    auto root_refusal = prepare_pure_hydrogen_history(request(), p);
+    need(root_refusal.status() == S::ok &&
+             !root_refusal.conditional_unit_depth_redshift().value &&
+             root_refusal.evaluate(fixed_z, 3).rows[0].electron_fraction.value,
+         "conditional root refusal preserves history");
     p = {};
     p.absolute_x_tolerance = 1e-30;
     p.relative_x_tolerance = 1e-30;

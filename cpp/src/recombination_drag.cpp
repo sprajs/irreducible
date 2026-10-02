@@ -1,4 +1,5 @@
 #include "irred/recombination_drag.hpp"
+#include "hydrogen_quantum_density.hpp"
 #include "irred/quantities.hpp"
 #include "payload_accounting.hpp"
 #include "thermal_constants.hpp"
@@ -189,7 +190,7 @@ prepare_pure_hydrogen_history(const PureHydrogenRequest &source,
     }
     out.source_ = source;
     out.policy_ = p;
-    W h = (source.initial_redshift - source.late_redshift) / N,
+    W h = (W(source.initial_redshift) - source.late_redshift) / N,
       B1 = atomic::hydrogen_ionization_energy_ev * electron_volt_joule,
       E21 = planck_constant_joule_second * speed_of_light_m_per_s / lya,
       mass = proton_mass + atomic::hydrogen_electron_mass_kg -
@@ -245,11 +246,8 @@ prepare_pure_hydrogen_history(const PureHydrogenRequest &source,
                 (1 + .6703L * std::pow(T / 10000, .5300L)),
         beta =
             alpha *
-            std::pow(2 * pi * atomic::hydrogen_electron_mass_kg *
-                         boltzmann_constant_joule_per_kelvin * T /
-                         (planck_constant_joule_second *
-                          planck_constant_joule_second),
-                     1.5L) *
+            atomic::detail::electron_quantum_density_si(
+                boltzmann_constant_joule_per_kelvin * T) *
             std::exp(-(B1 - E21) / (boltzmann_constant_joule_per_kelvin * T)),
         K = lya * lya * lya / (8 * pi * H),
         R = 3 * W(mapped.model->omega_b) /
@@ -368,7 +366,9 @@ PureHydrogenHistory::evaluate(std::span<const double> redshifts,
   if (redshifts.size() > 65536 ||
       redshifts.size() >
           std::min(maximum_points, policy_.maximum_output_points) ||
-      !bytes || *bytes > maximum_bytes || *bytes > size_t(1024) * 1024 * 1024) {
+      !bytes ||
+      *bytes > std::min(maximum_bytes, policy_.maximum_native_bytes) ||
+      *bytes > size_t(1024) * 1024 * 1024) {
     out.status = S::work_limit;
     return out;
   }
@@ -399,7 +399,11 @@ PureHydrogenHistory::evaluate(std::span<const double> redshifts,
       fail(S::outside_domain);
       continue;
     }
-    W coordinate = (start - z) / h;
+    // Exact declared endpoints select exact retained nodes, including meshes
+    // whose interval spacing is not binary-representable.
+    W coordinate = z == end     ? W(nodes_.size() - 1)
+                   : z == start ? W(0)
+                                : (start - z) / h;
     size_t i = std::min(size_t(coordinate), nodes_.size() - 2);
     W t = coordinate - i;
     const auto &a = nodes_[i];
