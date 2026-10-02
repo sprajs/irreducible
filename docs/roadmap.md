@@ -19,7 +19,7 @@ Dependency-ready next work is the smallest consumer supported by that evidence:
 resolve the released ladder's remaining constraint/measure identity and calibration/model sensitivity
 after the successful unchanged-budget native QR comparison and source-linked host audit;
 use the tested thermal conditional BAO composition while reviewing released
-compression validity; then thermal/ionization/drag prediction before a predicted physical BAO
+compression validity; extend the bounded pure-H history to qualified thermal/ionization/drag prediction before a predicted physical BAO
 ruler. Perturbations and CMB need their own closure and comparisons. Native SDK
 execution can test current functions before adding a CLI/ABI route justified by
 an actual consumer. Do not add noise, lensing or growth labels to unsupported
@@ -36,20 +36,20 @@ and synthetic controls can proceed alongside it.
 | Proposed scope | Prerequisite and concrete deliverable | Independent acceptance before a larger claim |
 | --- | --- | --- |
 | Thermal conditional BAO density | Native composition implemented; next review one released compression under its explicit physical identity | Named massive/massless, full covariance and density-level controls pass; supplied drag and observational validity stay separate |
-| Released ladder constrained target | Resolve source axis/constraint identities and specify the released box support, including any fixed coordinate, separately from the full-design relative profile | Exact constrained linear controls and a source-defined measure; a zero-width coordinate is not a proper full-dimensional prior |
-| Ladder calibration/model sensitivity | Declare one source-supported change to anchor, zero-point, metallicity or extinction assumptions at a time | Refit and held-out prediction with preserved failures and dependence; do not fold arbitrary variants into one Gaussian error |
+| Released ladder constrained target | Reproducible pins the released fixed-coordinate 46-dimensional box target and an unboxed relative-profile diagnostic; next implement a normalized box-supported posterior | Exact linear/source-axis controls pass; literal fixed axis44 has no full-dimensional prior, and the unboxed diagnostic is not a constrained optimizer |
+| Ladder calibration/model sensitivity | Three released constraint-mean sensitivity pairs are recorded at fixed design/covariance; next resolve source-supported relation/selection variants and held-out dependence | Fixed-linear response controls pass; a mean shift is not full systematic uncertainty, and unresolved event/calibration overlap blocks observational held-out claims |
 | Proper Gaussian parameter posterior | Native fixed-linear proper-Gaussian conditioning implemented; next qualify a concrete prior/consumer | Analytic posterior, independent cofactor and joint integration controls pass; nonlinear or released-box posterior remains separate |
-| Released SN observer/velocity contract | Pin redshift frames, observer convention, peculiar-velocity corrections and covariance for one selected sample | Analytic frame/low-z controls, exact object linkage and released conventions; no new calibration information from a free offset |
+| Released SN observer/velocity contract | Reproducible checks 321 source pairs and twins under coasting/chosen LCDM; next close event, sky/frame and velocity-map lineage | 6093 combined observer/optical comparisons pass with refined independent controls; unresolved physical joins and calibrated photometry units/error law remain explicit |
 | Sampled photometry ingestion | Coarse pooled ABI2/CLI batch implemented; next consume pinned measured-response assets | Sample-order/bits, units, lifetime, exception/quotas and native/stream/record parity controls pass; calibration uncertainty stays excluded |
-| Measured passband calibration | Acquire one instrument response and a source-supported joint calibration distribution | Exact bytes/version, wavelength units, photon/energy response and calibration dependence; compare independent spectral coordinates |
+| Measured passband calibration | Historical 910-knot optical response and released 102-axis zero-point covariance are pinned; next close 102-versus-105 mapping and acquire a measured joint optical law | Independent wavelength/frequency controls pass; fitted zero-point covariance and systematic template variants are not optical-state probability masses |
 | Time-dependent source photometry | Finite bilinear spectral-time native consumer implemented; next qualify a source/template and its clock/uncertainty | Constant/linear-time, independent time/frequency and temporal/spectral refinement controls pass; trained SN templates remain separate |
 | Detector counts and random streams | Native bounded Poisson/read-noise law and addressed Philox simulation implemented; next qualify a measured response | Analytic moments, distribution/refinement and replay controls pass; distinct counters and empirical cross moments are not proof of independence |
 | Detection and censoring | Native threshold joint/selected-only likelihood and synthetic censored recovery implemented; next qualify a population/selection model | Exact censored masses, independent continuous density/CDF and synthetic recovery retain nondetections; measured selection and posterior coverage remain open |
-| Homogeneous ionization control | Freeze atomic assets, abundance, temperature and equilibrium assumptions for a small thermal-state calculation | Analytic equilibrium/limiting controls; equilibrium alone does not predict the actual drag history |
-| Recombination and drag history | Add a source-defined non-equilibrium thermal/ionization evolution and baryon-drag optical depth | Independent stiff evolution, atomic-input sensitivity and likelihood-relevant refinement before replacing supplied z_drag |
+| Homogeneous ionization control | Native supplied-temperature/density ground-state pure-H Saha implemented; next qualify a physical abundance/thermal consumer | Rational, Decimal/logit and positivity/domain controls pass; equilibrium and fixed atomic central values do not predict a cosmic history |
+| Recombination and drag history | Native bounded effective three-level pure-H history and truncated drag depth implemented; next evolve matter temperature, add helium/multilevel closure and physical optical-depth endpoints | Independent resolved RK4/implicit refinement and boundary controls pass; prescribed Tm=Tr and the conditional unit-depth root cannot replace physical z_drag |
 | Scoped GR growth | Bounded radiation-free pressureless native D/f implemented; next qualify one compatible observational consumer | Einstein–de Sitter and independent ODE/refinement controls pass; a scale-independent growth approximation is not massive-neutrino transfer or full perturbation closure |
 | A named thin-lens system | Native bounded SIS point-source/mass-sheet and Gaussian-PSF pixel slice implemented; next pin one system's mass/source/environment and instrument constraints | Independent potential/Jacobian and pixel integration, synthetic image/delay recovery and mass-sheet/H0 controls pass; inherited distance errors and degeneracies remain explicit, without measured-system qualification |
-| Linear transfer and CMB projection | Complete radiation/metric/massive-neutrino perturbations, primordial modes and thermal state, then one projection | Conservation/initial-mode controls and independent transfers/spectra with refinement at observable and likelihood level |
+| Linear transfer and CMB projection | Not implemented: first freeze gauge/metric and species perturbations, primordial modes and qualified thermal/visibility state, then one projection | Initial-mode/conservation and independent hierarchy/transfer/spectra controls are required; background, pressureless D/f and a truncated pure-H history do not close this route |
 
 For each chosen scope, freeze equations, source identity, domains, output masks,
 consumer budgets and reference ancestry before implementation. Record one
@@ -85,7 +85,7 @@ The common numerical/data layer should support units and frames, stable linear a
 
 ## Dependency graph and first executable verticals
 
-The forward model advances through small complete calculations. [Deterministic photometry](photometry.md), its sampled extension and [the supplied-drag sound horizon](sound-horizon.md) implement bounded first pieces; their named numerical checks do not complete the verticals below. Native finite passband calibration, temporal photometry, bounded [detector/censoring](detector-selection.md) and a synthetic joint ladder provide further pieces. Measured calibration/selection qualification, astrophysical recovery, observational ladder fitting and predicted thermal/drag history remain open. A scoped joint fit can start as soon as its forward models and dependence contracts qualify; it need not wait for CMB or nonlinear simulations.
+The forward model advances through small complete calculations. [Deterministic photometry](photometry.md), its sampled extension and [the supplied-drag sound horizon](sound-horizon.md) implement bounded first pieces; their named numerical checks do not complete the verticals below. Native finite passband calibration, temporal photometry, bounded [detector/censoring](detector-selection.md), a synthetic joint ladder and the [conditional pure-H history](recombination-drag.md) provide further pieces. Measured calibration/selection qualification, astrophysical recovery, observational ladder fitting and a qualified physical thermal/drag history remain open. A scoped joint fit can start as soon as its forward models and dependence contracts qualify; it need not wait for CMB or nonlinear simulations.
 
 ### 1. Synthetic photometric observation and recovery
 
@@ -154,7 +154,11 @@ species/temperature/physical-density mapping and propagated numerical budgets.
 The native [thermal BAO density](bao-thermal.md) now composes this state with the
 retained ordered covariance and its unchanged density-level projection allocation.
 The massless conditional model retains its separate identity. Neither
-provider predicts drag or recombination.
+provider predicts drag or recombination. The separate [conditional pure-H history](recombination-drag.md)
+uses the massless background and shared Saha initial condition, evolves an effective
+three-level model with prescribed matter temperature and integrates drag depth
+from an explicit late endpoint. Its unit-depth root remains distinct from a
+qualified physical drag epoch and is not coupled to the supplied-drag ruler.
 
 Background plus thermal/ionization history can subsequently support a declared perturbation closure, primordial modes, transfer functions and line-of-sight projection. Each later observable needs its own reference and likelihood allocation.
 

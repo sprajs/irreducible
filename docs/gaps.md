@@ -10,9 +10,9 @@ No current runtime request receives a named scientific qualification. Passing th
 
 Shared source ownership and retained factors support repeated evaluations. Named original-input SN and BAO comparisons and analytic/adversarial controls provide evidence for stated cases. They do not establish all-domain accuracy, physical completeness, a joint fit or a new H₀ measurement. The current SN free-offset profile does not retain absolute calibration information; free H₀r_d BAO does not identify H₀ or r_d independently. A supplied dimensional H₀ in a background projection is an input, not a measured result.
 
-The main missing capability is a coherent forward physical state and its observational operators: source spectra/light curves, qualified instrument/pixel response and selection; an observationally qualified absolute distance-ladder calibration model; early thermal/perturbation evolution; measured specific lens systems; nonlinear initial conditions/dynamics/light cones; and qualified GPU/distributed execution. Current historical performance evidence does not benchmark the consolidated interface or these future workloads. A new benchmark must measure representative phases, setup/memory and matched scientific quality.
+The main missing capability is a coherent forward physical state with qualified observational consumers: source populations/templates and instrument/selection laws; an observationally qualified absolute distance-ladder calibration model; complete thermal/perturbation evolution; measured lens systems; nonlinear initial conditions/dynamics/light cones; and qualified GPU/distributed execution. Bounded sampled/temporal, detector and thermal operators below do not complete those consumers. Current historical performance evidence does not benchmark the consolidated interface or future workloads. A new benchmark must measure representative phases, setup/memory and matched scientific quality.
 
-Engineering remains serial CPU execution with bounded dense matrices and narrow source-specific ASCII adapters. General survey image/spectrum ingestion is absent; the optional FITS codec has test-only synthetic BINTABLE coverage and is unavailable in the product. There is no qualified distributed restart/sharding, RNG or device execution, nor a consolidated-interface throughput benchmark. Adding a model currently requires coordinated native variants/validation and Rust descriptors, schema, ABI, discovery and records. Centralize structural descriptors where useful; keep equations in compiled scientific owners.
+Engineering remains serial CPU execution with bounded dense matrices and narrow source-specific ASCII adapters. General survey image/spectrum ingestion is absent; the optional FITS codec has test-only synthetic BINTABLE coverage and is unavailable in the product. The native detector has an addressed generator and bounded replay controls; full simulation-workload RNG, distributed restart/sharding and device execution remain unqualified. There is no consolidated-interface throughput benchmark. Native SDK consumers can compose compiled models; adding a CLI route also requires coordinated Rust descriptors, schema, ABI, discovery and records. Centralize structural descriptors where useful; keep equations in compiled scientific owners.
 
 ## Standard-model diagnostic gaps
 
@@ -27,8 +27,9 @@ physical densities and explicit temperatures/species and retains one state for
 distances and the conditional supplied-drag ruler. It preserves the massless
 model as a distinct physical identity. The native [thermal BAO density](bao-thermal.md)
 now composes these predictions with retained ordered covariance and density-level
-projection checks. Released compression validity remains unqualified. No operator predicts
-thermal/ionization history or drag; there is no implicit Neff/mass hierarchy. The CLI late LCDM background omits radiation and has a
+projection checks. Released compression validity remains unqualified. A native
+conditional pure-H history is described below; full thermal/ionization and
+physical drag prediction remain open. There is no implicit Neff/mass hierarchy. The CLI late LCDM background omits radiation and has a
 different physical identity; native early/late and conditional BAO currently
 require a C++ SDK consumer rather than a CLI/C ABI request.
 
@@ -51,17 +52,40 @@ column 46 as 5 log10(H0 in km/s/Mpc); its formal contrast variance on the same
 3492x47 products agrees with independent SVD/QR. A later [Reproducible source audit](https://github.com/sprajs/reproducible/tree/main/experiments/released-ladder)
 now joins all 2150 initial Cepheid rows to the pinned primary table and identifies
 all 37 host columns. Period/metallicity and the H0 contrast are corroborated;
-seven remaining anchor/nuisance identities stay unresolved. The audit preserves
-the paper/release N1365 count discrepancy and distinguishes the released MCMC
-zero-width coordinate from this full47 relative profile. Its source-rounded
-logarithmic-coordinate check and independent synthetic constraint-row sensitivity
-comparisons do not reproduce the paper's posterior or systematic H0 uncertainty.
+six later source-supported anchor/nuisance coordinates are now identified, while
+original axis 44 has an unresolved physical label and literal fixed zero support.
+The audit preserves the paper/release N1365 count discrepancy and four original
+table joins that remain unresolved. Reproducible now pins the 46-dimensional
+released box target with axis 44 fixed, preserving all 3492 rows and full covariance;
+its unboxed fixed-coordinate profile is distinct from box-supported inference.
+Three source constraint-mean sensitivity pairs at fixed design/covariance are
+recorded. They do not normalize the box posterior, supply a full systematic
+uncertainty or qualify observational held-out predictions.
 See [Gaussian design](gaussian-design.md).
 
-The native [GR growth](gr-growth.md) operator now supplies a bounded radiation-free pressureless growing mode. Matter transfer, radiation/relic perturbations, general lensing potentials and propagation, recombination/drag, CMB spectra, stellar/source populations, measured detector-noise and detection laws, and survey recovery remain separate gaps. A known cosmology makes these missing
+The native [hydrogen equilibrium](hydrogen-equilibrium.md) model now supplies
+separate ground-state pure-H fractions under supplied temperature/density. The
+[conditional history](recombination-drag.md) advances a bounded effective
+three-level model with prescribed Tm=Tr and a massless thermal background, then
+integrates drag optical depth from an explicit late endpoint. Its unit-depth
+root depends on that endpoint and physical approximation; it is not a qualified
+cosmological drag epoch. Evolved matter temperature, helium, multilevel rates,
+atomic/model uncertainty, full optical-depth endpoints, reionization and
+visibility remain prerequisites before physical-ruler or CMB coupling.
+
+The native [GR growth](gr-growth.md) operator now supplies a bounded radiation-free pressureless growing mode. Matter transfer, radiation/relic perturbations, general lensing potentials and propagation, CMB spectra, stellar/source populations, measured detector/selection laws and survey recovery remain separate gaps. A known cosmology makes these missing
 sectors concrete; an H(z) or distance match does not supply them. Use the
 [roadmap](roadmap.md) to choose the next qualified prerequisite after the
 experiment identifies a blocker.
+
+The [Reproducible observer/passband packet](https://github.com/sprajs/reproducible/tree/main/experiments/sn-observer-passband)
+now passes 6093 conditional comparisons on 321 released SDSS redshift pairs/twins
+and a pinned historical 910-knot optical response. Coasting and chosen
+radiation-free LCDM geometry use independent analytic/refined references.
+Unresolved sky/frame/velocity lineage and calibrated PHOT units/time/error law
+block an observational SN fit. A fitted 102-coordinate zero-point covariance and
+nine systematic template variants do not provide a measured optical-state law;
+the 102-versus-105 calibration mapping and joint probability masses remain open.
 
 The native [synthetic SIS slice](sis-thin-lens.md) now supplies one bounded
 point-source image/delay and Gaussian-PSF pixel calculation using compatible

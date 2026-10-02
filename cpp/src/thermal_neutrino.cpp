@@ -1,6 +1,7 @@
 #include "irred/thermal_neutrino.hpp"
 #include "irred/quantities.hpp"
 #include "payload_accounting.hpp"
+#include "thermal_constants.hpp"
 #include <algorithm>
 #include <array>
 #include <cfenv>
@@ -13,9 +14,8 @@ namespace irred::cosmology {
 namespace {
 using S = numerics::Status;
 constexpr long double pi = std::numbers::pi_v<long double>;
-constexpr long double ev_joule = 1.602176634e-19L;
-constexpr long double boltzmann_ev_kelvin = 1.380649e-23L / ev_joule;
-constexpr long double gravitational_constant = 6.67430e-11L;
+constexpr long double ev_joule = electron_volt_joule;
+constexpr long double boltzmann_ev_kelvin = boltzmann_constant_joule_per_kelvin / ev_joule;
 constexpr long double arithmetic_relative =
     64.L * std::numeric_limits<double>::epsilon();
 bool arithmetic_supported() {
@@ -174,10 +174,9 @@ WideMoments species(const ThermalSpecies &s, double a, const ThermalPolicy &p,
 long double critical_density_ev4(double h0) {
   const long double c = speed_of_light_m_per_s;
   const long double hbar = planck_constant_joule_second/(2*pi);
-  const long double rate = static_cast<long double>(h0)*1000/megaparsec_in_metres_wide();
   const long double natural_to_si =
       ev_joule*ev_joule*ev_joule*ev_joule/(hbar*c*hbar*c*hbar*c);
-  return 3*rate*rate*c*c/(8*pi*gravitational_constant)/natural_to_si;
+  return detail::critical_energy_density_si(h0)/natural_to_si;
 }
 } // namespace
 

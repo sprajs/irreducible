@@ -66,6 +66,14 @@ never apply an already-marginalized prior twice. Read their guides before compos
 
 Use [GR growth](docs/gr-growth.md) only with its compatible radiation-free pressureless LCDM state and D/a→1 normalization. Growth does not supply radiation/relic perturbations or a scale-dependent transfer function.
 
+Read [hydrogen equilibrium](docs/hydrogen-equilibrium.md) and the
+[conditional pure-H history](docs/recombination-drag.md) before composing thermal
+consumers. Atomic central values/uncertainty, equilibrium assumptions and
+prescribed-temperature/rate approximations are separate from numerical error.
+The shared Saha operator supplies only the initial condition. A truncated
+late-endpoint unit-depth root must not replace a source-defined physical drag
+epoch or imply full recombination, helium, visibility or CMB closure.
+
 Use the [synthetic SIS thin lens](docs/sis-thin-lens.md) only with its compatible
 massless-radiation early/late distances and bounded tangent-plane geometry.
 Propagate inherited distance diagnostics through images, delays and pixels.

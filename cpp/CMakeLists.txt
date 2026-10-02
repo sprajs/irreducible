@@ -351,6 +351,27 @@ foreach(thermal_bao_test IN ITEMS bao_thermal bao_thermal_peer bao_thermal_insta
   add_test(NAME ${thermal_bao_test}_contract COMMAND test_${thermal_bao_test})
 endforeach()
 
+# Supplied homogeneous ground-state pure-H equilibrium; no cosmic history.
+target_sources(irred_core PRIVATE src/hydrogen_equilibrium.cpp)
+foreach(hydrogen_test IN ITEMS hydrogen_equilibrium hydrogen_equilibrium_peer hydrogen_equilibrium_installed)
+  add_executable(test_${hydrogen_test} tests/test_${hydrogen_test}.cpp)
+  target_link_libraries(test_${hydrogen_test} PRIVATE irred_core)
+  target_compile_options(test_${hydrogen_test} PRIVATE -Wall -Wextra -Wpedantic -fno-fast-math -ffp-contract=off)
+  add_test(NAME ${hydrogen_test}_contract COMMAND test_${hydrogen_test})
+endforeach()
+
+# Pure-H effective three-level / prescribed-temperature conditional history.
+target_sources(irred_core PRIVATE src/recombination_drag.cpp)
+add_executable(test_recombination_drag tests/test_recombination_drag.cpp)
+target_link_libraries(test_recombination_drag PRIVATE irred_core)
+target_compile_options(test_recombination_drag PRIVATE -Wall -Wextra -Wpedantic -fno-fast-math -ffp-contract=off)
+add_test(NAME recombination_drag_contract COMMAND test_recombination_drag)
+
+add_executable(test_recombination_drag_installed tests/test_recombination_drag_installed.cpp)
+target_link_libraries(test_recombination_drag_installed PRIVATE irred_core)
+target_compile_options(test_recombination_drag_installed PRIVATE -Wall -Wextra -Wpedantic -fno-fast-math -ffp-contract=off)
+add_test(NAME recombination_drag_installed_contract COMMAND test_recombination_drag_installed)
+
 # Bounded pressureless GR growing mode; no radiation/thermal/RSD closure.
 target_sources(irred_core PRIVATE src/gr_growth.cpp)
 add_executable(test_gr_growth tests/test_gr_growth.cpp)
@@ -358,6 +379,10 @@ target_link_libraries(test_gr_growth PRIVATE irred_core)
 target_compile_options(test_gr_growth PRIVATE -Wall -Wextra -Wpedantic -fno-fast-math -ffp-contract=off)
 add_test(NAME gr_growth_contract COMMAND test_gr_growth)
 
+add_executable(test_recombination_drag_allocations tests/test_recombination_drag_allocations.cpp)
+target_link_libraries(test_recombination_drag_allocations PRIVATE irred_core)
+target_compile_options(test_recombination_drag_allocations PRIVATE -Wall -Wextra -Wpedantic -fno-fast-math -ffp-contract=off)
+add_test(NAME recombination_drag_allocations_contract COMMAND test_recombination_drag_allocations)
 # Named synthetic SIS point source with explicit mass-sheet/PSF conventions.
 target_sources(irred_core PRIVATE src/sis_thin_lens.cpp)
 add_executable(test_sis_thin_lens tests/test_sis_thin_lens.cpp)
