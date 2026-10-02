@@ -232,7 +232,8 @@ int installed_hydrogen_helium() {
  const irred::atomic::HydrogenHeliumState source{10000,1e12,1e11};
  const auto result=irred::atomic::evaluate_hydrogen_helium_equilibrium({&source,1});
  if(result.rows.size()!=1 || !result.rows[0].electron_density.value ||
-    !result.rows[0].helium_doubly_ionized.value || !result.rows[0].hydrogen_neutral.value) return 18;
+    !result.rows[0].helium_doubly_ionized.value || !result.rows[0].hydrogen_neutral.value ||
+    !result.rows[0].helium_singly_ionized.value || !result.rows[0].hydrogen_ionized.value) return 18;
  const auto& row=result.rows[0];
  const double charge=1e12* *row.hydrogen_ionized.value+1e11*( *row.helium_singly_ionized.value+2* *row.helium_doubly_ionized.value);
  return std::abs(*row.electron_density.value/charge-1)<2e-12 ? 0 : 18;
