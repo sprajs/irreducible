@@ -230,21 +230,22 @@ int installed_hydrogen_history() {
 }
 int installed_gaussian_predictive() {
  using namespace irred::statistics;
- const std::array<double,1> C{1},X{1},r{2},R{.5},A{2},y{2};
+ const std::array<double,1> C{1},r{2},R{.5},y{2};
+ const std::array<double,2> X{1,0},A{2,0};
  const std::array<std::string,1> train_ids{"training"},future_ids{"future"};
  Metadata source;source.ordered_ids={"training"};source.measure="product d(mag)";
  source.source_semantics="synthetic controls";source.table_identity="installed training";
  source.uncertainty_identity="unit Gaussian noise";source.ordering_provenance="one axis";
  source.calibration_provenance="synthetic calibration";source.dependence_provenance="one full noise law";
  auto training=prepare_gaussian(C,MatrixKind::covariance,source,1024,1e-10,irred::numerics::Arithmetic::longdouble_cpu_v1);
- ParameterPrior prior;prior.ordered_parameter_ids={"beta"};prior.parameter_units={"mag"};
- prior.mean={0};prior.covariance={1};prior.prior_identity="installed proper prior";
+ ParameterPrior prior;prior.ordered_parameter_ids={"beta","unused"};prior.parameter_units={"mag","mag"};
+ prior.mean={0,0};prior.covariance={1,0,0,1};prior.prior_identity="installed proper prior";
  prior.design_identity="installed training X";prior.residual_unit="mag";prior.parameter_measure="product d(mag)";
  prior.dependence_identity="prior independent of training noise";prior.noise_independence_declared=true;
  auto posterior=GaussianPosterior::prepare(std::move(training),X,train_ids,prior);
  source.ordered_ids={"future"};source.table_identity="installed future noise";
  auto noise=prepare_gaussian(R,MatrixKind::covariance,source,1024,1e-10,irred::numerics::Arithmetic::longdouble_cpu_v1);
- PredictiveMetadata md;md.ordered_parameter_ids={"beta"};md.parameter_units={"mag"};md.response_units={"mag/mag"};
+ PredictiveMetadata md;md.ordered_parameter_ids={"beta","unused"};md.parameter_units={"mag","mag"};md.response_units={"mag/mag","mag/mag"};
  md.training_event_ids={"training-event"};md.future_event_ids={"future-event"};md.future_unit="mag";
  md.future_covariance_unit="mag^2";md.future_measure="product d(mag)";md.response_identity="installed future A";
  md.conditioning_identity="installed fixed r";md.conditional_noise_identity="independent future noise";

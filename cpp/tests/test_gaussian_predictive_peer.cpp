@@ -62,6 +62,7 @@ W lognormal(const M &y, const M &mean, const M &C) {
          (q + std::log(det(C)) + 2 * std::log(2 * std::numbers::pi_v<W>));
 }
 struct Case {
+  std::vector<std::string> parameter_ids{"offset", "slope"};
   std::vector<double> C{1, .25, .25, 2}, S{2, .5, .5, 1}, X{1, 0, 1, 1},
       m{.5, -.25}, r{1.25, -.5}, A{1, 2, 1, -1}, R{.5, .125, .125, .75};
 };
@@ -96,7 +97,7 @@ s::Metadata noise_metadata(bool future) {
 }
 s::ParameterPrior prior(const Case &c) {
   s::ParameterPrior p;
-  p.ordered_parameter_ids = {"offset", "slope"};
+  p.ordered_parameter_ids = c.parameter_ids;
   p.parameter_units = {"mag", "mag"};
   p.shared_nuisance_ids = {"offset"};
   p.mean = c.m;
@@ -109,9 +110,9 @@ s::ParameterPrior prior(const Case &c) {
   p.noise_independence_declared = true;
   return p;
 }
-s::PredictiveMetadata metadata() {
+s::PredictiveMetadata metadata(const Case &c = {}) {
   s::PredictiveMetadata m;
-  m.ordered_parameter_ids = {"offset", "slope"};
+  m.ordered_parameter_ids = c.parameter_ids;
   m.parameter_units = {"mag", "mag"};
   m.response_units = {"mag/mag", "mag/mag"};
   m.training_event_ids = {"synthetic-train-event0", "synthetic-train-event1"};
@@ -137,7 +138,7 @@ s::GaussianPredictive native(const Case &c) {
       c.R, s::MatrixKind::covariance, noise_metadata(true), 1024, 1e-10,
       irred::numerics::Arithmetic::longdouble_cpu_v1);
   auto out =
-      s::GaussianPredictive::prepare(p, c.r, trainids, noise, c.A, metadata());
+      s::GaussianPredictive::prepare(p, c.r, trainids, noise, c.A, metadata(c));
   need(p.status() == s::DensityStatus::finite &&
            noise.status() == s::DensityStatus::finite,
        "borrowed inputs remain usable");
@@ -237,15 +238,18 @@ Product direct_product(const Case &c, unsigned panels, const M &y) {
 void quadratures() {
   Case c;
   auto ref = reference(c);
-  M y{.2L, -.75L};
-  auto coarse = direct_product(c, 64, y), fine = direct_product(c, 128, y);
-  need(fine.evidence > .001L,
-       "evidence lower floor for declared quadrature tail bound");
-  W a = std::log(coarse.future / coarse.evidence),
-    b = std::log(fine.future / fine.evidence);
-  near(a, b, .05L * 2e-11L, "prior-noise product refinement");
-  near(b, lognormal(y, ref.b, ref.Wcov), 2e-11L,
-       "direct prior-training-future noise integral");
+  for (const M &y : std::array<M, 3>{M{.2L, -.75L}, ref.b, M{2.L, -3.L}}) {
+    auto coarse = direct_product(c, 64, y), fine = direct_product(c, 128, y);
+    need(fine.evidence > .001L, "evidence floor for quadrature tail bound");
+    W a = std::log(coarse.future / coarse.evidence),
+      b = std::log(fine.future / fine.evidence);
+    near(a, b, .05L * 2e-11L, "prior-noise product refinement");
+    near(b, lognormal(y, ref.b, ref.Wcov), 2e-11L,
+         "direct prior-training-future noise integral");
+    std::cout << "PRODUCT y=" << y[0] << ',' << y[1]
+              << " evidence=" << fine.evidence << " log_density=" << b
+              << " refinement=" << std::abs(a - b) << '\n';
+  }
   // Prior-mean+-16 box: marginal sigma<=sqrt2 gives prior tail<3e-29;
   // likelihood upper<=.115 and evidence>.001 yield omitted conditional
   // mass<4e-27.
@@ -277,8 +281,6 @@ void quadratures() {
     std::cout << "MASS panels=" << panels << " value=" << mass << '\n';
   }
   // Largest marginal variance<3.4: +/-24 omitted future rectangle mass<1e-37.
-  std::cout << "PRODUCT evidence=" << fine.evidence << " log_density=" << b
-            << " refinement=" << std::abs(a - b) << '\n';
 }
 } // namespace
 int main() {
@@ -307,6 +309,22 @@ int main() {
     std::swap(c.A[0], c.A[2]);
     std::swap(c.A[1], c.A[3]);
     std::swap(c.R[0], c.R[3]);
+    check_case(c);
+    c = Case{};
+    std::swap(c.m[0], c.m[1]);
+    std::swap(c.S[0], c.S[3]);
+    std::swap(c.X[0], c.X[1]);
+    std::swap(c.X[2], c.X[3]);
+    std::swap(c.A[0], c.A[1]);
+    std::swap(c.A[2], c.A[3]);
+    std::swap(c.parameter_ids[0], c.parameter_ids[1]);
+    auto permuted = reference(c);
+    for (size_t i = 0; i < 2; ++i)
+      near(permuted.b[i], r.b[i], 2e-12L,
+           "coherent parameter permutation mean invariant");
+    for (size_t i = 0; i < 4; ++i)
+      near(permuted.Wcov[i], r.Wcov[i], 2e-12L,
+           "coherent parameter permutation covariance invariant");
     check_case(c);
     quadratures();
     std::cout << "PASS " << checks
