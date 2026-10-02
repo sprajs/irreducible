@@ -2,6 +2,9 @@
 #include "irred/quantities.hpp"
 #include "payload_accounting.hpp"
 #include "thermal_constants.hpp"
+#include "thermal_cc_sample.hpp"
+#include "thermal_cc_constants.hpp"
+#include "thermal_fd_sample.hpp"
 #include <algorithm>
 #include <array>
 #include <cfenv>
@@ -29,7 +32,9 @@ bool valid_policy(const ThermalPolicy &p) {
          std::isfinite(p.relative_tolerance) && p.absolute_tolerance >= 0 &&
          p.relative_tolerance >= 0 &&
          (p.absolute_tolerance > 0 || p.relative_tolerance > 0) &&
-         p.maximum_depth <= 60;
+         p.maximum_depth <= 60 &&
+         (p.momentum_method == ThermalMomentumMethod::direct_adaptive ||
+          p.momentum_method == ThermalMomentumMethod::nested_clenshaw_curtis);
 }
 bool normal_positive(long double x) {
   return std::isfinite(x) && x >= std::numeric_limits<double>::min() &&
@@ -57,14 +62,7 @@ S species_status(const ThermalSpecies &s, double a) {
 struct MomentState { long double y, scale; bool pressure; };
 double momentum(double q, const void *v) {
   const auto &s = *static_cast<const MomentState *>(v);
-  const long double x = q;
-  const long double energy = std::hypot(x / s.scale, s.y / s.scale);
-  // exp(-q)/(1+exp(-q)) avoids overflow and the subtraction from one.
-  const long double e = std::exp(-x), fd = e / (1 + e);
-  if (q == 0) return 0;
-  const long double result = s.pressure ? x*x*x*x*fd/(3*energy)
-                                        : x*x*energy*fd;
-  return static_cast<double>(result);
+  return detail::thermal_fd_value(detail::thermal_fd_state(q,s.y,s.scale),s.pressure);
 }
 long double exponential_moment(unsigned n, long double q) {
   long double power = 1, polynomial = 1;
@@ -79,6 +77,54 @@ struct WideMoments {
   long double rho = 0, pressure = 0, rho_error = 0, pressure_error = 0;
   std::size_t callbacks = 0;
 };
+struct CCPanel { long double rho=0, pressure=0, rho_error=0, pressure_error=0; S status=S::ok; };
+CCPanel cc_panel(double lower, double upper, long double y, long double scale,
+                 bool need_pressure, long double absolute, long double relative,
+                 unsigned depth, const ThermalPolicy &p, std::size_t limit,
+                 std::size_t &callbacks) {
+  CCPanel out;
+  std::array<detail::ThermalCCSample,65> samples{};
+  std::array<long double,3> rho{}, pressure{};
+  const double width=upper-lower;
+  const unsigned charge=need_pressure?2:1;
+  for (unsigned level=0; level<3; ++level) {
+    const unsigned n=16u<<level, stride=64/n;
+    for (unsigned j=0; j<=n; ++j) {
+      const unsigned index=j*stride;
+      if (level==0 || j%2) {
+        if (limit-callbacks < charge) { out.status=S::work_limit; return out; }
+        callbacks+=charge;
+        const double q=j==0?lower:(j==n?upper:lower+width*detail::cc_nodes[index]);
+        samples[index]=detail::thermal_cc_sample(q,y,scale,need_pressure);
+        if (!std::isfinite(samples[index].rho) ||
+            (need_pressure && !std::isfinite(samples[index].pressure))) {
+          out.status=S::conditioning_budget_exceeded; return out;
+        }
+      }
+      const double weight=level==0?detail::cc_weights_16[j]:
+                          level==1?detail::cc_weights_32[j]:detail::cc_weights_64[j];
+      rho[level]+=static_cast<long double>(weight)*samples[index].rho*width;
+      if (need_pressure) pressure[level]+=static_cast<long double>(weight)*samples[index].pressure*width;
+    }
+  }
+  out.rho=rho[2]; out.pressure=pressure[2];
+  out.rho_error=8*std::max(std::abs(rho[2]-rho[1]),std::abs(rho[1]-rho[0]));
+  if (need_pressure) out.pressure_error=8*std::max(std::abs(pressure[2]-pressure[1]),
+                                                std::abs(pressure[1]-pressure[0]));
+  if (out.rho_error<=absolute+relative*out.rho &&
+      (!need_pressure || out.pressure_error<=absolute+relative*out.pressure)) return out;
+  if (depth>=p.maximum_depth) { out.status=S::conditioning_budget_exceeded; return out; }
+  const double middle=lower+width/2;
+  if (!(middle>lower && middle<upper)) { out.status=S::conditioning_budget_exceeded; return out; }
+  auto left=cc_panel(lower,middle,y,scale,need_pressure,absolute/2,relative,depth+1,p,limit,callbacks);
+  if (left.status!=S::ok) return left;
+  auto right=cc_panel(middle,upper,y,scale,need_pressure,absolute/2,relative,depth+1,p,limit,callbacks);
+  if (right.status!=S::ok) return right;
+  out.rho=left.rho+right.rho; out.pressure=left.pressure+right.pressure;
+  out.rho_error=left.rho_error+right.rho_error;
+  out.pressure_error=left.pressure_error+right.pressure_error;
+  return out;
+}
 WideMoments moments(long double y, const ThermalPolicy &p,
                     std::size_t remaining, bool need_pressure = true) {
   WideMoments out;
@@ -119,9 +165,24 @@ WideMoments moments(long double y, const ThermalPolicy &p,
     long double sums[2]{}, errors[2]{};
     const std::size_t limit = std::min(p.maximum_callbacks_per_evaluation,
                                       remaining);
+    bool cc_accepted=false;
+    if (p.momentum_method==ThermalMomentumMethod::nested_clenshaw_curtis) {
+      S cc_status=S::ok;
+      for (unsigned panel=0; panel<panels; ++panel) {
+        auto part=cc_panel(4*panel,4*(panel+1),y,scale,need_pressure,
+                           p.absolute_tolerance/(4.L*panels),p.relative_tolerance/4.L,
+                           0,p,limit,out.callbacks);
+        if (part.status!=S::ok) { cc_status=part.status; break; }
+        sums[0]+=part.rho; sums[1]+=part.pressure;
+        errors[0]+=part.rho_error; errors[1]+=part.pressure_error;
+      }
+      if (cc_status==S::work_limit) { out.status=cc_status; return out; }
+      cc_accepted=cc_status==S::ok;
+      if (!cc_accepted) { sums[0]=sums[1]=errors[0]=errors[1]=0; }
+    }
     for (unsigned kind = 0; kind < (need_pressure ? 2u : 1u); ++kind) {
       MomentState state{y, scale, kind == 1};
-      for (unsigned panel = 0; panel < panels; ++panel) {
+      for (unsigned panel = 0; !cc_accepted && panel < panels; ++panel) {
         const auto available = limit - out.callbacks;
         if (available < 5) { out.status = S::work_limit; return out; }
         const double absolute = p.absolute_tolerance/(4*panels);
@@ -327,6 +388,7 @@ ThermalBackground prepare_thermal_background(const ThermalFlatModel &m,
   }
   out.lambda_=remainder;
   out.source_=std::move(owned_source);
+  out.method_=p.momentum_method;
   out.status_=S::ok;
   return out;
 }
@@ -337,6 +399,7 @@ ThermalBackground &ThermalBackground::operator=(ThermalBackground &&other) noexc
   if (this==&other) return *this;
   status_=other.status_;
   source_=std::move(other.source_);
+  method_=other.method_;
   critical_ev4_=other.critical_ev4_;
   omega_species_=other.omega_species_;
   lambda_=other.lambda_;
@@ -344,6 +407,7 @@ ThermalBackground &ThermalBackground::operator=(ThermalBackground &&other) noexc
   callbacks_=other.callbacks_;
   other.status_=S::invalid_input;
   other.source_={};
+  other.method_=ThermalMomentumMethod::direct_adaptive;
   other.critical_ev4_=other.omega_species_=other.lambda_=0;
   other.normalization_error_=0;
   other.callbacks_=0;
@@ -362,6 +426,7 @@ ThermalScaledExpansion ThermalBackground::scaled_expansion(
   ThermalScaledExpansion out;
   if (!arithmetic_supported() || !valid_policy(p)) return out;
   if (status_!=S::ok) { out.status=status_; return out; }
+  if (p.momentum_method!=method_) return out;
   if (!std::isfinite(a)) { out.status=S::nonfinite_input; return out; }
   if (a<0 || a>1) { out.status=S::outside_domain; return out; }
   const auto bytes=thermal_background_payload_bound(0,source_.species.size());
@@ -399,6 +464,7 @@ ThermalBackgroundBatch ThermalBackground::evaluate(
   if (!arithmetic_supported() || !valid_policy(p) || (requested&~(thermal_e|thermal_h)) ||
       !requested || factors.size()>65536) return out;
   if (status_!=S::ok) { out.status=status_; return out; }
+  if (p.momentum_method!=method_) return out;
   const auto bytes=thermal_background_payload_bound(factors.size(),source_.species.size());
   if (!bytes) return out;
   if (factors.size()>p.maximum_points || source_.species.size()>p.maximum_species ||

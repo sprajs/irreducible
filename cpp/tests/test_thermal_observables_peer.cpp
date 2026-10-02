@@ -26,6 +26,13 @@ using namespace irred::cosmology;
 using S = irred::numerics::Status;
 using W = long double;
 unsigned checks = 0;
+ThermalObservablePolicy scientific_policy() {
+  ThermalObservablePolicy p;
+#ifdef IRRED_TEST_NESTED_CC
+  p.thermal.momentum_method=ThermalMomentumMethod::nested_clenshaw_curtis;
+#endif
+  return p;
+}
 void need(bool b, const char *s) {
   ++checks;
   if (!b)
@@ -192,9 +199,14 @@ void frozen_references() {
        W(input.model.species[0].temperature_today_kelvin) *
            (1.380649e-23L / 1.602176634e-19L),
        0, "explicit Kelvin eV conversion");
-  auto op = prepare_thermal_observables(input);
+  auto p=scientific_policy();
+  auto op = prepare_thermal_observables(input,p);
   need(op.status() == S::ok, "massive retained source admitted");
-  auto got = op.evaluate(z, all);
+#ifdef IRRED_TEST_NESTED_CC
+  need(op.background().momentum_method()==ThermalMomentumMethod::nested_clenshaw_curtis,
+       "independent observable case actually retains opt-in CC");
+#endif
+  auto got = op.evaluate(z, all,p);
   need(got.status == S::ok && got.rows.size() == 6 && got.ruler &&
            got.ruler->status == S::ok && got.ruler->value,
        "frozen reference full batch");

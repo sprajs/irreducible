@@ -157,3 +157,13 @@ H0 projection with numerical diagnostics. Exact rational correlated controls,
 independent prior/noise integration, fixed-truth bias/coverage and conditional
 chi-square ellipsoid mass checks test this scope. It supplies no released-box
 posterior, cross-noise inference or measured-data qualification.
+
+Thermal FD consumers can explicitly select nested Clenshaw–Curtis momentum
+integration. The retained owner records that numerical selection and refuses
+a mismatched evaluation policy, including endpoint shortcuts. The portable
+adaptive route remains the default; physical model identities and numerical
+allocations are unchanged. Independent moment, background, distance, BAO and
+history controls exercise the opt-in route, with actual node and failed-fallback
+work observed separately from self-reported counters. Read the
+[thermal neutrino guide](thermal-neutrino.md) for the empirical diagnostic and
+method contract. Acceleration supplies no new physical closure.

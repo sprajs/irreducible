@@ -331,6 +331,14 @@ int installed_baryon_abundance() {
  const auto result=owner.evaluate_equilibrium(query,"installed supplied matter temperature");
  return owner.status()==irred::numerics::Status::ok && result.status==irred::numerics::Status::ok && result.solves==1 && result.rows.size()==1 && result.rows[0].equilibrium.electron_density.value && *result.rows[0].equilibrium.electron_density.value>0 ? 0:21;
 }
+int installed_nested_fd() {
+ using namespace irred::cosmology;
+ ThermalPolicy p;p.momentum_method=ThermalMomentumMethod::nested_clenshaw_curtis;
+ const auto moments=evaluate_thermal_moments(1,p);
+ const auto background=prepare_thermal_background({70,5e-5,2e-5,.05,.25,{{.06,.000168,2}}},p);
+ const auto batch=background.evaluate(std::array{.1},thermal_e,p);
+ return moments.status==irred::numerics::Status::ok && moments.rho_moment && std::abs(*moments.rho_moment-6.045645184985879)<1e-9 && background.momentum_method()==p.momentum_method && batch.status==irred::numerics::Status::ok && batch.rows.size()==1 && batch.rows[0].e.value && std::abs(*batch.rows[0].e.value-17.398718835753673)<1e-8 ? 0:22;
+}
 int main() {
  const auto result=irred::numerics::log1p_checked(0.5);
  if(result.status!=irred::numerics::Status::ok || std::abs(result.value-0.4054651081081643819780131154643491)>=1e-14) return 1;
@@ -383,5 +391,6 @@ int main() {
  if (const auto mixture_status=installed_hydrogen_helium();mixture_status!=0) return mixture_status;
  if(const auto ladder_future_status=installed_ladder_predictive();ladder_future_status!=0) return ladder_future_status;
  if(const auto abundance_status=installed_baryon_abundance();abundance_status!=0) return abundance_status;
+ if(const auto nested_status=installed_nested_fd();nested_status!=0) return nested_status;
  return installed_correlated_calibration();
 }

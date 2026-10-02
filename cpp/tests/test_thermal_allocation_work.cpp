@@ -1,6 +1,7 @@
 // Linker-only observation of the real linked momentum integrator and allocator.
 // The forwarding callback changes no arithmetic and is not a physics reference.
 #include "irred/recombination_drag.hpp"
+#include "../src/thermal_cc_sample.hpp"
 #include <array>
 #include <atomic>
 #include <cstdlib>
@@ -10,7 +11,7 @@
 namespace {
 std::atomic<bool> armed = false;
 std::atomic<std::size_t> allocations = 0, fail_on = 0, callbacks = 0,
-                         integration_depth = 0, nested_allocations = 0,
+                         integration_depth = 0, cc_callbacks = 0, adaptive_callbacks = 0, nested_allocations = 0,
                          post_callback_allocations = 0;
 std::atomic<long> live = 0;
 unsigned checks = 0;
@@ -22,6 +23,7 @@ void require(bool valid, const char *why) {
 void start(std::size_t failure = 0) {
   allocations = 0;
   callbacks = 0;
+  cc_callbacks = 0; adaptive_callbacks = 0;
   nested_allocations = 0;
   post_callback_allocations = 0;
   fail_on = failure;
@@ -32,8 +34,9 @@ struct Forward {
   const void *context;
 };
 double observed(double x, const void *context) {
-  if (armed)
-    ++callbacks;
+  if (armed) {
+    ++callbacks; ++adaptive_callbacks;
+  }
   const auto &f = *static_cast<const Forward *>(context);
   return f.function(x, f.context);
 }
@@ -93,10 +96,34 @@ wrapped_integrate(irred::numerics::Integrand f, const void *c, double a,
   const IntegrationScope scope;
   return real_integrate(observed, &forward, a, b, p);
 }
+extern "C" irred::cosmology::detail::ThermalCCSample
+real_cc_sample(double,long double,long double,bool) noexcept
+ asm("__real__ZN5irred9cosmology6detail17thermal_cc_sampleEdeeb");
+extern "C" irred::cosmology::detail::ThermalCCSample
+wrapped_cc_sample(double,long double,long double,bool) noexcept
+ asm("__wrap__ZN5irred9cosmology6detail17thermal_cc_sampleEdeeb");
+extern "C" irred::cosmology::detail::ThermalCCSample
+wrapped_cc_sample(double q,long double y,long double scale,bool pressure) noexcept {
+ if(armed) { callbacks+=pressure?2:1;cc_callbacks+=pressure?2:1; }
+ const IntegrationScope scope;
+ return real_cc_sample(q,y,scale,pressure);
+}
 namespace {
 using namespace irred::cosmology;
 using S = irred::numerics::Status;
-void exercise(unsigned positive) {
+void refinement_and_fallback() {
+ ThermalPolicy p;p.momentum_method=ThermalMomentumMethod::nested_clenshaw_curtis;
+ start();const auto refined=evaluate_thermal_moments(.001,p);armed=false;
+ require(refined.status==S::ok&&refined.callbacks==callbacks&&cc_callbacks>1820&&adaptive_callbacks==0,"actual refined-parent node work retained");
+ p.maximum_depth=0;start();const auto fallback=evaluate_thermal_moments(.1,p);armed=false;
+ require(fallback.status!=S::ok&&fallback.callbacks==callbacks&&cc_callbacks>0&&adaptive_callbacks>0&&!fallback.rho_moment&&!fallback.pressure_moment,"discarded CC parent plus real failed adaptive fallback charged");
+ const auto cap=fallback.callbacks-1;p.maximum_callbacks_per_evaluation=cap;
+ start();const auto failed=evaluate_thermal_moments(.1,p);armed=false;
+ require(failed.status==S::work_limit&&failed.callbacks==callbacks&&callbacks<=cap&&!failed.rho_moment&&!failed.pressure_moment,"failed fallback never resets remaining cap");
+ std::cout<<"PASS refined/fallback independently forwarded counters\n";
+}
+void exercise(unsigned positive, ThermalMomentumMethod method) {
+  ThermalPolicy selected;selected.momentum_method=method;
   constexpr double temperature = 1.95;
   constexpr double temperature_ev =
       static_cast<double>(static_cast<long double>(temperature) *
@@ -107,7 +134,7 @@ void exercise(unsigned positive) {
     source.species.push_back({masses[i], temperature_ev, 2});
   source.species.push_back({0, temperature_ev, 2});
   start();
-  auto original = prepare_thermal_background(source);
+  auto original = prepare_thermal_background(source, selected);
   armed = false;
   const auto provider_allocations = allocations.load();
   const auto preparation_work = original.preparation_callbacks();
@@ -123,7 +150,7 @@ void exercise(unsigned positive) {
     bool threw = false;
     start(point);
     try {
-      auto failed = prepare_thermal_background(source);
+      auto failed = prepare_thermal_background(source, selected);
       armed = false;
       require(failed.status() != S::ok, "faulted source acquisition refused");
     } catch (const std::bad_alloc &) {
@@ -134,7 +161,7 @@ void exercise(unsigned positive) {
             "provider allocation failure precedes every FD callback");
   }
   for (std::size_t cap : {std::size_t(9), preparation_work - 1}) {
-    ThermalPolicy p;
+    ThermalPolicy p=selected;
     p.maximum_total_callbacks = cap;
     start();
     auto failed = prepare_thermal_background(source, p);
@@ -146,7 +173,7 @@ void exercise(unsigned positive) {
                 failed.source().h0_km_s_mpc == 0 && nested_allocations == 0,
             "failed provider retains default source semantics");
   }
-  auto repeated = prepare_thermal_background(source);
+  auto repeated = prepare_thermal_background(source, selected);
   require(repeated.status() == S::ok &&
               repeated.preparation_callbacks() == preparation_work &&
               repeated.omega_species_today() == expected_species &&
@@ -159,6 +186,7 @@ void exercise(unsigned positive) {
     hydrogen.model.species.push_back({masses[i], temperature, 2});
   hydrogen.model.species.push_back({0, temperature, 2});
   PureHydrogenPolicy p;
+  p.thermal=selected;
   p.base_intervals = 64;
   p.maximum_total_work = preparation_work + 20000;
   start();
@@ -193,6 +221,7 @@ void exercise(unsigned positive) {
   require(PureHydrogenPolicy{}.maximum_total_work == 4000000,
           "combined default cap unchanged");
   std::cout << "PASS positive_species=" << positive
+            << " method=" << thermal_momentum_method_id(method)
             << " provider_allocations=" << provider_allocations
             << " normalization_callbacks=" << preparation_work
             << " outer_allocations=" << hydrogen_allocations
@@ -201,8 +230,10 @@ void exercise(unsigned positive) {
 } // namespace
 int main() {
   try {
+    refinement_and_fallback();
     for (unsigned positive = 1; positive <= 3; ++positive)
-      exercise(positive);
+      for(auto method:{ThermalMomentumMethod::direct_adaptive,ThermalMomentumMethod::nested_clenshaw_curtis})
+        exercise(positive,method);
     std::cout << "PASS " << checks << " thermal allocation/work controls\n";
   } catch (const std::exception &e) {
     armed = false;
