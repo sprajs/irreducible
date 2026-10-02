@@ -63,6 +63,11 @@ null/rank-deficient designs, parameter-unit Jacobian, exact axis order, proper
 prior rejection, quotas and owner moves. The fixed named mean/covariance and
 density comparison allocation is 2e-12*(1+absolute reference). Shared factor and
 Gaussian kernels in the Bayes comparison are ancestry; they are not independent
-evidence. Additional independently owned integration/refinement controls are
-required before broader qualification. No observational calibration uncertainty,
+evidence. A separately derived covariance-conditioning/cofactor reference and
+direct joint prior-times-likelihood quadrature now test normalization, moments,
+rank-deficient/null and underdetermined designs, axis permutations and unit
+Jacobians. Named mean/covariance controls use 2e-12*(1+absolute reference),
+log density uses 2e-11*(1+absolute reference); reference refinement consumes at
+most 5% of those allocations. Two initial reference failures remain preserved.
+These controls do not qualify arbitrary inputs or physical priors. No observational calibration uncertainty,
 confidence coverage or systematic-error claim follows from these controls.

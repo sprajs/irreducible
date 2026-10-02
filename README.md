@@ -27,7 +27,8 @@ state for distances and a conditional supplied-drag ruler. The native
 ordered covariance, with explicit density-level numerical admission.
 [Conditional estimator variance](docs/gaussian-design.md) and the
 [synthetic ladder's H₀ sampling law](docs/calibration-ladder.md) test a separate
-calibration prerequisite. These native calculations are available through the
+calibration prerequisite. A [proper Gaussian parameter posterior](docs/gaussian-posterior.md)
+adds normalized fixed-linear conditioning under a declared Gaussian prior. These native calculations are available through the
 C++ SDK; their guides distinguish tested controls from observational inference.
 The [next bounded choices](docs/roadmap.md#next-bounded-choices) cover statistical,
 photometric, thermal, growth and lensing work with separate prerequisites and gates.

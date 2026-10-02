@@ -74,3 +74,11 @@ projection gate. Independent cofactor, polynomial/refinement and matched massive
 reference controls supply named numerical evidence. Fixed physical densities
 do not imply H0 cancellation. Released compression validity and observational
 qualification remain separate; the massless conditional model keeps its identity.
+
+The native [proper Gaussian parameter posterior](gaussian-posterior.md) retains
+fixed observation/design factors and an explicitly independent full proper
+Gaussian prior. It returns conditional mean, covariance and normalized density
+in declared parameter units/order/measure. Analytic rational, independent
+cofactor and direct joint integration/refinement controls cover named synthetic
+cases, including rank deficiency. This adds no CLI/C ABI route, nonlinear
+cosmological posterior, released-box prior or observational qualification.

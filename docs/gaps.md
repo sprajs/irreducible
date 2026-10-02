@@ -43,7 +43,10 @@ still need separate qualification. Native QR contrast variance and a synthetic
 ladder H0 sampling law now supply conditional uncertainty under fixed Gaussian
 observation noise and an explicitly assumed generating mean. Named synthetic
 checks do not qualify released-data parameter mapping or coverage. The relative
-profile is not a normalized posterior. Source review now identifies original
+profile is not a normalized posterior. A native [proper Gaussian parameter
+posterior](gaussian-posterior.md) now supplies fixed-linear conditioning under
+an explicitly independent SPD Gaussian prior; it does not normalize the
+released finite-box target or reproduce an observational posterior. Source review now identifies original
 column 46 as 5 log10(H0 in km/s/Mpc); its formal contrast variance on the same
 3492x47 products agrees with independent SVD/QR. A later [Reproducible source audit](https://github.com/sprajs/reproducible/tree/main/experiments/released-ladder)
 now joins all 2150 initial Cepheid rows to the pinned primary table and identifies
