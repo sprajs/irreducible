@@ -50,14 +50,14 @@ impl Output {
             Self::ExpectedTransmittedPhotons => "expected_transmitted_photons",
         }
     }
-    fn bit(self) -> u32 {
+    pub(super) fn bit(self) -> u32 {
         match self {
             Self::IncidentBandFlux => PHOTOMETRY_OUTPUT_INCIDENT_BAND_FLUX,
             Self::CollectedEnergy => PHOTOMETRY_OUTPUT_COLLECTED_ENERGY,
             Self::ExpectedTransmittedPhotons => PHOTOMETRY_OUTPUT_EXPECTED_TRANSMITTED_PHOTONS,
         }
     }
-    fn unit(self) -> &'static str {
+    pub(super) fn unit(self) -> &'static str {
         match self {
             Self::IncidentBandFlux => "watt_per_square_metre",
             Self::CollectedEnergy => "joule",
@@ -79,7 +79,7 @@ impl Drop for Owned {
         }
     }
 }
-fn scalar(x: &PhotometryScalar, unit: &str) -> Result<(Value, bool), String> {
+pub(super) fn scalar(x: &PhotometryScalar, unit: &str) -> Result<(Value, bool), String> {
     let status = numerical_status_name(x.numerical_status).ok_or("UNKNOWN_NUMERICAL_STATUS")?;
     let (state, value, passed) = match x.availability {
         PHOTOMETRY_AVAILABILITY_AVAILABLE if x.numerical_status == 0 && x.value.is_finite() => {
@@ -93,7 +93,7 @@ fn scalar(x: &PhotometryScalar, unit: &str) -> Result<(Value, bool), String> {
         passed,
     ))
 }
-fn text(value: Bytes) -> Result<String, String> {
+pub(super) fn text(value: &Bytes) -> Result<String, String> {
     String::from_utf8(copied(value.data, value.length, 256)?)
         .map_err(|_| "INVALID_NATIVE_METADATA".into())
 }
@@ -221,9 +221,9 @@ pub(crate) fn evaluate(
     Ok(Calculation {
         output: json!({"kind":if passed{"finite"}else{"failure"},"batch_numerical_status":status,"requested_rows":inputs.len(),"evaluations":values}),
         checks,
-        model: text(view.model_id)?,
-        constants: text(view.constants_id)?,
-        arithmetic: text(view.arithmetic_id)?,
-        propagation: text(view.propagation_id)?,
+        model: text(&view.model_id)?,
+        constants: text(&view.constants_id)?,
+        arithmetic: text(&view.arithmetic_id)?,
+        propagation: text(&view.propagation_id)?,
     })
 }

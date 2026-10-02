@@ -1835,6 +1835,241 @@
         "resource_policy"
       ]
     },
+    "sampled_photometry": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "schema_version": {
+          "const": 2
+        },
+        "operation": {
+          "const": "photometry.predict"
+        },
+        "source_model": {
+          "const": "piecewise_linear_rest_luminosity_observed_optical_passband"
+        },
+        "propagation": {
+          "const": "isotropic_luminosity_distance_standard_redshift"
+        },
+        "constants_id": {
+          "const": "si_2019_radiometric_definitions"
+        },
+        "spectra": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "id": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 256
+              },
+              "source_role": {
+                "enum": [
+                  "measured",
+                  "fitted_summary",
+                  "calibration_asset",
+                  "synthetic_control"
+                ]
+              },
+              "provenance": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 1024
+              },
+              "rest_wavelength_metre": {
+                "type": "array",
+                "items": {
+                  "type": "number"
+                },
+                "maxItems": 65536
+              },
+              "luminosity_watt_per_metre": {
+                "type": "array",
+                "items": {
+                  "type": "number"
+                },
+                "maxItems": 65536
+              }
+            },
+            "required": [
+              "id",
+              "source_role",
+              "provenance",
+              "rest_wavelength_metre",
+              "luminosity_watt_per_metre"
+            ]
+          },
+          "maxItems": 4096
+        },
+        "passbands": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "id": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 256
+              },
+              "source_role": {
+                "enum": [
+                  "measured",
+                  "fitted_summary",
+                  "calibration_asset",
+                  "synthetic_control"
+                ]
+              },
+              "provenance": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 1024
+              },
+              "calibration": {
+                "enum": [
+                  "fixed",
+                  "declared_uncertainty_excluded"
+                ]
+              },
+              "calibration_provenance": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 1024
+              },
+              "observed_wavelength_metre": {
+                "type": "array",
+                "items": {
+                  "type": "number"
+                },
+                "maxItems": 65536
+              },
+              "optical_transmission": {
+                "type": "array",
+                "items": {
+                  "type": "number"
+                },
+                "maxItems": 65536
+              }
+            },
+            "required": [
+              "id",
+              "source_role",
+              "provenance",
+              "calibration",
+              "calibration_provenance",
+              "observed_wavelength_metre",
+              "optical_transmission"
+            ]
+          },
+          "maxItems": 4096
+        },
+        "exposures": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "spectrum_index": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 18446744073709551615
+              },
+              "passband_index": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 18446744073709551615
+              },
+              "luminosity_distance_metre": {
+                "type": "number"
+              },
+              "redshift": {
+                "type": "number"
+              },
+              "collecting_area_square_metre": {
+                "type": "number"
+              },
+              "observer_exposure_second": {
+                "type": "number"
+              }
+            },
+            "required": [
+              "spectrum_index",
+              "passband_index",
+              "luminosity_distance_metre",
+              "redshift",
+              "collecting_area_square_metre",
+              "observer_exposure_second"
+            ]
+          },
+          "maxItems": 65536
+        },
+        "requested_outputs": {
+          "type": "array",
+          "items": {
+            "enum": [
+              "incident_band_flux",
+              "collected_energy",
+              "expected_transmitted_photons"
+            ]
+          },
+          "minItems": 1,
+          "uniqueItems": true,
+          "maxItems": 3
+        },
+        "resource_policy": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "maximum_rows": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 65536
+            },
+            "maximum_total_samples": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 65536
+            },
+            "maximum_samples": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 65536
+            },
+            "maximum_segments": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 65536
+            },
+            "maximum_native_bytes": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 1073741824
+            }
+          },
+          "required": [
+            "maximum_rows",
+            "maximum_total_samples",
+            "maximum_samples",
+            "maximum_segments",
+            "maximum_native_bytes"
+          ]
+        }
+      },
+      "required": [
+        "schema_version",
+        "operation",
+        "source_model",
+        "propagation",
+        "constants_id",
+        "spectra",
+        "passbands",
+        "exposures",
+        "requested_outputs",
+        "resource_policy"
+      ]
+    },
     "quantity_metadata": {
       "type": "object",
       "additionalProperties": false,
@@ -2093,6 +2328,9 @@
     },
     {
       "$ref": "#/$defs/photometry"
+    },
+    {
+      "$ref": "#/$defs/sampled_photometry"
     }
   ],
   "description": "Structural compiled requests; native domains, numerical gates and scientific qualifications remain distinct."

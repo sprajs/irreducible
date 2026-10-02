@@ -11,7 +11,7 @@ irred stream STORE [LIMITS.json]
 
 `run` evaluates one complete request and writes immutable input, resolved specification, output and execution records. It uses the same preparation/evaluation implementation as retained sessions. Rust parses and acquires sources; C++ owns equations and numerical calculations. No expression from a request is executable physics.
 
-Current model/observation requests use schema version 2 and operation `background.evaluate`, `observations.prepare`, `statistics.gaussian`, `supernova.profile` or `bao.density`. Integer, quantity and scalar numerical fixtures also require request schema 2, using canonical operation names while retaining scientific equation and method identities. Use the generated schema for exact required fields, caps and enums; unknown fields and recursively duplicated JSON object members are rejected before intermediate values can erase raw descriptor evidence.
+Current model/observation requests use schema version 2 and operation `background.evaluate`, `observations.prepare`, `statistics.gaussian`, `supernova.profile` `bao.density` or `photometry.predict`. Integer, quantity and scalar numerical fixtures also require request schema 2, using canonical operation names while retaining scientific equation and method identities. Use the generated schema for exact required fields, caps and enums; unknown fields and recursively duplicated JSON object members are rejected before intermediate values can erase raw descriptor evidence.
 
 Expansion descriptors contain only active parameters: LCDM omega_m, constant q, CPL omega_m/w0/wa, or five ordered q coefficients. FlatFLRW is explicit. Observer convention and physical scale are supplied for projections that need them. Request only the required output groups; partial failures preserve independent successful values. Source effects are separate from expansion, with none or explicit grey log1p magnitude shift in the SN consumer.
 
@@ -19,7 +19,7 @@ SN requests contain observations, an explicit selected index/coordinate descript
 
 ## Retained sessions
 
-`stream` accepts one JSON object per line. Actions are `prepare_observations`, `prepare_supernova`, `prepare_bao`, `background_evaluate`, `supernova_profile`, `bao_density` and `release`. Preparation returns a process-local monotonic handle and a scientific preparation digest. Evaluations bind the actual source, selection and preparation digest; temporary handle IDs and unrelated retained occupancy do not alter scientific identity.
+`stream` accepts one JSON object per line. Actions are `prepare_observations`, `prepare_supernova`, `prepare_bao`, `background_evaluate`, `supernova_profile`, `bao_density`, `photometry_predict` and `release`. Preparation returns a process-local monotonic handle and a scientific preparation digest. Evaluations bind the actual source, selection and preparation digest; temporary handle IDs and unrelated retained occupancy do not alter scientific identity.
 
 Limits JSON explicitly supplies `sources`, `consumers`, `retained_bytes`, `commands`, `input_line_bytes` and `output_line_bytes`. Defaults are 16 source and consumer handles, 1 GiB retained payload, 4096 commands, 16 MiB input lines and 64 MiB output lines. Output limits must be at least 1024 bytes. Limits cover documented payload scopes, excluding caller input, allocator overhead and RSS. Native preparation peak allowance is reserved before allocations; shared sources stay charged until their last dependent owner is released.
 
@@ -32,3 +32,19 @@ Default `numerical_contract` returns exit 0 only when all required numerical che
 A completed scientific failure returns failed checks and exit 2. Malformed requests, resource/transport failures and internal exceptions remain execution failures with separate causes. Explicit `--assurance qualified` returns exit 6 only after numerical success when applicable qualification evidence is unavailable. Historical receipts are immutable and retain their original acceptance policy.
 
 Preparation structural/resource rejection publishes no handle or invented empty source. Admitted numerical preparation failures preserve source and cause. Evaluations can return owned empty or partial diagnostics for configured exhaustion or incompatible preparation; failed groups never expose finite scientific payload. For grouped background/SN/BAO outputs, only requested groups and their dependencies are computed; internal numerical validation remains part of those dependencies. Retained arrays and required scratch count toward native payload quotas even where an internal dependency is not exported; omitted computations are not charged as if they ran. Array caps count scientific floating-point vectors, while node maps, metadata, fixed diagnostics and wire/native scratch are charged by aggregate bytes.
+
+## Supplied-spectrum photometry
+
+`photometry.predict` selects either the existing
+`constant_rest_luminosity_rectangular_band` source or
+`piecewise_linear_rest_luminosity_observed_optical_passband`. The sampled form
+uses ordered inline spectrum/passband pools and indexed exposure rows, explicit
+rest/observed metre axes and W/m luminosity, declared source roles/provenance and
+fixed or explicitly uncertainty-excluded calibration. It does not silently
+assign measured inputs a synthetic role. See [photometry](photometry.md) for
+strict structural admission, ownership, hard/aggregate/per-row resource limits,
+independent outputs and the unchanged numerical/scientific scope.
+
+`photometry_predict` is a stateless stream action with the same complete request
+under `request`; it produces no retained handle. It shares the one-shot path and
+caps transient native bytes against remaining retained session allowance.

@@ -971,6 +971,88 @@ pub struct PhotometryView {
     pub arithmetic_id: Bytes,
     pub propagation_id: Bytes,
 }
+#[allow(non_snake_case)]
+#[repr(C)]
+pub struct SampledPhotometryCurve {
+    pub struct_size: u32,
+    pub abi_version: u32,
+    pub id: Bytes,
+    pub wavelength_metre: *const f64,
+    pub values: *const f64,
+    pub length: u64,
+    pub byte_length: u64,
+}
+#[allow(non_snake_case)]
+#[repr(C)]
+pub struct SampledPhotometryExposure {
+    pub struct_size: u32,
+    pub abi_version: u32,
+    pub spectrum_index: u64,
+    pub passband_index: u64,
+    pub luminosity_distance_metre: f64,
+    pub redshift: f64,
+    pub collecting_area_square_metre: f64,
+    pub observer_exposure_second: f64,
+}
+#[allow(non_snake_case)]
+#[repr(C)]
+pub struct SampledPhotometryBatch {
+    pub struct_size: u32,
+    pub abi_version: u32,
+    pub spectra: *const SampledPhotometryCurve,
+    pub spectrum_count: u64,
+    pub spectrum_byte_length: u64,
+    pub passbands: *const SampledPhotometryCurve,
+    pub passband_count: u64,
+    pub passband_byte_length: u64,
+    pub exposures: *const SampledPhotometryExposure,
+    pub exposure_count: u64,
+    pub exposure_byte_length: u64,
+}
+#[allow(non_snake_case)]
+#[repr(C)]
+pub struct SampledPhotometryPolicy {
+    pub struct_size: u32,
+    pub abi_version: u32,
+    pub requested_outputs: u32,
+    pub reserved: u32,
+    pub maximum_rows: u64,
+    pub maximum_native_bytes: u64,
+    pub maximum_total_samples: u64,
+    pub maximum_samples: u64,
+    pub maximum_segments: u64,
+}
+#[allow(non_snake_case)]
+#[repr(C)]
+pub struct SampledPhotometryRow {
+    pub struct_size: u32,
+    pub abi_version: u32,
+    pub source: SampledPhotometryExposure,
+    pub admission_status: u32,
+    pub reserved: u32,
+    pub incident_band_flux: PhotometryScalar,
+    pub collected_energy: PhotometryScalar,
+    pub expected_transmitted_photons: PhotometryScalar,
+}
+#[allow(non_snake_case)]
+#[repr(C)]
+pub struct SampledPhotometryView {
+    pub struct_size: u32,
+    pub abi_version: u32,
+    pub numerical_status: u32,
+    pub reserved: u32,
+    pub spectra: *const SampledPhotometryCurve,
+    pub spectrum_count: u64,
+    pub passbands: *const SampledPhotometryCurve,
+    pub passband_count: u64,
+    pub rows: *const SampledPhotometryRow,
+    pub row_count: u64,
+    pub model_id: Bytes,
+    pub constants_id: Bytes,
+    pub method_id: Bytes,
+    pub arithmetic_id: Bytes,
+    pub propagation_id: Bytes,
+}
 unsafe extern "C" {
     pub fn irred_add(
         a: *const Buffer,
@@ -1193,6 +1275,16 @@ unsafe extern "C" {
         output: *mut PhotometryView,
     ) -> u32;
     pub fn irred_photometry_result_destroy(result: *mut std::ffi::c_void) -> u32;
+    pub fn irred_sampled_photometry_evaluate(
+        batch: *const SampledPhotometryBatch,
+        policy: *const SampledPhotometryPolicy,
+        output: *mut *mut std::ffi::c_void,
+    ) -> u32;
+    pub fn irred_sampled_photometry_result_view(
+        result: *const std::ffi::c_void,
+        output: *mut SampledPhotometryView,
+    ) -> u32;
+    pub fn irred_sampled_photometry_result_destroy(result: *mut std::ffi::c_void) -> u32;
 }
 #[derive(Clone, serde::Deserialize, serde::Serialize)]
 #[serde(deny_unknown_fields)]

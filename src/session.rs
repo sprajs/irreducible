@@ -31,6 +31,9 @@ enum Command {
         requested_outputs: Vec<crate::bridge::bao::Output>,
         numerical_policy: crate::bridge::bao::EvaluationPolicy,
     },
+    PhotometryPredict {
+        request: Value,
+    },
     SoundHorizonEvaluate {
         request: Value,
     },
@@ -416,6 +419,22 @@ fn dispatch(
                     stream_io::encode(&reply, limit).map_err(|_| Error::OutputLine)
                 })
                 .map_err(|_| "OUTPUT_LINE_LIMIT".into())
+        }
+        Command::PhotometryPredict { mut request } => {
+            let requested_policy = request["resource_policy"].clone();
+            let requested = request["resource_policy"]["maximum_native_bytes"]
+                .as_u64()
+                .ok_or("INVALID_REQUEST")?;
+            let remaining =
+                u64::try_from(context.remaining_bytes()).map_err(|_| "RESOURCE_LIMIT")?;
+            request["resource_policy"]["maximum_native_bytes"] = json!(requested.min(remaining));
+            let effective_policy = request["resource_policy"].clone();
+            let input = serde_json::to_vec(&request).map_err(|_| "INVALID_REQUEST")?;
+            let mut outcome = crate::photometry_run::execute(&input)?;
+            outcome.specification["resource_policy"] = requested_policy;
+            let mut reply = outcome_reply(outcome);
+            reply["effective_runtime_policy"] = effective_policy;
+            stream_io::encode(&reply, limit)
         }
         Command::SoundHorizonEvaluate { mut request } => {
             let requested_policy = request["numerical_policy"].clone();
