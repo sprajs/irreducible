@@ -12,6 +12,7 @@ namespace irred::cosmology {
 struct ThermalSpecies {
   double mass_ev, temperature_today_ev, statistical_weight;
 };
+enum class ThermalMomentumMethod { direct_adaptive, nested_clenshaw_curtis };
 struct ThermalPolicy {
   // Applies separately to I_rho/hypot(1,y) and I_pressure*hypot(1,y).
   double absolute_tolerance = 1e-12, relative_tolerance = 2e-12;
@@ -20,6 +21,8 @@ struct ThermalPolicy {
   unsigned maximum_depth = 30;
   std::size_t maximum_points = 4096, maximum_species = 16;
   std::size_t maximum_native_bytes = 16 * 1024 * 1024;
+  // Preparation and later retained-owner evaluations must select the same method.
+  ThermalMomentumMethod momentum_method = ThermalMomentumMethod::direct_adaptive;
 };
 struct ThermalMoments {
   numerics::Status status = numerics::Status::invalid_input;
@@ -97,6 +100,7 @@ public:
   ThermalBackground &operator=(ThermalBackground &&) noexcept;
   numerics::Status status() const noexcept { return status_; }
   const ThermalFlatModel &source() const noexcept { return source_; }
+  ThermalMomentumMethod momentum_method() const noexcept { return method_; }
   std::optional<double> omega_species_today() const noexcept;
   std::optional<double> omega_lambda() const noexcept;
   std::size_t preparation_callbacks() const noexcept { return callbacks_; }
@@ -109,6 +113,7 @@ public:
 private:
   numerics::Status status_ = numerics::Status::invalid_input;
   ThermalFlatModel source_{};
+  ThermalMomentumMethod method_ = ThermalMomentumMethod::direct_adaptive;
   long double critical_ev4_ = 0, omega_species_ = 0, lambda_ = 0;
   long double normalization_error_ = 0;
   std::size_t callbacks_ = 0;
@@ -130,4 +135,24 @@ inline constexpr std::string_view thermal_neutrino_arithmetic_id =
     "thermal-FD/binary64-quadrature-wide-scaling/v1";
 inline constexpr std::string_view thermal_neutrino_constants_id =
     "SI2019-exact-h-c-kB-eV-IAU2012-AU-CODATA2018-G-fixed";
+} // namespace irred::cosmology
+
+namespace irred::cosmology {
+// The opt-in method includes bounded refinement and charged direct fallback.
+constexpr std::string_view thermal_momentum_method_id(ThermalMomentumMethod method) {
+  switch (method) {
+  case ThermalMomentumMethod::direct_adaptive: return thermal_neutrino_method_id;
+  case ThermalMomentumMethod::nested_clenshaw_curtis:
+    return "scaled-nested-clenshaw-curtis-direct-fallback-exponential-tail/v1";
+  }
+  return {};
+}
+constexpr std::string_view thermal_momentum_arithmetic_id(ThermalMomentumMethod method) {
+  switch (method) {
+  case ThermalMomentumMethod::direct_adaptive: return thermal_neutrino_arithmetic_id;
+  case ThermalMomentumMethod::nested_clenshaw_curtis:
+    return "thermal-FD/binary64-shared-nodes-wide-sums/v1";
+  }
+  return {};
+}
 } // namespace irred::cosmology
