@@ -66,12 +66,16 @@ See [Gaussian design](gaussian-design.md).
 The native [hydrogen equilibrium](hydrogen-equilibrium.md) model now supplies
 separate ground-state pure-H fractions under supplied temperature/density. The
 [conditional history](recombination-drag.md) advances a bounded effective
-three-level model with prescribed Tm=Tr and a massless thermal background, then
-integrates drag optical depth from an explicit late endpoint. Its unit-depth
+three-level model with a massless thermal background and explicit choice of
+prescribed Tm=Tr or coupled Compton/adiabatic matter temperature. The coupled
+variant supplies Thomson depth, per-redshift scattering rate and unnormalized
+finite-endpoint visibility with boundary survival. Both integrate drag optical
+depth from an explicit late endpoint. Its unit-depth
 root depends on that endpoint and physical approximation; it is not a qualified
-cosmological drag epoch. Evolved matter temperature, helium, multilevel rates,
-atomic/model uncertainty, full optical-depth endpoints, reionization and
-visibility remain prerequisites before physical-ruler or CMB coupling.
+cosmological drag epoch. Helium, multilevel rates, atomic/model uncertainty,
+qualified full optical-depth endpoints and reionization remain prerequisites
+before physical-ruler or CMB coupling. Finite-endpoint visibility does not
+predict the present-day last-scattering distribution or CMB spectra.
 
 The native [GR growth](gr-growth.md) operator now supplies a bounded radiation-free pressureless growing mode. Matter transfer, radiation/relic perturbations, general lensing potentials and propagation, CMB spectra, stellar/source populations, measured detector/selection laws and survey recovery remain separate gaps. A known cosmology makes these missing
 sectors concrete; an H(z) or distance match does not supply them. Use the

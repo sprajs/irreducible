@@ -210,3 +210,19 @@ frozen allocations and reference ancestry. External engines, acquired sources
 and Python high-precision libraries are comparison tooling; ordinary CI consumes
 small declared facts and independent native controls. These tests add no CLI
 operation or full-reference observational qualification.
+
+## Coupled hydrogen temperature and finite optical histories
+
+Ordinary native tests retain the prescribed-temperature history controls and
+add an independently authored, coupled Radau IIA reference for the pure-H
+Compton/adiabatic variant. Named physical models and near-initial stiff-layer
+queries have separate Kelvin, depth, rate, visibility and survival allocations.
+Constant-coefficient thermal limits and exact finite-opacity controls check
+the reference; mesh refinement and residuals qualify its comparisons. Common
+atomic/source constants and long-double/libm ancestry remain explicit.
+Finite visibility integrates to one minus the boundary survival, without
+renormalization. Quotas, omitted outputs, partial refusal, source ownership and
+allocation failures are separate engineering gates. Read
+[the history guide](recombination-drag.md) before composing this native SDK.
+These tests do not qualify helium, a physical drag epoch, present-day CMB
+visibility, observational uncertainty or a full LambdaCDM recombination model.

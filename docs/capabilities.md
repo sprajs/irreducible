@@ -95,11 +95,14 @@ LTE, partition truncation and atomic uncertainty remain physical assumptions.
 The retained native [pure-H history](recombination-drag.md) composes that initial
 condition with the shared massless thermal background and source-defined
 effective three-level rates. It predicts a non-equilibrium electron fraction
-with prescribed matter/radiation temperature, a late-endpoint drag depth and a
-separate conditional unit-depth root. Independent direct-SI RK4 controls test
-the implicit/refined solver. It adds no CLI/ABI route, evolved matter temperature,
-helium, multilevel correction, reionization, physical drag-epoch qualification,
-visibility or perturbation/CMB prediction. The supplied-drag ruler remains separate.
+under either prescribed radiation temperature or coupled Compton/adiabatic
+matter-temperature evolution, a late-endpoint drag depth and a separate
+conditional unit-depth root. The coupled variant also predicts Thomson depth,
+scattering rate and per-redshift finite-endpoint visibility with boundary survival.
+Independent direct-SI RK4 and coupled Radau/refinement controls test the distinct
+solver identities. It adds no CLI/ABI route, helium, multilevel correction,
+reionization, physical drag-epoch qualification or perturbation/CMB prediction.
+The supplied-drag ruler remains separate.
 
 The native [synthetic SIS thin lens](sis-thin-lens.md) retains a compatible
 massless-radiation early/late source and computes two distances once, without
