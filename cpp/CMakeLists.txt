@@ -339,3 +339,12 @@ foreach(thermal_bao_test IN ITEMS bao_thermal bao_thermal_peer bao_thermal_insta
   target_compile_options(test_${thermal_bao_test} PRIVATE -Wall -Wextra -Wpedantic -fno-fast-math -ffp-contract=off)
   add_test(NAME ${thermal_bao_test}_contract COMMAND test_${thermal_bao_test})
 endforeach()
+
+# Supplied homogeneous ground-state pure-H equilibrium; no cosmic history.
+target_sources(irred_core PRIVATE src/hydrogen_equilibrium.cpp)
+foreach(hydrogen_test IN ITEMS hydrogen_equilibrium hydrogen_equilibrium_peer hydrogen_equilibrium_installed)
+  add_executable(test_${hydrogen_test} tests/test_${hydrogen_test}.cpp)
+  target_link_libraries(test_${hydrogen_test} PRIVATE irred_core)
+  target_compile_options(test_${hydrogen_test} PRIVATE -Wall -Wextra -Wpedantic -fno-fast-math -ffp-contract=off)
+  add_test(NAME ${hydrogen_test}_contract COMMAND test_${hydrogen_test})
+endforeach()
