@@ -1,4 +1,4 @@
-# Deterministic rectangular-band photometry
+# Deterministic supplied-spectrum photometry
 
 `photometry.predict` implements this deterministic calculation as one coarse input batch. The first slice predicts incident band-integrated flux, collected energy and expected transmitted photons from a steady, isotropic source. It does not generate noise, select objects, simulate electronics, infer a luminosity or reproduce a survey.
 
@@ -30,14 +30,14 @@ Run the synthetic example after building:
 target/release/irred run tests/fixtures/photometry.json /tmp/irred-photometry-example
 ```
 
-Each requested group carries its own numerical status. Default numerical-contract assurance can pass while interpretation remains unqualified. The operation is available through the one-shot `run` interface; it does not create a retained observation handle.
+Each requested group carries its own numerical status. Default numerical-contract assurance can pass while interpretation remains unqualified. The operation is available through one-shot `run` and stateless `photometry_predict` stream requests; it does not create a retained observation handle.
 
 The byte quota admits successful combined native/wrapper allocated calculation payload. A fixed bounded empty work-limit diagnostic owner is excluded from that admission budget and may be allocated even when the quota is zero. Borrowed caller storage, scalar call frames, allocator overhead and RSS are also excluded.
 
 ## Native sampled-spectrum and passband operator
 
 The independently usable C++20 library also provides `evaluate_sampled` in
-`irred/sampled_photometry.hpp`. This extension has no CLI operation or C/Rust ABI.
+`irred/sampled_photometry.hpp`. The same operator is exposed by `photometry.predict` with source model `piecewise_linear_rest_luminosity_observed_optical_passband` through one coarse C/Rust ABI call.
 `SampledSpectrum` borrows rest-frame wavelength and Lλ arrays (metres and W/m);
 `SampledPassband` borrows observed wavelength and optical-transmission arrays.
 Each axis has at least two finite, strictly increasing positive wavelengths;
@@ -97,3 +97,87 @@ synthetic numerical controls with shared SI definitions, not measurements,
 calibration validation, inference or astrophysical qualification.
 
 A native [finite shared passband-calibration law](photometry-calibration.md) composes the sampled operator with an explicitly supplied joint distribution of valid transmission states. Its expected-signal covariance retains cross-band calibration dependence. Source and distance remain fixed; numerical sensitivity, calibration spread and future photon/noise simulation have separate meanings.
+
+## Pooled sampled ingestion and records
+
+The sampled request uses schema version 2 and the same propagation and SI constants
+identities as the rectangular request. Supply ordered `spectra`, `passbands` and
+`exposures`. Each spectrum supplies `id`, `source_role`, `provenance`,
+`rest_wavelength_metre` and `luminosity_watt_per_metre`; each passband supplies
+`id`, `source_role`, `provenance`, `observed_wavelength_metre`,
+`optical_transmission`, `calibration` and `calibration_provenance`. Array pair
+lengths must match. Wavelengths are metres, luminosity is W/m in the rest frame,
+and optical transmission is dimensionless in the observed frame. No Fν or
+observed flux interpretation is inferred from array shape.
+
+Source roles are caller-declared `measured`, `fitted_summary`,
+`calibration_asset` or `synthetic_control`. Provenance declarations are retained,
+not independently verified. `calibration` is `fixed` or
+`declared_uncertainty_excluded`: both evaluate supplied fixed values, and the
+latter explicitly records that declared calibration uncertainty is excluded.
+Neither propagates sample covariance or adds noise. IDs must be unique within
+each pool, nonempty and at most 256 UTF-8 bytes. Provenance strings are nonempty
+and at most 1024 UTF-8 bytes. The JSON schema's string limits count characters;
+runtime byte admission is additionally required for non-ASCII declarations.
+
+Exposure rows refer to `spectrum_index` and `passband_index` (zero-based pool
+indices) and supply `luminosity_distance_metre`, `redshift`,
+`collecting_area_square_metre` and `observer_exposure_second`. They preserve
+order and binary64 source values. A bad reference is a row `invalid_input`
+failure, not a silently substituted spectrum. Scientifically invalid arrays,
+scalars, unresolved conditioning and positive unrepresentable results carry the
+native cause. Requested groups remain independent and unrequested groups are
+omitted; per-row work-limit failure exposes failed requested groups without a
+fabricated value.
+
+`resource_policy` requires `maximum_rows`, `maximum_native_bytes`,
+`maximum_total_samples`, `maximum_samples` and `maximum_segments`. Hard limits
+are 4096 spectra, 4096 passbands, 65536 exposure rows, 65536 pooled wavelength
+knots and 1 GiB admitted native payload. The last two knot/segment policy fields
+bound each native source/passband evaluation, with the existing conservative
+merged-segment count of pair knots minus three. Aggregate configured row,
+pooled-knot or byte exhaustion returns an owned empty `work_limit` diagnostic;
+per-row exhaustion preserves other rows. Hard bounds and descriptor lengths are
+checked before native sample scans or allocation. CLI requests are bounded to
+16 MiB, with bounded individual deserialization arrays; aggregate knot admission
+precedes wire-descriptor allocation and the native call. Raw duplicate JSON
+members are rejected before intermediate values can erase them.
+
+The additive revision-2 C route is `irred_sampled_photometry_evaluate` followed
+by `irred_sampled_photometry_result_view` and
+`irred_sampled_photometry_result_destroy`. Caller curve buffers are borrowed
+only through the synchronous call. Its result owner copies each pooled curve
+once, keeps ID bytes and wavelengths/values immutable, and exports source and
+row views whose lifetime ends at destroy. Repeated exposure rows use indices;
+there is no per-row FFI, repeated matrix transfer, cache or retained session
+source. The independent C++ sampled API remains allocation-free and borrowed.
+
+Byte admission covers the native owner, pooled curve owner objects, exact ID byte storage, two double arrays per curve, exported curve
+descriptors and result rows. It excludes borrowed Rust inputs/wire descriptors,
+scalar frames, allocator overhead and RSS. The fixed empty diagnostic owner is
+excluded and can be allocated at quota zero. Output omission avoids native
+unrequested conversions; fixed row wire storage remains charged. The result
+owner contains no copied spectrum per exposure.
+
+Run the synthetic pooled fixture after building:
+
+```sh
+target/debug/irred run tests/fixtures/sampled_photometry.json /tmp/irred-sampled-example
+```
+
+For a stream, wrap the same request in
+`{"action":"photometry_predict","request":REQUEST}`. Its transient byte policy
+is capped by remaining session retained-byte allowance. The resolved scientific
+specification preserves the requested policy; effective runtime policy and
+actual resources are execution evidence. One-shot and stream share operation
+code and produce the same numerical values with equal effective allowances.
+
+Records retain exact original request bytes by SHA-256, the resolved ordered
+pools, caller roles and provenance, row sources, group checks and actual compiled
+method `analytic_piecewise_linear_merged_bernstein` and arithmetic
+`binary64_storage_longdouble_intermediate`. Native transport controls establish
+exact parity with `evaluate_sampled`, immutable source lifetime, malformed
+references/descriptors, quotas, allocation/exception containment and omissions.
+Independent native constant/linear antiderivative and frequency-coordinate
+controls retain the predeclared allocations above. These checks do not qualify
+observations, interpolation, calibration, cosmology or inference.
