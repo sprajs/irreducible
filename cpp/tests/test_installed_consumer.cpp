@@ -4,6 +4,7 @@
 #include <irred/gr_growth.hpp>
 #include <irred/hydrogen_equilibrium.hpp>
 #include <irred/hydrogen_helium_equilibrium.hpp>
+#include <irred/baryon_abundance.hpp>
 #include <irred/recombination_drag.hpp>
 #include <irred/sis_thin_lens.hpp>
 #include <irred/gaussian_posterior.hpp>
@@ -323,6 +324,13 @@ int installed_ladder_predictive() {
  auto q=LadderPredictive::prepare(p,std::array<double,1>{32},l.ordered_row_ids,n,future,std::move(md));
  return q.status()==DensityStatus::finite && q.mean().size()==2 && std::abs(q.mean()[0]-31)<2e-12 && q.mean()[1]==0 && std::abs(q.covariance()[0]-2)<2e-12 && std::abs(q.covariance()[3]-2)<2e-12 ? 0:23;
 }
+int installed_baryon_abundance() {
+ using namespace irred::cosmology;
+ const auto owner=prepare_baryon_abundance({.02237,.245,1.6735328383153192e-27,6.646479071583153e-27,"installed synthetic density/abundance","explicit synthetic neutral masses"});
+ const std::array<BaryonAbundanceLteQuery,1> query{{{1./1601,4500}}};
+ const auto result=owner.evaluate_equilibrium(query,"installed supplied matter temperature");
+ return owner.status()==irred::numerics::Status::ok && result.status==irred::numerics::Status::ok && result.solves==1 && result.rows.size()==1 && result.rows[0].equilibrium.electron_density.value && *result.rows[0].equilibrium.electron_density.value>0 ? 0:21;
+}
 int main() {
  const auto result=irred::numerics::log1p_checked(0.5);
  if(result.status!=irred::numerics::Status::ok || std::abs(result.value-0.4054651081081643819780131154643491)>=1e-14) return 1;
@@ -374,5 +382,6 @@ int main() {
  if (const auto predictive_status=installed_gaussian_predictive();predictive_status!=0) return predictive_status;
  if (const auto mixture_status=installed_hydrogen_helium();mixture_status!=0) return mixture_status;
  if(const auto ladder_future_status=installed_ladder_predictive();ladder_future_status!=0) return ladder_future_status;
+ if(const auto abundance_status=installed_baryon_abundance();abundance_status!=0) return abundance_status;
  return installed_correlated_calibration();
 }

@@ -97,7 +97,12 @@ operator closes ground-state H/4He stage fractions with one charge-neutral
 electron density. Temperature and both physical nuclei densities are supplied.
 Original polynomial and Decimal110/150 controls, trace-species limits and tiny
 positive output/refusal tests support its numerical contract. This supplies an
-LTE state, not a helium kinetic history or abundance/cosmology mapping.
+LTE state. The native [supplied baryon abundance](baryon-abundance.md) owner
+now maps physical omega_b and a He4 mass fraction, with explicitly supplied
+neutral effective masses, into nuclei densities and a supplied-temperature LTE
+consumer. Original Decimal and independent charge-root controls test this
+composition. Abundance prediction, helium kinetics and a cosmic history remain
+separate.
 
 The retained native [pure-H history](recombination-drag.md) composes that initial
 condition with the shared thermal background and source-defined

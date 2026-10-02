@@ -28,6 +28,7 @@ Read [AGENTS.md](../AGENTS.md) first, then choose a guide:
 | Calculate a pressureless GR growing mode in C++ | [GR growth](gr-growth.md) |
 | Evaluate supplied-temperature/density hydrogen ionization in C++ | [Hydrogen equilibrium](hydrogen-equilibrium.md) |
 | Evaluate supplied-temperature/density H/He equilibrium with shared electrons | [Hydrogen–helium equilibrium](hydrogen-helium-equilibrium.md) |
+| Map supplied neutral-mass baryon/He abundance and compose shared-electron LTE | [Baryon abundance](baryon-abundance.md) |
 | Prepare pure-H ionization/temperature and finite-endpoint optical histories | [Recombination and drag](recombination-drag.md) |
 | Predict a synthetic SIS point-source image, delay and Gaussian PSF pixels in C++ | [SIS thin lens](sis-thin-lens.md) |
 | Check scientific assumptions | [Scientific contracts](scientific-contracts.md) |
