@@ -11,21 +11,31 @@ Today you can run flat-FLRW background calculations, conditional supernova and B
 The native [Gaussian predictive](docs/gaussian-predictive.md) calculation retains
 a normalized joint future distribution under a proper Gaussian prior, fixed
 linear responses and declared independent future noise. Shared calibration
-uncertainty induces covariance across those synthetic predictions.
+uncertainty induces covariance across those synthetic predictions. The
+[proper-prior synthetic ladder](docs/calibration-predictive.md) now composes
+that law with shared anchor/Cepheid/SN equations and explicit held-out lineage.
+Its posterior H0 projection remains distinct from fixed-truth sampling coverage
+and observational calibration.
 
 The native [pressureless GR growing mode](docs/gr-growth.md) predicts D(a) and f(a) under an explicit radiation-free LCDM approximation, with independent differential-equation controls.
 
 The native [hydrogen equilibrium](docs/hydrogen-equilibrium.md) calculation uses
 supplied temperature/density and fixed atomic assets. The native
 [H/He equilibrium](docs/hydrogen-helium-equilibrium.md) extension solves shared
-electron neutrality for independently supplied nuclei densities. A separate
+electron neutrality for independently supplied nuclei densities. The
+[supplied baryon abundance](docs/baryon-abundance.md) consumer maps explicit
+physical density, He4 mass fraction and neutral effective masses into that state.
+This supplies no abundance prediction or helium kinetic history. A separate
 [pure-hydrogen history](docs/recombination-drag.md) solves a bounded effective
 three-level model with either prescribed radiation temperature or coupled
 Compton/adiabatic matter-temperature evolution. The coupled state supplies
 Thomson optical depth and finite-endpoint visibility with explicit survival mass.
 Bounded explicit massive relics can feed its retained thermal expansion state,
 with distinct identities and measured momentum work. The default work cap stays
-fixed; expensive profiles require an explicit larger allowance.
+fixed; expensive profiles require an explicit larger allowance. An explicit
+[nested FD integration](docs/thermal-neutrino.md) option accelerates tested
+thermal consumers with the same numerical allocations; direct integration
+remains the default.
 Its truncated drag depth and conditional unit-depth root remain distinct from
 a physical drag epoch and the existing supplied-drag ruler.
 

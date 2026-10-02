@@ -6,7 +6,9 @@ Irreducible is being built to help turn a paper's equations into predictions we 
 
 We want to explore the expansion rate H₀, Cepheid and supernova distances, lensing, large-scale structure and the cosmic microwave background. Today the engine offers a smaller set of tools: flat-FLRW backgrounds, conditional supernova and BAO calculations, and Gaussian calculations. You can drive them through a non-interactive CLI or use the C++ library; fitting and plotting can live in your own tools.
 
-The native [H/He equilibrium](https://github.com/sprajs/irreducible/blob/main/docs/hydrogen-helium-equilibrium.md) calculation supplies ground-state fractions with shared electrons for supplied temperature and nuclei densities. A helium kinetic history remains a separate prerequisite.
+The native [H/He equilibrium](https://github.com/sprajs/irreducible/blob/main/docs/hydrogen-helium-equilibrium.md) calculation supplies ground-state fractions with shared electrons for supplied temperature and nuclei densities. The [supplied abundance consumer](https://github.com/sprajs/irreducible/blob/main/docs/baryon-abundance.md) maps explicit physical density, He4 mass fraction and neutral effective masses into that state. A predicted abundance and helium kinetic history remain separate prerequisites.
+
+The [proper-prior synthetic ladder](https://github.com/sprajs/irreducible/blob/main/docs/calibration-predictive.md) shares anchor/Cepheid/SN equations with relative recovery and retains a joint law for explicitly disjoint future rows. It supplies no observational H0 result. Thermal consumers can select [nested FD integration](https://github.com/sprajs/irreducible/blob/main/docs/thermal-neutrino.md) at unchanged numerical allocations; direct integration remains the default.
 
 A future recipe format would put the data sources, model choices and calculation steps in one file, so another person or agent could repeat a paper test and see its assumptions. There is no recipe runner yet. New equations belong in compiled code with tests and review.
 
