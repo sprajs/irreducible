@@ -258,3 +258,13 @@ permutations and unit Jacobians challenge the fixed synthetic contract. Quotas,
 lifetime, all measured allocation sites and independent noise/event declarations
 remain separate gates. See [Gaussian predictive](gaussian-predictive.md); these
 controls do not qualify observational coverage or a released finite-box target.
+
+## Finite abundance-law controls
+
+`baryon_abundance_law_contract` and `baryon_abundance_law_peer_contract` run
+without external assets or a Python reference dependency. The peer facts were
+frozen from original Decimal110/150 exact-binary input calculations with
+Machin pi and direct charge-neutrality bisection. Shared physical constants
+and equations are reference ancestry; native mapping/Newton outputs are not
+expected-value oracles. Density/LTE means and full signed covariance use the
+separate allocations in [the contract](baryon-abundance-law.md).

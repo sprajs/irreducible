@@ -76,7 +76,11 @@ The [H/He mixture equilibrium](hydrogen-helium-equilibrium.md) now supplies
 shared-electron ground-state LTE fractions for independently supplied nuclei
 densities. [Supplied baryon abundance](baryon-abundance.md) now maps explicit
 physical density, He4 mass fraction and neutral effective masses into that LTE
-consumer. Abundance prediction, helium kinetic rates and history remain open;
+consumer. The native [finite joint abundance law](baryon-abundance-law.md)
+propagates supplied correlated density/mass/temperature states into full
+population moments, with separate numerical diagnostics and truthful required
+state refusals. The law itself needs source qualification; G and atomic-asset
+uncertainty remain excluded. Abundance prediction, helium kinetic rates and history remain open;
 LTE cannot replace the missing helium kinetics. The
 [conditional history](recombination-drag.md) advances a bounded effective
 three-level model with the shared thermal background and explicit choice of

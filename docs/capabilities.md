@@ -167,3 +167,13 @@ history controls exercise the opt-in route, with actual node and failed-fallback
 work observed separately from self-reported counters. Read the
 [thermal neutrino guide](thermal-neutrino.md) for the empirical diagnostic and
 method contract. Acceleration supplies no new physical closure.
+
+The native [finite abundance law](baryon-abundance-law.md) retains explicitly
+ordered joint states for physical baryon density, He4 fraction, supplied neutral
+masses and matter temperatures. Existing density/LTE owners evaluate each
+state, and centered population moments preserve full cross-row/output
+covariance. Required failures withhold aggregate moments; unresolved spread
+is refused. Original exact rational and high-precision charge-root controls
+test named synthetic laws. This API supplies source uncertainty conditional on
+fixed G and atomic assets, without abundance prediction, helium kinetics, a
+posterior, observational qualification or CLI/ABI exposure.
