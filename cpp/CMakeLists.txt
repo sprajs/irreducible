@@ -331,3 +331,8 @@ add_executable(test_detector tests/test_detector.cpp)
 target_link_libraries(test_detector PRIVATE irred_core)
 target_compile_options(test_detector PRIVATE -Wall -Wextra -Wpedantic -fno-fast-math -ffp-contract=off)
 add_test(NAME detector_contract COMMAND test_detector)
+
+add_executable(test_detector_peer tests/test_detector_peer.cpp)
+target_link_libraries(test_detector_peer PRIVATE irred_core)
+target_compile_options(test_detector_peer PRIVATE -Wall -Wextra -Wpedantic -fno-fast-math -ffp-contract=off)
+add_test(NAME detector_peer_contract COMMAND test_detector_peer)

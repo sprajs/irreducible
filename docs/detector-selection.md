@@ -38,7 +38,7 @@ uses its mathematical constants; no library implementation is copied. Three
 factual known-answer vectors are pinned to Random123 commit
 9545ff6413f258be2f04c1d319d99aaef7521150. Uniforms are (word+0.5)/2^32;
 word0 drives inverse Poisson CDF, words1/2 drive Box–Muller Gaussian read noise.
-All four words and the address are returned. No mutable generator state exists.
+All four words and the address are returned even when a detector row fails admission. No mutable generator state exists.
 Duplicate addresses in a batch fail; intentional replay across calls is allowed.
 Sharding and order leave each address unchanged. Distinct counters and empirical
 cross-moment tests are not a proof of statistical independence. Uniform
@@ -57,7 +57,7 @@ measure mismatches fail. Structural zeros have an explicit zero_probability
 flag and no finite log value; unresolved positive probabilities fail instead.
 
 Likelihood sums both Gaussian/Poisson tails directly rather than subtracting a
-rare detection from one. At most 256 Poisson terms are admitted. A geometric
+rare detection from one. TwoSum/FMA residuals retain coordinate-transform diagnostics. Unresolved discrete threshold edges refuse; continuous coordinate sensitivity propagates through CDF and density diagnostics. At most 256 Poisson terms are admitted. A geometric
 omitted-tail estimate and floating-point diagnostics gate each result before
 normalization/logarithms; default probability allocation is 5e-13 absolute plus
 2e-11 relative, with a separate scaled log sensitivity gate. These numerical
@@ -68,6 +68,8 @@ payload admission. Bounds cover owner/vector payload and address-sort scratch,
 excluding borrowed inputs, stack, allocator overhead and RSS. Successful other
 rows survive invalid detector inputs in simulation; likelihood shares one fixed
 detector source across its batch.
+
+An original independent characteristic-function inversion using refined Gauss–Legendre integration tests both density and CDF, without the production Poisson mixture sum. Refinement consumes at most 5% of the named log-density allocation.
 
 Permanent controls include analytic moments, Poisson masses/censoring, the
 zero-Poisson Gaussian limit and its ADU Jacobian, structural support, generator

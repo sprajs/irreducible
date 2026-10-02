@@ -22,6 +22,20 @@ bool represent(W x, double &d) {
   return std::isfinite(d) &&
          (x == 0 || (d != 0 && std::fpclassify(d) == FP_NORMAL));
 }
+struct Mapped { W value, error; };
+// TwoSum subtraction and FMA product residual retain a lost threshold edge.
+// The returned residual/arithmetic diagnostic is not a rigorous libm bound.
+Mapped electron_coordinate(W adu, W bias, W gain) {
+  const W difference = adu - bias, bp = difference - adu;
+  const W low = (adu - (difference - bp)) + (-bias - bp);
+  const W high = difference * gain;
+  const W product_low = std::fma(difference, gain, -high);
+  const W low_product = low * gain;
+  const W correction = product_low + low_product, value = high + correction;
+  const W error = std::abs(correction - (value - high)) +
+                  8 * eps * (std::abs(product_low) + std::abs(low_product));
+  return {value, error};
+}
 } // namespace
 std::optional<std::size_t> likelihood_payload_bound(std::size_t n) noexcept {
   if (n > (SIZE_MAX - sizeof(LikelihoodBatch)) / sizeof(LikelihoodRow))
@@ -91,11 +105,23 @@ LikelihoodBatch likelihood(const Input &source,
           (sd > 0 && (!obs.measured_adu || obs.electron_count)))) ||
         (obs.measured_adu && !normal(*obs.measured_adu)))
       continue;
-    const W threshold = (W(obs.detection_threshold_adu) - bias) * g;
+    const auto mapped_threshold = electron_coordinate(obs.detection_threshold_adu,bias,g);
+    const W threshold = mapped_threshold.value;
+    const auto mapped_observed = obs.measured_adu
+      ? electron_coordinate(*obs.measured_adu,bias,g) : Mapped{0,0};
+    if (!std::isfinite(threshold) || !std::isfinite(mapped_observed.value)) {
+      r.status=S::overflow; continue;
+    }
     W below = 0, above = 0, density = 0;
+    W mapping_density_error=0;
+    bool unresolved=false;
     // Sum both tails directly: 1-CDF would lose rare detections.
     for (std::size_t n = 0; n < out.poisson_terms; ++n) {
       if (sd == 0) {
+        if (mapped_threshold.error>0 &&
+            std::abs(W(n)-threshold)<=mapped_threshold.error) {
+          unresolved=true; break;
+        }
         if (W(n) < threshold)
           below += weights[n];
         else
@@ -105,13 +131,24 @@ LikelihoodBatch likelihood(const Input &source,
         below += weights[n] * std::erfc(-t) / 2;
         above += weights[n] * std::erfc(t) / 2;
         if (obs.detected) {
-          const W z = ((W(*obs.measured_adu) - bias) * g - W(n)) / sd;
-          density += weights[n] * std::exp(-z * z / 2) * g /
-                     (sd * std::sqrt(2 * std::numbers::pi_v<W>));
+          const W z = (mapped_observed.value-W(n)) / sd;
+          const W term=weights[n] * std::exp(-z*z/2)*g /
+                     (sd*std::sqrt(2*std::numbers::pi_v<W>));
+          const W dz=mapped_observed.error/sd;
+          const W log_error=std::abs(z)*dz+dz*dz/2;
+          if (!std::isfinite(log_error) || log_error>.1L) { unresolved=true; break; }
+          density+=term;
+          mapping_density_error+=term*std::expm1(log_error);
         }
       }
     }
-    const W probability_error = tail + 128 * eps * out.poisson_terms;
+    if (sd==0 && obs.electron_count && mapped_threshold.error>0 &&
+        std::abs(W(*obs.electron_count)-threshold)<=mapped_threshold.error)
+      unresolved=true;
+    if (unresolved) { r.status=S::conditioning_budget_exceeded; continue; }
+    const W mapping_probability_error=sd>0
+      ? mapped_threshold.error/(sd*std::sqrt(2*std::numbers::pi_v<W>)) : 0;
+    const W probability_error = tail + 128 * eps * out.poisson_terms + mapping_probability_error;
     W chosen = obs.detected ? density : below;
     W chosen_error = probability_error;
     bool structural_zero = false;
@@ -137,7 +174,7 @@ LikelihoodBatch likelihood(const Input &source,
         structural_zero = true;
       if (obs.detected)
         chosen_error = tail * g / (sd * std::sqrt(2 * std::numbers::pi_v<W>)) +
-                       128 * eps * out.poisson_terms * std::abs(density);
+                       128 * eps * out.poisson_terms * std::abs(density) + mapping_density_error;
     }
     if (!accepted(above, probability_error, p) ||
         !accepted(chosen, chosen_error, p)) {

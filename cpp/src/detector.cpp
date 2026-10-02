@@ -10,6 +10,7 @@ using W = long double;
 using S = numerics::Status;
 bool arithmetic() {
   return std::numeric_limits<W>::digits >= 64 &&
+         std::numeric_limits<W>::max_exponent >= 16384 &&
          std::fegetround() == FE_TONEAREST;
 }
 S store(W x, std::optional<double> &v) {
@@ -139,11 +140,11 @@ Batch simulate(std::span<const Request> inputs, std::uint64_t seed, Policy p) {
     auto &d = out.rows.back();
     d.source = x.source;
     d.address = x.address;
+    d.words = random_words(seed, x.address);
     const auto m = moments(x.source);
     d.status = m.status;
     if (m.status != S::ok)
       continue;
-    d.words = random_words(seed, x.address);
     const W lambda = *m.poisson_mean_electrons;
     W weight = std::exp(-lambda), cdf = weight;
     const W u = halfbin(d.words[0]);

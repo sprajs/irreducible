@@ -177,6 +177,23 @@ void sampling() {
       "duplicate addresses rejected");
 }
 void invalid() {
+  { auto model=input(); model.bias_adu=-1;
+    const Observation edge[]{ {1e-300,false,{},{},SelectionMeasure::joint_detection_record} };
+    auto result=likelihood(model,edge,policy());
+    need(result.rows.size()==1 && result.rows[0].status!=S::ok && !result.rows[0].log_value, "unresolved positive discrete threshold edge refuses");
+  }
+  { auto model=input(); model.bias_adu=-1; model.read_noise_rms_electrons=1e-300;
+    const Observation edge[]{ {1e-300,false,{},{},SelectionMeasure::joint_detection_record}, {1e-300,true,{},1e-300,SelectionMeasure::joint_detection_record} };
+    auto result=likelihood(model,edge,policy());
+    for(const auto &row:result.rows) need(row.status!=S::ok && !row.log_value, "unresolved continuous coordinate refuses");
+    const Request request[]{ {model,{4,5}} };
+    model.expected_transmitted_photons=-1;
+    const Request invalid_request[]{ {model,{4,5}} };
+    auto invalid_draw=simulate(invalid_request,7,{1,1024*1024});
+    need(invalid_draw.rows.size()==1 && invalid_draw.rows[0].status!=S::ok && invalid_draw.rows[0].words==random_words(7,{4,5}), "failed source retains real counter words");
+    (void)request;
+  }
+
   auto x = input();
   x.photon_law = PhotonLaw::unspecified;
   need(moments(x).status != S::ok, "photon generating law explicit");
