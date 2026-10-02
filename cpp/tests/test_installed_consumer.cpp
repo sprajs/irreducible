@@ -20,6 +20,7 @@
 #include <irred/temporal_photometry.hpp>
 #include <irred/detector_selection.hpp>
 #include <irred/photometry_calibration.hpp>
+#include <irred/optical_detector.hpp>
 #include <irred/calibration_ladder.hpp>
 #include <irred/calibration_predictive.hpp>
 #include <irred/early_late.hpp>
@@ -63,6 +64,28 @@ int installed_passband_calibration() {
  return result.status==irred::numerics::Status::ok && result.moments && result.axes.size()==1 &&
   std::abs(result.moments->mean[0]/(.5*energy)-1)<2e-10 &&
   std::abs(result.moments->covariance[0]/(.09*energy*energy)-1)<2e-8 ? 0 : 8;
+}
+int installed_optical_detector() {
+ using namespace irred::photometry;
+ const std::array<double,2> wavelength{1,2}, luminosity{8e-24,8e-24}, low{.25,.25}, high{.75,.75};
+ const std::array<CalibrationBand,2> bands{{{"a",wavelength,1,1},{"b",wavelength,1,1}}};
+ const std::array<std::span<const double>,2> low_arrays{low,low}, high_arrays{high,high};
+ const std::array<CalibrationState,2> states{{{"low",1,low_arrays},{"high",3,high_arrays}}};
+ const std::array<DetectorBand,2> detectors{{{irred::detector::PhotonLaw::poisson_arrivals,1},
+  {irred::detector::PhotonLaw::poisson_arrivals,.5}}};
+ const std::array<irred::detector::Observation,2> nondetections{{{1,false,{},{}},{1,false,{},{}}}};
+ const std::array<OpticalDetectorRecord,1> records{{{"original",nondetections}}};
+ const OpticalDetectorInput input{{{wavelength,luminosity},1,0,bands,states,
+  "installed synthetic spectrum","supplied optical states","masses1:3","one shared state"},
+  detectors,records,ConditionalDetectorLaw::independent_poisson_and_read,
+  "installed synthetic detector","two retained nondetections","independent conditional arrivals"};
+ const auto result=evaluate_optical_detector(input);
+ const long double full=static_cast<long double>(luminosity[0])*1.5L/
+  (4*std::numbers::pi_v<long double>*6.62607015e-34L*299792458.L);
+ const long double expected=.25L*std::exp(-1.5L*.25L*full)+.75L*std::exp(-1.5L*.75L*full);
+ return result.status==irred::numerics::Status::ok && result.records.size()==1 &&
+  result.records[0].log_value && !result.optical.moments && result.attempts.size()==4 &&
+  std::abs(*result.records[0].log_value-std::log(expected))<2e-10L ? 0 : 28;
 }
 int installed_correlated_calibration() {
  using namespace irred::statistics;
@@ -436,6 +459,7 @@ int main() {
  if (!(dm.status==irred::numerics::Status::ok && dl.status==irred::numerics::Status::ok && dm.value && dl.value && std::abs(*dm.value-exact_dm)<1e-7 && std::abs(*dl.value-2*exact_dm)<1e-7)) return 5;
  if (const auto ladder_status=installed_ladder();ladder_status!=0) return ladder_status;
  if (const auto calibration_status=installed_passband_calibration();calibration_status!=0) return calibration_status;
+ if (const auto optical_status=installed_optical_detector();optical_status!=0) return optical_status;
  if (const auto bao_status=installed_conditional_bao();bao_status!=0) return bao_status;
  if (const auto thermal_status=installed_thermal_observables();thermal_status!=0) return thermal_status;
  if (const auto posterior_status=installed_gaussian_posterior();posterior_status!=0) return posterior_status;

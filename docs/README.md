@@ -17,6 +17,7 @@ Read [AGENTS.md](../AGENTS.md) first, then choose a guide:
 | Integrate a declared spectral-time source over observer exposures in C++ | [Temporal photometry](temporal-photometry.md) |
 | Simulate bounded detector counts and score threshold censoring in C++ | [Detector and censoring](detector-selection.md) |
 | Propagate a finite shared passband calibration law in C++ | [Photometry calibration](photometry-calibration.md) |
+| Marginalize shared optical states in a joint detector/censoring law | [Optical-state detector](optical-detector.md) |
 | Make a request | [CLI contract](cli.md) |
 | Interpret an output | [Run records](run-records.md) |
 | Add a model, reader or calculation | [Development](development.md) and [architecture](architecture.md) |
