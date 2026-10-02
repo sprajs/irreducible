@@ -228,6 +228,16 @@ first exposed that refusal at redshift 1300; both the original diagnostic
 failure and the subsequent default full-group refusal are preserved. A larger
 mesh is an explicit caller request, not an automatic fallback or budget change.
 
+The installed standalone consumer in `cpp/tests/test_installed_consumer.cpp`
+uses the public `irred/hydrogen_helium_history.hpp` header and linked static
+library. It prepares synthetic supplied nuclei with the explicit N=16384
+policy, retains a copy after replacing the original owner and changing caller
+inputs, moves that copy, and evaluates an ordered three-redshift batch. It
+checks all five output groups and the same shared-charge equation without
+additional physical work. `tools/check_install.py` compiles and runs this
+consumer against a fresh install. This exercises SDK composition and lifetime;
+it does not qualify cosmic nuclei inputs or the absent physical drag tail.
+
 The permanent independent comparison uses an original three-variable order3
 L-stable Radau IIA algorithm in log expansion, a direct scaled-cubic Saha
 initialization and a separately authored escape-rate form. It imports no

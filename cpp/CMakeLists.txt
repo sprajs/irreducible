@@ -532,12 +532,4 @@ add_test(NAME growth_rsd_peer_contract COMMAND test_growth_rsd_peer)
 # Joint finite optical-state detector and all-band selection consumer.
 include(cmake/optical_detector.cmake)
 # Distinct bounded singlet H/He history with one shared electron density.
-target_sources(irred_core PRIVATE src/hydrogen_helium_history.cpp)
-add_executable(test_hydrogen_helium_history tests/test_hydrogen_helium_history.cpp)
-target_link_libraries(test_hydrogen_helium_history PRIVATE irred_core)
-target_compile_options(test_hydrogen_helium_history PRIVATE -Wall -Wextra -Wpedantic -fno-fast-math -ffp-contract=off)
-add_test(NAME hydrogen_helium_history_contract COMMAND test_hydrogen_helium_history)
-add_executable(test_hydrogen_helium_history_peer tests/test_hydrogen_helium_history_peer.cpp)
-target_link_libraries(test_hydrogen_helium_history_peer PRIVATE irred_core)
-target_compile_options(test_hydrogen_helium_history_peer PRIVATE -Wall -Wextra -Wpedantic -fno-fast-math -ffp-contract=off)
-add_test(NAME hydrogen_helium_history_peer_contract COMMAND test_hydrogen_helium_history_peer)
+include(cmake/hydrogen_helium_history.cmake)
