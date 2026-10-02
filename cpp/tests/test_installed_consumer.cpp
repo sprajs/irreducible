@@ -155,7 +155,7 @@ int installed_measurement_pipeline() {
  const TemporalExposure exposure[]{ {0,0,1,0,1,0,0,1} };
  const auto predicted=evaluate_temporal(owner,exposure);
  if(predicted.rows.size()!=1 || !predicted.rows[0].expected_photons.value) return 14;
- const Input model{PhotonLaw::poisson_arrivals,*predicted.rows[0].expected_photons.value,1,0,0,1,0,1,0};
+ const irred::detector::Input model{PhotonLaw::poisson_arrivals,*predicted.rows[0].expected_photons.value,1,0,0,1,0,1,0};
  const Request request[]{ {model,{1,1}} };
  const auto measured=simulate(request,123,{1,1024*1024});
  if(measured.rows.size()!=1 || measured.rows[0].status!=irred::numerics::Status::ok || !measured.rows[0].poisson_electrons) return 14;
