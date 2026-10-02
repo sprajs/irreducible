@@ -226,3 +226,15 @@ allocation failures are separate engineering gates. Read
 [the history guide](recombination-drag.md) before composing this native SDK.
 These tests do not qualify helium, a physical drag epoch, present-day CMB
 visibility, observational uncertainty or a full LambdaCDM recombination model.
+
+## Retained joint Gaussian predictive controls
+
+Original covariance-route/cofactor and exact rational controls check predictive
+mean and full covariance. Direct prior-times-training-times-future integration
+checks three future vectors, including the predictive mean; independent native
+joint-density quadrature checks normalization. Null/rank-deficient training,
+shared/repeated responses, internally correlated future noise, coherent parameter
+permutations and unit Jacobians challenge the fixed synthetic contract. Quotas,
+lifetime, all measured allocation sites and independent noise/event declarations
+remain separate gates. See [Gaussian predictive](gaussian-predictive.md); these
+controls do not qualify observational coverage or a released finite-box target.

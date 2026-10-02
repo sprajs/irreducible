@@ -61,6 +61,13 @@ its unboxed fixed-coordinate profile is distinct from box-supported inference.
 Three source constraint-mean sensitivity pairs at fixed design/covariance are
 recorded. They do not normalize the box posterior, supply a full systematic
 uncertainty or qualify observational held-out predictions.
+The native [Gaussian predictive](gaussian-predictive.md) prerequisite now retains
+a normalized joint future distribution for fixed synthetic linear responses
+under the proper Gaussian parameter prior and declared independent future noise.
+It propagates shared parameter covariance without treating the predictive law
+as another measurement. Observational held-out qualification still requires
+resolved object/calibration/selection dependence, and the released finite-box
+target remains a separate measure and normalization problem.
 See [Gaussian design](gaussian-design.md).
 
 The native [hydrogen equilibrium](hydrogen-equilibrium.md) model now supplies

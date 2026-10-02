@@ -426,3 +426,12 @@ foreach(mixture_test IN ITEMS hydrogen_helium_equilibrium hydrogen_helium_equili
   target_compile_options(test_${mixture_test} PRIVATE -Wall -Wextra -Wpedantic -fno-fast-math -ffp-contract=off)
   add_test(NAME ${mixture_test}_contract COMMAND test_${mixture_test})
 endforeach()
+
+# Fixed linear posterior predictions with declared independent future noise.
+target_sources(irred_core PRIVATE src/gaussian_predictive.cpp)
+foreach(predictive_test IN ITEMS gaussian_predictive gaussian_predictive_peer)
+  add_executable(test_${predictive_test} tests/test_${predictive_test}.cpp)
+  target_link_libraries(test_${predictive_test} PRIVATE irred_core)
+  target_compile_options(test_${predictive_test} PRIVATE -Wall -Wextra -Wpedantic -fno-fast-math -ffp-contract=off)
+  add_test(NAME ${predictive_test}_contract COMMAND test_${predictive_test})
+endforeach()
