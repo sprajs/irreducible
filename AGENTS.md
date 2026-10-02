@@ -73,6 +73,9 @@ The explicit mass sheet preserves synthetic degeneracies; its base SIS velocity
 parameter is not an observed stellar-kinematics constraint. A measured system
 needs separate mass/source/environment, instrument and inference contracts.
 
+Read [temporal photometry](docs/temporal-photometry.md) before composing spectral-time grids: the mean uses the full observer exposure and an explicit source epoch; zero outside supplied support is a declared source model.
+Read [detector and censoring](docs/detector-selection.md) before generating counts: a supplied expectation needs an explicit arrival law, quantum efficiency follows optical transmission, and probability, ADU density and log numerical allocations have distinct units. Preserve seed/address identities and nondetections; synthetic recovery does not qualify a measured camera or population.
+
 ## Repository traps and publication
 
 [schema/abi.json](schema/abi.json) owns the shared C/Rust ABI; regenerate with `tools/generate_abi.py`, never hand-edit bindings. No cross-language exception unwinding or per-row FFI. Public documentation is in `docs/`; keep executable discovery and docs consistent with actual gates.
