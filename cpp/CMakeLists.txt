@@ -348,3 +348,10 @@ foreach(hydrogen_test IN ITEMS hydrogen_equilibrium hydrogen_equilibrium_peer hy
   target_compile_options(test_${hydrogen_test} PRIVATE -Wall -Wextra -Wpedantic -fno-fast-math -ffp-contract=off)
   add_test(NAME ${hydrogen_test}_contract COMMAND test_${hydrogen_test})
 endforeach()
+
+# Pure-H effective three-level / prescribed-temperature conditional history.
+target_sources(irred_core PRIVATE src/recombination_drag.cpp)
+add_executable(test_recombination_drag tests/test_recombination_drag.cpp)
+target_link_libraries(test_recombination_drag PRIVATE irred_core)
+target_compile_options(test_recombination_drag PRIVATE -Wall -Wextra -Wpedantic -fno-fast-math -ffp-contract=off)
+add_test(NAME recombination_drag_contract COMMAND test_recombination_drag)
