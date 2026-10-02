@@ -16,7 +16,9 @@ uncertainty induces covariance across those synthetic predictions.
 The native [pressureless GR growing mode](docs/gr-growth.md) predicts D(a) and f(a) under an explicit radiation-free LCDM approximation, with independent differential-equation controls.
 
 The native [hydrogen equilibrium](docs/hydrogen-equilibrium.md) calculation uses
-supplied temperature/density and fixed atomic assets. A separate
+supplied temperature/density and fixed atomic assets. The native
+[H/He equilibrium](docs/hydrogen-helium-equilibrium.md) extension solves shared
+electron neutrality for independently supplied nuclei densities. A separate
 [pure-hydrogen history](docs/recombination-drag.md) solves a bounded effective
 three-level model with either prescribed radiation temperature or coupled
 Compton/adiabatic matter-temperature evolution. The coupled state supplies

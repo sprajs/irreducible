@@ -71,7 +71,11 @@ target remains a separate measure and normalization problem.
 See [Gaussian design](gaussian-design.md).
 
 The native [hydrogen equilibrium](hydrogen-equilibrium.md) model now supplies
-separate ground-state pure-H fractions under supplied temperature/density. The
+separate ground-state pure-H fractions under supplied temperature/density.
+The [H/He mixture equilibrium](hydrogen-helium-equilibrium.md) now supplies
+shared-electron ground-state LTE fractions for independently supplied nuclei
+densities. Helium kinetic rates, cosmological abundance mapping and history
+remain open; LTE cannot replace the missing helium kinetics. The
 [conditional history](recombination-drag.md) advances a bounded effective
 three-level model with a massless thermal background and explicit choice of
 prescribed Tm=Tr or coupled Compton/adiabatic matter temperature. The coupled

@@ -75,6 +75,9 @@ Read [hydrogen equilibrium](docs/hydrogen-equilibrium.md) and the
 consumers. Atomic central values/uncertainty, equilibrium assumptions and
 prescribed or evolved Compton/adiabatic temperature and rate approximations are
 separate from numerical error.
+The [H/He equilibrium](docs/hydrogen-helium-equilibrium.md) prerequisite uses
+one shared electron density and independently supplied nuclei densities. It
+provides ground-state LTE, not abundance mapping or helium kinetics.
 The shared Saha operator supplies only the initial condition. A truncated
 late-endpoint unit-depth root must not replace a source-defined physical drag
 epoch or imply full recombination, helium or CMB closure. Finite-endpoint
