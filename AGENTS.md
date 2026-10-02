@@ -18,6 +18,11 @@ Use coarse batches and explicit ownership. Acquire/validate an immutable observa
 
 State equations, assumptions, domains and justified error budgets before coding or optimizing. Test analytic limits, independent algorithms, high precision/refinement and adversarial invalid inputs. Shared ancestry is not independent evidence. Preserve a failed result before changing an expectation; never hide discrepancies with jitter, dropped rows or weaker budgets.
 
+Sampled photometry uses pooled coarse ABI2 batches and strict inline CLI inputs.
+Preserve source roles and exact sample order; optical transmission excludes
+quantum efficiency and electronic gain. Calibration uncertainty is separately
+excluded or propagated by its declared native law; read [photometry](docs/photometry.md).
+
 Keep observations, fitted summaries, assumptions and synthetic controls distinct. Track units, frames, calibration, source/axis order, selection and dependence; unknown overlap is not independence. Numerical acceptance does not establish inference or interpretation. Operation code owns output IDs, method/arithmetic and check status; the common recorder must not infer them from operation names.
 
 Measure performance at matched quality and resource limits, including setup/memory. Keep a portable baseline and explicit arithmetic/ISA contracts. Review affected consumers whenever shared kernels change. Review licensing before copying code/assets.
@@ -48,11 +53,16 @@ in the sole active roadmap.
 Use the native thermal distance/ruler consumer only with its explicitly mapped
 physical densities, temperatures and species. It shares the thermal E/H state;
 the massless early/late and conditional-density consumers retain their distinct
-physical identity. Read [thermal observables](docs/thermal-observables.md) before
+physical identity. Thermal BAO uses the same mapped state and retained ordered
+covariance; fixed physical densities do not imply H0 cancellation. Read
+[thermal BAO](docs/bao-thermal.md) and [thermal observables](docs/thermal-observables.md) before
 composing a new consumer; do not substitute one model for another silently. Conditional estimator variance assumes fixed design and supplied
 Gaussian observation noise; a synthetic H0 sampling law requires an explicitly
 declared generating mean. Neither calculation supplies a parameter posterior or
-observational qualification. Read their guides before composing a new consumer.
+observational qualification. The native [Gaussian posterior](docs/gaussian-posterior.md)
+requires an independent proper SPD Gaussian parameter prior and fixed linear
+design. It does not normalize a zero-width coordinate or a released box target;
+never apply an already-marginalized prior twice. Read their guides before composing a new consumer.
 
 ## Repository traps and publication
 

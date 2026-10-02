@@ -133,6 +133,26 @@ def build_schema(abi, fixture):
         "requested_outputs": outputs(abi["photometry_tags"]["output"]),
         "resource_policy": obj({"maximum_rows": {**uint, "maximum": 65536},
             "maximum_native_bytes": {**uint, "maximum": 1073741824}})})
+    bounded_text = {"type": "string", "minLength": 1, "maxLength": 1024}
+    pool_meta = {"id": {"type": "string", "minLength": 1, "maxLength": 256},
+        "source_role": enum(("measured", "fitted_summary", "calibration_asset", "synthetic_control")),
+        "provenance": bounded_text}
+    defs["sampled_photometry"] = operation("photometry.predict", {
+        "source_model": {"const": "piecewise_linear_rest_luminosity_observed_optical_passband"},
+        "propagation": {"const": "isotropic_luminosity_distance_standard_redshift"},
+        "constants_id": {"const": "si_2019_radiometric_definitions"},
+        "spectra": array(obj({**pool_meta, "rest_wavelength_metre": array(number,65536),
+            "luminosity_watt_per_metre": array(number,65536)}),4096),
+        "passbands": array(obj({**pool_meta, "calibration": enum(("fixed", "declared_uncertainty_excluded")),
+            "calibration_provenance": bounded_text, "observed_wavelength_metre": array(number,65536),
+            "optical_transmission": array(number,65536)}),4096),
+        "exposures": array(obj({"spectrum_index": uint, "passband_index": uint,
+            **{field:number for field in ("luminosity_distance_metre","redshift",
+                "collecting_area_square_metre","observer_exposure_second")}}),65536),
+        "requested_outputs": {**outputs(abi["photometry_tags"]["output"]), "maxItems":3},
+        "resource_policy": obj({**{field:{**uint,"maximum":65536} for field in (
+            "maximum_rows","maximum_total_samples","maximum_samples","maximum_segments")},
+            "maximum_native_bytes": {**uint,"maximum":1073741824}})})
     defs["quantity_metadata"] = obj({key: enum(values) for key, values in abi["quantity_tags"].items()
                                      if key != "quantity_status"})
     defs["quantity"] = operation("quantity.convert", {"values": array(number),
@@ -151,5 +171,5 @@ def build_schema(abi, fixture):
     return {"$schema": "https://json-schema.org/draft/2020-12/schema",
         "$id": "cosmology.run.v2", "$defs": defs,
         "oneOf": [ref(name) for name in ("fixture", "quantity", "numerics", "observations",
-                                          "background", "statistics", "supernova", "bao", "sound_horizon", "photometry")],
+                                          "background", "statistics", "supernova", "bao", "sound_horizon", "photometry", "sampled_photometry")],
         "description": "Structural compiled requests; native domains, numerical gates and scientific qualifications remain distinct."}

@@ -1,4 +1,4 @@
-#include "irred/bao_conditional.hpp"
+#include "irred/bao_thermal.hpp"
 #include "bao_density_projection.hpp"
 #include "payload_accounting.hpp"
 #include <algorithm>
@@ -6,29 +6,29 @@
 #include <limits>
 namespace irred::bao {
 std::optional<size_t>
-conditional_density_payload_bound(size_t m, size_t n, size_t strings,
-                                  unsigned requested) noexcept {
+thermal_density_payload_bound(size_t m, size_t n, size_t strings,
+                              size_t species, size_t maximum_species,
+                              unsigned requested) noexcept {
   if (!requested || (requested & ~7u) || (n && m > SIZE_MAX / n))
     return {};
-  irred::detail::PayloadAccounting b(sizeof(ConditionalDensityBatch));
-  b.add(m, sizeof(ConditionalDensitySlot));
+  irred::detail::PayloadAccounting b(sizeof(ThermalDensityBatch));
+  b.add(m, sizeof(ThermalDensitySlot));
   b.add(strings, 1);
-  b.add(m, 32); // copied-origin SSO allowance
+  b.add(species, sizeof(cosmology::ThermalPhysicalSpecies));
   b.add(m * n, (bool(requested & 2u) + bool(requested & 4u)) * sizeof(double));
-  b.add(n, 12 * sizeof(double) +
-               16 * sizeof(long double)); // serial prediction/solve
-  // At most the sum of all origins is used by any serial provider invocation.
-  const auto provider = cosmology::early_late_payload_bound(n, strings);
+  b.add(n, 12 * sizeof(double) + 16 * sizeof(long double));
+  const auto provider =
+      cosmology::thermal_observables_payload_bound(n, maximum_species, strings);
   if (!provider)
     return {};
   b.add(*provider, 1);
   return b.result();
 }
 
-ConditionalDensityBatch PreparedDensity::evaluate_conditional(
-    std::span<const cosmology::SoundHorizonRequest> points,
-    ConditionalDensityPolicy p) const {
-  ConditionalDensityBatch out;
+ThermalDensityBatch PreparedDensity::evaluate_thermal(
+    std::span<const cosmology::ThermalObservableRequest> points,
+    ThermalDensityPolicy p) const {
+  ThermalDensityBatch out;
   if (status_ != statistics::DensityStatus::finite) {
     out.status = status_;
     out.numerical_status = numerical_status_;
@@ -49,19 +49,31 @@ ConditionalDensityBatch PreparedDensity::evaluate_conditional(
     out.numerical_status = numerics::Status::work_limit;
     return out;
   }
-  irred::detail::PayloadAccounting origins(0), copied_origins(0);
+  irred::detail::PayloadAccounting origins(0), copied_origins(0), species(0);
+  size_t maximum_species = 0;
   for (const auto &x : points) {
-    origins.add(x.drag_origin.size(), 1);
-    if (x.drag_origin.size() == SIZE_MAX)
-      copied_origins.add(SIZE_MAX, 2);
-    else
-      copied_origins.add(std::max(size_t(32), x.drag_origin.size() + 1), 1);
+    for (const auto *origin : {&x.drag_origin, &x.source_origin}) {
+      origins.add(origin->size(), 1);
+      if (origin->size() == SIZE_MAX)
+        copied_origins.add(SIZE_MAX, 2);
+      else
+        copied_origins.add(std::max(size_t(32), origin->size() + 1), 1);
+    }
+    species.add(x.model.species.size(), 1);
+    maximum_species = std::max(maximum_species, x.model.species.size());
+  }
+  if (maximum_species > 16) {
+    out.numerical_status = numerics::Status::outside_domain;
+    return out;
   }
   const auto strings = origins.result();
   const auto copied = copied_origins.result();
-  const auto bytes = copied ? conditional_density_payload_bound(
-                                  points.size(), n, *copied, p.requested)
-                            : std::nullopt;
+  const auto count = species.result();
+  const auto bytes =
+      copied && count
+          ? thermal_density_payload_bound(points.size(), n, *copied, *count,
+                                          maximum_species, p.requested)
+          : std::nullopt;
   if (!strings || *strings > p.maximum_string_bytes || !bytes ||
       *bytes > p.maximum_native_bytes) {
     out.numerical_status = numerics::Status::work_limit;
@@ -90,14 +102,35 @@ ConditionalDensityBatch PreparedDensity::evaluate_conditional(
     auto local = p.predictions;
     local.maximum_total_callbacks =
         std::min(local.maximum_total_callbacks, remaining);
-    local.sound.maximum_total_callbacks =
-        std::min(local.sound.maximum_total_callbacks, remaining);
-    const auto prediction =
-        cosmology::evaluate_early_late(point, z, mask, local);
-    s.callbacks = prediction.callbacks;
-    out.callbacks += s.callbacks;
-    remaining -= s.callbacks;
-    auto cause = prediction.status;
+    local.thermal.maximum_total_callbacks =
+        std::min(local.thermal.maximum_total_callbacks, remaining);
+    // Mapping and normalization occur once for this model, before its coarse
+    // ratio evaluation; normalization failures still charge actual work.
+    const auto owner = cosmology::prepare_thermal_observables(point, local);
+    s.preparation_status = owner.status();
+    s.preparation_callbacks = owner.background().preparation_callbacks();
+    s.momentum_callbacks = s.preparation_callbacks;
+    s.callbacks = s.preparation_callbacks;
+    out.preparation_callbacks += s.preparation_callbacks;
+    out.momentum_callbacks += s.preparation_callbacks;
+    out.callbacks += s.preparation_callbacks;
+    remaining -= s.preparation_callbacks;
+    auto cause = owner.status();
+    cosmology::ThermalObservableBatch prediction;
+    if (cause == numerics::Status::ok) {
+      local.maximum_total_callbacks = std::min(
+          local.maximum_total_callbacks - s.preparation_callbacks, remaining);
+      local.thermal.maximum_total_callbacks -= s.preparation_callbacks;
+      prediction = owner.evaluate(z, mask, local);
+      s.outer_callbacks = prediction.outer_callbacks;
+      s.momentum_callbacks += prediction.momentum_callbacks;
+      s.callbacks += prediction.callbacks;
+      out.outer_callbacks += prediction.outer_callbacks;
+      out.momentum_callbacks += prediction.momentum_callbacks;
+      out.callbacks += prediction.callbacks;
+      remaining -= prediction.callbacks;
+      cause = prediction.status;
+    }
     std::vector<double> mu, r;
     std::vector<long double> eps;
     mu.reserve(n);

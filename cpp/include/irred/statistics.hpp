@@ -83,6 +83,7 @@ std::optional<std::size_t> selected_gaussian_preparation_payload_bound(
 class ProfileOperator;
 class DesignProfile;
 class CorrelatedCalibration;
+class GaussianPosterior;
 class Gaussian {
 public:
   Gaussian() = default;
@@ -164,6 +165,7 @@ private:
   friend class irred::bao::PreparedDensity;
   friend class DesignProfile;
   friend class CorrelatedCalibration;
+  friend class GaussianPosterior;
   friend Gaussian prepare_selected_observations(const observations::Prepared &,
                                                 std::span<const std::size_t>,
                                                 std::size_t, double,

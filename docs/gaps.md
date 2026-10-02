@@ -4,7 +4,7 @@ This assessment separates the current numerical engine from the proposed [roadma
 
 ## What exists
 
-The current engine exposes ten operations: exact integer addition, typed physical conversion, scalar numerical methods, immutable observation preparation, requested flat-FLRW background outputs, Gaussian calculations, conditional SN magnitude profiles and conditional free-ruler BAO densities, deterministic rectangular-passband photometry, and a conditional supplied-drag sound horizon. The late-time backgrounds are LCDM, constant q, CPL and fixed five-bin q. They are bounded CPU calculations with explicit source, arithmetic, numerical and execution contracts. Named wide-arithmetic gates use Linux/GCC long double with at least 64 mantissa bits; hosts where long double equals double are not covered, and Ubuntu CI is a separate engineering check. The early ruler separately assumes flat pressureless matter, massless radiation and Lambda; photon/baryon fractions and drag redshift are supplied, not inferred, and no physical-ruler BAO qualification follows. Gaussian nuisance elimination through the CLI supports a scalar offset. The standalone C++ [multi-column design profile](gaussian-design.md) supplies a bounded linear prerequisite; its relative score is separate from the native synthetic ladder and proper correlated calibration density described below.
+The current engine exposes ten operations: exact integer addition, typed physical conversion, scalar numerical methods, immutable observation preparation, requested flat-FLRW background outputs, Gaussian calculations, conditional SN magnitude profiles and conditional free-ruler BAO densities, deterministic rectangular or sampled-passband photometry, and a conditional supplied-drag sound horizon. The late-time backgrounds are LCDM, constant q, CPL and fixed five-bin q. They are bounded CPU calculations with explicit source, arithmetic, numerical and execution contracts. Named wide-arithmetic gates use Linux/GCC long double with at least 64 mantissa bits; hosts where long double equals double are not covered, and Ubuntu CI is a separate engineering check. The early ruler separately assumes flat pressureless matter, massless radiation and Lambda; photon/baryon fractions and drag redshift are supplied, not inferred, and no physical-ruler BAO qualification follows. Gaussian nuisance elimination through the CLI supports a scalar offset. The standalone C++ [multi-column design profile](gaussian-design.md) supplies a bounded linear prerequisite; its relative score is separate from the native synthetic ladder and proper correlated calibration density described below.
 
 No current runtime request receives a named scientific qualification. Passing the default numerical_contract means that required numerical checks passed; it is not inference or interpretation qualification. Named comparison evidence applies to its recorded inputs/build/domain, not automatically to a new request.
 
@@ -25,8 +25,9 @@ independent high-precision and matched CLASS controls. The native
 [thermal distance/ruler consumer](thermal-observables.md) now maps supplied
 physical densities and explicit temperatures/species and retains one state for
 distances and the conditional supplied-drag ruler. It preserves the massless
-model as a distinct physical identity. Thermal predictions have not yet been
-composed with the retained conditional BAO density. No operator predicts
+model as a distinct physical identity. The native [thermal BAO density](bao-thermal.md)
+now composes these predictions with retained ordered covariance and density-level
+projection checks. Released compression validity remains unqualified. No operator predicts
 thermal/ionization history or drag; there is no implicit Neff/mass hierarchy. The CLI late LCDM background omits radiation and has a
 different physical identity; native early/late and conditional BAO currently
 require a C++ SDK consumer rather than a CLI/C ABI request.
@@ -42,7 +43,10 @@ still need separate qualification. Native QR contrast variance and a synthetic
 ladder H0 sampling law now supply conditional uncertainty under fixed Gaussian
 observation noise and an explicitly assumed generating mean. Named synthetic
 checks do not qualify released-data parameter mapping or coverage. The relative
-profile is not a normalized posterior. Source review now identifies original
+profile is not a normalized posterior. A native [proper Gaussian parameter
+posterior](gaussian-posterior.md) now supplies fixed-linear conditioning under
+an explicitly independent SPD Gaussian prior; it does not normalize the
+released finite-box target or reproduce an observational posterior. Source review now identifies original
 column 46 as 5 log10(H0 in km/s/Mpc); its formal contrast variance on the same
 3492x47 products agrees with independent SVD/QR. A later [Reproducible source audit](https://github.com/sprajs/reproducible/tree/main/experiments/released-ladder)
 now joins all 2150 initial Cepheid rows to the pinned primary table and identifies

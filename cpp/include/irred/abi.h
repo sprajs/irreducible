@@ -16,6 +16,7 @@ typedef struct irred_bao irred_bao;
 typedef struct irred_bao_result irred_bao_result;
 typedef struct irred_sound_horizon_result irred_sound_horizon_result;
 typedef struct irred_photometry_result irred_photometry_result;
+typedef struct irred_sampled_photometry_result irred_sampled_photometry_result;
 #define IRRED_OK 0u
 #define IRRED_ABI_MISMATCH 1u
 #define IRRED_INVALID_INPUT 2u
@@ -240,6 +241,12 @@ typedef struct { uint32_t struct_size; uint32_t abi_version; uint32_t requested_
 typedef struct { uint32_t availability; uint32_t numerical_status; double value; } irred_photometry_scalar;
 typedef struct { uint32_t struct_size; uint32_t abi_version; irred_photometry_input source; uint32_t admission_status; uint32_t reserved; irred_photometry_scalar incident_band_flux; irred_photometry_scalar collected_energy; irred_photometry_scalar expected_transmitted_photons; } irred_photometry_row;
 typedef struct { uint32_t struct_size; uint32_t abi_version; uint32_t numerical_status; uint32_t reserved; const irred_photometry_row* rows; uint64_t row_count; irred_bytes model_id; irred_bytes constants_id; irred_bytes arithmetic_id; irred_bytes propagation_id; } irred_photometry_view;
+typedef struct { uint32_t struct_size; uint32_t abi_version; irred_bytes id; const double* wavelength_metre; const double* values; uint64_t length; uint64_t byte_length; } irred_sampled_photometry_curve;
+typedef struct { uint32_t struct_size; uint32_t abi_version; uint64_t spectrum_index; uint64_t passband_index; double luminosity_distance_metre; double redshift; double collecting_area_square_metre; double observer_exposure_second; } irred_sampled_photometry_exposure;
+typedef struct { uint32_t struct_size; uint32_t abi_version; const irred_sampled_photometry_curve* spectra; uint64_t spectrum_count; uint64_t spectrum_byte_length; const irred_sampled_photometry_curve* passbands; uint64_t passband_count; uint64_t passband_byte_length; const irred_sampled_photometry_exposure* exposures; uint64_t exposure_count; uint64_t exposure_byte_length; } irred_sampled_photometry_batch;
+typedef struct { uint32_t struct_size; uint32_t abi_version; uint32_t requested_outputs; uint32_t reserved; uint64_t maximum_rows; uint64_t maximum_native_bytes; uint64_t maximum_total_samples; uint64_t maximum_samples; uint64_t maximum_segments; } irred_sampled_photometry_policy;
+typedef struct { uint32_t struct_size; uint32_t abi_version; irred_sampled_photometry_exposure source; uint32_t admission_status; uint32_t reserved; irred_photometry_scalar incident_band_flux; irred_photometry_scalar collected_energy; irred_photometry_scalar expected_transmitted_photons; } irred_sampled_photometry_row;
+typedef struct { uint32_t struct_size; uint32_t abi_version; uint32_t numerical_status; uint32_t reserved; const irred_sampled_photometry_curve* spectra; uint64_t spectrum_count; const irred_sampled_photometry_curve* passbands; uint64_t passband_count; const irred_sampled_photometry_row* rows; uint64_t row_count; irred_bytes model_id; irred_bytes constants_id; irred_bytes method_id; irred_bytes arithmetic_id; irred_bytes propagation_id; } irred_sampled_photometry_view;
 uint32_t irred_add(const irred_i64_buffer* a, const irred_i64_buffer* b, uint32_t fault, irred_result** out);
 uint32_t irred_result_view(const irred_result* r, const int64_t** data, uint64_t* n);
 uint32_t irred_result_destroy(irred_result* r);
@@ -289,6 +296,9 @@ uint32_t irred_sound_horizon_result_destroy(irred_sound_horizon_result* result);
 uint32_t irred_photometry_evaluate(const irred_photometry_batch* batch, const irred_photometry_policy* policy, irred_photometry_result** output);
 uint32_t irred_photometry_result_view(const irred_photometry_result* result, irred_photometry_view* output);
 uint32_t irred_photometry_result_destroy(irred_photometry_result* result);
+uint32_t irred_sampled_photometry_evaluate(const irred_sampled_photometry_batch* batch, const irred_sampled_photometry_policy* policy, irred_sampled_photometry_result** output);
+uint32_t irred_sampled_photometry_result_view(const irred_sampled_photometry_result* result, irred_sampled_photometry_view* output);
+uint32_t irred_sampled_photometry_result_destroy(irred_sampled_photometry_result* result);
 static inline uint64_t irred_numerics_output_length(uint32_t operation,uint64_t input) {switch(operation) {
 case IRRED_NUMERICAL_OPERATION_COMPENSATED_SUM:return 1;
 case IRRED_NUMERICAL_OPERATION_LOG_SUM_EXP:return 1;
