@@ -6,6 +6,7 @@
 #include <irred/recombination_drag.hpp>
 #include <irred/sis_thin_lens.hpp>
 #include <irred/gaussian_posterior.hpp>
+#include <irred/gaussian_predictive.hpp>
 #include <irred/sampled_photometry.hpp>
 #include <irred/temporal_photometry.hpp>
 #include <irred/detector_selection.hpp>
@@ -227,6 +228,34 @@ int installed_hydrogen_history() {
   *middle.thomson_depth.value>0 && *middle.visibility_per_redshift.value>0 &&
   *middle.finite_endpoint_survival.value>0 && *middle.finite_endpoint_survival.value<1 ? 0 : 17;
 }
+int installed_gaussian_predictive() {
+ using namespace irred::statistics;
+ const std::array<double,1> C{1},X{1},r{2},R{.5},A{2},y{2};
+ const std::array<std::string,1> train_ids{"training"},future_ids{"future"};
+ Metadata source;source.ordered_ids={"training"};source.measure="product d(mag)";
+ source.source_semantics="synthetic controls";source.table_identity="installed training";
+ source.uncertainty_identity="unit Gaussian noise";source.ordering_provenance="one axis";
+ source.calibration_provenance="synthetic calibration";source.dependence_provenance="one full noise law";
+ auto training=prepare_gaussian(C,MatrixKind::covariance,source,1024,1e-10,irred::numerics::Arithmetic::longdouble_cpu_v1);
+ ParameterPrior prior;prior.ordered_parameter_ids={"beta"};prior.parameter_units={"mag"};
+ prior.mean={0};prior.covariance={1};prior.prior_identity="installed proper prior";
+ prior.design_identity="installed training X";prior.residual_unit="mag";prior.parameter_measure="product d(mag)";
+ prior.dependence_identity="prior independent of training noise";prior.noise_independence_declared=true;
+ auto posterior=GaussianPosterior::prepare(std::move(training),X,train_ids,prior);
+ source.ordered_ids={"future"};source.table_identity="installed future noise";
+ auto noise=prepare_gaussian(R,MatrixKind::covariance,source,1024,1e-10,irred::numerics::Arithmetic::longdouble_cpu_v1);
+ PredictiveMetadata md;md.ordered_parameter_ids={"beta"};md.parameter_units={"mag"};md.response_units={"mag/mag"};
+ md.training_event_ids={"training-event"};md.future_event_ids={"future-event"};md.future_unit="mag";
+ md.future_covariance_unit="mag^2";md.future_measure="product d(mag)";md.response_identity="installed future A";
+ md.conditioning_identity="installed fixed r";md.conditional_noise_identity="independent future noise";
+ md.dependence_identity="future noise independent of prior/training noise";
+ md.future_noise_independence_declared=true;md.noise_conditional_on_parameters_declared=true;
+ auto prediction=GaussianPredictive::prepare(posterior,r,train_ids,noise,A,md);
+ if(prediction.status()!=DensityStatus::finite||prediction.mean().size()!=1||prediction.covariance().size()!=1) return 19;
+ auto density=prediction.log_density(y,future_ids);
+ return std::abs(prediction.mean()[0]-2)<2e-12&&std::abs(prediction.covariance()[0]-2.5)<2e-12&&
+ density.density.status==DensityStatus::finite&&std::abs(density.density.log_value+.5*std::log(5*std::numbers::pi))<2e-11 ? 0 : 19;
+}
 int main() {
  const auto result=irred::numerics::log1p_checked(0.5);
  if(result.status!=irred::numerics::Status::ok || std::abs(result.value-0.4054651081081643819780131154643491)>=1e-14) return 1;
@@ -273,5 +302,6 @@ int main() {
  if (const auto lens_status=installed_sis_thin_lens();lens_status!=0) return lens_status;
  if (const auto temporal_status=installed_temporal();temporal_status!=0) return temporal_status;
  if (const auto pipeline_status=installed_measurement_pipeline();pipeline_status!=0) return pipeline_status;
+ if (const auto predictive_status=installed_gaussian_predictive();predictive_status!=0) return predictive_status;
  return installed_correlated_calibration();
 }

@@ -34,6 +34,7 @@ Read [AGENTS.md](../AGENTS.md) first, then choose a guide:
 | Calculate conditional estimator variance and a synthetic H0 sampling law | [Gaussian design](gaussian-design.md) and [calibration ladder](calibration-ladder.md) |
 | Marginalize a correlated proper calibration prior in C++ | [Correlated calibration](correlated-calibration.md) |
 | Condition a proper Gaussian parameter prior in a fixed linear model | [Gaussian parameter posterior](gaussian-posterior.md) |
+| Predict a normalized joint future vector with proper prior and independent future noise | [Gaussian predictive](gaussian-predictive.md) |
 | Predict and recover a synthetic anchor/Cepheid/SN ladder in C++ | [Calibration ladder](calibration-ladder.md) |
 | Run tests or add a fixture | [Testing](testing.md) and [fixture provenance](../cpp/tests/fixtures/README.md) |
 | Maintain these docs | [Maintenance](maintenance.md) |

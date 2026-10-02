@@ -8,6 +8,11 @@ The goal is to share the physics behind those predictions, from simulated source
 
 Today you can run flat-FLRW background calculations, conditional supernova and BAO comparisons, and Gaussian calculations through the **`irred`** CLI or C++ library. These are the starting tools, not yet a complete simulator or joint cosmological analysis. [Current capabilities](docs/capabilities.md) explain their scope; the [roadmap](docs/roadmap.md) shows what comes next.
 
+The native [Gaussian predictive](docs/gaussian-predictive.md) calculation retains
+a normalized joint future distribution under a proper Gaussian prior, fixed
+linear responses and declared independent future noise. Shared calibration
+uncertainty induces covariance across those synthetic predictions.
+
 The native [pressureless GR growing mode](docs/gr-growth.md) predicts D(a) and f(a) under an explicit radiation-free LCDM approximation, with independent differential-equation controls.
 
 The native [hydrogen equilibrium](docs/hydrogen-equilibrium.md) calculation uses
