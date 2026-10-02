@@ -1,7 +1,8 @@
 #pragma once
 #include "irred/statistics.hpp"
 namespace irred::statistics {
-// This is an explicitly relative quadratic profile, never a density/evidence.
+// evaluate is an explicitly relative quadratic profile, never a density or
+// evidence. GaussianBox separately owns a normalized finite-box completion.
 enum class DesignRank {
   unassessed,
   deficient,
@@ -98,6 +99,7 @@ public:
       const LinearFunctionalMetadata &) const noexcept;
 
 private:
+  friend class GaussianBox;
   Gaussian gaussian_;
   DesignMetadata design_metadata_;
   std::vector<double> x_;
