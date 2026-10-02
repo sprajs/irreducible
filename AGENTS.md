@@ -59,7 +59,10 @@ covariance; fixed physical densities do not imply H0 cancellation. Read
 composing a new consumer; do not substitute one model for another silently. Conditional estimator variance assumes fixed design and supplied
 Gaussian observation noise; a synthetic H0 sampling law requires an explicitly
 declared generating mean. Neither calculation supplies a parameter posterior or
-observational qualification. Read their guides before composing a new consumer.
+observational qualification. The native [Gaussian posterior](docs/gaussian-posterior.md)
+requires an independent proper SPD Gaussian parameter prior and fixed linear
+design. It does not normalize a zero-width coordinate or a released box target;
+never apply an already-marginalized prior twice. Read their guides before composing a new consumer.
 
 ## Repository traps and publication
 
