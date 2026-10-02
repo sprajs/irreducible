@@ -1,6 +1,6 @@
 // Original independent characteristic-function inversion. This integrates
 // exp(lambda*(exp(it)-1)-sigma^2*t^2/2), not the native Poisson mixture sum.
-// GL8 refinements64/128 and128/256 consume<=5% of unchanged density allocation.
+// GL8 refinement128/256 consumes<=5% of the unchanged log-density allocation.
 #include "irred/detector_selection.hpp"
 #include <cmath>
 #include <iostream>

@@ -12,10 +12,9 @@ constexpr W eps = std::numeric_limits<W>::epsilon();
 bool normal(double x) {
   return std::isfinite(x) && (x == 0 || std::fpclassify(x) == FP_NORMAL);
 }
-bool accepted(W x, W error, const SelectionPolicy &p) {
+bool accepted(W x, W error, double absolute, double relative) {
   return x >= 0 && std::isfinite(x) &&
-         error <= W(p.absolute_probability_allowance) +
-                      p.relative_probability_allowance * x;
+         error <= W(absolute) + relative * x;
 }
 bool represent(W x, double &d) {
   d = static_cast<double>(x);
@@ -56,8 +55,14 @@ LikelihoodBatch likelihood(const Input &source,
       !p.maximum_poisson_terms || p.maximum_poisson_terms > 256 ||
       !normal(p.absolute_probability_allowance) ||
       !normal(p.relative_probability_allowance) ||
+      !normal(p.absolute_density_allowance_per_adu) ||
+      !normal(p.relative_density_allowance) ||
+      !normal(p.absolute_log_allowance) || !normal(p.scaled_log_allowance) ||
       p.absolute_probability_allowance <= 0 ||
-      p.relative_probability_allowance <= 0)
+      p.relative_probability_allowance <= 0 ||
+      p.absolute_density_allowance_per_adu <= 0 ||
+      p.relative_density_allowance <= 0 ||
+      p.absolute_log_allowance <= 0 || p.scaled_log_allowance <= 0)
     return out;
   const auto b = likelihood_payload_bound(observations.size());
   if (!b || observations.size() > p.maximum_rows ||
@@ -176,8 +181,14 @@ LikelihoodBatch likelihood(const Input &source,
         chosen_error = tail * g / (sd * std::sqrt(2 * std::numbers::pi_v<W>)) +
                        128 * eps * out.poisson_terms * std::abs(density) + mapping_density_error;
     }
-    if (!accepted(above, probability_error, p) ||
-        !accepted(chosen, chosen_error, p)) {
+    const bool continuous_density = obs.detected && sd > 0;
+    if (!accepted(above, probability_error, p.absolute_probability_allowance,
+                  p.relative_probability_allowance) ||
+        !accepted(chosen, chosen_error,
+                  continuous_density ? p.absolute_density_allowance_per_adu
+                                     : p.absolute_probability_allowance,
+                  continuous_density ? p.relative_density_allowance
+                                     : p.relative_probability_allowance)) {
       r.status = S::conditioning_budget_exceeded;
       continue;
     }
@@ -210,8 +221,8 @@ LikelihoodBatch likelihood(const Input &source,
       error += probability_error / above;
     }
     if (!std::isfinite(logp) ||
-        error > p.relative_probability_allowance +
-                    p.absolute_probability_allowance / (1 + std::abs(logp))) {
+        error > p.scaled_log_allowance +
+                    p.absolute_log_allowance / (1 + std::abs(logp))) {
       r.status = S::conditioning_budget_exceeded;
       continue;
     }

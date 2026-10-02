@@ -177,6 +177,41 @@ void sampling() {
       "duplicate addresses rejected");
 }
 void invalid() {
+  {
+    auto valid = input();
+    valid.read_noise_rms_electrons = 1;
+    auto invalid_source = valid;
+    invalid_source.expected_transmitted_photons = -1;
+    std::array<Request,3> requests{{{valid,{8,10}},
+                                  {invalid_source,{8,11}}, {valid,{8,12}}}};
+    const auto batch = simulate(requests,7,{3,1024*1024});
+    need(batch.status == S::ok && batch.rows.size()==3,
+         "mixed simulation preserves ordered rows");
+    const auto &failed=batch.rows[1];
+    need(failed.status==S::outside_domain && !failed.poisson_electrons &&
+         !failed.read_electrons && !failed.measured_adu,
+         "invalid detector source has typed failure and no physical output");
+    need(failed.address.stream==8 && failed.address.sample==11 &&
+         failed.source.expected_transmitted_photons==-1 &&
+         failed.words==random_words(7,{8,11}),
+         "failed row preserves source address and real words");
+    for (const auto i:{0u,2u}) {
+      const auto replay=simulate(std::span(&requests[i],1),7,{1,1024*1024});
+      need(batch.rows[i].status==S::ok && replay.rows[0].status==S::ok &&
+           batch.rows[i].words==replay.rows[0].words &&
+           batch.rows[i].poisson_electrons==replay.rows[0].poisson_electrons &&
+           batch.rows[i].read_electrons==replay.rows[0].read_electrons &&
+           batch.rows[i].measured_adu==replay.rows[0].measured_adu,
+           "valid neighbor exactly replays around failed source");
+    }
+    std::swap(requests[0],requests[2]);
+    const auto reordered=simulate(requests,7,{3,1024*1024});
+    need(reordered.rows[0].words==batch.rows[2].words &&
+         reordered.rows[0].measured_adu==batch.rows[2].measured_adu &&
+         reordered.rows[2].words==batch.rows[0].words &&
+         reordered.rows[2].measured_adu==batch.rows[0].measured_adu,
+         "mixed rows retain replay after reordering");
+  }
   { auto model=input(); model.bias_adu=-1;
     const Observation edge[]{ {1e-300,false,{},{},SelectionMeasure::joint_detection_record} };
     auto result=likelihood(model,edge,policy());
@@ -223,6 +258,13 @@ void invalid() {
   for (const auto &row : r.rows)
     need(row.status == S::invalid_input, "measure/payload mismatch refused");
   auto p = policy();
+  p.absolute_density_allowance_per_adu=0;
+  need(likelihood(input(),std::span(bad,1),p).status==S::invalid_input,
+       "density allocation has its own positive domain");
+  p=policy();p.absolute_log_allowance=std::numeric_limits<double>::infinity();
+  need(likelihood(input(),std::span(bad,1),p).status==S::invalid_input,
+       "log allocation must be finite");
+  p=policy();
   p.maximum_poisson_terms = 1;
   const Observation o{
       3, false, {}, {}, SelectionMeasure::joint_detection_record};

@@ -16,6 +16,11 @@ struct SelectionPolicy {
   std::size_t maximum_poisson_terms = 256;
   double absolute_probability_allowance = 5e-13,
          relative_probability_allowance = 2e-11;
+  // Continuous density is with respect to the caller's ADU coordinate.
+  double absolute_density_allowance_per_adu = 5e-13,
+         relative_density_allowance = 2e-11;
+  // Dimensionless diagnostic for the returned logarithm.
+  double absolute_log_allowance = 5e-13, scaled_log_allowance = 2e-11;
 };
 struct LikelihoodRow {
   Observation source;

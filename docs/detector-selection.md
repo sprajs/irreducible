@@ -59,8 +59,13 @@ flag and no finite log value; unresolved positive probabilities fail instead.
 Likelihood sums both Gaussian/Poisson tails directly rather than subtracting a
 rare detection from one. TwoSum/FMA residuals retain coordinate-transform diagnostics. Unresolved discrete threshold edges refuse; continuous coordinate sensitivity propagates through CDF and density diagnostics. At most 256 Poisson terms are admitted. A geometric
 omitted-tail estimate and floating-point diagnostics gate each result before
-normalization/logarithms; default probability allocation is 5e-13 absolute plus
-2e-11 relative, with a separate scaled log sensitivity gate. These numerical
+normalization/logarithms. Probability/discrete-mass allocation defaults to
+5e-13 absolute plus 2e-11 relative. Continuous density has its own absolute
+5e-13 ADU^-1 and relative 2e-11 allocation in the caller's ADU coordinate;
+gain rescaling changes density and its absolute error through the explicit
+Jacobian. The separate dimensionless log diagnostic must not exceed
+`scaled_log_allowance + absolute_log_allowance/(1+abs(log_value))`, with defaults
+2e-11 and 5e-13. These numerical
 diagnostics are not rigorous universal certificates or observational noise.
 Configured term exhaustion preserves failed rows; no Gaussian approximation,
 jitter or tail replacement is used. Batch row count is at most 65536 with explicit
