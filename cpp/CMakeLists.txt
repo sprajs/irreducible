@@ -436,7 +436,7 @@ foreach(relic_history_test IN ITEMS hydrogen_relics hydrogen_relics_peer)
 endforeach()
 
 # GNU-compatible ELF linker instrumentation is a Linux GCC/Clang test profile.
-if(CMAKE_SIZEOF_VOID_P EQUAL 8 AND CMAKE_SYSTEM_NAME STREQUAL "Linux" AND CMAKE_CXX_COMPILER_ID MATCHES "^(GNU|Clang)$")
+if(CMAKE_SYSTEM_NAME STREQUAL "Linux" AND CMAKE_CXX_COMPILER_ID MATCHES "^(GNU|Clang)$")
   # Forwarding observation only: preserve failed momentum work, no math replacement.
   add_executable(test_thermal_allocation_work tests/test_thermal_allocation_work.cpp)
   target_link_libraries(test_thermal_allocation_work PRIVATE irred_core)
@@ -533,7 +533,7 @@ add_test(NAME growth_rsd_peer_contract COMMAND test_growth_rsd_peer)
 include(cmake/optical_detector.cmake)
 
 # Forwarding observation of invariant predictive preparation and batch solves.
-if(CMAKE_SYSTEM_NAME STREQUAL "Linux" AND CMAKE_CXX_COMPILER_ID MATCHES "^(GNU|Clang)$")
+if(CMAKE_SIZEOF_VOID_P EQUAL 8 AND CMAKE_SYSTEM_NAME STREQUAL "Linux" AND CMAKE_CXX_COMPILER_ID MATCHES "^(GNU|Clang)$")
   target_compile_definitions(test_gaussian_predictive PRIVATE IRRED_PREDICTIVE_WORK_OBSERVATION)
   target_link_options(test_gaussian_predictive PRIVATE
     "-Wl,--wrap=_ZN5irred8numerics8choleskyESt4spanIKdLm18446744073709551615EEmmNS0_10ArithmeticE"
