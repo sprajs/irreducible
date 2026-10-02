@@ -97,3 +97,10 @@ These are bounded numerical synthetic controls. Radiation or massive-relic
 perturbations, AP/window/estimator mapping, released fitted-compression validity,
 transfer prediction, measured H0, parameter posterior and observational
 qualification require separate contracts and evidence.
+
+A measured f*sigma8 compression needs more than this growth product. The
+[BOSS DR12 analysis](https://arxiv.org/abs/1607.03155) obtains it from
+anisotropic clustering alongside Alcock-Paczynski information. Its estimator,
+survey processing and model dependence would need their own review before
+using that released product here. No BOSS assets or fitted values are included
+in these synthetic regressions.

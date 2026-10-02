@@ -20,3 +20,5 @@ A future recipe format would put the data sources, model choices and calculation
 - Have a model, reader or useful test to add? [Contributions](https://github.com/sprajs/irreducible/blob/main/CONTRIBUTING.md) are welcome, including agent-written pull requests. Start with [agent instructions](https://github.com/sprajs/irreducible/blob/main/AGENTS.md) and the [development guide](https://github.com/sprajs/irreducible/blob/main/docs/development.md).
 
 The [documentation index](https://github.com/sprajs/irreducible/blob/main/docs/README.md) has the full guides. They live alongside the code so that the instructions and calculations can be reviewed together.
+
+The [conditional growth/RSD consumer](https://github.com/sprajs/irreducible/blob/main/docs/growth-rsd.md) predicts supplied-reference sigma8 and f*sigma8 with a full-covariance synthetic density. Radiation/relic transfer and the validity of a measured survey compression remain separate prerequisites.
