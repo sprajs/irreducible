@@ -1,6 +1,7 @@
 // Opt-in quadrature owner controls. Direct comparisons share physical equations;
 // independent numerical references belong to the separately authored peer suite.
 #include "irred/thermal_neutrino.hpp"
+#include "irred/thermal_observables.hpp"
 #include <array>
 #include <bit>
 #include <cmath>
@@ -76,6 +77,23 @@ void owner() {
   require(fail.status()==S::work_limit && fail.preparation_callbacks()==7,"density-only preparation exact scalar cap");
   p=cc();p.maximum_native_bytes=0;
   require(prepare_thermal_background(source,p).status()==S::work_limit,"payload admission precedes quadrature");
+ }
+void observable_admission() {
+  ThermalObservableRequest request{{67.4,.02237,.12,2.7255,0,{{.06,1.95,2}}},
+                                    1059.95,"synthetic supplied drag","synthetic source"};
+  ThermalObservablePolicy selected;selected.thermal=cc();
+  auto op=prepare_thermal_observables(request,selected);
+  require(op.status()==S::ok,"CC observable retained owner");
+  const std::array<double,1> zero{0};
+  for(auto output:{EarlyLateOutput::dm_mpc,EarlyLateOutput::dl_mpc,EarlyLateOutput::dv_mpc}) {
+    auto mask=1u<<static_cast<unsigned>(output);
+    auto rejected=op.evaluate(zero,mask);
+    require(rejected.status==S::invalid_input && rejected.rows.empty(),"zero-distance selector mismatch rejected uniformly");
+    auto empty=op.evaluate({},mask);
+    require(empty.status==S::invalid_input && empty.rows.empty(),"empty batch selector mismatch rejected");
+    auto admitted=op.evaluate(zero,mask,selected);
+    require(admitted.status==S::ok && admitted.rows.size()==1 && admitted.rows[0].outputs[static_cast<unsigned>(output)].value==0,"matching zero-distance selector admitted");
+  }
 }
 }
-int main() { try { moments();owner();std::cout<<"PASS "<<checks<<" thermal CC owner controls\n"; } catch(const std::exception &e) { std::cerr<<"FAIL "<<e.what()<<'\n';return 1; } }
+int main() { try { moments();owner();observable_admission();std::cout<<"PASS "<<checks<<" thermal CC owner controls\n"; } catch(const std::exception &e) { std::cerr<<"FAIL "<<e.what()<<'\n';return 1; } }

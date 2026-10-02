@@ -163,6 +163,16 @@ present closure diagnostics propagate additively to E and H, with no
 independent-random-error assumption. The exact a=1 identities carry zero
 numerical diagnostics because they reuse the model's defined normalization.
 
+The opt-in owner controls include exact massless scalar bits, retained method
+selection/copy/move, uniform empty/zero-distance selector admission and paired
+scalar callback caps. Separate compiled CC consumer-peer targets select the
+method explicitly: the same original high-precision/CLASS distance/ruler facts,
+BAO ratio/cofactor density controls and direct-SI GL16/32/Radau hydrogen cases
+retain their equations, reference ancestry and acceptance allocations. Forwarding
+observers count accepted, refined/discarded-parent and failed direct-fallback
+work independently. A depth-zero policy can refuse both algorithms; fallback
+does not acquire a fresh quota or a larger permitted depth.
+
 Named owner controls test analytic limits, continuity, state weight,
 component closure, callback/payload limits, invalid inputs and dimensional
 failures. Independent peer references use an originally written

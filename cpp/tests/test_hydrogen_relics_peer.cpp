@@ -10,6 +10,13 @@ namespace ref = hydrogen_relic_reference;
 namespace old = hydrogen_thermal_reference;
 using ref::W;
 unsigned checks = 0;
+irred::cosmology::ThermalPolicy scientific_policy() {
+  irred::cosmology::ThermalPolicy p;
+#ifdef IRRED_TEST_NESTED_CC
+  p.momentum_method=irred::cosmology::ThermalMomentumMethod::nested_clenshaw_curtis;
+#endif
+  return p;
+}
 void require(bool ok, const char *what) {
   ++checks;
   if (!ok)
@@ -62,14 +69,14 @@ void fixed_density_h0(const irred::cosmology::ThermalBackground &background,
   auto mapping = map_thermal_physical_model(model);
   require(mapping.status == irred::numerics::Status::ok && mapping.model,
           "fixed-density alternate physical mapping");
-  auto alternate = prepare_thermal_background(*mapping.model);
+  auto alternate = prepare_thermal_background(*mapping.model,scientific_policy());
   require(alternate.status() == irred::numerics::Status::ok,
           "fixed-density alternate background only");
   std::vector<double> scale;
   for (double z : {0., 1., 100., 300., 600., 1000., 1600.})
     scale.push_back(1 / (1 + z));
-  auto first = background.evaluate(scale, thermal_h),
-       second = alternate.evaluate(scale, thermal_h);
+  auto first = background.evaluate(scale, thermal_h,scientific_policy()),
+       second = alternate.evaluate(scale, thermal_h,scientific_policy());
   require(first.status == irred::numerics::Status::ok &&
               second.status == irred::numerics::Status::ok &&
               first.rows.size() == scale.size() &&
@@ -207,6 +214,7 @@ void physical(const Case &test) {
     model.species.push_back(
         {double(a.mass), double(a.temperature), double(a.weight)});
   PureHydrogenPolicy policy;
+  policy.thermal=scientific_policy();
   policy.maximum_total_work = 700000000;
   auto owner = prepare_pure_hydrogen_history(
       {model, test.initial, test.late,
@@ -215,6 +223,10 @@ void physical(const Case &test) {
       policy);
   require(owner.status() == irred::numerics::Status::ok,
           "native explicitly budgeted positive-mass history");
+#ifdef IRRED_TEST_NESTED_CC
+  require(owner.background() && owner.background()->momentum_method()==ThermalMomentumMethod::nested_clenshaw_curtis,
+          "independent Radau case actually retains opt-in CC");
+#endif
   require(owner.work().total() <= policy.maximum_total_work &&
               owner.work().momentum_callbacks > 0,
           "actual native massive momentum work");
@@ -257,7 +269,7 @@ void physical(const Case &test) {
   std::vector<double> scale;
   for (double value : {0., 1., 100., 300., 600., 1000., test.initial})
     scale.push_back(1 / (1 + value));
-  auto H = owner.background()->evaluate(scale, thermal_h);
+  auto H = owner.background()->evaluate(scale, thermal_h,scientific_policy());
   W maximum_H = 0;
   require(H.status == irred::numerics::Status::ok &&
               H.rows.size() == scale.size(),

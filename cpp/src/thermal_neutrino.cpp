@@ -4,6 +4,7 @@
 #include "thermal_constants.hpp"
 #include "thermal_cc_sample.hpp"
 #include "thermal_cc_constants.hpp"
+#include "thermal_fd_sample.hpp"
 #include <algorithm>
 #include <array>
 #include <cfenv>
@@ -61,14 +62,7 @@ S species_status(const ThermalSpecies &s, double a) {
 struct MomentState { long double y, scale; bool pressure; };
 double momentum(double q, const void *v) {
   const auto &s = *static_cast<const MomentState *>(v);
-  const long double x = q;
-  const long double energy = std::hypot(x / s.scale, s.y / s.scale);
-  // exp(-q)/(1+exp(-q)) avoids overflow and the subtraction from one.
-  const long double e = std::exp(-x), fd = e / (1 + e);
-  if (q == 0) return 0;
-  const long double result = s.pressure ? x*x*x*x*fd/(3*energy)
-                                        : x*x*energy*fd;
-  return static_cast<double>(result);
+  return detail::thermal_fd_value(detail::thermal_fd_state(q,s.y,s.scale),s.pressure);
 }
 long double exponential_moment(unsigned n, long double q) {
   long double power = 1, polynomial = 1;
