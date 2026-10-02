@@ -325,3 +325,12 @@ add_executable(test_thermal_observables_peer tests/test_thermal_observables_peer
 target_link_libraries(test_thermal_observables_peer PRIVATE irred_core)
 target_compile_options(test_thermal_observables_peer PRIVATE -Wall -Wextra -Wpedantic -fno-fast-math -ffp-contract=off)
 add_test(NAME thermal_observables_peer_contract COMMAND test_thermal_observables_peer)
+
+# Declared finite spectral-time interpolation; shared sampled radiometry owner.
+target_sources(irred_core PRIVATE src/temporal_photometry.cpp)
+foreach(temporal_test IN ITEMS temporal_photometry temporal_photometry_peer)
+  add_executable(test_${temporal_test} tests/test_${temporal_test}.cpp)
+  target_link_libraries(test_${temporal_test} PRIVATE irred_core)
+  target_compile_options(test_${temporal_test} PRIVATE -Wall -Wextra -Wpedantic -fno-fast-math -ffp-contract=off)
+  add_test(NAME ${temporal_test}_contract COMMAND test_${temporal_test})
+endforeach()
