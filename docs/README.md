@@ -36,6 +36,7 @@ Read [AGENTS.md](../AGENTS.md) first, then choose a guide:
 | Predict a synthetic SIS point-source image, delay and Gaussian PSF pixels in C++ | [SIS thin lens](sis-thin-lens.md) |
 | Check scientific assumptions | [Scientific contracts](scientific-contracts.md) |
 | Profile an ordered multi-column Gaussian model in C++ | [Gaussian design](gaussian-design.md) |
+| Normalize a broad finite uniform-box Gaussian target and bound one coordinate quantile | [Gaussian box](gaussian-box.md) |
 | Calculate conditional estimator variance and a synthetic H0 sampling law | [Gaussian design](gaussian-design.md) and [calibration ladder](calibration-ladder.md) |
 | Marginalize a correlated proper calibration prior in C++ | [Correlated calibration](correlated-calibration.md) |
 | Condition a proper Gaussian parameter prior in a fixed linear model | [Gaussian parameter posterior](gaussian-posterior.md) |

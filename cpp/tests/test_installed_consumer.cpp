@@ -21,6 +21,7 @@
 #include <irred/detector_selection.hpp>
 #include <irred/photometry_calibration.hpp>
 #include <irred/optical_detector.hpp>
+#include <irred/gaussian_box.hpp>
 #include <irred/calibration_ladder.hpp>
 #include <irred/calibration_predictive.hpp>
 #include <irred/early_late.hpp>
@@ -101,6 +102,28 @@ int installed_correlated_calibration() {
  const auto v=op.evaluate(std::array<double,2>{.25,-.5},md.ordered_ids);
  const double expected=-.5*(std::log(3.109375)+2*std::log(2*std::numbers::pi));
  return v.density.status==DensityStatus::finite && std::abs(v.quadratic)<1e-14 && std::abs(v.density.log_value-expected)<2e-12 ? 0 : 7;
+}
+int installed_gaussian_box() {
+ using namespace irred::statistics;
+ Metadata source;
+ source.ordered_ids={"row-a","row-b"}; source.measure="product d(residual)";
+ source.ordering_provenance="installed synthetic order";
+ const std::array<double,4> covariance{1,0,0,1};
+ const std::array<double,2> design{1,1}, residual{0,0};
+ auto gaussian=prepare_gaussian(covariance,MatrixKind::covariance,source,4,1e-10,
+  irred::numerics::Arithmetic::longdouble_cpu_v1);
+ DesignMetadata metadata{{"active0"},{"dimensionless"},{},"dimensionless",
+  "installed two-row shared coefficient","independent synthetic residuals"};
+ auto profile=DesignProfile::prepare(std::move(gaussian),design,source.ordered_ids,std::move(metadata));
+ auto box=GaussianBox::prepare(std::move(profile),{{"active0"},{-8},{8},"d(active0)",
+  "normalized uniform finite synthetic box","fixed1=0 point mass outside active measure"});
+ const auto result=box.evaluate(residual,source.ordered_ids,{0,.5});
+ const long double expected=-std::log(32.L)-.5L*std::log(std::numbers::pi_v<long double>);
+ return result.status==DensityStatus::finite && result.stage==BoxStage::complete &&
+  result.normalization_enclosures_available && result.quantile_enclosure_available &&
+  result.requested_quantile.lower<=0 && result.requested_quantile.upper>=0 &&
+  result.log_observation_normalized_evidence.lower<=expected &&
+  result.log_observation_normalized_evidence.upper>=expected ? 0 : 29;
 }
 int installed_ladder() {
  using namespace irred::calibration;
@@ -460,6 +483,7 @@ int main() {
  if (const auto ladder_status=installed_ladder();ladder_status!=0) return ladder_status;
  if (const auto calibration_status=installed_passband_calibration();calibration_status!=0) return calibration_status;
  if (const auto optical_status=installed_optical_detector();optical_status!=0) return optical_status;
+ if (const auto box_status=installed_gaussian_box();box_status!=0) return box_status;
  if (const auto bao_status=installed_conditional_bao();bao_status!=0) return bao_status;
  if (const auto thermal_status=installed_thermal_observables();thermal_status!=0) return thermal_status;
  if (const auto posterior_status=installed_gaussian_posterior();posterior_status!=0) return posterior_status;
