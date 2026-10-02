@@ -84,7 +84,9 @@ finite-endpoint visibility with boundary survival. Both integrate drag optical
 depth from an explicit late endpoint. Its unit-depth
 root depends on that endpoint and physical approximation; it is not a qualified
 cosmological drag epoch. Bounded positive-mass relics now feed the same retained
-H source, with direct momentum costs charged. No hierarchy/Neff mapping or helium
+H source, with direct momentum costs charged. An explicit nested CC momentum route
+now has the same consumer allocations and independent comparisons; direct
+remains the default, and matched workload evidence governs promotion. No hierarchy/Neff mapping or helium
 kinetics is added. Helium, multilevel rates, atomic/model uncertainty,
 qualified full optical-depth endpoints and reionization remain prerequisites
 before physical-ruler or CMB coupling. Finite-endpoint visibility does not

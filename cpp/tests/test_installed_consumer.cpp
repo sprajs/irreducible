@@ -286,6 +286,14 @@ int installed_hydrogen_helium() {
  const double charge=1e12* *row.hydrogen_ionized.value+1e11*( *row.helium_singly_ionized.value+2* *row.helium_doubly_ionized.value);
  return std::abs(*row.electron_density.value/charge-1)<2e-12 ? 0 : 18;
 }
+int installed_nested_fd() {
+ using namespace irred::cosmology;
+ ThermalPolicy p;p.momentum_method=ThermalMomentumMethod::nested_clenshaw_curtis;
+ const auto moments=evaluate_thermal_moments(1,p);
+ const auto background=prepare_thermal_background({70,5e-5,2e-5,.05,.25,{{.06,.000168,2}}},p);
+ const auto batch=background.evaluate(std::array{.1},thermal_e,p);
+ return moments.status==irred::numerics::Status::ok && moments.rho_moment && std::abs(*moments.rho_moment-6.045645184985879)<1e-9 && background.momentum_method()==p.momentum_method && batch.status==irred::numerics::Status::ok && batch.rows.size()==1 && batch.rows[0].e.value && std::abs(*batch.rows[0].e.value-17.398718835753673)<1e-8 ? 0:22;
+}
 int main() {
  const auto result=irred::numerics::log1p_checked(0.5);
  if(result.status!=irred::numerics::Status::ok || std::abs(result.value-0.4054651081081643819780131154643491)>=1e-14) return 1;
@@ -336,5 +344,6 @@ int main() {
 
  if (const auto predictive_status=installed_gaussian_predictive();predictive_status!=0) return predictive_status;
  if (const auto mixture_status=installed_hydrogen_helium();mixture_status!=0) return mixture_status;
+ if(const auto nested_status=installed_nested_fd();nested_status!=0) return nested_status;
  return installed_correlated_calibration();
 }
