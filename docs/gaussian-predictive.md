@@ -87,6 +87,8 @@ and failed density evaluation supplies no usable likelihood.
 
 ## Numerical and resource contract
 
+At least one training and future coordinate, and at least two parameter
+coordinates, are admitted, matching the existing parameter-posterior contract.
 Finite normal binary64 inputs are required; zero is allowed. Wide products
 require round-to-nearest and long double with at least 64 mantissa bits and
 maximum exponent at least 16384. Arithmetic follows the existing source/noise
