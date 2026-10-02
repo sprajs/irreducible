@@ -98,7 +98,11 @@ qualified full optical-depth endpoints and reionization remain prerequisites
 before physical-ruler or CMB coupling. Finite-endpoint visibility does not
 predict the present-day last-scattering distribution or CMB spectra.
 
-The native [GR growth](gr-growth.md) operator now supplies a bounded radiation-free pressureless growing mode. Matter transfer, radiation/relic perturbations, general lensing potentials and propagation, CMB spectra, stellar/source populations, measured detector/selection laws and survey recovery remain separate gaps. A known cosmology makes these missing
+The native [GR growth](gr-growth.md) operator supplies a bounded radiation-free
+pressureless growing mode. The [conditional amplitude/RSD consumer](growth-rsd.md)
+now adds supplied-reference sigma8/f*sigma8 and a retained full-covariance
+synthetic density. Source amplitude and survey-estimator/AP/window validity
+remain explicit prerequisites for measured RSD. Matter transfer, radiation/relic perturbations, general lensing potentials and propagation, CMB spectra, stellar/source populations, measured detector/selection laws and survey recovery remain separate gaps. A known cosmology makes these missing
 sectors concrete; an H(z) or distance match does not supply them. Use the
 [roadmap](roadmap.md) to choose the next qualified prerequisite after the
 experiment identifies a blocker.

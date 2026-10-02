@@ -268,3 +268,13 @@ Machin pi and direct charge-neutrality bisection. Shared physical constants
 and equations are reference ancestry; native mapping/Newton outputs are not
 expected-value oracles. Density/LTE means and full signed covariance use the
 separate allocations in [the contract](baryon-abundance-law.md).
+
+## Conditional growth/RSD controls
+
+The growth amplitude, RSD owner and `growth_rsd_peer_contract` tests run in
+ordinary native CI. Frozen original mpmath110/150 facts use the original-a
+Heath integral, while production uses its existing adaptive transformed
+integral; an original growing-mode ODE route provides a distinct physical
+comparison. The density facts use an explicit correlated 3x3 adjugate. These
+are named numerical controls under [the declared model](growth-rsd.md),
+without external data or an mpmath runtime dependency.

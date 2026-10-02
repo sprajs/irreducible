@@ -1,4 +1,7 @@
 #include <irred/baryon_abundance_law.hpp>
+
+#include <irred/growth_amplitude.hpp>
+#include <irred/rsd.hpp>
 // Standalone installed-library linkage contract; no survey/science qualification.
 #include <irred/numerics.hpp>
 #include <irred/gaussian_design.hpp>
@@ -355,6 +358,24 @@ int installed_abundance_law() {
   std::abs(r.moments->covariance[0]/(.1875*h*h)-1)<2e-8 &&
   r.moments->covariance[1]==r.moments->covariance[2] ? 0:24;
 }
+int installed_growth_rsd() {
+ using namespace irred;
+ const cosmology::FixedSigma8Source amplitude{.8,1,cosmology::Sigma8Convention::linear_pressureless_total_matter_top_hat_8_over_h_mpc,cosmology::AmplitudeTreatment::fixed_supplied,"installed supplied linear amplitude","synthetic8/h Mpc convention"};
+ const auto growth=cosmology::prepare_gr_growth(cosmology::prepare(cosmology::LCDM(1),cosmology::FlatFLRW{}));
+ const std::array<double,1> scale{.5};
+ const auto prediction=cosmology::evaluate_growth_amplitude(growth,amplitude,scale,3);
+ if(prediction.status!=numerics::Status::ok || !prediction.rows[0].f_sigma8.value || *prediction.rows[0].f_sigma8.value!=.4) return 25;
+ rsd::DensityInput input;auto& source=input.source;
+ source.scale_factors={.5};source.observed={.4};source.ordered_ids={"synthetic row"};source.event_ids={"synthetic event"};source.covariance_axis_ids=source.ordered_ids;
+ source.role=rsd::RowRole::synthetic_control;source.covariance_unit=rsd::CovarianceUnit::dimensionless_f_sigma8_squared;source.amplitude_convention=amplitude.convention;
+ source.table_identity="installed EdS control";source.covariance_identity="unit synthetic variance";source.ordering_provenance="one ordered axis";source.calibration_provenance="fixed supplied amplitude";source.dependence_provenance="one synthetic joint source";input.covariance={1};
+ const auto op=rsd::prepare_density(std::move(input),{1,1,4096,8*1024*1024,1e-10});
+ const rsd::ModelPoint point{cosmology::LCDM(1),cosmology::FlatFLRW{},amplitude};
+ rsd::DensityPolicy policy;policy.maximum_models=1;policy.maximum_queries=1;policy.maximum_string_bytes=4096;policy.maximum_native_bytes=8*1024*1024;policy.maximum_total_callbacks=100;policy.maximum_forward_sensitivity=1e-10;policy.requested=3;
+ const auto r=op.evaluate(std::span(&point,1),policy);
+ return r.status==statistics::DensityStatus::finite && r.slots[0].result && r.slots[0].result->density.status==statistics::DensityStatus::finite &&
+  std::abs(r.slots[0].result->density.log_value+.5*std::log(2*std::numbers::pi))<1e-12 ? 0:25;
+}
 int main() {
  const auto result=irred::numerics::log1p_checked(0.5);
  if(result.status!=irred::numerics::Status::ok || std::abs(result.value-0.4054651081081643819780131154643491)>=1e-14) return 1;
@@ -409,5 +430,7 @@ int main() {
  if(const auto abundance_status=installed_baryon_abundance();abundance_status!=0) return abundance_status;
  if(const auto nested_status=installed_nested_fd();nested_status!=0) return nested_status;
  if(const auto law_status=installed_abundance_law();law_status!=0) return law_status;
+
+ if(const auto rsd_status=installed_growth_rsd();rsd_status!=0) return rsd_status;
  return installed_correlated_calibration();
 }

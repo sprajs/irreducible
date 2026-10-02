@@ -502,3 +502,17 @@ add_executable(test_baryon_abundance_law_peer tests/test_baryon_abundance_law_pe
 target_link_libraries(test_baryon_abundance_law_peer PRIVATE irred_core)
 target_compile_options(test_baryon_abundance_law_peer PRIVATE -Wall -Wextra -Wpedantic -fno-fast-math -ffp-contract=off)
 add_test(NAME baryon_abundance_law_peer_contract COMMAND test_baryon_abundance_law_peer)
+
+# Conditional supplied-amplitude GR growth and bounded synthetic RSD density.
+target_sources(irred_core PRIVATE src/growth_amplitude.cpp src/rsd.cpp)
+foreach(growth_rsd_test IN ITEMS growth_amplitude rsd)
+  add_executable(test_${growth_rsd_test} tests/test_${growth_rsd_test}.cpp)
+  target_link_libraries(test_${growth_rsd_test} PRIVATE irred_core)
+  target_compile_options(test_${growth_rsd_test} PRIVATE -Wall -Wextra -Wpedantic -fno-fast-math -ffp-contract=off)
+  add_test(NAME ${growth_rsd_test}_contract COMMAND test_${growth_rsd_test})
+endforeach()
+
+add_executable(test_growth_rsd_peer tests/test_growth_rsd_peer.cpp)
+target_link_libraries(test_growth_rsd_peer PRIVATE irred_core)
+target_compile_options(test_growth_rsd_peer PRIVATE -Wall -Wextra -Wpedantic -fno-fast-math -ffp-contract=off)
+add_test(NAME growth_rsd_peer_contract COMMAND test_growth_rsd_peer)

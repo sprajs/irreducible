@@ -177,3 +177,13 @@ is refused. Original exact rational and high-precision charge-root controls
 test named synthetic laws. This API supplies source uncertainty conditional on
 fixed G and atomic assets, without abundance prediction, helium kinetics, a
 posterior, observational qualification or CLI/ABI exposure.
+
+The native [conditional growth/RSD consumer](growth-rsd.md) composes the
+radiation-free pressureless GR growing mode with an explicitly supplied linear
+sigma8 normalization and reference epoch. It predicts sigma8 and f*sigma8,
+reusing one reference growth value. A synthetic ordered full-covariance
+Gaussian density retains its factor and has a separate projection-error gate;
+predictions survive density refusal. Independent original ODE, high-precision
+integration and cofactor controls test named cases. This supplies neither a
+transfer-derived sigma8, radiation/relic perturbations, survey/AP/window
+mapping, released-compression validity nor a CLI/ABI operation.
