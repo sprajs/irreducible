@@ -155,3 +155,43 @@ prior-bearing noise, full covariance, ownership/lifetime, arithmetic refusal,
 all measured allocation sites and payload/work limits. These controls do not
 qualify arbitrary supplied inputs, a physical prior, observational held-out
 calibration, H0 posterior/coverage or the released ladder box target.
+
+## Repeated-conditioning contract
+
+For unchanged C, X, m, S, A and R, repeated training vectors obey
+`mu(r)=m+V X^T C^-1(r-Xm)` and `b(r)=A mu(r)`. The normalized future
+covariance `W=R+A V A^T` is independent of r. `GaussianPredictiveConditioning::prepare` consumes a posterior only after
+successful invariant preparation. `evaluate` borrows contiguous row-major
+training/future pools, exact coordinate IDs and a positive count. It owns
+the original posterior, response, source/parameter/event lineage and one W
+factor; no posterior or input noise factor is cloned. Ownership transfers only
+after successful preparation. Original vectors belong to the caller and each
+coarse batch preserves their order and individual refusals. A changed design,
+prior, response or noise requires another owner.
+
+`PredictiveOutputs` selects future means (with their absolute numerical errors),
+whole-vector log densities, or both. Density-only evaluation still computes the
+conditional mean internally but does not retain it in output. Per-vector
+refusal withholds its numeric outputs; global admission failure returns no rows.
+Finite normal/zero inputs, arithmetic and sensitivity allocations match the
+one-conditioned-law consumer. Named comparisons retain 2e-12*(1+abs(reference))
+for moments and 2e-11*(1+abs(reference)) for density parts; existing independently
+derived rational/Decimal references remain the scientific ancestry.
+
+Batch admission charges every requested row before allocations, including rows
+that subsequently refuse. Its conservative per-row scope is
+`32*(n*n+n*p+p*p+k*p)`, plus `32*k*k` for requested densities.
+Exact training translation and original-coordinate mean translation are each
+charged once; requested densities additionally charge future translation.
+The peak payload includes retained owners once, pooled requested outputs and
+one row of condition/projection/solve scratch. Borrowed original arrays,
+allocator bookkeeping, stack and RSS are excluded. Neither work counts nor
+matched timers establish a universal performance or scientific qualification.
+
+`GaussianPredictiveConditioning::posterior()` requires finite owner status.
+The posterior remains available to other const library consumers; the batch
+owner does not return a cloned parameter law. Ordinary owner controls observe
+one setup Cholesky call, then zero Cholesky calls with three training whitenings
+and three density solves for a three-admitted/one-refused batch. Linux GCC/Clang
+ELF forwarding hooks observe the original routines without replacing their
+arithmetic. Portable named mathematical checks do not depend on those hooks.
