@@ -24,6 +24,7 @@ Read [AGENTS.md](../AGENTS.md) first, then choose a guide:
 | Map physical densities/temperatures and evaluate thermal distances/ruler ratios | [Thermal observables](thermal-observables.md) |
 | Evaluate a supplied-drag BAO density with a retained ordered covariance in C++ | [Massless conditional BAO](bao-conditional.md) or [thermal conditional BAO](bao-thermal.md) |
 | Calculate a pressureless GR growing mode in C++ | [GR growth](gr-growth.md) |
+| Predict a synthetic SIS point-source image, delay and Gaussian PSF pixels in C++ | [SIS thin lens](sis-thin-lens.md) |
 | Check scientific assumptions | [Scientific contracts](scientific-contracts.md) |
 | Profile an ordered multi-column Gaussian model in C++ | [Gaussian design](gaussian-design.md) |
 | Calculate conditional estimator variance and a synthetic H0 sampling law | [Gaussian design](gaussian-design.md) and [calibration ladder](calibration-ladder.md) |

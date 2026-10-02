@@ -84,3 +84,17 @@ cases, including rank deficiency. This adds no CLI/C ABI route, nonlinear
 cosmological posterior, released-box prior or observational qualification.
 
 The native [GR growth](gr-growth.md) consumer retains the radiation-free flat LCDM background for a pressureless growing mode D(a) and f(a), normalized by D/a→1. Exact Einstein–de Sitter and independent ODE/refinement controls test its bounded domain. It adds no CLI/ABI operation, scale-dependent transfer, radiation/relic perturbations, RSD likelihood or observational qualification.
+
+The native [synthetic SIS thin lens](sis-thin-lens.md) retains a compatible
+massless-radiation early/late source and computes two distances once, without
+evaluating its supplied-drag ruler. An axial point source, SIS template and
+explicit nonnegative mass sheet give image positions, signed magnifications,
+fluxes and relative observer delays. A circular Gaussian PSF integrates image
+flux into rectangular pixels, including an explicit half-open point limit.
+Inherited distance diagnostics, topology margins, separate output masks and
+bounded pixel work retain typed failures. Independent potential/Jacobian and
+Gaussian-density integration controls test named synthetic recovery and
+mass-sheet/H0 degeneracies. The tangent-plane, thin-lens and fixed source/PSF
+assumptions remain explicit. This SDK adds no CLI/C ABI route, measured-system
+mass or kinematics qualification, lens-mass inference, posterior, arbitrary
+multi-plane propagation or CMB lensing prediction.

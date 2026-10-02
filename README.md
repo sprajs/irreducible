@@ -10,6 +10,11 @@ Today you can run flat-FLRW background calculations, conditional supernova and B
 
 The native [pressureless GR growing mode](docs/gr-growth.md) predicts D(a) and f(a) under an explicit radiation-free LCDM approximation, with independent differential-equation controls.
 
+The native [synthetic SIS thin lens](docs/sis-thin-lens.md) composes compatible
+massless-radiation distances with an axial point source, an explicit mass sheet
+and Gaussian PSF pixels. It predicts images and relative arrival delays;
+synthetic recovery and degeneracy controls do not qualify a measured lens system.
+
 ## Test an established baseline
 
 The [bounded LambdaCDM baseline](docs/lcdm-baseline.md) connects reviewed papers in

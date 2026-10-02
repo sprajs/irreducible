@@ -66,6 +66,13 @@ never apply an already-marginalized prior twice. Read their guides before compos
 
 Use [GR growth](docs/gr-growth.md) only with its compatible radiation-free pressureless LCDM state and D/a→1 normalization. Growth does not supply radiation/relic perturbations or a scale-dependent transfer function.
 
+Use the [synthetic SIS thin lens](docs/sis-thin-lens.md) only with its compatible
+massless-radiation early/late distances and bounded tangent-plane geometry.
+Propagate inherited distance diagnostics through images, delays and pixels.
+The explicit mass sheet preserves synthetic degeneracies; its base SIS velocity
+parameter is not an observed stellar-kinematics constraint. A measured system
+needs separate mass/source/environment, instrument and inference contracts.
+
 ## Repository traps and publication
 
 [schema/abi.json](schema/abi.json) owns the shared C/Rust ABI; regenerate with `tools/generate_abi.py`, never hand-edit bindings. No cross-language exception unwinding or per-row FFI. Public documentation is in `docs/`; keep executable discovery and docs consistent with actual gates.

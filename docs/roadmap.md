@@ -48,7 +48,7 @@ and synthetic controls can proceed alongside it.
 | Homogeneous ionization control | Freeze atomic assets, abundance, temperature and equilibrium assumptions for a small thermal-state calculation | Analytic equilibrium/limiting controls; equilibrium alone does not predict the actual drag history |
 | Recombination and drag history | Add a source-defined non-equilibrium thermal/ionization evolution and baryon-drag optical depth | Independent stiff evolution, atomic-input sensitivity and likelihood-relevant refinement before replacing supplied z_drag |
 | Scoped GR growth | Bounded radiation-free pressureless native D/f implemented; next qualify one compatible observational consumer | Einstein–de Sitter and independent ODE/refinement controls pass; a scale-independent growth approximation is not massive-neutrino transfer or full perturbation closure |
-| A named thin-lens system | Combine compatible distances with an explicit analytic lens/source and instrument operator | Analytic deflection/magnification, synthetic image/delay recovery and degeneracy controls; distances do not identify the lens mass |
+| A named thin-lens system | Native bounded SIS point-source/mass-sheet and Gaussian-PSF pixel slice implemented; next pin one system's mass/source/environment and instrument constraints | Independent potential/Jacobian and pixel integration, synthetic image/delay recovery and mass-sheet/H0 controls pass; inherited distance errors and degeneracies remain explicit, without measured-system qualification |
 | Linear transfer and CMB projection | Complete radiation/metric/massive-neutrino perturbations, primordial modes and thermal state, then one projection | Conservation/initial-mode controls and independent transfers/spectra with refinement at observable and likelihood level |
 
 For each chosen scope, freeze equations, source identity, domains, output masks,
@@ -72,6 +72,14 @@ A theory implementation declares its equations, matter content, geometry, observ
 A reusable computation needs a concrete scientific owner, not a universal physics language. Agents add ordinary compiled source, rebuild and test. There is no runtime expression interpreter, plugin framework or server prerequisite. Empirical relations and physical simulations can coexist if each is labelled: an empirical Cepheid period–luminosity–metallicity relation is a useful conditional model without claiming to solve stellar evolution.
 
 A concrete ownership proposal is a cosmology module for theory-specific background, thermal and perturbation state; reusable spectra and image operations for source radiation, convolution and measurement; and observational-analysis consumers that compose those with instrument, selection and probability contracts. Common units, frames, numerics and instrument response have one owner. Add compiled types/functions only when a real consumer exists: this is an ownership boundary, not a promise of empty namespaces or folders.
+
+The native [synthetic SIS consumer](sis-thin-lens.md) is one bounded instance:
+it reuses compatible massless-radiation distances, propagates their numerical
+diagnostics, and projects an axial source through a thin-lens tangent-plane
+approximation and fixed Gaussian PSF. It evaluates no supplied-drag ruler.
+Its explicit mass sheet exposes image/flux and time-delay degeneracies before
+introducing actual system data. Source variability, stellar kinematics, line-of-
+sight structure, measured PSF/noise and a system likelihood remain next contracts.
 
 The common numerical/data layer should support units and frames, stable linear algebra, quadrature, differential equations, interpolation with stated errors, probability, spectra, images and uncertainty propagation. Add each operation for a real consumer and verify its contract. Rendering and interactive visualization belong in external tools and are the lowest implementation priority.
 
