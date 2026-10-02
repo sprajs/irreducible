@@ -4,7 +4,7 @@ This assessment separates the current numerical engine from the proposed [roadma
 
 ## What exists
 
-The current engine exposes ten operations: exact integer addition, typed physical conversion, scalar numerical methods, immutable observation preparation, requested flat-FLRW background outputs, Gaussian calculations, conditional SN magnitude profiles and conditional free-ruler BAO densities, deterministic rectangular-passband photometry, and a conditional supplied-drag sound horizon. The late-time backgrounds are LCDM, constant q, CPL and fixed five-bin q. They are bounded CPU calculations with explicit source, arithmetic, numerical and execution contracts. Named wide-arithmetic gates use Linux/GCC long double with at least 64 mantissa bits; hosts where long double equals double are not covered, and Ubuntu CI is a separate engineering check. The early ruler separately assumes flat pressureless matter, massless radiation and Lambda; photon/baryon fractions and drag redshift are supplied, not inferred, and no physical-ruler BAO qualification follows. Gaussian nuisance elimination through the CLI supports a scalar offset. The standalone C++ [multi-column design profile](gaussian-design.md) supplies a bounded linear prerequisite; its relative score is separate from the native synthetic ladder and proper correlated calibration density described below.
+The current engine exposes ten operations: exact integer addition, typed physical conversion, scalar numerical methods, immutable observation preparation, requested flat-FLRW background outputs, Gaussian calculations, conditional SN magnitude profiles and conditional free-ruler BAO densities, deterministic rectangular or sampled-passband photometry, and a conditional supplied-drag sound horizon. The late-time backgrounds are LCDM, constant q, CPL and fixed five-bin q. They are bounded CPU calculations with explicit source, arithmetic, numerical and execution contracts. Named wide-arithmetic gates use Linux/GCC long double with at least 64 mantissa bits; hosts where long double equals double are not covered, and Ubuntu CI is a separate engineering check. The early ruler separately assumes flat pressureless matter, massless radiation and Lambda; photon/baryon fractions and drag redshift are supplied, not inferred, and no physical-ruler BAO qualification follows. Gaussian nuisance elimination through the CLI supports a scalar offset. The standalone C++ [multi-column design profile](gaussian-design.md) supplies a bounded linear prerequisite; its relative score is separate from the native synthetic ladder and proper correlated calibration density described below.
 
 No current runtime request receives a named scientific qualification. Passing the default numerical_contract means that required numerical checks passed; it is not inference or interpretation qualification. Named comparison evidence applies to its recorded inputs/build/domain, not automatically to a new request.
 
@@ -43,7 +43,10 @@ still need separate qualification. Native QR contrast variance and a synthetic
 ladder H0 sampling law now supply conditional uncertainty under fixed Gaussian
 observation noise and an explicitly assumed generating mean. Named synthetic
 checks do not qualify released-data parameter mapping or coverage. The relative
-profile is not a normalized posterior. Source review now identifies original
+profile is not a normalized posterior. A native [proper Gaussian parameter
+posterior](gaussian-posterior.md) now supplies fixed-linear conditioning under
+an explicitly independent SPD Gaussian prior; it does not normalize the
+released finite-box target or reproduce an observational posterior. Source review now identifies original
 column 46 as 5 log10(H0 in km/s/Mpc); its formal contrast variance on the same
 3492x47 products agrees with independent SVD/QR. A later [Reproducible source audit](https://github.com/sprajs/reproducible/tree/main/experiments/released-ladder)
 now joins all 2150 initial Cepheid rows to the pinned primary table and identifies
@@ -55,9 +58,7 @@ logarithmic-coordinate check and independent synthetic constraint-row sensitivit
 comparisons do not reproduce the paper's posterior or systematic H0 uncertainty.
 See [Gaussian design](gaussian-design.md).
 
-No current operator predicts matter transfer/growth, lensing potentials or
-images, recombination/drag, CMB spectra, stellar/source populations, detector
-noise, detection or survey recovery. A known cosmology makes these missing
+The native [GR growth](gr-growth.md) operator now supplies a bounded radiation-free pressureless growing mode. Matter transfer, radiation/relic perturbations, lensing potentials or images, recombination/drag, CMB spectra, stellar/source populations, detector noise, detection and survey recovery remain separate gaps. A known cosmology makes these missing
 sectors concrete; an H(z) or distance match does not supply them. Use the
 [roadmap](roadmap.md) to choose the next qualified prerequisite after the
 experiment identifies a blocker.
@@ -130,7 +131,7 @@ The analytic one-passband experiment, native synthetic shared-calibration ladder
 
 The next useful work is to choose an actual vertical from the [roadmap](roadmap.md), pin its inputs and forward assumptions, and qualify its own observable and downstream error. Neither broad inventory completion nor a successful numerical call closes these physical and data gaps.
 
-Deterministic photometry predicts three radiometric outputs for a finite constant rest spectrum and supplied distance through the CLI. The standalone C++ sampled operator extends this to declared piecewise-linear wavelength spectra and optical passbands. Sampled CLI ingestion, time dependence, source populations, noise, selection and recovery remain proposed. The native [finite calibration law](photometry-calibration.md) now propagates a declared shared passband ensemble; acquiring and qualifying an actual calibration distribution remains separate.
+Deterministic photometry predicts three radiometric outputs for a finite constant rest spectrum and supplied distance through the CLI. The standalone C++ sampled operator extends this to declared piecewise-linear wavelength spectra and optical passbands. Pooled sampled CLI/ABI ingestion is implemented. Time dependence, source populations, noise, selection and recovery remain proposed. The native [finite calibration law](photometry-calibration.md) now propagates a declared shared passband ensemble; acquiring and qualifying an actual calibration distribution remains separate.
 
 The native [synthetic ladder](calibration-ladder.md) now implements an empirical supplied-shape joint relative fit with anchors, Cepheids, calibrator/Hubble-flow SNe and one shared calibration coordinate. Named independent recovery and held-out controls do not establish fitting of the released ladder, posterior uncertainty or an observed H0 result. Actual source/selection/calibration reconstruction and any proper-prior normalization remain separate gates.
 

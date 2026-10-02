@@ -1,6 +1,8 @@
 // Standalone installed-library linkage contract; no survey/science qualification.
 #include <irred/numerics.hpp>
 #include <irred/gaussian_design.hpp>
+#include <irred/gr_growth.hpp>
+#include <irred/gaussian_posterior.hpp>
 #include <irred/sampled_photometry.hpp>
 #include <irred/photometry_calibration.hpp>
 #include <irred/calibration_ladder.hpp>
@@ -109,6 +111,28 @@ int installed_thermal_observables() {
  return present.value && *present.value==1 && ratio.status==irred::numerics::Status::ok &&
   ratio.value && std::isfinite(*ratio.value) && *ratio.value>0 ? 0 : 10;
 }
+int installed_gaussian_posterior() {
+ using namespace irred::statistics;
+ Metadata m; m.ordered_ids={"r0","r1"};m.measure="dr0 dr1";
+ m.table_identity="installed synthetic proper posterior";m.ordering_provenance="explicit";
+ const std::array<double,4> c{2,.25,.25,1.5},x{1,.5,-.25,1};
+ auto g=prepare_gaussian(c,MatrixKind::covariance,m,100,1e-10,irred::numerics::Arithmetic::longdouble_cpu_v1);
+ ParameterPrior p{{"zero","colour"},{"mag","mag"},{"zero"},{.5,-.25},{1,.375,.375,.5},
+  "synthetic proper prior","explicit X","mag","d(zero) d(colour)","declared independent noise",true};
+ auto owner=GaussianPosterior::prepare(std::move(g),x,m.ordered_ids,p);
+ const std::array<double,2> r{1.25,-.5},beta{.7,-.2};
+ const auto mean=owner.condition(r,m.ordered_ids);
+ const auto density=owner.log_density(r,m.ordered_ids,beta,p.ordered_parameter_ids);
+ return mean.status==DensityStatus::finite && mean.value.size()==2 &&
+  std::abs(mean.value[0]-20604./25511)<2e-12 && std::abs(mean.value[1]+7125./51022)<2e-12 &&
+  density.density.status==DensityStatus::finite ? 0 : 11;
+}
+int installed_gr_growth() {
+ using namespace irred::cosmology;
+ auto owner=prepare_gr_growth(prepare(LCDM(1),FlatFLRW{}));
+ const double a[]{.125,1}; auto result=owner.evaluate(a,growth_d|growth_f);
+ return result.rows.size()==2 && result.rows[0].d.value==.125 && result.rows[1].d.value==1 && result.rows[0].f.value==1 && result.rows[1].f.value==1 ? 0 : 12;
+}
 int main() {
  const auto result=irred::numerics::log1p_checked(0.5);
  if(result.status!=irred::numerics::Status::ok || std::abs(result.value-0.4054651081081643819780131154643491)>=1e-14) return 1;
@@ -149,5 +173,7 @@ int main() {
  if (const auto calibration_status=installed_passband_calibration();calibration_status!=0) return calibration_status;
  if (const auto bao_status=installed_conditional_bao();bao_status!=0) return bao_status;
  if (const auto thermal_status=installed_thermal_observables();thermal_status!=0) return thermal_status;
+ if (const auto posterior_status=installed_gaussian_posterior();posterior_status!=0) return posterior_status;
+ if (const auto growth_status=installed_gr_growth();growth_status!=0) return growth_status;
  return installed_correlated_calibration();
 }

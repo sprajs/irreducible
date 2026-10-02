@@ -18,6 +18,18 @@ struct Request {
     resource_policy: Policy,
 }
 pub(crate) fn execute(bytes: &[u8]) -> Result<Outcome, String> {
+    if bytes.len() > 16 * 1024 * 1024 {
+        return Err("INPUT_LIMIT".into());
+    }
+    crate::strict_json::validate(bytes).map_err(|_| "INVALID_JSON")?;
+    #[derive(Deserialize)]
+    struct Tag {
+        source_model: String,
+    }
+    let tag: Tag = serde_json::from_slice(bytes).map_err(|e| e.to_string())?;
+    if tag.source_model == "piecewise_linear_rest_luminosity_observed_optical_passband" {
+        return crate::sampled_photometry_run::execute(bytes);
+    }
     let request: Request = serde_json::from_slice(bytes).map_err(|e| e.to_string())?;
     if request.schema_version != 2
         || request.operation != "photometry.predict"
