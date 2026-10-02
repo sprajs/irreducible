@@ -217,6 +217,14 @@ PureHydrogenHistory::operator=(PureHydrogenHistory &&o) noexcept {
 std::string_view PureHydrogenHistory::model_identity() const noexcept {
   if (!source_)
     return {};
+  const bool relic = std::any_of(
+      source_->model.species.begin(), source_->model.species.end(),
+      [](const auto &s) { return s.mass_ev > 0; });
+  if (relic)
+    return source_->temperature_model ==
+                   HydrogenTemperatureModel::evolved_compton_adiabatic
+               ? evolved_hydrogen_relic_history_id
+               : pure_hydrogen_relic_history_id;
   return source_->temperature_model ==
                  HydrogenTemperatureModel::evolved_compton_adiabatic
              ? evolved_hydrogen_history_id
@@ -290,11 +298,23 @@ prepare_pure_hydrogen_history(const PureHydrogenRequest &source,
     out.status_ = S::outside_domain;
     return out;
   }
-  for (const auto &s : source.model.species)
-    if (s.mass_ev != 0) {
+  std::size_t positive_species = 0;
+  for (const auto &s : source.model.species) {
+    if (!std::isfinite(s.mass_ev) ||
+        !std::isfinite(s.temperature_today_kelvin) ||
+        !std::isfinite(s.statistical_weight)) {
+      out.status_ = S::nonfinite_input;
+      return out;
+    }
+    if (s.mass_ev < 0 ||
+        (s.mass_ev > 0 &&
+         (s.mass_ev > .3 || s.temperature_today_kelvin < 1.8 ||
+          s.temperature_today_kelvin > 2.0 || s.statistical_weight < 1 ||
+          s.statistical_weight > 2 || ++positive_species > 3))) {
       out.status_ = S::outside_domain;
       return out;
     }
+  }
   auto thermal = p.thermal;
   thermal.maximum_native_bytes =
       std::min(thermal.maximum_native_bytes, p.maximum_native_bytes);

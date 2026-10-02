@@ -84,10 +84,15 @@ not a physical boundary. Both admit
 `300<=z_late<=600`, `60<=H0<=80 km/s/Mpc`, physical baryon density
 `0.015<=omega_b<=0.03`, physical CDM density `0.08<=omega_cdm<=0.15`,
 `2.70<=T_CMB,0<=2.75 K` and other physical massless density from zero to
-`3e-5`. At most 16 explicit thermal species are admitted, all with zero mass;
-the existing thermal mapper enforces their temperature/weight and flat closure
-domains. Massive relics are explicitly refused. No alternative expansion
-function or radiation-free sound/ruler admission is introduced.
+`3e-5`. At most 16 explicit thermal species are admitted. Zero-mass species
+retain the thermal mapper's existing finite-positive temperature/weight and
+flat-closure admission. Up to three species can instead have explicit positive
+mass `0<m<=0.3 eV`, present temperature `1.8<=T_nu,0<=2.0 K` and populated-state
+weight `1<=g<=2`. These are bounded numerical qualification profiles, not a
+mass-sum, hierarchy or effective-species mapping. An explicit species already
+contributes its complete energy density; `physical_massless_nonphoton_density`
+must not count that species again. No alternative expansion function or
+radiation-free sound/ruler admission is introduced.
 
 `prepare_pure_hydrogen_history(request, policy)` owns the source, one prepared
 thermal state and history mesh. Copies retain independent owned storage;
@@ -248,3 +253,58 @@ routes use long double/system libm with declared shared constants; this is
 algorithm/refinement evidence, not an independent high-precision certificate.
 Atomic, rate-fit and truncated thermal-model errors remain excluded from these
 numerical allocations.
+
+
+## Explicit massive thermal-relic background composition
+
+A positive-mass source selects `pure_hydrogen_relic_history_id` or
+`evolved_hydrogen_relic_history_id`. All-zero-mass sources keep the original
+model IDs and scalar arithmetic; the prescribed and evolved ODE method IDs,
+atomic assets, source bounds, initial Saha/temperature conditions and every
+numerical allocation remain unchanged. The new identities qualify only the
+composition of this bounded hydrogen closure with explicit collisionless relics.
+
+The same retained [thermal background](thermal-neutrino.md) owns the momentum
+integral, present normalization and flat Lambda closure. With
+`q=p*a/T_nu,0` in the declared natural-unit convention,
+
+```
+I_rho(y) = integral[0,infinity] q^2*sqrt(q^2+y^2)/(exp(q)+1) dq
+rho_nu(a) = g*T_nu,0^4*I_rho(m*a/T_nu,0)/(2*pi^2*a^4)
+```
+
+This collisionless phase-space law follows the explicit momentum formulation
+in [Lesgourgues and Tram 2011, equation 2.1](https://arxiv.org/abs/1104.2935).
+The production history calls the already qualified retained `scaled_expansion`
+provider at each finest-mesh node. It reuses those physical coefficients across
+the three hydrogen meshes; it introduces no expansion table or replacement law.
+Relics change `H`, including the source-defined present flat closure. They do
+not become hydrogen nuclei or photon energy, and do not change `R`, Saha,
+the pure-hydrogen heat capacity or the atomic rates. Provider H estimates
+continue to propagate into hydrogen, temperature and opacity diagnostics.
+
+The default four-million combined work cap remains unchanged. An explicit
+caller cap is required for the qualified positive-mass profiles. For the
+synthetic `H0=67.4`, `omega_b=.0224`, `omega_cdm=.12`, `T_CMB=2.7255`, other
+massless density zero, species `(m,T0,g)=(.06,1.95,2),(0,1.95,2),(0,1.95,2)`
+and evolved endpoints1600/300, the default cap refused at exactly4,000,000
+operations after733 background samples. The unchanged default8192 base mesh
+with an explicit500,000,000 cap accepted with178,512,172 operations, including
+178,135,936 momentum callbacks,32769 background evaluations,171733 ionization
+and171733 temperature RHS evaluations and one Saha solve. The measured single
+GCC16.2.1 Release pilot took15.25 seconds; this is a pinned case cost, not a
+portable runtime guarantee. Failed provider calls contribute their actual work;
+queries perform no new momentum or ODE calls. The existing payload accounting,
+16MiB default,1GiB hard cap and output masks remain in force.
+
+Separate original direct-SI momentum and Radau controls use composite GL16/32
+on `[0,64]` with an exponential tail control, independent of production adaptive
+momentum integration. Reference stage coefficients may be reused at their own
+stage redshift during nonlinear iteration. Named reference gates include the
+light/heavy transition, standard-like one-massive plus two-massless profile,
+three positive species, split populated-state weights, initial boundary and
+fixed-physical-density H0 behavior. The H comparison allocation is2e-10 relative;
+reference refinement consumes at most five percent of each unchanged downstream
+allocation. These controls share fixed SI/atomic input ancestry and long-double
+system arithmetic, and qualify numerical composition rather than full
+recombination, a physical drag epoch, CMB inference or observations.
