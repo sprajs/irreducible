@@ -1,9 +1,32 @@
 #pragma once
 #include "irred/bao.hpp"
+#include "irred/early_late.hpp"
 #include <algorithm>
 #include <cmath>
 #include <limits>
 namespace irred::bao::detail {
+inline void output_state(OutputState &s, numerics::Status cause) {
+  s.availability = cause == numerics::Status::ok
+                       ? cosmology::Availability::available
+                       : cosmology::Availability::failed;
+  s.numerical_status = cause;
+  s.status = cause == numerics::Status::ok ? cosmology::Status::ok
+             : cause == numerics::Status::work_limit
+                 ? cosmology::Status::work_limit
+                 : cosmology::Status::numerical_failure;
+}
+inline cosmology::EarlyLateOutput ratio_output(Observable x) {
+  switch (x) {
+  case Observable::transverse_over_ruler:
+    return cosmology::EarlyLateOutput::dm_over_rs;
+  case Observable::hubble_over_ruler:
+    return cosmology::EarlyLateOutput::dh_over_rs;
+  case Observable::volume_over_ruler:
+    return cosmology::EarlyLateOutput::dv_over_rs;
+  }
+  return cosmology::EarlyLateOutput::count;
+}
+
 inline long double
 inverse_covariance_norm_estimate(const numerics::Factorization &factor,
                                  std::span<const double> covariance, size_t n) {

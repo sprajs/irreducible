@@ -24,29 +24,7 @@ conditional_density_payload_bound(size_t m, size_t n, size_t strings,
   b.add(*provider, 1);
   return b.result();
 }
-namespace {
-void state(OutputState &s, numerics::Status cause) {
-  s.availability = cause == numerics::Status::ok
-                       ? cosmology::Availability::available
-                       : cosmology::Availability::failed;
-  s.numerical_status = cause;
-  s.status = cause == numerics::Status::ok ? cosmology::Status::ok
-             : cause == numerics::Status::work_limit
-                 ? cosmology::Status::work_limit
-                 : cosmology::Status::numerical_failure;
-}
-cosmology::EarlyLateOutput output(Observable x) {
-  switch (x) {
-  case Observable::transverse_over_ruler:
-    return cosmology::EarlyLateOutput::dm_over_rs;
-  case Observable::hubble_over_ruler:
-    return cosmology::EarlyLateOutput::dh_over_rs;
-  case Observable::volume_over_ruler:
-    return cosmology::EarlyLateOutput::dv_over_rs;
-  }
-  return cosmology::EarlyLateOutput::count;
-}
-} // namespace
+
 ConditionalDensityBatch PreparedDensity::evaluate_conditional(
     std::span<const cosmology::SoundHorizonRequest> points,
     ConditionalDensityPolicy p) const {
@@ -94,7 +72,7 @@ ConditionalDensityBatch PreparedDensity::evaluate_conditional(
   unsigned mask = 0;
   for (const auto &q : source_.queries) {
     z.push_back(q.z);
-    mask |= cosmology::early_late_mask(output(q.observable));
+    mask |= cosmology::early_late_mask(detail::ratio_output(q.observable));
   }
   out.slots.reserve(points.size());
   out.status = statistics::DensityStatus::finite;
@@ -130,7 +108,7 @@ ConditionalDensityBatch PreparedDensity::evaluate_conditional(
     if (cause == numerics::Status::ok) {
       for (size_t j = 0; j < n; ++j) {
         const auto &v = prediction.rows[j].outputs[static_cast<unsigned>(
-            output(source_.queries[j].observable))];
+            detail::ratio_output(source_.queries[j].observable))];
         if (v.status != numerics::Status::ok || !v.value) {
           cause = v.status;
           break;
@@ -141,12 +119,12 @@ ConditionalDensityBatch PreparedDensity::evaluate_conditional(
       }
     }
     if (p.requested & 2u)
-      state(s.predictions_state, cause);
+      detail::output_state(s.predictions_state, cause);
     if (cause == numerics::Status::ok && (p.requested & 5u)) {
       cause = detail::subtract_observations(source_.observed, mu, r, eps);
     }
     if (p.requested & 4u)
-      state(s.residuals_state, cause);
+      detail::output_state(s.residuals_state, cause);
     if (cause == numerics::Status::ok && (p.requested & 1u)) {
       cause = detail::project_density(
           gaussian_.factor_, gaussian_, source_.ordered_ids, r, eps,
@@ -155,7 +133,7 @@ ConditionalDensityBatch PreparedDensity::evaluate_conditional(
           s.projection_log_density_error_estimate, s.result);
     }
     if (p.requested & 1u)
-      state(s.density_state, cause);
+      detail::output_state(s.density_state, cause);
     s.numerical_status = cause;
     if ((p.requested & 2u) && mu.size() == n)
       s.predictions = std::move(mu);

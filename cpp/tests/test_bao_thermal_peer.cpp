@@ -223,12 +223,7 @@ void analytic_and_scaling() {
   need(std::abs(physical.slots[0].predictions[0] -
                 before.slots[0].predictions[0]) > .1,
        "no false fixed physical H0 cancellation");
-  // Predictions survive if the changed residual's density diagnostic refuses.
-  if (physical.slots[0].result)
-    density_check(physical.slots[0], cofactors(d.source(), changed));
-  else
-    need(physical.slots[0].numerical_status == S::conditioning_budget_exceeded,
-         "honest changed-physical density refusal");
+  density_check(physical.slots[0], cofactors(d.source(), changed));
   req = massless();
   req.z_drag = 1200;
   auto drag = evaluate(d, req);
