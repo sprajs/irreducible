@@ -18,8 +18,8 @@ qualify all modalities. The diagnostic is an input to this plan, not another pla
 Dependency-ready next work is the smallest consumer supported by that evidence:
 resolve the released ladder's remaining constraint/measure identity and calibration/model sensitivity
 after the successful unchanged-budget native QR comparison and source-linked host audit;
-compose the tested native thermal distance/ruler state with the retained conditional
-BAO density; then thermal/ionization/drag prediction before a predicted physical BAO
+use the tested thermal conditional BAO composition while reviewing released
+compression validity; then thermal/ionization/drag prediction before a predicted physical BAO
 ruler. Perturbations and CMB need their own closure and comparisons. Native SDK
 execution can test current functions before adding a CLI/ABI route justified by
 an actual consumer. Do not add noise, lensing or growth labels to unsupported
@@ -35,7 +35,7 @@ and synthetic controls can proceed alongside it.
 
 | Proposed scope | Prerequisite and concrete deliverable | Independent acceptance before a larger claim |
 | --- | --- | --- |
-| Thermal conditional BAO density | Compose the tested thermal distance/ruler state with the existing retained ordered ratio covariance and projection gate | Matched fixed-point references, full covariance and numerical sensitivity at density level; supplied drag stays explicit |
+| Thermal conditional BAO density | Native composition implemented; next review one released compression under its explicit physical identity | Named massive/massless, full covariance and density-level controls pass; supplied drag and observational validity stay separate |
 | Released ladder constrained target | Resolve source axis/constraint identities and specify the released box support, including any fixed coordinate, separately from the full-design relative profile | Exact constrained linear controls and a source-defined measure; a zero-width coordinate is not a proper full-dimensional prior |
 | Ladder calibration/model sensitivity | Declare one source-supported change to anchor, zero-point, metallicity or extinction assumptions at a time | Refit and held-out prediction with preserved failures and dependence; do not fold arbitrary variants into one Gaussian error |
 | Proper Gaussian parameter posterior | Add a declared proper parameter prior to an identifiable fixed-design consumer with explicit units/order/normalization | Analytic posterior and independent integration controls; distinguish parameter posterior from observation density and estimator sampling law |
@@ -143,8 +143,9 @@ and matched CLASS controls test explicit inputs and conservation. The native
 [thermal observables](thermal-observables.md) consumer now uses that same state
 for distances and a conditional supplied-drag ruler, with explicit
 species/temperature/physical-density mapping and propagated numerical budgets.
-The retained conditional BAO density remains a separate massless-model consumer
-until a scoped composition passes its own density-level allocation. Neither
+The native [thermal BAO density](bao-thermal.md) now composes this state with the
+retained ordered covariance and its unchanged density-level projection allocation.
+The massless conditional model retains its separate identity. Neither
 provider predicts drag or recombination.
 
 Background plus thermal/ionization history can subsequently support a declared perturbation closure, primordial modes, transfer functions and line-of-sight projection. Each later observable needs its own reference and likelihood allocation.

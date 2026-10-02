@@ -48,7 +48,7 @@ different parameter variation.
 | Behavior | Available calculation | Evidence and boundary |
 | --- | --- | --- |
 | Expansion and flat distances | Native shared early/late state; radiation-free CLI background separately | Analytic limits, independent coordinates and named Astropy background controls; explicit thermal relic E/H and the native thermal distance/ruler consumer now share a tested state with supplied physical densities/temperatures; full-reference likelihood and perturbation closure remain missing |
-| Supplied-drag ruler and BAO ratios | Native shared state and conditional BAO density | All released ratio rows and their full ordered covariance; fixed-point numerical comparison, without predicting drag or reproducing a posterior |
+| Supplied-drag ruler and BAO ratios | Native shared massless or thermal state and conditional BAO density | All released ratio rows and their full ordered covariance; fixed-point numerical comparison, without predicting drag or reproducing a posterior |
 | Relative SN distance shape | CLI/native free-offset profile | Named released-input controls; no absolute H0 information or newly combined SN/BAO likelihood |
 | Spectral projection | Native sampled photometry and finite shared passband calibration law | Analytic and independent frequency-coordinate controls; supplied source/distance/calibration law, without noise, detection or source populations |
 | Absolute calibration | Native synthetic ladder, conditional estimator variance/sampling law and proper correlated calibration density | Named synthetic recovery, exact noise-response and held-out controls; released physical-axis mapping, coverage and observational reconstruction remain separate |
