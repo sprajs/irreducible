@@ -46,7 +46,71 @@ struct Case {
   ref::Model model;
   double initial, late;
   bool evolved = true;
+  bool fixed_density_control = false;
 };
+#ifndef IRRED_REFERENCE_ONLY
+void fixed_density_h0(const irred::cosmology::ThermalBackground &background,
+                      irred::cosmology::ThermalPhysicalModel model,
+                      ref::Model source) {
+  using namespace irred::cosmology;
+  // Change only H0: all physical densities, temperatures and species stay fixed.
+  const W h1 = source.H0 / 100;
+  ref::Background reference1(source, 32);
+  model.h0_km_s_mpc = 80;
+  source.H0 = 80;
+  const W h2 = source.H0 / 100, expected = (h2 - h1) * (h2 + h1);
+  auto mapping = map_thermal_physical_model(model);
+  require(mapping.status == irred::numerics::Status::ok && mapping.model,
+          "fixed-density alternate physical mapping");
+  auto alternate = prepare_thermal_background(*mapping.model);
+  require(alternate.status() == irred::numerics::Status::ok,
+          "fixed-density alternate background only");
+  std::vector<double> scale;
+  for (double z : {0., 1., 100., 300., 600., 1000., 1600.})
+    scale.push_back(1 / (1 + z));
+  auto first = background.evaluate(scale, thermal_h),
+       second = alternate.evaluate(scale, thermal_h);
+  require(first.status == irred::numerics::Status::ok &&
+              second.status == irred::numerics::Status::ok &&
+              first.rows.size() == scale.size() &&
+              second.rows.size() == scale.size(),
+          "fixed-density ordered H batches");
+  ref::Background reference2(source, 32);
+  for (std::size_t i = 0; i < scale.size(); ++i) {
+    const auto &a = first.rows[i].h_km_s_mpc,
+               &b = second.rows[i].h_km_s_mpc;
+    require(a.status == irred::numerics::Status::ok && a.value &&
+                b.status == irred::numerics::Status::ok && b.value,
+            "fixed-density independently available H");
+    const W z = 1 / W(scale[i]) - 1,
+            ar = reference1.hubble(z) * old::mpc() / 100000,
+            br = reference2.hubble(z) * old::mpc() / 100000,
+            av = W(*a.value) / 100, bv = W(*b.value) / 100;
+    require(std::abs(av / ar - 1) <= 2e-10L &&
+                std::abs(bv / br - 1) <= 2e-10L,
+            "both fixed-density native H versus original direct SI FD");
+    const W actual = (bv - av) * (bv + av),
+            reference = (br - ar) * (br + ar),
+            allowance = 32 * std::numeric_limits<double>::epsilon() *
+                        (av * av + bv * bv),
+            reference_allowance = 32 * std::numeric_limits<W>::epsilon() *
+                                  (ar * ar + br * br);
+    std::cout << "FIXED_DENSITY_H0 z=" << z << " expected=" << expected
+              << " native=" << actual << " reference=" << reference
+              << " native_error=" << std::abs(actual - expected)
+              << " native_allowance=" << allowance
+              << " reference_error=" << std::abs(reference - expected)
+              << " reference_allowance=" << reference_allowance
+              << " condition=" << (av * av + bv * bv) / expected << '\n';
+    // Stored binary64 H is ill-conditioned for the tiny Lambda difference at
+    // high z. This is an explicit rounding control, not a relative error floor.
+    require(actual > 0 && reference > 0 &&
+                std::abs(actual - expected) <= allowance &&
+                std::abs(reference - expected) <= reference_allowance,
+            "positive fixed-density squared H law with declared rounding");
+  }
+}
+#endif
 void physical(const Case &test) {
   std::vector<W> z{test.initial, test.initial - .001, test.initial - .01,
                    test.initial - .1};
@@ -213,6 +277,8 @@ void physical(const Case &test) {
             << " maximum_H_relative=" << maximum_H
             << " work=" << owner.work().total()
             << " momentum=" << owner.work().momentum_callbacks << '\n';
+  if (test.fixed_density_control)
+    fixed_density_h0(*owner.background(), model, test.model);
   if (test.evolved) {
     old::Gauss8 gauss;
     W survivor = *native.rows.front().finite_endpoint_survival.value,
@@ -277,7 +343,7 @@ int main() {
                    0,    {{.06, 1.95, 2}, {0, 1.95, 2}, {0, 1.95, 2}}};
     ref::Model high{80, .03, .15, 2.75, 0, {{.3, 2, 2}, {0, 2, 2}, {0, 2, 2}}};
     ref::Model low{60, .015, .08, 2.70, 0, {{.001, 1.8, 1}, {0, 1.8, 1}}};
-    physical({"fiducial-.06-two-massless", fid, 1600, 300});
+    physical({"fiducial-.06-two-massless", fid, 1600, 300, true, true});
     physical({"heavy-.3-high-physical", high, 1600, 300});
     physical({"light-.001-low-physical", low, 1550, 600});
     physical({"light-.001-prescribed1650", low, 1650, 300, false});
