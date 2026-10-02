@@ -1,3 +1,4 @@
+#define IRRED_RECOVERY_CAPTURE
 #include "gaussian_recovery_controls.hpp"
 #include "irred/calibration_predictive.hpp"
 #include "calibration_predictive_peer_facts.hpp"

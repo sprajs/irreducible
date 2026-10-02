@@ -1,3 +1,4 @@
+#define IRRED_RECOVERY_CAPTURE
 #include "gaussian_recovery_controls.hpp"
 namespace {
 using namespace recovery_controls;namespace f=recovery_peer_facts;
