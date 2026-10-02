@@ -10,16 +10,19 @@ anisotropic stress and the photon hierarchy are excluded. This is a NEXT-14
 prerequisite, not a standard matter transfer, ordinary sigma8, Planck base LCDM
 or a [primary CMB prediction](primary-cmb-projection.md).
 
-The proposed native owner is `irred/linear_transfer.hpp`. Until its native
-controls have run, the equations and acceptance below are a frozen implementation
-contract, not evidence of an implemented calculation. No CLI/ABI route is needed
-for the bounded SDK experiment.
+The native owner is `irred/linear_transfer.hpp`. The bounded implementation and
+the native owner/independent-peer controls below have run in a serial standalone
+strict-compiler check. Integrated product manifest, installed library and CI
+qualification remain pending integration. No CLI/ABI route is needed for the
+bounded SDK experiment.
 
 ## Physical identity and equations
 
 Conformal time has length units (Mpc), comoving k has units Mpc^-1, and
 `mathcalH=a H/c` has units Mpc^-1; H is supplied in km/s/Mpc and
-c=299792.458 km/s. Adopt Fourier derivatives `nabla^2 -> -k^2` and
+c=299792.458 km/s. Adopt `f(x)=integral d^3k/(2pi)^3 f(k) exp(i k.x)`,
+`<zeta(k) zeta*(k')>=(2pi)^3 delta_D(k-k') P_zeta(k)`,
+`theta=i k.v`, v=dx/deta, Fourier derivatives `nabla^2 -> -k^2`, and
 
 \[
  ds^2=a^2[-(1+2\phi)d\eta^2+(1-2\phi)d\mathbf x^2].
@@ -63,8 +66,14 @@ order-one final values. The independently checked Hamiltonian constraint is
 In the evolved variables it is exactly
 `C=x^2 phi+(3/2) F Delta-2 F_r S+6 F_r dV`. Report the maximum residual
 at retained RK4 endpoints divided by the sum of absolute magnitudes of these
-terms; its default gate is 1e-6. Intermediate RK stages are not accepted states. It is a consistency
-gate, not a substitute for independent evolution or a certified forward bound.
+terms; its default gate is 1e-6. Intermediate RK stages are not accepted states.
+It is a consistency gate, not a substitute for independent evolution or a certified forward bound.
+The hard API domain is finite `0<k<=1 Mpc^-1`,
+`1e-20<=a_i<=1e-3` and `a_i<=a<=1`, subject to the more restrictive
+initial-mode and numerical gates below. These limits do not qualify every
+allowed point. The default total work cap is 20 million RHS calls with at most
+four million per point and at most 4096 requested rows.
+
 The common background supplies `a^4 E^2` at each stage. Admitted input has
 Omega_b=0 and no explicit thermal species. Nonphoton and photon homogeneous
 radiation fractions are summed only under the explicit supplied perfect-fluid
@@ -80,7 +89,8 @@ and must be translated. No upstream source code or text is copied.
 ## Primordial normalization and finite start
 
 The explicitly named initial scalar is uniform-density curvature
-`zeta=-phi+delta_rho/[3(rho+P)]` on superhorizon scales. A unit growing mode has
+`zeta=-phi+delta_rho/[3(rho+P)]` on superhorizon scales. The unit refers to the
+asymptotic primordial growing mode, not its slightly different finite-start curvature. A unit growing mode has
 phi_rad=-2/3 and phi_matter=-3/5. In the Malik-Wands comoving-curvature convention
 R tends to -zeta; the power is identical but signed cross transfers differ. Do
 not silently rename this initial scalar R.
@@ -121,8 +131,8 @@ entire admitted matter component. The Einstein-de-Sitter control is
 T_c=(2/5)k^2 a/(H0/c)^2. Pressureless D/f alone does not supply the radiation-era
 shape; this owner evolves radiation and metric variables explicitly.
 
-A separate consumer declares a primordial law supported **only** on its finite
-[k_min,k_max] interval:
+A separate consumer declares a primordial second-order spectrum supported
+**only** on its finite [k_min,k_max] interval:
 
 \[
  \mathcal P_\zeta(k)=A_s(k/k_*)^{n_s-1},\qquad
@@ -135,7 +145,9 @@ A separate consumer declares a primordial law supported **only** on its finite
  \quad W(y)=3(\sin y-y\cos y)/y^3.
 \]
 
-A_s, n_s and k_* are supplied primordial inputs, not a supplied final sigma8.
+This spectrum supplies stationary isotropic second moments; it does not specify
+a complete random-field law or assert Gaussianity. A_s, n_s and k_* are supplied
+primordial inputs, not a supplied final sigma8.
 For the explicitly named `sigma8_band`, R=8/h Mpc and h=H0/100. The law is zero
 outside its declared support. The result retains both band endpoints and an
 explicit band-limited identity. There is no estimated standard-spectrum tail or
@@ -155,17 +167,37 @@ caps remain explicit. Missing requested outputs are withheld on refusal.
 Refinement estimates remain empirical.
 
 The variance consumer uses nested composite Simpson quadrature in ln k. The
-4n-node grid evaluates each required transfer once and reuses its ordered values
-for n/2n/4n comparisons. Propagate transfer diagnostics additively through
+4n-panel grid evaluates each required transfer once and reuses its ordered values
+for n/2n/4n comparisons. Before evaluation, require each coarse panel to resolve
+`Delta(kR)<=.25` and the radiation acoustic phase
+`Delta(k eta_bound/sqrt(3))<=.5`, with eta bounded from above separately by
+positive radiation and matter contributions. Unresolved bands are refused
+without silently increasing their panel budget. Propagate transfer diagnostics
+additively through
 `2 abs(T) e_T+e_T^2`; retain window-quadrature sensitivity separately. Default
-variance acceptance is abs1e-10 + rel1e-3. This native path predicts only the
+variance acceptance is abs1e-10 + rel1e-3. The variance diagnostic has variance
+units; sigma retains its separately propagated diagnostic
+`e_sigma=e_variance/[sqrt(v)+sqrt(v-e_variance)]` plus its storage error.
+An unresolved positive variance with `v<=e_variance` withholds both outputs.
+This native path predicts only the
 finite declared model and law, with no observational likelihood.
 
-Required durable controls are: exact Einstein-de-Sitter Delta_c/metric and
+Executed durable controls are: exact Einstein-de-Sitter Delta_c/metric and
 primordial-amplitude scaling; the pure-radiation analytic potential
-`3 phi0(sin s-s cos s)/s^3`, s=k eta/sqrt(3); its separately integrated CDM tracer;
-adiabatic/conservation/Einstein residuals; independent conformal-time ODE with
-refined RK or a different high-order algorithm; separate initial/time/k/window
-refinements; input/order/work/payload/move/mask adversaries. A matched CLASS/CAMB
+`3 phi0(sin s-s cos s)/s^3`, s=k eta/sqrt(3), at horizon entry and in the
+oscillatory radiation regime; its separately integrated CDM tracer;
+Einstein residuals; an independently refined Einstein
+trace evolution using conformal potential derivatives and unscaled velocities
+in an a-coordinate RK4 solver, sharing the analytically derived initial
+coefficients but not the production state or momentum equation; native time
+refinement and independent window refinement; input/order/work/payload/move/mask
+adversaries. A matched CLASS/CAMB
 comparison needs that same perfect-fluid closure and is a separate gate; a
-standard photon/neutrino run cannot qualify this toy by resemblance.
+standard photon/neutrino run cannot qualify this toy by resemblance. The first
+deep-radiation auxiliary tracer-reference run failed its unchanged 1e-14
+refinement gate with 4096/8192 panels. That failure remains in local evidence;
+16384/32768 independent panels pass without changing the production allocation.
+
+This amplitude cannot be multiplied by the existing radiation-free GR f: the
+perfect-fluid transfer can grow differently at each k. A future amplitude
+derivative must integrate this same retained transfer and its time derivative.
