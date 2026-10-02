@@ -39,6 +39,7 @@ and synthetic controls can proceed alongside it.
 | Released ladder constrained target | Reproducible pins the released fixed-coordinate 46-dimensional box target and an unboxed relative-profile diagnostic; next implement a normalized box-supported posterior | Exact linear/source-axis controls pass; literal fixed axis44 has no full-dimensional prior, and the unboxed diagnostic is not a constrained optimizer |
 | Ladder calibration/model sensitivity | Three released constraint-mean sensitivity pairs are recorded at fixed design/covariance; next resolve source-supported relation/selection variants and held-out dependence | Fixed-linear response controls pass; a mean shift is not full systematic uncertainty, and unresolved event/calibration overlap blocks observational held-out claims |
 | Proper Gaussian parameter posterior | Native fixed-linear proper-Gaussian conditioning implemented; next qualify a concrete prior/consumer | Analytic posterior, independent cofactor and joint integration controls pass; nonlinear or released-box posterior remains separate |
+| Joint Gaussian future prediction | Native fixed synthetic linear predictive law implemented; next qualify ladder held-out recovery/coverage and observational dependence | Exact covariance-route, direct prior/noise and normalized joint mass controls pass; future cross-noise, nonlinear/box inference and measured-data qualification remain open |
 | Released SN observer/velocity contract | Reproducible checks 321 source pairs and twins under coasting/chosen LCDM; next close event, sky/frame and velocity-map lineage | 6093 combined observer/optical comparisons pass with refined independent controls; unresolved physical joins and calibrated photometry units/error law remain explicit |
 | Sampled photometry ingestion | Coarse pooled ABI2/CLI batch implemented; next consume pinned measured-response assets | Sample-order/bits, units, lifetime, exception/quotas and native/stream/record parity controls pass; calibration uncertainty stays excluded |
 | Measured passband calibration | Historical 910-knot optical response and released 102-axis zero-point covariance are pinned; next close 102-versus-105 mapping and acquire a measured joint optical law | Independent wavelength/frequency controls pass; fitted zero-point covariance and systematic template variants are not optical-state probability masses |
@@ -123,6 +124,16 @@ proper-prior posterior and model/selection sensitivity remain separate work.
 **Calculation:** an explicit empirical Cepheid relation, such as absolute magnitude = intercept + period term + metallicity term, connects anchor distances to host distances. Host SN calibration connects those distances to a named SN luminosity model; the Hubble-flow forward prediction then depends on the specified geometry and H₀ definition. Wesenheit or extinction choices, relation breaks, parallax offsets, peculiar velocities and population/selection terms are model components, not preprocessing truths. The [SH0ES measurement paper](https://arxiv.org/abs/2112.04510) gives a concrete released ladder and sensitivity variants to reconstruct conditionally.
 
 **Outputs:** predicted anchor/Cepheid/SN observations, correlated calibration parameters, residuals and a joint likelihood or explicitly relative profile. Keep empirical calibration separate from a physical stellar model. The existing free-offset SN shape profile has no absolute H₀ information; inserting H₀ into a background query does not measure it.
+
+The native [joint Gaussian predictive prerequisite](gaussian-predictive.md) now
+conditions fixed synthetic linear training data once and retains a correlated
+future distribution with explicitly independent conditional future noise.
+Exact covariance-route and direct prior/noise integration controls check its
+proper measure; shared calibration covariance survives in `R*+A*V*A^T`.
+Next qualify one synthetic ladder held-out recovery/coverage consumer, then pin
+an observational future design and resolve cross-noise/object/calibration
+linkage before using released assets. The released fixed-coordinate finite-box
+target requires its own normalization/sampling and sensitivity controls.
 
 **Gate:** synthetic ladder recovery, exact linear Gaussian limits, covariance and shared-nuisance controls, direct versus compressed likelihood comparison, source/host linkage and held-out anchor/host prediction. A historical correlated host-distance compression may be a reference fixture only under its released selection, relation and nuisance measure. Do not multiply it into a likelihood that already used those calibration observations.
 

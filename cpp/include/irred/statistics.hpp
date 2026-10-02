@@ -84,6 +84,7 @@ class ProfileOperator;
 class DesignProfile;
 class CorrelatedCalibration;
 class GaussianPosterior;
+class GaussianPredictive;
 class Gaussian {
 public:
   Gaussian() = default;
@@ -166,6 +167,7 @@ private:
   friend class DesignProfile;
   friend class CorrelatedCalibration;
   friend class GaussianPosterior;
+  friend class GaussianPredictive;
   friend Gaussian prepare_selected_observations(const observations::Prepared &,
                                                 std::span<const std::size_t>,
                                                 std::size_t, double,

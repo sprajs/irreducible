@@ -246,3 +246,15 @@ transfer cannot allocate. Linux GCC/Clang with GNU-compatible ELF linker wrappin
 this fault instrumentation; the installed scientific library uses ordinary linkage.
 Successful values/counters and affected distance/ruler/BAO consumers are checked
 separately from failure accounting.
+
+## Retained joint Gaussian predictive controls
+
+Original covariance-route/cofactor and exact rational controls check predictive
+mean and full covariance. Direct prior-times-training-times-future integration
+checks three future vectors, including the predictive mean; independent native
+joint-density quadrature checks normalization. Null/rank-deficient training,
+shared/repeated responses, internally correlated future noise, coherent parameter
+permutations and unit Jacobians challenge the fixed synthetic contract. Quotas,
+lifetime, all measured allocation sites and independent noise/event declarations
+remain separate gates. See [Gaussian predictive](gaussian-predictive.md); these
+controls do not qualify observational coverage or a released finite-box target.

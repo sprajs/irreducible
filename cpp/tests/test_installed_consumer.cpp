@@ -7,6 +7,7 @@
 #include <irred/recombination_drag.hpp>
 #include <irred/sis_thin_lens.hpp>
 #include <irred/gaussian_posterior.hpp>
+#include <irred/gaussian_predictive.hpp>
 #include <irred/sampled_photometry.hpp>
 #include <irred/temporal_photometry.hpp>
 #include <irred/detector_selection.hpp>
@@ -246,6 +247,35 @@ int installed_relic_hydrogen_history() {
  *r.matter_temperature_kelvin.value>0&&*r.visibility_per_redshift.value>0&&
  *r.finite_endpoint_survival.value>0&&*r.finite_endpoint_survival.value<1 ? 0 : 20;
 }
+int installed_gaussian_predictive() {
+ using namespace irred::statistics;
+ const std::array<double,1> C{1},r{2},R{.5},y{2};
+ const std::array<double,2> X{1,0},A{2,0};
+ const std::array<std::string,1> train_ids{"training"},future_ids{"future"};
+ Metadata source;source.ordered_ids={"training"};source.measure="product d(mag)";
+ source.source_semantics="synthetic controls";source.table_identity="installed training";
+ source.uncertainty_identity="unit Gaussian noise";source.ordering_provenance="one axis";
+ source.calibration_provenance="synthetic calibration";source.dependence_provenance="one full noise law";
+ auto training=prepare_gaussian(C,MatrixKind::covariance,source,1024,1e-10,irred::numerics::Arithmetic::longdouble_cpu_v1);
+ ParameterPrior prior;prior.ordered_parameter_ids={"beta","unused"};prior.parameter_units={"mag","mag"};
+ prior.mean={0,0};prior.covariance={1,0,0,1};prior.prior_identity="installed proper prior";
+ prior.design_identity="installed training X";prior.residual_unit="mag";prior.parameter_measure="product d(mag)";
+ prior.dependence_identity="prior independent of training noise";prior.noise_independence_declared=true;
+ auto posterior=GaussianPosterior::prepare(std::move(training),X,train_ids,prior);
+ source.ordered_ids={"future"};source.table_identity="installed future noise";
+ auto noise=prepare_gaussian(R,MatrixKind::covariance,source,1024,1e-10,irred::numerics::Arithmetic::longdouble_cpu_v1);
+ PredictiveMetadata md;md.ordered_parameter_ids={"beta","unused"};md.parameter_units={"mag","mag"};md.response_units={"mag/mag","mag/mag"};
+ md.training_event_ids={"training-event"};md.future_event_ids={"future-event"};md.future_unit="mag";
+ md.future_covariance_unit="mag^2";md.future_measure="product d(mag)";md.response_identity="installed future A";
+ md.conditioning_identity="installed fixed r";md.conditional_noise_identity="independent future noise";
+ md.dependence_identity="future noise independent of prior/training noise";
+ md.future_noise_independence_declared=true;md.noise_conditional_on_parameters_declared=true;
+ auto prediction=GaussianPredictive::prepare(posterior,r,train_ids,noise,A,md);
+ if(prediction.status()!=DensityStatus::finite||prediction.mean().size()!=1||prediction.covariance().size()!=1) return 19;
+ auto density=prediction.log_density(y,future_ids);
+ return std::abs(prediction.mean()[0]-2)<2e-12&&std::abs(prediction.covariance()[0]-2.5)<2e-12&&
+ density.density.status==DensityStatus::finite&&std::abs(density.density.log_value+.5*std::log(5*std::numbers::pi))<2e-11 ? 0 : 19;
+}
 int installed_hydrogen_helium() {
  const irred::atomic::HydrogenHeliumState source{10000,1e12,1e11};
  const auto result=irred::atomic::evaluate_hydrogen_helium_equilibrium({&source,1});
@@ -303,6 +333,8 @@ int main() {
  if (const auto temporal_status=installed_temporal();temporal_status!=0) return temporal_status;
  if (const auto pipeline_status=installed_measurement_pipeline();pipeline_status!=0) return pipeline_status;
  if (const auto relic_status=installed_relic_hydrogen_history();relic_status!=0) return relic_status;
+
+ if (const auto predictive_status=installed_gaussian_predictive();predictive_status!=0) return predictive_status;
  if (const auto mixture_status=installed_hydrogen_helium();mixture_status!=0) return mixture_status;
  return installed_correlated_calibration();
 }

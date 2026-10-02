@@ -62,7 +62,11 @@ declared generating mean. Neither calculation supplies a parameter posterior or
 observational qualification. The native [Gaussian posterior](docs/gaussian-posterior.md)
 requires an independent proper SPD Gaussian parameter prior and fixed linear
 design. It does not normalize a zero-width coordinate or a released box target;
-never apply an already-marginalized prior twice. Read their guides before composing a new consumer.
+never apply an already-marginalized prior twice. The native
+[Gaussian predictive](docs/gaussian-predictive.md) retains a joint future law
+for fixed synthetic linear responses and independent future noise. Preserve
+shared parameter covariance and ordered disjoint row/event lineage; the
+predictive law is not another measurement or observational qualification. Read their guides before composing a new consumer.
 
 Use [GR growth](docs/gr-growth.md) only with its compatible radiation-free pressureless LCDM state and D/a→1 normalization. Growth does not supply radiation/relic perturbations or a scale-dependent transfer function.
 

@@ -444,3 +444,12 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Linux" AND CMAKE_CXX_COMPILER_ID MATCHES "^(GNU|C
   target_link_options(test_thermal_allocation_work PRIVATE "-Wl,--wrap=_ZN5irred8numerics9integrateEPFddPKvES2_ddNS0_17IntegrationPolicyE")
   add_test(NAME thermal_allocation_work_contract COMMAND test_thermal_allocation_work)
 endif()
+
+# Fixed linear posterior predictions with declared independent future noise.
+target_sources(irred_core PRIVATE src/gaussian_predictive.cpp)
+foreach(predictive_test IN ITEMS gaussian_predictive gaussian_predictive_peer)
+  add_executable(test_${predictive_test} tests/test_${predictive_test}.cpp)
+  target_link_libraries(test_${predictive_test} PRIVATE irred_core)
+  target_compile_options(test_${predictive_test} PRIVATE -Wall -Wextra -Wpedantic -fno-fast-math -ffp-contract=off)
+  add_test(NAME ${predictive_test}_contract COMMAND test_${predictive_test})
+endforeach()
