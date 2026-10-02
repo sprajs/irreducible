@@ -531,3 +531,6 @@ add_test(NAME growth_rsd_peer_contract COMMAND test_growth_rsd_peer)
 
 # Joint finite optical-state detector and all-band selection consumer.
 include(cmake/optical_detector.cmake)
+
+# Finite uniform-box normalization of a retained Gaussian linear target.
+include(cmake/gaussian_box.cmake)
