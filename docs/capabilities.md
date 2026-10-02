@@ -100,7 +100,7 @@ positive output/refusal tests support its numerical contract. This supplies an
 LTE state, not a helium kinetic history or abundance/cosmology mapping.
 
 The retained native [pure-H history](recombination-drag.md) composes that initial
-condition with the shared massless thermal background and source-defined
+condition with the shared thermal background and source-defined
 effective three-level rates. It predicts a non-equilibrium electron fraction
 under either prescribed radiation temperature or coupled Compton/adiabatic
 matter-temperature evolution, a late-endpoint drag depth and a separate
@@ -109,6 +109,11 @@ scattering rate and per-redshift finite-endpoint visibility with boundary surviv
 Independent direct-SI RK4 and coupled Radau/refinement controls test the distinct
 solver identities. It adds no CLI/ABI route, helium, multilevel correction,
 reionization, physical drag-epoch qualification or perturbation/CMB prediction.
+Positive-mass profiles now admit up to three explicit collisionless FD species
+with separate model IDs and actual nested momentum work. Original direct-SI
+momentum/Radau controls test the bounded masses/temperatures; massless scalar
+arithmetic and identities are retained. The four-million default work cap still
+refuses expensive profiles; a larger explicit caller cap is needed.
 The supplied-drag ruler remains separate.
 
 The native [synthetic SIS thin lens](sis-thin-lens.md) retains a compatible

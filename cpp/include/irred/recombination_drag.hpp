@@ -124,4 +124,10 @@ inline constexpr std::string_view pure_hydrogen_history_id =
 inline constexpr std::string_view evolved_hydrogen_history_id =
     "pure-H-Peebles3level-F1-SSS1999-Tm-rates-Compton-adiabatic-finite-"
     "endpoint-Thomson/v1";
+inline constexpr std::string_view pure_hydrogen_relic_history_id =
+    "pure-H-Peebles3level-F1-prescribed-Tm-equals-Tr-explicit-massive-FD-H-"
+    "truncated-drag/v1";
+inline constexpr std::string_view evolved_hydrogen_relic_history_id =
+    "pure-H-Peebles3level-F1-SSS1999-Tm-rates-Compton-adiabatic-explicit-"
+    "massive-FD-H-finite-endpoint-Thomson/v1";
 } // namespace irred::cosmology

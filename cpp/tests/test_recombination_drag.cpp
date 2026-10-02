@@ -311,7 +311,7 @@ int main() {
     for (unsigned choice = 0; choice < 6; ++choice) {
       auto invalid = request();
       if (choice == 0)
-        invalid.model.species.push_back({.06, 1.9, 2});
+        invalid.model.species.push_back({.31, 1.9, 2});
       if (choice == 1)
         invalid.late_redshift = 0;
       if (choice == 2)

@@ -47,7 +47,7 @@ and synthetic controls can proceed alongside it.
 | Detector counts and random streams | Native bounded Poisson/read-noise law and addressed Philox simulation implemented; next qualify a measured response | Analytic moments, distribution/refinement and replay controls pass; distinct counters and empirical cross moments are not proof of independence |
 | Detection and censoring | Native threshold joint/selected-only likelihood and synthetic censored recovery implemented; next qualify a population/selection model | Exact censored masses, independent continuous density/CDF and synthetic recovery retain nondetections; measured selection and posterior coverage remain open |
 | Homogeneous ionization control | Native supplied-temperature/density pure-H and shared-electron H/He LTE implemented; next qualify abundance mapping and helium kinetics | Rational, independent polynomial/Decimal and positivity/domain controls pass; equilibrium and fixed atomic central values do not predict a cosmic history |
-| Recombination and drag history | Native bounded effective three-level pure-H history and truncated drag depth implemented; coupled Compton/adiabatic matter temperature and finite-endpoint Thomson visibility implemented; next add helium/multilevel closure and physical endpoints | Independent resolved RK4 and coupled Radau/refinement controls test distinct temperature identities; finite visibility and conditional drag root cannot replace full CMB visibility or physical z_drag |
+| Recombination and drag history | Native bounded effective three-level pure-H history and truncated drag depth implemented; coupled Compton/adiabatic matter temperature and finite-endpoint Thomson visibility implemented; bounded massive-relic H composition implemented; next add helium/multilevel closure and physical endpoints | Independent resolved RK4 and coupled Radau/refinement controls test distinct temperature identities; finite visibility and conditional drag root cannot replace full CMB visibility or physical z_drag |
 | Scoped GR growth | Bounded radiation-free pressureless native D/f implemented; next qualify one compatible observational consumer | Einstein–de Sitter and independent ODE/refinement controls pass; a scale-independent growth approximation is not massive-neutrino transfer or full perturbation closure |
 | A named thin-lens system | Native bounded SIS point-source/mass-sheet and Gaussian-PSF pixel slice implemented; next pin one system's mass/source/environment and instrument constraints | Independent potential/Jacobian and pixel integration, synthetic image/delay recovery and mass-sheet/H0 controls pass; inherited distance errors and degeneracies remain explicit, without measured-system qualification |
 | Linear transfer and CMB projection | Not implemented: first freeze gauge/metric and species perturbations, primordial modes and qualified thermal/visibility state, then one projection | Initial-mode/conservation and independent hierarchy/transfer/spectra controls are required; background, pressureless D/f and a truncated pure-H history do not close this route |
@@ -166,10 +166,16 @@ The native [thermal BAO density](bao-thermal.md) now composes this state with th
 retained ordered covariance and its unchanged density-level projection allocation.
 The massless conditional model retains its separate identity. Neither
 provider predicts drag or recombination. The separate [conditional pure-H history](recombination-drag.md)
-uses the massless background and shared Saha initial condition, evolves an effective
+uses the shared thermal background and Saha initial condition, evolves an effective
 three-level model under either prescribed radiation temperature or explicit coupled
 Compton/adiabatic matter temperature. The coupled state also supplies finite-endpoint
 Thomson depth, scattering rate and per-redshift visibility, retaining survival mass.
+The same history now admits up to three bounded explicit positive-mass relics,
+using the retained physical thermal state and distinct model IDs. Independent
+SI momentum/Radau controls and massless regression checks preserve scientific
+budgets; direct momentum integration requires an explicit larger work allowance.
+Next measure a controlled momentum/background acceleration at matched downstream
+accuracy before replacing this portable baseline. The default cap remains fixed.
 Drag depth still starts from an explicit late endpoint. Its unit-depth root remains distinct from a
 qualified physical drag epoch and is not coupled to the supplied-drag ruler.
 

@@ -23,6 +23,9 @@ electron neutrality for independently supplied nuclei densities. A separate
 three-level model with either prescribed radiation temperature or coupled
 Compton/adiabatic matter-temperature evolution. The coupled state supplies
 Thomson optical depth and finite-endpoint visibility with explicit survival mass.
+Bounded explicit massive relics can feed its retained thermal expansion state,
+with distinct identities and measured momentum work. The default work cap stays
+fixed; expensive profiles require an explicit larger allowance.
 Its truncated drag depth and conditional unit-depth root remain distinct from
 a physical drag epoch and the existing supplied-drag ruler.
 

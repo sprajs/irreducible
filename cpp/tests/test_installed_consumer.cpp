@@ -229,6 +229,24 @@ int installed_hydrogen_history() {
   *middle.thomson_depth.value>0 && *middle.visibility_per_redshift.value>0 &&
   *middle.finite_endpoint_survival.value>0 && *middle.finite_endpoint_survival.value<1 ? 0 : 17;
 }
+int installed_relic_hydrogen_history() {
+ using namespace irred::cosmology;
+ const PureHydrogenRequest source{{67.4,.02237,.12,2.7255,0,
+   {{.06,1.95,2},{0,1.95,2},{0,1.95,2}}},1600,300,
+   HydrogenTemperatureModel::evolved_compton_adiabatic};
+ PureHydrogenPolicy p;p.maximum_total_work=700000000;
+ const auto h=prepare_pure_hydrogen_history(source,p);
+ if(h.status()!=irred::numerics::Status::ok||h.model_identity()!=evolved_hydrogen_relic_history_id||
+   h.work().momentum_callbacks<=4000000) return 20;
+ const auto row=h.evaluate(std::array{1000.},127);
+ if(row.rows.size()!=1) return 20;
+ const auto& r=row.rows[0];
+ return r.electron_fraction.value&&r.matter_temperature_kelvin.value&&r.drag_depth.value&&
+ r.thomson_depth.value&&r.thomson_opacity_per_redshift.value&&r.visibility_per_redshift.value&&
+ r.finite_endpoint_survival.value&&*r.electron_fraction.value>0&&*r.electron_fraction.value<1&&
+ *r.matter_temperature_kelvin.value>0&&*r.visibility_per_redshift.value>0&&
+ *r.finite_endpoint_survival.value>0&&*r.finite_endpoint_survival.value<1 ? 0 : 20;
+}
 int installed_gaussian_predictive() {
  using namespace irred::statistics;
  const std::array<double,1> C{1},r{2},R{.5},y{2};
@@ -314,6 +332,8 @@ int main() {
  if (const auto lens_status=installed_sis_thin_lens();lens_status!=0) return lens_status;
  if (const auto temporal_status=installed_temporal();temporal_status!=0) return temporal_status;
  if (const auto pipeline_status=installed_measurement_pipeline();pipeline_status!=0) return pipeline_status;
+ if (const auto relic_status=installed_relic_hydrogen_history();relic_status!=0) return relic_status;
+
  if (const auto predictive_status=installed_gaussian_predictive();predictive_status!=0) return predictive_status;
  if (const auto mixture_status=installed_hydrogen_helium();mixture_status!=0) return mixture_status;
  return installed_correlated_calibration();
