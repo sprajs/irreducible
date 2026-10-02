@@ -436,7 +436,7 @@ foreach(relic_history_test IN ITEMS hydrogen_relics hydrogen_relics_peer)
 endforeach()
 
 # GNU-compatible ELF linker instrumentation is a Linux GCC/Clang test profile.
-if(CMAKE_SYSTEM_NAME STREQUAL "Linux" AND CMAKE_CXX_COMPILER_ID MATCHES "^(GNU|Clang)$")
+if(CMAKE_SIZEOF_VOID_P EQUAL 8 AND CMAKE_SYSTEM_NAME STREQUAL "Linux" AND CMAKE_CXX_COMPILER_ID MATCHES "^(GNU|Clang)$")
   # Forwarding observation only: preserve failed momentum work, no math replacement.
   add_executable(test_thermal_allocation_work tests/test_thermal_allocation_work.cpp)
   target_link_libraries(test_thermal_allocation_work PRIVATE irred_core)

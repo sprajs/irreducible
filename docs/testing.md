@@ -263,6 +263,9 @@ permutations and unit Jacobians challenge the fixed synthetic contract. Quotas,
 lifetime, all measured allocation sites and independent noise/event declarations
 remain separate gates. See [Gaussian predictive](gaussian-predictive.md); these
 controls do not qualify observational coverage or a released finite-box target.
+Actual predictive factor/whitening/solve observations use forwarding hooks only
+on 64-bit Linux GCC/Clang with GNU-compatible ELF wrapping. Other builds retain
+the unwrapped owner and independent mathematical controls.
 
 ## Addressed Gaussian recovery campaigns
 

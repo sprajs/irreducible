@@ -192,6 +192,6 @@ matched timers establish a universal performance or scientific qualification.
 The posterior remains available to other const library consumers; the batch
 owner does not return a cloned parameter law. Ordinary owner controls observe
 one setup Cholesky call, then zero Cholesky calls with three training whitenings
-and three density solves for a three-admitted/one-refused batch. Linux GCC/Clang
+and three density solves for a three-admitted/one-refused batch. 64-bit Linux GCC/Clang
 ELF forwarding hooks observe the original routines without replacing their
 arithmetic. Portable named mathematical checks do not depend on those hooks.
