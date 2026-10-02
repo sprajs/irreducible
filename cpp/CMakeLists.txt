@@ -435,9 +435,12 @@ foreach(relic_history_test IN ITEMS hydrogen_relics hydrogen_relics_peer)
   add_test(NAME ${relic_history_test}_contract COMMAND test_${relic_history_test})
 endforeach()
 
-# Forwarding observation only: preserve failed momentum work, no math replacement.
-add_executable(test_thermal_allocation_work tests/test_thermal_allocation_work.cpp)
-target_link_libraries(test_thermal_allocation_work PRIVATE irred_core)
-target_compile_options(test_thermal_allocation_work PRIVATE -Wall -Wextra -Wpedantic -fno-fast-math -ffp-contract=off)
-target_link_options(test_thermal_allocation_work PRIVATE "-Wl,--wrap=_ZN5irred8numerics9integrateEPFddPKvES2_ddNS0_17IntegrationPolicyE")
-add_test(NAME thermal_allocation_work_contract COMMAND test_thermal_allocation_work)
+# GNU-compatible ELF linker instrumentation is a Linux GCC/Clang test profile.
+if(CMAKE_SYSTEM_NAME STREQUAL "Linux" AND CMAKE_CXX_COMPILER_ID MATCHES "^(GNU|Clang)$")
+  # Forwarding observation only: preserve failed momentum work, no math replacement.
+  add_executable(test_thermal_allocation_work tests/test_thermal_allocation_work.cpp)
+  target_link_libraries(test_thermal_allocation_work PRIVATE irred_core)
+  target_compile_options(test_thermal_allocation_work PRIVATE -Wall -Wextra -Wpedantic -fno-fast-math -ffp-contract=off)
+  target_link_options(test_thermal_allocation_work PRIVATE "-Wl,--wrap=_ZN5irred8numerics9integrateEPFddPKvES2_ddNS0_17IntegrationPolicyE")
+  add_test(NAME thermal_allocation_work_contract COMMAND test_thermal_allocation_work)
+endif()

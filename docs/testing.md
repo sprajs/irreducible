@@ -242,7 +242,7 @@ All momentum work is charged; the default cap can refuse these profiles.
 A linker-only forwarding observer of the unchanged native integration entry
 point verifies actual momentum callbacks at each measured provider/history
 allocation site. Source acquisition precedes momentum work and successful
-transfer cannot allocate. GCC/Clang Unix linkage is the scope of this fault
-instrumentation; the installed scientific library uses ordinary linkage.
+transfer cannot allocate. Linux GCC/Clang with GNU-compatible ELF linker wrapping is the scope of
+this fault instrumentation; the installed scientific library uses ordinary linkage.
 Successful values/counters and affected distance/ruler/BAO consumers are checked
 separately from failure accounting.
