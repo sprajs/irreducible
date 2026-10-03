@@ -182,7 +182,7 @@ int main() {
   REQUIRE(std::fegetround()==FE_TONEAREST && std::numeric_limits<W>::digits>=64);
   Counters counts;Rule r16,r32,r64;
   W change16_32=0,change32_64=0;
-  W native_gap=0,native_estimate=0,consistency_margin=0;
+  W native_gap=0,native_estimate=0,consistency_margin=std::numeric_limits<W>::infinity();
   std::size_t owner_actions=0,owner_callbacks=0,known_peak=0;
   REQUIRE(make_rule(16,r16,counts));REQUIRE(make_rule(32,r32,counts));REQUIRE(make_rule(64,r64,counts));
   const p::ModelPoint models[]{ {.32,2,1,1.1,.9}, {.32,1,-1,.9,1.1}, {.32,2,.8,1.03,.97} };
@@ -225,7 +225,7 @@ int main() {
           REQUIRE(gap<=allowance);
           native_gap=std::max(native_gap,gap);
           native_estimate=std::max(native_estimate,static_cast<W>(powers[ell]->combined_estimate));
-          consistency_margin=std::max(consistency_margin,allowance-gap);
+          consistency_margin=std::min(consistency_margin,allowance-gap);
           REQUIRE(actual.mean[ell*reference.size()+j].power.value==powers[ell]->value);
         }
       }
@@ -250,7 +250,7 @@ int main() {
             << ", queries=" << counts.queries << ", refinement16-32=" << change16_32
             << ", refinement32-64=" << change32_64
             << ", native-gap=" << native_gap << ", native-estimate=" << native_estimate
-            << ", maximum-consistency-margin=" << consistency_margin
+            << ", minimum-consistency-margin=" << consistency_margin
             << ", owner-actions=" << owner_actions << ", owner-callbacks=" << owner_callbacks
             << ", owner-known-payload=" << known_peak
             << "; empirical refinement/diagnostic agreement only\n";
