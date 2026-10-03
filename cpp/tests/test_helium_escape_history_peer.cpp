@@ -22,6 +22,61 @@ void compare_scalar(W actual, W reference, W scale, W reference_error) {
   need(reference_error <= .05L * allocation, "complete scalar reference numerical allowance <=5%");
   need(std::abs(actual - reference) <= allocation + reference_error, "independent scalar algebra");
 }
+void emit_reference_failure_prefix(unsigned fixture, const char *level,
+                                   std::span<const double> queries,
+                                   const helium_escape_reference::Result &result) {
+  std::cerr << std::hexfloat << "reference-failure-prefix fixture=" << fixture << " level=" << level
+            << " complete=" << result.complete << " refusal=" << result.refusal
+            << " calls=" << result.calls << " witness_present=" << result.rejected_trial.has_value()
+            << " query_size=" << queries.size() << " q_size=" << result.q.size()
+            << " numerical_arithmetic_error_size=" << result.numerical_arithmetic_error.size()
+            << " numerical_arithmetic_error_meaning=accumulated-local-refinement-root-arithmetic-diagnostic\n";
+  for (std::size_t i = 0; i < std::max(result.q.size(), result.numerical_arithmetic_error.size()); ++i) {
+    std::cerr << "reference-prefix-row fixture=" << fixture << " level=" << level << " query_index=" << i
+              << " query_redshift=";
+    if (i < queries.size()) std::cerr << queries[i]; else std::cerr << "absent";
+    std::cerr << " q=";
+    if (i < result.q.size()) std::cerr << result.q[i]; else std::cerr << "absent";
+    std::cerr << " numerical_arithmetic_error=";
+    if (i < result.numerical_arithmetic_error.size()) std::cerr << result.numerical_arithmetic_error[i];
+    else std::cerr << "absent";
+    std::cerr << " accepted_complete_reference=false\n";
+  }
+  if (!result.rejected_trial) return;
+  const auto &r = *result.rejected_trial;
+  std::cerr << "reference-rejected-trial fixture=" << fixture << " level=" << level
+            << " query_index=" << r.query_index << " query_redshift=" << r.query_redshift
+            << " retry_index=" << r.retry_index << " maximum_step=" << r.maximum_step
+            << " source_span=" << r.source_span << " call_cap=" << r.call_cap << '\n'
+            << "reference-rejected-input fixture=" << fixture << " level=" << level
+            << " old_ell=" << r.old_ell << " target_ell=" << r.target_ell
+            << " next_split_ell=" << r.next_split_ell << " h=" << r.h
+            << " old_q=" << r.old_q << " old_accumulated=" << r.old_accumulated << '\n'
+            << "reference-rejected-full fixture=" << fixture << " level=" << level
+            << " q_full=" << r.q_full << " ell_after_full=" << r.ell_after_full
+            << " accumulated_after_full=" << r.accumulated_after_full
+            << " full_root_correction=" << r.full_root_correction
+            << " full_arithmetic_charge=" << r.full_arithmetic_charge << '\n'
+            << "reference-rejected-half1 fixture=" << fixture << " level=" << level
+            << " q_half1=" << r.q_half1 << " ell_after_half1=" << r.ell_after_half1
+            << " accumulated_after_half1=" << r.accumulated_after_half1
+            << " half1_root_correction=" << r.half1_root_correction
+            << " half1_arithmetic_charge=" << r.half1_arithmetic_charge << '\n'
+            << "reference-rejected-half2 fixture=" << fixture << " level=" << level
+            << " q_half2=" << r.q_half2 << " ell_after_half2=" << r.ell_after_half2
+            << " accumulated_after_half2=" << r.accumulated_after_half2
+            << " half2_root_correction=" << r.half2_root_correction
+            << " half2_arithmetic_charge=" << r.half2_arithmetic_charge << '\n'
+            << "reference-rejected-decision fixture=" << fixture << " level=" << level
+            << " refinement_component=" << r.refinement_component
+            << " charged_full_difference=" << r.charged_full_difference
+            << " charged_half_difference=" << r.charged_half_difference
+            << " complete_local=" << r.complete_local << " local_allowance=" << r.local_allowance
+            << " epsilon=" << r.epsilon << '\n'
+            << "reference-rejected-calls fixture=" << fixture << " level=" << level
+            << " calls_before_trial=" << r.calls_before_trial << " calls_after_full=" << r.calls_after_full
+            << " calls_after_half1=" << r.calls_after_half1 << " calls_after_half2=" << r.calls_after_half2 << '\n';
+}
 }
 int main() {
   try {
@@ -121,9 +176,12 @@ int main() {
       std::cout << "reference fixture=" << fixture << " coarse_complete=" << coarse.complete
                 << " fine_complete=" << fine.complete << " coarse_calls=" << coarse.calls
                 << " fine_calls=" << fine.calls << '\n';
-      if (!coarse.complete || !fine.complete)
+      if (!coarse.complete || !fine.complete) {
         std::cerr << "reference refusal coarse=" << coarse.refusal << " fine=" << fine.refusal
                   << " calls=" << coarse.calls << "," << fine.calls << '\n';
+        emit_reference_failure_prefix(fixture, "coarse", z, coarse);
+        emit_reference_failure_prefix(fixture, "fine", z, fine);
+      }
       need(coarse.complete && fine.complete && fine.q.size() == 5 && coarse.q.size() == 5,
            "complete independently refined Radau trajectory without dropped states");
       const auto native = owner.evaluate(z, 7);

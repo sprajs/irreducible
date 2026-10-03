@@ -5,6 +5,7 @@
 #include <cmath>
 #include <limits>
 #include <numbers>
+#include <optional>
 #include <stdexcept>
 #include <string>
 // Original two-stage, order3 Radau-IIA reference. It consumes finite source data
@@ -62,11 +63,34 @@ inline State driver(std::span<const Knot> rows, W ell) {
           geometric(a.radiation_temperature_kelvin, b.radiation_temperature_kelvin),
           geometric(a.hydrogen_neutral_fraction, b.hydrogen_neutral_fraction)};
 }
+// Passive last-tested evidence, in per-He q units and dimensionless ln(a).
+// Only a fully evaluated full/two-half rejection can populate this fixed record.
+struct RejectedTrial {
+  std::size_t query_index;
+  double query_redshift;
+  unsigned retry_index;
+  W maximum_step, source_span;
+  std::size_t call_cap;
+  W old_ell, target_ell, next_split_ell, h, old_q, old_accumulated;
+  W q_full, ell_after_full, accumulated_after_full,
+      full_root_correction, full_arithmetic_charge;
+  W q_half1, ell_after_half1, accumulated_after_half1,
+      half1_root_correction, half1_arithmetic_charge;
+  W q_half2, ell_after_half2, accumulated_after_half2,
+      half2_root_correction, half2_arithmetic_charge;
+  W refinement_component, charged_full_difference, charged_half_difference,
+      complete_local, local_allowance, epsilon;
+  std::size_t calls_before_trial, calls_after_full, calls_after_half1, calls_after_half2;
+};
+static_assert(sizeof(RejectedTrial) <= 1024);
+static_assert(sizeof(std::optional<RejectedTrial>) <= 1024);
+struct StepCharge { W root_correction, arithmetic_charge; };
 struct Result {
   bool complete = false;
   std::size_t calls = 0;
   std::vector<W> q, numerical_arithmetic_error;
   std::string refusal;
+  std::optional<RejectedTrial> rejected_trial;
 };
 // Adaptive step-doubled Radau with a fixed maximum step, independently refined;
 // split every emitted source knot
@@ -115,9 +139,10 @@ inline Result integrate(std::span<const Knot> rows, W f, W q0,
       if (correction <= 64 * eps * std::max(x[0], x[1])) {
         // The endpoint is stage2 (stiffly accurate Radau), with accumulated
         // root/finite arithmetic diagnostics. This is not a rigorous certificate.
-        accumulated += correction + 1024 * eps *
+        const W arithmetic_charge = 1024 * eps *
             (std::abs(q) + std::abs(x[1]) + h * (r[0].scale + r[1].scale));
-        q = x[1]; ell += h; return;
+        accumulated += correction + arithmetic_charge;
+        q = x[1]; ell += h; return StepCharge{correction, arithmetic_charge};
       }
       W damping = 1; bool accepted = false;
       for (unsigned k = 0; k < 64; ++k) {
@@ -131,6 +156,7 @@ inline Result integrate(std::span<const Knot> rows, W f, W q0,
     }
     throw std::runtime_error("independent reference iteration limit");
   };
+  bool final_refinement_exhaustion = false;
   try {
     for (double query : z) {
       const W target = -std::log1p(W(query));
@@ -146,31 +172,56 @@ inline Result integrate(std::span<const Knot> rows, W f, W q0,
         bool accepted = false;
         for (unsigned retry = 0; retry < 64; ++retry) {
           const W old_ell = ell, old_q = q, old_error = accumulated;
-          step(h); const W full_q = q, full_error = accumulated;
+          const std::size_t calls_before_trial = out.calls;
+          const auto full_charge = step(h);
+          const W full_q = q, full_error = accumulated, full_ell = ell;
+          const std::size_t calls_after_full = out.calls;
           ell = old_ell; q = old_q; accumulated = old_error;
-          step(h / 2); step(h / 2);
-          const W complete_local = std::abs(q - full_q) / 7 +
-              (accumulated - old_error) + (full_error - old_error),
+          const auto half1_charge = step(h / 2);
+          const W half1_q = q, half1_error = accumulated, half1_ell = ell;
+          const std::size_t calls_after_half1 = out.calls;
+          const auto half2_charge = step(h / 2);
+          const W refinement_component = std::abs(q - full_q) / 7,
+              charged_half_difference = accumulated - old_error,
+              charged_full_difference = full_error - old_error,
+              complete_local = refinement_component + charged_half_difference + charged_full_difference,
               allowance = (1e-12L + 1e-10L * std::max(old_q, q)) * h / source_span;
           if (complete_local <= allowance) {
+            out.rejected_trial.reset();
             accumulated = old_error + complete_local;
             // Coordinate endpoint arithmetic stays in the reference error.
             const W endpoint = old_ell + h;
             if (!(endpoint > old_ell)) throw std::runtime_error("independent reference coordinate refusal");
             ell = endpoint; accepted = true; break;
           }
+          // Capture the actually tested h and decision operands before rollback.
+          // These copies add no rate/driver evaluations or acceptance predicate.
+          out.rejected_trial = RejectedTrial{
+              out.q.size(), query, retry, maximum_step, source_span, call_cap,
+              old_ell, target, next, h, old_q, old_error,
+              full_q, full_ell, full_error, full_charge.root_correction, full_charge.arithmetic_charge,
+              half1_q, half1_ell, half1_error, half1_charge.root_correction, half1_charge.arithmetic_charge,
+              q, ell, accumulated, half2_charge.root_correction, half2_charge.arithmetic_charge,
+              refinement_component, charged_full_difference, charged_half_difference,
+              complete_local, allowance, eps,
+              calls_before_trial, calls_after_full, calls_after_half1, out.calls};
           ell = old_ell; q = old_q; accumulated = old_error; h /= 2;
         }
-        if (!accepted) throw std::runtime_error("independent reference refinement refusal");
+        if (!accepted) {
+          final_refinement_exhaustion = true;
+          throw std::runtime_error("independent reference refinement refusal");
+        }
         if (next - ell <= 16 * eps * std::max(W(1), std::abs(next))) {
           accumulated += 1024 * eps * std::abs(q); ell = next;
         }
       }
       out.q.push_back(q); out.numerical_arithmetic_error.push_back(accumulated);
     }
+    out.rejected_trial.reset();
     out.complete = true;
   } catch (const std::runtime_error &e) {
     out.refusal = e.what();
+    if (!final_refinement_exhaustion) out.rejected_trial.reset();
     // Keep original partial outputs/counter as failure evidence; caller must
     // require complete before any reference or output acceptance.
   }
