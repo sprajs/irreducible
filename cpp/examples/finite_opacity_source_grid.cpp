@@ -224,15 +224,21 @@ int main() {
     std::cout << "preparation_prefix\tbackground_calls=" << id.preparation_work.background_clock_calls
               << "\tlogical_writes=" << id.preparation_work.destination_writes
               << "\trefused_write_request=" << id.preparation_work.refused_write_request
-              << "\tretained_seeds=" << id.seeds.size() << "\tclock_consistent=" << id.clock.endpoint_clock_consistent << '\n';
-    std::cout << "stored_clock_witness\tinitial_age=" << id.clock.initial_age_mpc
-              << "\tobserver_age=" << id.clock.observer_age_mpc
-              << "\tinitial_difference=" << id.clock.initial_quadrature_difference_mpc
-              << "\tobserver_difference=" << id.clock.observer_quadrature_difference_mpc
-              << "\tinitial_mismatch=" << id.clock.initial_eta_mismatch_mpc
-              << "\tobserver_mismatch=" << id.clock.observer_eta_mismatch_mpc
-              << "\tendpoint_consistent=" << id.clock.endpoint_clock_consistent
-              << "\tcomplete_clock_error=absent\n";
+              << "\tretained_seeds=" << id.seeds.size() << '\n';
+    // The public API has no per-field clock availability on preparation refusal.
+    if (producer.status() == S::ok) {
+      std::cout << "stored_clock_witness\tbundle_available=true\tinitial_age=" << id.clock.initial_age_mpc
+                << "\tobserver_age=" << id.clock.observer_age_mpc
+                << "\tinitial_difference=" << id.clock.initial_quadrature_difference_mpc
+                << "\tobserver_difference=" << id.clock.observer_quadrature_difference_mpc
+                << "\tinitial_mismatch=" << id.clock.initial_eta_mismatch_mpc
+                << "\tobserver_mismatch=" << id.clock.observer_eta_mismatch_mpc
+                << "\tendpoint_consistent=" << id.clock.endpoint_clock_consistent
+                << "\tcomplete_clock_error=absent\n";
+    } else {
+      std::cout << "stored_clock_witness\tbundle_available=false\tpartial_fields=withheld"
+                   "\tcomplete_clock_error=absent\n";
+    }
     for (std::size_t k = 0; k < id.seeds.size(); ++k) {
       const auto &seed = id.seeds[k];
       std::cout << "initial_seed\t" << k;
