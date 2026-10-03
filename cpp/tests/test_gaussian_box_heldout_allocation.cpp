@@ -94,7 +94,7 @@ Trace evaluation(std::size_t failure) {
   check(owner.status()==DensityStatus::finite,"evaluation failure retains prepared owner");
   const auto bound=owner.evaluation_payload_bound(2,3);check(bound.has_value(),"evaluation payload bound available");
   check(trace.peak_new_requested_bytes<=*bound,"evaluation new requested heap obeys owned payload upper");
-  if(out.status()!=DensityStatus::finite)check(out.status()==DensityStatus::numerical_failure&&out.numerical_status==irred::numerics::Status::work_limit,"outer allocation cause retained");
+  if(out.status!=DensityStatus::finite)check(out.status==DensityStatus::numerical_failure&&out.numerical_status==irred::numerics::Status::work_limit,"outer allocation cause retained");
   if(out.output_layout_available) {
     check(out.requests.size()==3&&out.densities.size()==3&&out.training_normalizations.size()==2&&
         out.training_refusal_witnesses.size()==2&&out.training_offset_subtraction_rounding_estimates.size()==2&&
