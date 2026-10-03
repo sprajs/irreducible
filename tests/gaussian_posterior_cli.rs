@@ -40,9 +40,22 @@ fn run_raw(bytes: &[u8]) -> (Value, i32, Option<Value>) {
         .unwrap();
     fs::write(d.0.join("stdout.json"), &out.stdout).unwrap();
     fs::write(d.0.join("stderr.log"), &out.stderr).unwrap();
+    let exit_status = json!({
+        "exit_status_display": out.status.to_string(),
+        "success": out.status.success(),
+        "exit_code": out.status.code(),
+    });
+    #[cfg(unix)]
+    let exit_status = {
+        use std::os::unix::process::ExitStatusExt;
+        let mut exit_status = exit_status;
+        exit_status["unix_signal"] = json!(out.status.signal());
+        exit_status["unix_raw_status"] = json!(out.status.into_raw());
+        exit_status
+    };
     fs::write(
         d.0.join("exit-status.json"),
-        serde_json::to_vec(&out.status.code()).unwrap(),
+        serde_json::to_vec(&exit_status).unwrap(),
     )
     .unwrap();
     fn inventory(
@@ -67,7 +80,7 @@ fn run_raw(bytes: &[u8]) -> (Value, i32, Option<Value>) {
     }
     let mut hashes = BTreeMap::new();
     inventory(&d.0, &d.0, &mut hashes);
-    fs::write(d.0.join("capture.json"), serde_json::to_vec_pretty(&json!({"request_sha256":format!("{:x}", Sha256::digest(bytes)),"files":hashes,"exit_code":out.status.code()})).unwrap()).unwrap();
+    fs::write(d.0.join("capture.json"), serde_json::to_vec_pretty(&json!({"request_sha256":format!("{:x}", Sha256::digest(bytes)),"files":hashes,"exit_status":exit_status})).unwrap()).unwrap();
     let v: Value = serde_json::from_slice(&out.stdout).unwrap();
     let digest = v["receipt"]["input_digest"].as_str().unwrap();
     assert_eq!(fs::read(store.join("objects").join(digest)).unwrap(), bytes);
