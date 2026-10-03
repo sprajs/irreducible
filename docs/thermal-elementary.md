@@ -118,7 +118,10 @@ process admits at most 64 native records/65536 bytes, with one aggregate
 2-million exact-operation allowance across all of that process's objects.
 Bit and exact-operation checks can refuse.
 Each original native record and output digest is preserved before checking it,
-including all 80 requests. Fixture and scalar/prefix/environment/caller groups use
+including all 80 requests. Original bounded byte prefixes, output digests,
+arguments, stages and actual termination statuses are retained on protocol
+refusals. Every bounded process has a common final traced-memory gate, including
+the fixture and report encoding. Fixture and scalar/prefix/environment/caller groups use
 42 separate sequential reference processes; the largest caller group has exactly 64 records
 including its source header and campaign summary. No record allowance is raised
 for the full campaign. The outer controller performs no rational calculation and
@@ -144,4 +147,7 @@ emit the largest observed charged blocks. The final summary must itself be
 dominated by those emitted extrema, or the whole protocol refuses. Ledger/cache
 invariants are checked before every admission commit. Normal-or-zero binary64
 imports require the selected profile before conversion. Actual runtime support
-for these source bounds remains pending the five compiled contracts.
+for these source bounds remains pending the five compiled contracts. Independent
+source review found omitted reservation bookkeeping in the current small encoder
+blocks. Wire accounting is withheld until its complete record graph is repaired;
+charged extrema alone cannot establish the claimed bound.

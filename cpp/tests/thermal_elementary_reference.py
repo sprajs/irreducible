@@ -184,13 +184,21 @@ def native(binary, arguments):
     output=process.stdout.read(65537)
     if len(output)>65536:
         process.kill()
-        process.wait()
+        status=process.wait()
+        print(json.dumps({"native_failure":{"arguments":arguments,"stage":"byte_limit","status":status,
+                         "prefix_only":True,"original_output_hex":output.hex(),
+                         "output_sha256":hashlib.sha256(output).hexdigest()}}),flush=True)
         raise Refusal("native wire byte limit")
     status=process.wait()
+    print(json.dumps({"native_output":{"arguments":arguments,"stage":"collected","status":status,
+                     "prefix_only":False,"original_output_hex":output.hex(),
+                     "output_sha256":hashlib.sha256(output).hexdigest()}}),flush=True)
     if status:
-        raise Refusal(f"native refused invocation status={status}; preserved output={output!r}")
+        raise Refusal(f"native refused invocation status={status}; original receipt preserved")
     lines=output.splitlines()
     if len(lines)>64:
+        print(json.dumps({"native_failure":{"arguments":arguments,"stage":"record_limit","status":status,
+                         "records":len(lines),"output_sha256":hashlib.sha256(output).hexdigest()}}),flush=True)
         raise Refusal("native wire record limit")
     return [json.loads(line) for line in lines],hashlib.sha256(output).hexdigest()
 
@@ -338,9 +346,17 @@ def main():
             output=process.stdout.read(1024*1024+1)
             sys.stdout.buffer.write(output);sys.stdout.flush() # Preserve failures too.
             if len(output)>1024*1024:
-                process.kill();process.wait()
+                process.kill();status=process.wait()
+                print(json.dumps({"bounded_reference_failure":{"scope":scope,"case_index":index,
+                                 "stage":"receipt_byte_limit","status":status,"prefix_only":True,
+                                 "original_output_hex":output.hex(),
+                                 "output_sha256":hashlib.sha256(output).hexdigest()}}),flush=True)
                 raise Refusal("bounded reference receipt byte limit")
-            if process.wait():
+            status=process.wait()
+            print(json.dumps({"bounded_reference_output":{"scope":scope,"case_index":index,
+                             "status":status,"prefix_only":False,"collected_bytes":len(output),
+                             "output_sha256":hashlib.sha256(output).hexdigest()}}),flush=True)
+            if status:
                 raise Refusal("bounded reference invocation/protocol refused")
             report=json.loads(output.splitlines()[-1])
             if source is None:source=report["native_source_sha256"]
@@ -411,6 +427,13 @@ def main():
                       "distinct_requests":len(groups[args.scope][1]) if args.scope in groups else 1,
                       "aggregate_exact_operations":reference_operations,
                       "whole_physics_or_reference_certificate":False,"receipts":receipts,"invocations":invocations}))
+    # Full bounded-process gate, including fixture and complete report encoding.
+    # The original report is preserved before a failing whole-process disposition.
+    final_peak=tracemalloc.get_traced_memory()[1]
+    if final_peak>32*1024*1024:
+        print(json.dumps({"reference_failure":{"stage":"whole_traced_payload","peak_traced_bytes":final_peak,
+                         "maximum_traced_bytes":32*1024*1024,"bounded_scope":args.scope}}),flush=True)
+        raise Refusal("whole bounded reference traced payload limit")
 
 
 if __name__=="__main__":
