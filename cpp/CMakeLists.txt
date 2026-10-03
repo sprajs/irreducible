@@ -534,3 +534,6 @@ include(cmake/optical_detector.cmake)
 
 # Finite uniform-box normalization of a retained Gaussian linear target.
 include(cmake/gaussian_box.cmake)
+
+# Bounded perfect-fluid CDM transfer and declared finite-band primordial variance.
+include(cmake/linear_transfer.cmake)
