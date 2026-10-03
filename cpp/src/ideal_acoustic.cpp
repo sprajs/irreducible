@@ -333,6 +333,11 @@ IdealAcousticTransfer prepare_ideal_acoustic(IdealAcousticRequest &&request,
   out.loading_numerator_=loading.numerator; out.loading_denominator_=loading.denominator;
   out.retained_lambda_=coefficient->lambda_retained;
   out.lambda_getter_signed_loss_=coefficient->lambda_getter_signed_loss;
+  out.retained_critical_density_=coefficient->critical_density_ev4;
+  out.retained_species_today_=coefficient->omega_species_today;
+  out.retained_species_normalization_error_=coefficient->species_normalization_error;
+  out.retained_lambda_emitted_=coefficient->lambda_emitted;
+  out.retained_momentum_method_=coefficient->momentum_method;
   out.status_=S::ok; return out;
 }
 IdealAcousticTransfer::IdealAcousticTransfer(IdealAcousticTransfer &&o) noexcept {
@@ -345,6 +350,11 @@ IdealAcousticTransfer &IdealAcousticTransfer::operator=(IdealAcousticTransfer &&
     loading_error_=o.loading_error_; loading_numerator_=o.loading_numerator_;
     loading_denominator_=o.loading_denominator_; retained_lambda_=o.retained_lambda_;
     lambda_getter_signed_loss_=o.lambda_getter_signed_loss_;
+    retained_critical_density_=o.retained_critical_density_;
+    retained_species_today_=o.retained_species_today_;
+    retained_species_normalization_error_=o.retained_species_normalization_error_;
+    retained_lambda_emitted_=o.retained_lambda_emitted_;
+    retained_momentum_method_=o.retained_momentum_method_;
     preparation_work_=o.preparation_work_;
     o.source_.reset(); o.mapping_.reset(); o.background_.reset();
     o.status_=S::invalid_input; o.preparation_work_={};

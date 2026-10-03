@@ -4,6 +4,7 @@
 #include <cmath>
 #include <cstdlib>
 #include <iostream>
+#include <iomanip>
 #include <limits>
 #include <utility>
 using namespace irred::cosmology;
@@ -70,9 +71,27 @@ int main() {
   need(batch.rows.size()==4 && batch.trajectories.size()==2,"coarse grid shape");
   need(batch.evaluation_work.physical_mappings==0 && batch.evaluation_work.background_preparations==0,
        "evaluation reuses physical source");
+  std::cout<<std::setprecision(std::numeric_limits<W>::max_digits10)
+           <<"raw_batch status="<<static_cast<int>(batch.status)
+           <<" shared="<<static_cast<int>(batch.shared_dependency_status)
+           <<" rhs="<<batch.evaluation_work.rhs_evaluations
+           <<" P="<<batch.evaluation_work.background_evaluations
+           <<" age="<<batch.evaluation_work.age_evaluations
+           <<" writes="<<batch.evaluation_work.state_element_writes<<'\n';
   for (std::size_t i=0;i<k.size();++i) {
     const auto &trajectory=batch.trajectories[i];
     need(trajectory.attempts_started==5,"all original five attempts retained");
+    for (std::size_t r=0;r<trajectory.attempts_started;++r) {
+      const auto &trial=trajectory.attempts[r];
+      std::cout<<"raw_attempt k_index="<<i<<" attempt="<<r
+               <<" rhs="<<trial.work.rhs_evaluations
+               <<" P="<<trial.work.background_evaluations
+               <<" writes="<<trial.work.state_element_writes
+               <<" raw_H="<<trial.maximum_direct_hamiltonian_residual
+               <<" reduced_C="<<trial.maximum_absolute_hamiltonian_residual
+               <<" normalized_H="<<trial.maximum_normalized_hamiltonian_residual
+               <<" assembly="<<trial.maximum_hamiltonian_assembly_discrepancy<<'\n';
+    }
     for (const auto &attempt:trajectory.attempts) {
       need(attempt.status==S::ok,"native acoustic numerical attempt");
       need(attempt.unprojected_initial_state && attempt.projected_initial_state &&
@@ -86,6 +105,12 @@ int main() {
            row.epoch.conformal_age_mpc>0,"matching computed epoch");
       for (const auto &value:row.outputs)
         need(value.computed && std::isfinite(*value.computed),"actual finite signed perturbation witness");
+      std::cout<<"raw_fields k_index="<<i<<" a_index="<<j
+               <<" state_a="<<row.epoch.state_scale_factor
+               <<" Hcal="<<row.epoch.hcal_mpc_inverse
+               <<" eta="<<row.epoch.conformal_age_mpc;
+      for (const auto &value:row.outputs) std::cout<<' '<<*value.computed;
+      std::cout<<'\n';
       // No missing common-source diagnostic may become an accepted zero.
       if (batch.shared_dependency_status!=S::ok)
         for (const auto &value:row.outputs)

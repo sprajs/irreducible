@@ -1,8 +1,9 @@
 # Ideal photon–baryon acoustic perturbations
 
 The work-branch source implements a distinct ideal photon fluid, cold baryons,
-CDM and smooth nonnegative Lambda. Its compiler, independent numerical,
-installed SDK and source-error admission gates are pending. It supplies no
+CDM and smooth nonnegative Lambda. The first GCC Release build and raw analytic,
+ordered-batch and refusal controls passed at e035f10. Independent numerical,
+installed SDK and source-error admission gates remain pending. It supplies no
 finite opacity, recombination, photon hierarchy, polarization, CMB spectrum or
 ordinary full-support matter amplitude.
 

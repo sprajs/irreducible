@@ -125,6 +125,13 @@ private:
   long double loading_ratio_ = 0, loading_error_ = 0;
   long double loading_numerator_ = 0, loading_denominator_ = 0;
   long double retained_lambda_ = 0, lambda_getter_signed_loss_ = 0;
+  // Facts from the single preparation capture, retained for the pending common
+  // diagnostic with the original mapper witnesses. They avoid a new capture,
+  // remap or reporting getter call to recreate that diagnostic's ancestry.
+  long double retained_critical_density_ = 0, retained_species_today_ = 0;
+  long double retained_species_normalization_error_ = 0;
+  double retained_lambda_emitted_ = 0;
+  ThermalMomentumMethod retained_momentum_method_ = ThermalMomentumMethod::direct_adaptive;
   IdealAcousticWork preparation_work_;
   friend IdealAcousticTransfer prepare_ideal_acoustic(IdealAcousticRequest &&, IdealAcousticPolicy);
 };
