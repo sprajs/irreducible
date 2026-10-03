@@ -173,11 +173,61 @@ void retained_coefficient_capture() {
   need(std::fesetround(rounding) == 0 && refused,
        "capture checks current arithmetic before getter conversion");
 }
+void no_species_shadow_diagnostic() {
+  const auto mapping = map_thermal_physical_model({70, .02, .10, 2.7, 0, {}});
+  need(mapping.status == S::ok && mapping.model && mapping.scalar_witnesses,
+       "actual one physical map retains all scalar provenance");
+  const auto background = prepare_thermal_background(*mapping.model);
+  const auto captured = detail::ThermalRetainedCoefficientAccess::capture(background);
+  need(captured.has_value(), "actual same retained coefficient capture");
+  for (W a : {1e-10L, .01L, 1.L}) {
+    auto epoch = detail::thermal_conformal_epoch(background, a, .01L,
+        mapping.model->omega_gamma, ThermalPolicy{});
+    const auto p = epoch.p, h = epoch.hcal, g = epoch.g;
+    const auto raw = epoch.raw_scaled_query;
+    need(detail::thermal_conformal_no_species_diagnostics(background, *captured,
+             *mapping.scalar_witnesses, a, epoch) == S::ok && epoch.forward && epoch.shadow,
+         "conditional no-species forward/shadow provenance available");
+    const auto &s = *epoch.shadow; const auto &f = *epoch.forward;
+    need(epoch.p == p && epoch.hcal == h && epoch.g == g && raw &&
+         epoch.raw_scaled_query->a4_e2 == raw->a4_e2 &&
+         epoch.raw_scaled_query->callbacks == raw->callbacks,
+         "diagnostics reuse actual P/H and raw query without substitution");
+    need(s.p_shadow > s.p_shadow_radius && s.actual_p_source_radius > 0 &&
+         s.q == s.p_shadow_n / s.p_shadow && s.ell == s.q / 2 - 1 &&
+         s.dp == s.q - 2 * (g + 1) && s.q_radius > 0 && s.dp_radius > 0 &&
+         std::abs(g - s.ell) <= f.g_absolute_estimate &&
+         f.hcal_absolute_estimate > 0 && f.hcal_absolute_estimate < h &&
+         f.fr_absolute_estimate == f.fg_absolute_estimate,
+         "literal shadow derivative and actual coefficient discrepancy retained");
+    if (a == 1) need(epoch.p == 1 && epoch.p_error == 0,
+                     "original P1 normalized shortcut remains literal");
+    auto mismatch = *mapping.scalar_witnesses;
+    mismatch[1].emitted_value = .5;
+    need(detail::thermal_conformal_no_species_diagnostics(background, *captured,
+             mismatch, a, epoch) == S::conditioning_budget_exceeded &&
+         !epoch.forward && !epoch.shadow && epoch.p == p && epoch.hcal == h,
+         "unmatched map clears dependencies without erasing actual state");
+  }
+  auto absent = detail::ThermalConformalEpoch{};
+  need(detail::thermal_conformal_no_species_diagnostics(background, *captured,
+           *mapping.scalar_witnesses, .5L, absent) == S::conditioning_budget_exceeded &&
+       !absent.forward && !absent.shadow, "missing charged query cannot become a zero envelope");
+  const auto rounding = std::fegetround();
+  auto epoch = detail::thermal_conformal_epoch(background, .5L, .01L,
+      mapping.model->omega_gamma, ThermalPolicy{});
+  need(std::fesetround(FE_UPWARD) == 0, "diagnostic rounding adversary available");
+  const auto refused = detail::thermal_conformal_no_species_diagnostics(
+      background, *captured, *mapping.scalar_witnesses, .5L, epoch);
+  need(std::fesetround(rounding) == 0 && refused == S::conditioning_budget_exceeded &&
+       !epoch.forward && !epoch.shadow, "current nonnearest diagnostic refuses");
+}
 } // namespace
 int main() {
   dyadic_source();
   actual_failed_query();
   retained_coefficient_capture();
+  no_species_shadow_diagnostic();
   std::cout << "thermal_conformal_epoch_contract passed "
                "dyadic/totalmatter/legacy/query-receipts/absence controls "
             << "epoch_bytes=" << sizeof(irred::cosmology::detail::ThermalConformalEpoch)
