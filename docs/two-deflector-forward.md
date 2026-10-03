@@ -118,7 +118,15 @@ allocation checks before a mean is available. Inner error uses the maximum
 observed inner diagnostic times outer length, alongside outer error. Field
 arithmetic includes map cancellation, prepared rotations, exponent sensitivity,
 PSF accumulation and callback rounding; final projection includes output
-rounding. These are empirical diagnostics, including standard-library
+rounding. Every sample carries affine-coordinate product magnitudes through a
+global map-sensitivity bound, so cancellation before the bounded u coordinate
+cannot erase that diagnostic. Inner/outer contributors include the returned
+binary64 integral's larger adjacent half spacing (computed wide at subnormals)
+and a depth-dependent wide-arithmetic allowance. Their internal quadrature
+proposals use30% each, leaving room inside the same35% final allocations.
+A positive returned outer integral must stay positive before sky is combined.
+Projection separately propagates retained determinant, width/height, area,
+sky, prefactor and final casting diagnostics. These are empirical diagnostics, including standard-library
 primitives, and do not certify unsampled integrands or universal libm error.
 An unavailable diagnostic differs from a computed zero. A final budget refusal
 retains its computed contributors but withholds the mean.

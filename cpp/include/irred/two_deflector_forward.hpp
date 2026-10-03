@@ -124,6 +124,7 @@ private:
   // Symmetric row-major Q0,Q1,P prepared once.
   std::array<std::array<long double, 4>, 3> derived_{};
   long double determinant_ = 0;
+  long double determinant_error_ = 0;
   ForwardWork work_;
   friend PreparedTwoDeflectorForward prepare_two_deflector_forward(
       TwoDeflectorScene, const AffineDetectorCutout &,

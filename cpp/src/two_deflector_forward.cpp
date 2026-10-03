@@ -17,6 +17,7 @@ constexpr std::size_t hard_row_samples = 500000, hard_bytes = 16 * 1024 * 1024;
 constexpr std::size_t hard_origin = 65536;
 constexpr W eps = std::numeric_limits<W>::epsilon();
 struct Point { W x = 0, y = 0; };
+struct DetectorPoint { Point value; W coordinate_error = 0; };
 using Matrix = std::array<W, 4>;
 W norm(Point p) noexcept { return std::hypot(p.x, p.y); }
 Point subtract(Point a, Point b) noexcept { return {a.x-b.x, a.y-b.y}; }
@@ -53,6 +54,14 @@ double diagnostic(W x) noexcept {
   const double d=static_cast<double>(x);
   return std::nextafter(d,std::numeric_limits<double>::infinity());
 }
+W returned_integral_rounding(double value) noexcept {
+  // RN wide->binary64 cast: half the larger adjacent spacing. Compute in W,
+  // so the half-spacing at subnormals cannot itself underflow to binary640.
+  const double previous=std::nextafter(value,0);
+  const double next=std::nextafter(value,std::numeric_limits<double>::infinity());
+  const W down=W(value)-previous;
+  return std::isfinite(next) ? std::max(down,W(next)-value)/2 : down;
+}
 bool increment(std::size_t &a, std::size_t n=1) noexcept {
   if (n > std::numeric_limits<std::size_t>::max()-a) return false;
   a+=n; return true;
@@ -79,6 +88,7 @@ struct Context {
   ForwardWork &row_work;
   S cause=S::ok;
   W x=0, maximum_inner_error=0, maximum_field_error=0, latest_field_error=0;
+  W maximum_field_value=0, maximum_inner_value=0;
   double inner_tolerance=0;
 
   void fail(S s) noexcept { if(cause==S::ok) { cause=s; increment(row_work.failed_starts); } }
@@ -96,12 +106,18 @@ struct Context {
        !increment(row_work.field_samples_started)) { fail(S::overflow); return false; }
     return true;
   }
-  Point detector(W xx,W yy,ForwardPoint2 shift={}) const noexcept {
-    return {cutout.origin.x+W(cutout.matrix[0])*xx+W(cutout.matrix[1])*yy-shift.x,
-            cutout.origin.y+W(cutout.matrix[2])*xx+W(cutout.matrix[3])*yy-shift.y};
+  DetectorPoint detector(W xx,W yy,ForwardPoint2 shift={}) const noexcept {
+    const W xx0=W(cutout.matrix[0])*xx, yy1=W(cutout.matrix[1])*yy,
+            xx2=W(cutout.matrix[2])*xx, yy3=W(cutout.matrix[3])*yy;
+    const W error=64*eps*(1+std::abs(cutout.origin.x)+std::abs(cutout.origin.y)+
+        std::abs(xx0)+std::abs(yy1)+std::abs(xx2)+std::abs(yy3)+norm(point(shift)));
+    return {{cutout.origin.x+xx0+yy1-shift.x,
+             cutout.origin.y+xx2+yy3-shift.y},error};
   }
-  Point map(Point u,W &map_error) noexcept {
+  Point map(DetectorPoint detector_point,W &map_error) noexcept {
+    const auto u=detector_point.value;
     Point deflection{}; W absolute=1+norm(u);
+    W coordinate_sensitivity=1+std::hypot(W(scene.shear_1),W(scene.shear_2));
     for(std::size_t j=0;j<2;++j) {
       if(!count(&ForwardWork::deflector_evaluations_started)) return {};
       const auto &lens=scene.deflectors[j];
@@ -112,6 +128,10 @@ struct Context {
       const W f=W(lens.strength)/std::sqrt(d2);
       const Point alpha{f*p.x,f*p.y};
       deflection.x+=alpha.x; deflection.y+=alpha.y; absolute+=norm(alpha);
+      // Global ||Db|| bound remains valid over the entire coordinate-error
+      // neighbourhood; it does not use a point-only soft-radius estimate.
+      coordinate_sensitivity+=W(lens.strength)/
+          (W(lens.axis_ratio)*lens.axis_ratio*lens.core);
     }
     const W l=scene.mass_scale_lambda;
     Point b{l*((1-W(scene.shear_1))*u.x-W(scene.shear_2)*u.y-deflection.x),
@@ -120,10 +140,10 @@ struct Context {
     // Empirical operation/primitive allowance, including prepared rotations,
     // radius, affine/map cancellation and cast-independent wide accumulation.
     // 512 exceeds the per-map arithmetic count; it is not a libm proof.
-    map_error=512*eps*l*absolute;
+    map_error=512*eps*l*absolute+l*coordinate_sensitivity*detector_point.coordinate_error;
     return b;
   }
-  W field(Point u) noexcept {
+  W field(DetectorPoint u) noexcept {
     if(!begin_field()) return 0;
     W map_error=0; const auto b=map(u,map_error);
     if(cause!=S::ok) return 0;
@@ -155,14 +175,11 @@ struct Context {
       for(W xx:{W(pixel.x_low),W(pixel.x_high)})
         for(W yy:{W(pixel.y_low),W(pixel.y_high)}) {
           const auto corner=detector(xx,yy,h.shift);
-          const W affine_error=64*eps*(1+std::abs(cutout.origin.x)+
-              std::abs(cutout.origin.y)+std::abs(W(cutout.matrix[0])*xx)+
-              std::abs(W(cutout.matrix[1])*yy)+std::abs(W(cutout.matrix[2])*xx)+
-              std::abs(W(cutout.matrix[3])*yy)+norm(point(h.shift)));
-          if(!std::isfinite(corner.x)||!std::isfinite(corner.y) ||
-             std::abs(corner.x)+affine_error>8 ||
-             std::abs(corner.y)+affine_error>8) { fail(S::outside_domain); return false; }
-          radius=std::max(radius,norm(subtract(corner,u))+affine_error);
+          if(!std::isfinite(corner.value.x)||!std::isfinite(corner.value.y) ||
+             std::abs(corner.value.x)+corner.coordinate_error>8 ||
+             std::abs(corner.value.y)+corner.coordinate_error>8) { fail(S::outside_domain); return false; }
+          radius=std::max(radius,norm(subtract(corner.value,u.value))+
+                                   corner.coordinate_error+u.coordinate_error);
         }
       // Structural zero omits unused field work, while all footprints/states
       // and all source/model fields remain mandatory and validated.
@@ -172,7 +189,7 @@ struct Context {
       if(cause!=S::ok) return false;
       W lipschitz=1+std::hypot(W(scene.shear_1),W(scene.shear_2));
       for(const auto &lens:scene.deflectors) {
-        const W rmin=std::max(W(0),norm(subtract(u,point(lens.center)))-radius);
+        const W rmin=std::max(W(0),norm(subtract(u.value,point(lens.center)))-radius);
         const W dmin=std::sqrt(W(lens.core)*lens.core+rmin*rmin);
         lipschitz+=W(lens.strength)/(W(lens.axis_ratio)*lens.axis_ratio*dmin);
       }
@@ -206,6 +223,7 @@ double inner_callback(double y,const void *opaque) noexcept {
   // The positive weights sum to exactly one in admitted wide arithmetic.
   c.maximum_field_error=std::max(c.maximum_field_error,
       field_error+32*eps*absolute+std::abs(value-W(cast)));
+  c.maximum_field_value=std::max(c.maximum_field_value,value);
   return cast;
 }
 double outer_callback(double x,const void *opaque) noexcept {
@@ -222,7 +240,11 @@ double outer_callback(double x,const void *opaque) noexcept {
   if(!(inner.value>0)||!std::isfinite(inner.error_estimate)||inner.error_estimate<0) {
     c.fail(S::overflow); return std::numeric_limits<double>::quiet_NaN();
   }
-  c.maximum_inner_error=std::max(c.maximum_inner_error,W(inner.error_estimate));
+  const W scalar_arithmetic=64*(W(c.policy.maximum_depth)+1)*eps*
+      c.maximum_field_value*(W(c.pixel.y_high)-c.pixel.y_low);
+  c.maximum_inner_error=std::max(c.maximum_inner_error,W(inner.error_estimate)+
+      returned_integral_rounding(inner.value)+scalar_arithmetic);
+  c.maximum_inner_value=std::max(c.maximum_inner_value,W(inner.value));
   return inner.value;
 }
 } // namespace
@@ -246,7 +268,8 @@ void PreparedTwoDeflectorForward::swap(PreparedTwoDeflectorForward &other) noexc
   using std::swap;
   swap(status_,other.status_); swap(scene_,other.scene_); swap(cutout_,other.cutout_);
   swap(psf_,other.psf_); swap(psf_count_,other.psf_count_);
-  swap(derived_,other.derived_); swap(determinant_,other.determinant_); swap(work_,other.work_);
+  swap(derived_,other.derived_); swap(determinant_,other.determinant_);
+  swap(determinant_error_,other.determinant_error_); swap(work_,other.work_);
 }
 PreparedTwoDeflectorForward::PreparedTwoDeflectorForward(PreparedTwoDeflectorForward &&other) noexcept {
   swap(other);
@@ -315,6 +338,8 @@ PreparedTwoDeflectorForward prepare_two_deflector_forward(
   }
   const auto &a=cutout.matrix;
   out.determinant_=W(a[0])*a[3]-W(a[1])*a[2];
+  const W gamma3=3*eps/(1-3*eps);
+  out.determinant_error_=gamma3*(std::abs(W(a[0])*a[3])+std::abs(W(a[1])*a[2]));
   if(out.determinant_==0) return refuse(S::singular);
   const W trace=W(a[0])*a[0]+W(a[1])*a[1]+W(a[2])*a[2]+W(a[3])*a[3];
   const W largest=(trace+std::sqrt(std::max(W(0),trace*trace-4*out.determinant_*out.determinant_)))/2;
@@ -377,6 +402,10 @@ ForwardPixelMeans PreparedTwoDeflectorForward::means(
   out.row_count_=pixels.size(); out.status=S::ok;
   const W prefactor=W(scene_->exposure_seconds)*scene_->theta_scale_radians*
       scene_->theta_scale_radians*std::abs(determinant_);
+  const W gamma3=3*eps/(1-3*eps);
+  const W determinant_relative=determinant_error_/std::abs(determinant_);
+  const W prefactor_error=std::abs(prefactor)*
+      (gamma3+determinant_relative+gamma3*determinant_relative);
   for(std::size_t i=0;i<pixels.size();++i) {
     const auto &p=pixels[i]; auto &r=out.rows_[i]; r.original_index=p.original_index;
     r.work.pixels_started=1;
@@ -392,8 +421,10 @@ ForwardPixelMeans PreparedTwoDeflectorForward::means(
     if(context.cause==S::ok) context.preflight();
     W source_integral=0,inner_error=0,outer_error=0;
     if(context.cause==S::ok&&scene_->source.peak_electrons_per_second_per_radian_squared>0) {
-      const W inner_tolerance=.35L*policy.absolute_tolerance_electrons/(prefactor*width);
-      const W outer_tolerance=.35L*policy.absolute_tolerance_electrons/prefactor;
+      // Leave room for primitive arithmetic and returned binary64 casts
+      // INSIDE the original35%/35% final allocations.
+      const W inner_tolerance=.30L*policy.absolute_tolerance_electrons/(prefactor*width);
+      const W outer_tolerance=.30L*policy.absolute_tolerance_electrons/prefactor;
       context.inner_tolerance=static_cast<double>(inner_tolerance);
       const double ot=static_cast<double>(outer_tolerance);
       if(!(context.inner_tolerance>0)||!std::isfinite(context.inner_tolerance)||!(ot>0)||!std::isfinite(ot))
@@ -403,10 +434,16 @@ ForwardPixelMeans PreparedTwoDeflectorForward::means(
         const auto integral=numerics::integrate(outer_callback,&context,p.x_low,p.x_high,
             {ot,0,std::max(std::size_t(3),policy.maximum_field_samples_per_pixel),policy.maximum_depth});
         if(context.cause==S::ok&&integral.status!=S::ok) context.fail(integral.status);
+        if(context.cause==S::ok&&(!(integral.value>0)||!std::isfinite(integral.value)||
+           !(integral.error_estimate>=0)||!std::isfinite(integral.error_estimate)))
+          context.fail(S::overflow);
         if(context.cause==S::ok) {
           source_integral=integral.value;
           inner_error=prefactor*width*context.maximum_inner_error;
-          outer_error=prefactor*integral.error_estimate;
+          const W scalar_arithmetic=64*(W(policy.maximum_depth)+1)*eps*
+              context.maximum_inner_value*width;
+          outer_error=prefactor*(W(integral.error_estimate)+
+              returned_integral_rounding(integral.value)+scalar_arithmetic);
         }
       }
     }
@@ -420,7 +457,15 @@ ForwardPixelMeans PreparedTwoDeflectorForward::means(
         e.inner_quadrature_electrons=diagnostic(inner_error);
         e.outer_quadrature_electrons=diagnostic(outer_error);
         e.field_psf_arithmetic_electrons=diagnostic(prefactor*area*context.maximum_field_error);
-        e.projection_area_electrons=diagnostic(64*eps*std::abs(mean)+std::abs(mean-W(cast)));
+        const W width_error=2*eps*std::abs(width),height_error=2*eps*std::abs(height);
+        const W area_error=width_error*height+height_error*width+
+            width_error*height_error+eps*std::abs(area);
+        const W sky_error=scene_->uniform_sky_electrons_per_second_per_radian_squared*
+            area_error+eps*std::abs(sky);
+        const W projection=std::abs(source_integral+sky)*prefactor_error+
+            prefactor*(sky_error+eps*std::abs(source_integral+sky))+
+            eps*std::abs(mean)+std::abs(mean-W(cast));
+        e.projection_area_electrons=diagnostic(projection);
         const W total=W(e.inner_quadrature_electrons)+e.outer_quadrature_electrons+
             e.field_psf_arithmetic_electrons+e.projection_area_electrons;
         e.total_electrons=diagnostic(total);

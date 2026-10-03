@@ -362,6 +362,17 @@ void refusal_and_ownership() {
   policy={}; policy.absolute_tolerance_electrons=1e-30; policy.relative_tolerance=0; policy.maximum_depth=0;
   auto tight=lens.means(std::span(p).first(1),policy);
   need(tight.status!=S::ok&&!tight.rows()[0].electrons,"original tight budget/refinement refusal not weakened");
+  // F01 preserved source counterexample: positive inner values may remain
+  // binary64, but the returned outer integral can underflow before sky is
+  // added. The positive contribution is refused even when sky hides it.
+  auto tiny=scene(); for(auto &d:tiny.deflectors) d.strength=0;
+  tiny.shear_1=tiny.shear_2=0; tiny.source={{0,0},2,2,0,1e-310};
+  const std::array<ShiftPSFComponent,1> single{{{{0,0},1}}};
+  const std::array<ForwardPixelRectangle,1> needle{{{0,1e-20,-.005,.005,17}}};
+  const auto positive_underflow=prepare_two_deflector_forward(std::move(tiny),AffineDetectorCutout{},single).means(needle);
+  need(positive_underflow.status==S::overflow&&!positive_underflow.rows()[0].electrons&&
+       positive_underflow.work.outer_integrations_started==1&&positive_underflow.work.inner_integrations_started>0,
+       "positive outer-integral zero never hidden under sky");
   auto broad=scene(); broad.source.minor_width=broad.source.major_width=.02;
   auto unresolved=prepare_two_deflector_forward(std::move(broad),a,h).means(std::span(p).first(1));
   need(unresolved.status==S::outside_domain&&!unresolved.rows()[0].electrons,"unresolved smooth-cell domain refused");
