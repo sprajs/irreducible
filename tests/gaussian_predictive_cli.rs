@@ -97,6 +97,35 @@ fn run(v: &Value) -> (Value, i32, Option<Value>) {
 fn near(v: &Value, x: f64) {
     assert!((v.as_f64().unwrap() - x).abs() <= 2e-12 * (1. + x.abs()));
 }
+// Typed resolution preserves binary64 inputs and row order; integer JSON
+// tokens may be rendered as floats. Original raw bytes are retained in run_raw.
+fn resolved_numeric_array(actual: &Value, original: &Value) {
+    match (actual, original) {
+        (Value::Number(a), Value::Number(b)) => {
+            assert_eq!(a.as_f64().unwrap().to_bits(), b.as_f64().unwrap().to_bits())
+        }
+        (Value::Array(a), Value::Array(b)) => {
+            assert_eq!(a.len(), b.len());
+            for (a, b) in a.iter().zip(b) {
+                resolved_numeric_array(a, b);
+            }
+        }
+        _ => panic!("expected original numeric array"),
+    }
+}
+fn resolved_future_vectors(actual: &Value, original: &Value) {
+    let a = actual.as_object().unwrap();
+    let b = original.as_object().unwrap();
+    assert_eq!(a.len(), b.len());
+    for (key, b) in b {
+        let a = a.get(key).unwrap();
+        if key == "vectors" {
+            resolved_numeric_array(a, b);
+        } else {
+            assert_eq!(a, b);
+        }
+    }
+}
 
 fn failed_request(input: &Value) {
     let (v, code, spec) = run(input);
@@ -170,10 +199,7 @@ fn named_joint_law_preserves_mean_density_order_and_receipts() {
         spec["conditioning"]["vectors"],
         input["conditioning"]["vectors"]
     );
-    assert_eq!(
-        spec["future_vectors"]["vectors"],
-        input["future_vectors"]["vectors"]
-    );
+    resolved_future_vectors(&spec["future_vectors"], &input["future_vectors"]);
     assert_eq!(spec["prediction"], input["prediction"]);
 }
 #[test]
@@ -251,10 +277,7 @@ fn finite_future_overflow_withholds_both_requested_groups_atomically() {
     assert_eq!(v["result"]["rows"][1]["kind"], "failure");
     assert!(v["result"]["rows"][1].get("future_mean").is_none());
     assert!(v["result"]["rows"][1].get("joint_density").is_none());
-    assert_eq!(
-        spec.unwrap()["future_vectors"]["vectors"],
-        input["future_vectors"]["vectors"]
-    );
+    resolved_future_vectors(&spec.unwrap()["future_vectors"], &input["future_vectors"]);
 }
 #[test]
 fn global_spd_failures_name_actual_stage_without_claiming_completion() {
