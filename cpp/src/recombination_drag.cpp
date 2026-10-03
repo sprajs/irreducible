@@ -395,13 +395,15 @@ prepare_pure_hydrogen_history(const PureHydrogenRequest &source,
           out.status_ = S::conditioning_budget_exceeded;
           return out;
         }
+        const auto loading_at_u = detail::thermal_baryon_loading_at_inverse_scale(baryon_loading, u);
+        if (loading_at_u.status != S::ok) { out.status_ = loading_at_u.status; return out; }
         W H = source.model.h0_km_s_mpc * 1000.L / megaparsec_in_metres_wide() *
               std::sqrt(state.a4_e2) * u * u,
           h_error = state.error_estimate /
                         (2 * (state.a4_e2 - state.error_estimate)) +
                     floor,
           opacity = speed_of_light_m_per_s * thomson * n / (H * u),
-          R = detail::thermal_baryon_loading_at_inverse_scale(baryon_loading, u).value,
+          R = loading_at_u.value,
           energy = photon_today * u * u * u * u,
           compton = 8 * thomson * energy /
                     (3 * atomic::hydrogen_electron_mass_kg *
@@ -573,11 +575,13 @@ prepare_pure_hydrogen_history(const PureHydrogenRequest &source,
         return out;
       }
       const auto rates = detail::hydrogen_rates(T, B1, E21);
+      const auto loading_at_u = detail::thermal_baryon_loading_at_inverse_scale(baryon_loading, u);
+      if (loading_at_u.status != S::ok) { out.status_ = loading_at_u.status; return out; }
       W H = source.model.h0_km_s_mpc * 1000.L / megaparsec_in_metres_wide() *
             std::sqrt(state.a4_e2) * u * u,
         alpha = rates.alpha, beta = rates.beta,
         K = lya * lya * lya / (8 * pi * H),
-        R = detail::thermal_baryon_loading_at_inverse_scale(baryon_loading, u).value,
+        R = loading_at_u.value,
         h_error =
             state.error_estimate / (2 * (state.a4_e2 - state.error_estimate)) +
             floor;

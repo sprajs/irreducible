@@ -23,7 +23,10 @@ inline ThermalBaryonLoading thermal_baryon_loading(const ThermalBackground &back
   out.numerator = 3 * ThermalWide(m.omega_b);
   out.denominator = 4 * ThermalWide(m.omega_gamma);
   out.ratio_today = out.numerator / out.denominator;
-  out.arithmetic_estimate = thermal_loading_floor * out.ratio_today;
+  // Frozen ratio law: 32 wide eps plus the measured binary64 reporting cast.
+  // Additional helper operations have their separate 64-eps diagnostics below.
+  out.arithmetic_estimate = 32 * std::numeric_limits<ThermalWide>::epsilon() * std::abs(out.ratio_today) +
+      std::abs(out.ratio_today - ThermalWide(static_cast<double>(out.ratio_today)));
   if (!std::isfinite(out.ratio_today) || !std::isfinite(out.arithmetic_estimate) ||
       (out.ratio_today != 0 && (!std::isnormal(out.ratio_today) || !std::isnormal(out.arithmetic_estimate)))) {
     out.status = S::outside_domain; return out;
@@ -39,10 +42,12 @@ inline ThermalLoadingValue thermal_baryon_loading_at_inverse_scale(
   ThermalLoadingValue out;
   if (loading.status != numerics::Status::ok) { out.status = loading.status; return out; }
   if (!(u > 0) || !std::isfinite(u)) return out;
-  // Preserve the original pure-H operation order exactly.
+  if (loading.numerator == 0) { out.status = numerics::Status::ok; return out; }
+  // Preserve the original pure-H operation order exactly. A represented zero
+  // from positive numerator is a refusal, even if the finite u is enormous.
   out.value = loading.numerator / (loading.denominator * u);
   out.arithmetic_estimate = thermal_loading_floor * out.value;
-  out.status = (out.value == 0 || (std::isnormal(out.value) && std::isnormal(out.arithmetic_estimate)))
+  out.status = (out.value > 0 && std::isnormal(out.value) && std::isnormal(out.arithmetic_estimate))
       ? numerics::Status::ok : numerics::Status::outside_domain;
   return out;
 }
