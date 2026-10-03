@@ -13,6 +13,29 @@ namespace {
 using LD=long double;
 using Refusal=detail::BoxRefusal;
 using Accounting=detail::PayloadAccounting;
+// Logical copy/event bytes depend on contents, never spare allocation. The
+// same field traversal below still uses capacity-based Accounting for payload.
+class LogicalMetadataCopies {
+  Accounting total_{0};
+public:
+  template<class T> void vector(const std::vector<T>&v)noexcept {
+    total_.add(v.size(),sizeof(T)); // logical object bytes
+    total_.add(v.size(),1);        // element-copy event
+    total_.add(1,1);               // vector helper/header event
+  }
+  void string(const std::string&s)noexcept {
+    total_.add(s.size(),1);        // character-copy events
+    total_.add(1,8);               // copy/move/helper/terminator prefixes
+    total_.add(2,sizeof(std::string)); // inline move buffers; never capacity
+  }
+  void strings(const std::vector<std::string>&v)noexcept {
+    total_.add(1,1);               // string-vector helper entry
+    vector(v);for(const auto&s:v)string(s);
+  }
+  std::optional<std::size_t>result()const noexcept {
+    return total_.result();
+  }
+};
 bool same(std::span<const std::string>a,std::span<const std::string>b) {
   return a.size()==b.size()&&std::equal(a.begin(),a.end(),b.begin());
 }
@@ -21,21 +44,21 @@ bool unique(std::span<const std::string>a) {
     if(a[i].empty()||std::find(a.begin(),a.begin()+i,a[i])!=a.begin()+i) return false;
   return true;
 }
-void charge(Accounting &b,const Metadata &m) {
+template<class Counter>void charge(Counter &b,const Metadata &m) {
   b.strings(m.ordered_ids);
   for(const auto*s:{&m.arithmetic_id,&m.measure,&m.table_identity,&m.uncertainty_identity,
       &m.ordering_provenance,&m.calibration_provenance,&m.dependence_provenance,
       &m.source_semantics,&m.input_matrix_convention,&m.treatment}) b.string(*s);
 }
-void charge(Accounting &b,const DesignMetadata &m) {
+template<class Counter>void charge(Counter &b,const DesignMetadata &m) {
   b.strings(m.ordered_parameter_ids);b.strings(m.parameter_units);b.strings(m.shared_nuisance_ids);
   b.string(m.residual_unit);b.string(m.design_identity);b.string(m.dependence_identity);
 }
-void charge(Accounting &b,const BoxSupport&s) {
+template<class Counter>void charge(Counter &b,const BoxSupport&s) {
   b.strings(s.ordered_parameter_ids);b.vector(s.lower);b.vector(s.upper);
   b.string(s.parameter_measure);b.string(s.prior_identity);b.string(s.fixed_coordinate_provenance);
 }
-void charge(Accounting &b,const BoxHeldoutMetadata&m) {
+template<class Counter>void charge(Counter &b,const BoxHeldoutMetadata&m) {
   for(const auto*s:{&m.source_contract_id,&m.candidate_identity,&m.conditioning_identity,
       &m.original_row_lineage,&m.event_lineage,&m.calibration_dependence_identity,
       &m.heldout_unit,&m.heldout_covariance_unit,&m.heldout_measure,&m.fixed_coordinate_provenance}) b.string(*s);
@@ -241,7 +264,7 @@ std::optional<std::size_t>GaussianBoxHeldout::preparation_work_bound(const Gauss
   Accounting names(0);for(const auto*set:{&g.metadata().ordered_ids,&d.ordered_parameter_ids,&d.shared_nuisance_ids,&m.ordered_original_parameter_ids})
     for(const auto&id:*set){names.add(id.size(),1);names.add(1,1);}
   if(!names.result())return {};
-  Accounting copies(0);charge(copies,g.metadata());charge(copies,d);charge(copies,s);charge(copies,m);
+  LogicalMetadataCopies copies;charge(copies,g.metadata());charge(copies,d);charge(copies,s);charge(copies,m);
   if(!copies.result())return {};
   Accounting b(256);b.add(*copies.result(),4);b.add(*names.result(),n);b.add(*names.result(),p);b.add(*names.result(),p);b.add(*names.result(),8);
   b.add(1,*factor);b.add(1,*qr);b.add(1,*w);b.add(n,n);b.add(n,n);b.add(n,p);b.add(n,p);b.add(n,p);b.add(n,p);

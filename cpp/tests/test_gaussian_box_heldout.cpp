@@ -15,8 +15,67 @@ BoxHeldoutBatch evaluate(const GaussianBoxHeldout&o,BoxHeldoutPolicy p,
     std::vector<BoxHeldoutRequest>requests={{0,0}}) {
   return o.evaluate(training,o.training_row_ids(),candidate,requests,p);
 }
+void work_bound_ownership_controls() {
+  box_heldout_controls::Input base;auto g=base.gaussian();
+  const auto expected=GaussianBoxHeldout::preparation_work_bound(g,base.design,base.box,base.heldout);
+  check(expected&&*expected>1,"logical preparation work bound available");
+  auto reserved=base;auto rows=base.rows;
+  auto texts=[](std::vector<std::string>&v){v.reserve(v.size()+32);for(auto&s:v)s.reserve(s.size()+256);};
+  auto elements=[](auto&v){v.reserve(v.size()+32);};
+  texts(rows.ordered_ids);
+  for(auto*s:{&rows.arithmetic_id,&rows.measure,&rows.table_identity,&rows.uncertainty_identity,
+      &rows.ordering_provenance,&rows.calibration_provenance,&rows.dependence_provenance,
+      &rows.source_semantics,&rows.input_matrix_convention,&rows.treatment})s->reserve(s->size()+256);
+  texts(reserved.design.ordered_parameter_ids);texts(reserved.design.parameter_units);texts(reserved.design.shared_nuisance_ids);
+  for(auto*s:{&reserved.design.residual_unit,&reserved.design.design_identity,&reserved.design.dependence_identity})s->reserve(s->size()+256);
+  texts(reserved.box.ordered_parameter_ids);elements(reserved.box.lower);elements(reserved.box.upper);
+  for(auto*s:{&reserved.box.parameter_measure,&reserved.box.prior_identity,&reserved.box.fixed_coordinate_provenance})s->reserve(s->size()+256);
+  texts(reserved.heldout.ordered_original_parameter_ids);elements(reserved.heldout.active_original_parameter_indices);
+  for(auto*s:{&reserved.heldout.source_contract_id,&reserved.heldout.candidate_identity,&reserved.heldout.conditioning_identity,
+      &reserved.heldout.original_row_lineage,&reserved.heldout.event_lineage,&reserved.heldout.calibration_dependence_identity,
+      &reserved.heldout.heldout_unit,&reserved.heldout.heldout_covariance_unit,&reserved.heldout.heldout_measure,
+      &reserved.heldout.fixed_coordinate_provenance})s->reserve(s->size()+256);
+  auto reserved_g=prepare_gaussian(base.covariance,MatrixKind::covariance,std::move(rows),
+      base.covariance.size(),1e-10,irred::numerics::Arithmetic::longdouble_cpu_v1);
+  check(reserved_g.status()==DensityStatus::finite,"reserved Gaussian metadata admitted");
+  check(reserved_g.metadata().ordered_ids.capacity()>g.metadata().ordered_ids.capacity()&&
+      reserved.design.ordered_parameter_ids.capacity()>base.design.ordered_parameter_ids.capacity(),"control owns actual spare metadata capacity");
+  const auto payload=GaussianBoxHeldout::preparation_payload_bound(g,base.design,base.box,base.heldout);
+  const auto reserved_payload=GaussianBoxHeldout::preparation_payload_bound(reserved_g,reserved.design,reserved.box,reserved.heldout);
+  check(payload&&reserved_payload&&*reserved_payload>*payload,"payload still charges actual reserved capacities");
+  auto bound_matches=[&](const Gaussian&full,const box_heldout_controls::Input&input){
+    check(GaussianBoxHeldout::preparation_work_bound(full,input.design,input.box,input.heldout)==expected,
+        "logical work bound invariant under reserve copy and move");
+  };
+  bound_matches(reserved_g,reserved);
+  auto copied=reserved;auto copied_g=reserved_g;bound_matches(copied_g,copied);
+  auto moved=std::move(copied);auto moved_g=std::move(copied_g);bound_matches(moved_g,moved);
+  auto cap=moved.policy(moved_g);check(cap.maximum_preparation_work_units==*expected,"caller freezes logical bound");
+  --cap.maximum_preparation_work_units;
+  const auto retained=moved_g.retained_payload_bound();
+  check(retained.has_value(),"source retained payload available before work refusal");
+  auto refused=moved.prepare(std::move(moved_g),cap);
+  std::cout<<"metadata_work_control bound="<<*expected<<" cap="<<cap.maximum_preparation_work_units
+      <<" refused_status="<<static_cast<unsigned>(refused.status())
+      <<" refused_numerical_status="<<static_cast<unsigned>(refused.preparation().numerical_status)
+      <<" refused_charge="<<refused.preparation().work.charged_work_units
+      <<" source_status="<<static_cast<unsigned>(moved_g.status())<<'\n';
+  check(refused.status()==DensityStatus::numerical_failure&&refused.preparation().numerical_status==irred::numerics::Status::work_limit,
+      "reserved copied metadata one-below work bound refuses");
+  check(refused.preparation().work.charged_work_units==0&&refused.preparation().work.factor_attempts==0&&
+      refused.preparation().work.whitening_attempts==0&&refused.preparation().work.training_qr_attempts==0,
+      "one-below work refusal precedes numerical attempts");
+  check(moved_g.status()==DensityStatus::finite&&moved_g.input_matrix_kind()==MatrixKind::covariance&&
+      moved_g.retained_payload_bound()==retained&&moved_g.metadata().ordered_ids==base.rows.ordered_ids&&
+      std::equal(moved_g.covariance().begin(),moved_g.covariance().end(),base.covariance.begin(),base.covariance.end()),
+      "one-below work refusal retains complete source identity and covariance");
+  auto exact=reserved.policy(reserved_g);auto prepared=reserved.prepare(std::move(reserved_g),exact);
+  check(prepared.status()==DensityStatus::finite&&prepared.preparation().work.charged_work_units==*expected,
+      "exact logical bound remains sufficient after metadata copies");
+}
 }
 int main(){try {
+  work_bound_ownership_controls();
   box_heldout_controls::Input in;auto g=in.gaussian();auto policy=in.policy(g,2,2,3);
   check(g.input_matrix_kind()==MatrixKind::covariance,"authoritative covariance kind");
   auto copy=g;check(copy.input_matrix_kind()==MatrixKind::covariance,"copy preserves authoritative kind");
