@@ -10,6 +10,7 @@
 #include <limits>
 #include <new>
 #include <stdexcept>
+#include <type_traits>
 #include <utility>
 using namespace irred::cosmology;
 using S = irred::numerics::Status;
@@ -37,6 +38,10 @@ void operator delete[](void*p)noexcept{::operator delete(p);}
 void operator delete(void*p,std::size_t)noexcept{::operator delete(p);}
 void operator delete[](void*p,std::size_t)noexcept{::operator delete(p);}
 namespace {
+static_assert(!std::is_copy_constructible_v<ConditionalHydrogenHeliumDrag>);
+static_assert(!std::is_copy_assignable_v<ConditionalHydrogenHeliumDrag>);
+static_assert(std::is_nothrow_move_constructible_v<ConditionalHydrogenHeliumDrag>);
+static_assert(std::is_nothrow_move_assignable_v<ConditionalHydrogenHeliumDrag>);
 unsigned checks = 0;
 void need(bool b, const char *message) { ++checks; if (!b) throw std::runtime_error(message); }
 void foundation_controls() {
@@ -154,19 +159,41 @@ void owner_controls(){
   need(result.peak_payload_bytes<=p.maximum_native_bytes && allocation_observation::peak<=result.peak_payload_bytes,
        "observed live allocations fit checked simultaneous bound");
   allocation_observation::enabled=false; // Further independent owners are outside this scoped request peak.
+  const std::array<ConditionalDragInterval,1> boundary{{{"exact-D-one",1,1,
+      "synthetic exact support boundary; no physical tail claim"}}};
+  const auto at_boundary=owner.evaluate(boundary);
+  need(at_boundary.status==S::ok && at_boundary.rows.size()==1 &&
+       at_boundary.rows[0].endpoints[0].root_status==S::ok && at_boundary.rows[0].endpoints[1].root_status==S::ok &&
+       at_boundary.rows[0].endpoints[0].redshift==r.late_redshift &&
+       at_boundary.rows[0].endpoints[1].redshift==r.late_redshift &&
+       at_boundary.rows[0].endpoints[0].redshift_numerical_estimate==0 &&
+       at_boundary.rows[0].endpoints[1].redshift_numerical_estimate==0,
+       "exact supplied D=1 has the declared late support root with zero shift witness");
   const std::array<ConditionalDragInterval,3> bad{{{"reversed",.02,.01,"synthetic refusal"},
       {"nan",0,std::numeric_limits<double>::quiet_NaN(),"synthetic refusal"},{"after-good",.01,.01,"synthetic control"}}};
   const auto mixed=owner.evaluate(bad);
   need(mixed.rows.size()==3 && mixed.rows[0].endpoints[0].root_status==S::outside_domain &&
        mixed.rows[1].endpoints[0].root_status==S::nonfinite_input && mixed.rows[2].endpoints[0].root_status==S::ok,
        "refused rows are retained alongside valid ordered rows");
-  auto copy=owner;auto moved=std::move(owner);
+  const auto pre_move_status=owner.status();
+  const auto pre_move_work=owner.preparation_work();
+  auto moved=std::move(owner);
   need(!owner.source() && !owner.source_snapshot() && !owner.budget_diagnostics() && owner.status()==S::invalid_input,
        "moved owner has no source or freshness diagnostics");
-  need(copy.source_snapshot()->emitted_nuclei_binary64_bits==bits && moved.source_snapshot()->emitted_nuclei_binary64_bits==bits,
-       "owning copy/move retains emitted working law");
-  bool refused=false;try{copy=moved;}catch(const std::bad_alloc&){refused=true;}
-  need(refused && copy.source_snapshot()->emitted_nuclei_binary64_bits==bits,"oversized simultaneous assignment refuses without changing destination");
+  need(moved.source_snapshot()->emitted_nuclei_binary64_bits==bits && moved.status()==pre_move_status &&
+       moved.preparation_work().checked_total()==pre_move_work.checked_total() && moved.budget_diagnostics() &&
+       moved.budget_diagnostics()->served_history_work==budget_snapshot.served_history_work &&
+       moved.budget_diagnostics()->served_history_native_bytes==budget_snapshot.served_history_native_bytes,
+       "owning move retains emitted law, status, earned work and actual limits");
+  auto *self=&moved;moved=std::move(*self);
+  need(moved.source_snapshot()->emitted_nuclei_binary64_bits==bits && moved.status()==pre_move_status &&
+       moved.preparation_work().checked_total()==pre_move_work.checked_total() && moved.budget_diagnostics() &&
+       moved.budget_diagnostics()->served_history_work==budget_snapshot.served_history_work,
+       "self-move retains source/status/work/budget invariants");
+  ConditionalHydrogenHeliumDrag assigned;assigned=std::move(moved);
+  need(moved.status()==S::invalid_input && !moved.source() && !moved.source_snapshot() && !moved.budget_diagnostics() &&
+       assigned.source_snapshot()->emitted_nuclei_binary64_bits==bits && assigned.preparation_work().checked_total()==pre_move_work.checked_total(),
+       "move assignment transfers one owner and invalidates source");
   auto tiny=p;tiny.history.maximum_total_work=1;
   const auto failed=prepare_conditional_hydrogen_helium_drag(r,tiny);
   need(failed.status()==S::work_limit && failed.source() && failed.budget_diagnostics() &&
@@ -186,7 +213,9 @@ void owner_controls(){
  allocation_observation::enabled=false;
  need(allocation_observation::live==0,"all observed owning allocations released");
  auto unsupported=r;unsupported.model.species={{0,1.95,2}};
- need(prepare_conditional_hydrogen_helium_drag(unsupported,p).status()==S::outside_domain,"distinct empty-species consumer domain enforced");
+ const auto never_admitted=prepare_conditional_hydrogen_helium_drag(unsupported,p);
+ need(never_admitted.status()==S::outside_domain && !never_admitted.source() && !never_admitted.budget_diagnostics() &&
+      never_admitted.preparation_work().checked_total()==0,"unsupported profile remains borrowed never-admitted input with zero earned work");
 }
 }
 int main() {

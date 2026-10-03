@@ -50,7 +50,7 @@ D = tau_D(z_L),  K(z) = integral[z_L,z] wD dz,  tau_D(z)=D+K(z)
 t = 1-D
 [z_min,z_max] = [K^-1(1-D_upper), K^-1(1-D_lower)]
 rs(z) = c/(H0 sqrt3) integral[0,1/(1+z)] da/sqrt[P(a)(1+R0 a)]  [Mpc]
-drs/dz = -cs/H
+drs/dz [Mpc] = -cs/(H * megaparsec_in_metres)
 ```
 
 The selected CLASS drag definition has source pin
@@ -120,11 +120,24 @@ Public work checksums can refuse overflow and cannot supply ledger freshness.
 
 Payload bounds include actual string/vector capacities, owners, mapping records,
 history preparation scratch, one prefix, bounded coefficient scratch, ordered
-outputs, assignment temporaries and return headers without NRVO. Borrowed
+outputs and simultaneous return headers without NRVO. Borrowed
 unrelated owners, allocator bookkeeping, recursion stack and RSS are excluded.
-Copy assignment refuses an oversized simultaneous payload with `bad_alloc`
-before changing its destination; ordinary allocation failures use RAII. The
+The source-only caller flag disables elision in its test translation unit. It
+does not disable return elision in the compiled library; complete no-NRVO
+validation of the library and caller remains a separate qualification gate.
+This new conditional owner is move-only: its actual consumer prepares once and
+borrows immutable retained history through const coarse evaluation. It supplies
+no whole-owner copy constructor or copy assignment; the existing standalone
+H/He history copy interface is unchanged. Source-clearing moves are noexcept,
+and self-move retains the owner. Ordinary allocation failures use RAII. The
 installed owning receipt outlives its input request and intervals. Source and
 budget diagnostics move with it; a moved-from owner is invalid. Source admission
+requires a valid policy, bounded nonempty origin strings, the empty explicit
+species profile and initial payload admission. A request refused before that
+boundary has no retained source or budget record and has zero attempted work.
+The admitted preparation phase retains requested caps; failure to allocate the
+source copy can still leave the source record absent. Once the request has been
+acquired, later refusals preserve it, requested caps, earned work and whichever
+phase diagnostics have actually been reached. Source admission
 and committed controls do not establish numerical, resource, installed-library
 or observational qualification. No production CLI/ABI extension is supplied.

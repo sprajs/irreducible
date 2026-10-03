@@ -83,7 +83,9 @@ SyntheticConditionalReceipt run_synthetic_request() {
        "explicit truncated control; no physical negligible-tail assertion"},
       {"collapsed-supplied-depth-control", .01, .01,
        "fixed synthetic supplied-depth control"}}};
-  // Even a preparation/query refusal must retain source and actual earned work.
+  // After bounded source acquisition, a later preparation/query refusal retains
+  // the source, requested limits and actual earned work. Never-admitted inputs
+  // have no retained record and do not require an unbounded input copy.
   // Return the actual prepared owner with the ordered result, so its original
   // source/snapshot and preparation work survive this function. The installed
   // harness reads owner.budget_diagnostics() (requested/served limits), source,

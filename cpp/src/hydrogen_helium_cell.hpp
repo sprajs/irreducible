@@ -40,6 +40,11 @@ struct HydrogenHeliumCellAccess {
   static std::size_t count(const HydrogenHeliumHistory &h) noexcept {
     return h.nodes_.empty() ? 0 : h.nodes_.size() - 1;
   }
+  // Search metadata only: no curvature, cell construction or duplicate history.
+  // The bounded private caller supplies a retained node index <=count(h).
+  static long double redshift(const HydrogenHeliumHistory &h, std::size_t i) noexcept {
+    return h.nodes_[i].z;
+  }
   // Index is in the retained descending-z order. Only bounded callers with
   // status==ok and index<count enter here; no publicly supplied unchecked index.
   static HydrogenHeliumCell cell(const HydrogenHeliumHistory &h, std::size_t i) noexcept {

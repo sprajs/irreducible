@@ -120,8 +120,8 @@ struct ConditionalDragAccess {
     std::size_t low = 0, high = n;
     while (high - low > 1) {
       const auto mid = low + (high - low) / 2;
-      const auto c = HydrogenHeliumCellAccess::cell(o.history_, n - 1 - mid);
-      if (z < c.low) high = mid; else low = mid;
+      const auto low_redshift = HydrogenHeliumCellAccess::redshift(o.history_, n - mid);
+      if (z < low_redshift) high = mid; else low = mid;
     }
     if (!e.charge(e.work.cell) || !e.charge(e.work.primitive)) return {e.status, 0, 0};
     const auto c = cell(o, low);
@@ -146,12 +146,12 @@ struct ConditionalDragAccess {
     std::size_t lo = 0, hi = n;
     while (lo < hi) {
       const auto mid = lo + (hi - lo) / 2;
-      const auto c = HydrogenHeliumCellAccess::cell(e.owner.history_, n - 1 - mid);
-      if (c.high < a) lo = mid + 1; else hi = mid;
+      const auto high_redshift = HydrogenHeliumCellAccess::redshift(e.owner.history_, n - 1 - mid);
+      if (high_redshift < a) lo = mid + 1; else hi = mid;
     }
     for (std::size_t i = lo; i < n; ++i) {
-      const auto view = HydrogenHeliumCellAccess::cell(e.owner.history_, n - 1 - i);
-      if (view.low > b) break;
+      const auto low_redshift = HydrogenHeliumCellAccess::redshift(e.owner.history_, n - i);
+      if (low_redshift > b) break;
       if (!e.charge(e.work.cell)) { out.status = e.status; return out; }
       const auto c = cell(e.owner, i);
       if (c.status != S::ok) { out.status = c.status; return out; }
@@ -245,16 +245,6 @@ const HydrogenHeliumHistory *ConditionalHydrogenHeliumDrag::history() const noex
 ConditionalDragWork ConditionalHydrogenHeliumDrag::preparation_work() const noexcept { return work_; }
 const ConditionalDragBudgetDiagnostics *ConditionalHydrogenHeliumDrag::budget_diagnostics() const noexcept { return budget_ ? &*budget_ : nullptr; }
 
-ConditionalHydrogenHeliumDrag &ConditionalHydrogenHeliumDrag::operator=(const ConditionalHydrogenHeliumDrag &o) {
-  if (this != &o) {
-    const auto a = payload(), b = o.payload();
-    std::size_t bytes = a.value_or(SIZE_MAX);
-    if (!b || !add(bytes, *b) || !add(bytes, *b) || bytes > o.policy_.maximum_native_bytes) throw std::bad_alloc();
-    ConditionalHydrogenHeliumDrag copy(o); *this = std::move(copy);
-    peak_payload_ = std::max(peak_payload_, bytes);
-  }
-  return *this;
-}
 ConditionalHydrogenHeliumDrag::ConditionalHydrogenHeliumDrag(ConditionalHydrogenHeliumDrag &&o) noexcept { *this = std::move(o); }
 ConditionalHydrogenHeliumDrag &ConditionalHydrogenHeliumDrag::operator=(ConditionalHydrogenHeliumDrag &&o) noexcept {
   if (this != &o) {

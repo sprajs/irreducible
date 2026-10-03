@@ -93,8 +93,10 @@ struct ConditionalDragBatch {
 class ConditionalHydrogenHeliumDrag {
 public:
   ConditionalHydrogenHeliumDrag() = default;
-  ConditionalHydrogenHeliumDrag(const ConditionalHydrogenHeliumDrag &) = default;
-  ConditionalHydrogenHeliumDrag &operator=(const ConditionalHydrogenHeliumDrag &);
+  // Prepare once; const coarse evaluation borrows the retained shared history.
+  // Whole-owner duplication is outside this bounded consumer's interface.
+  ConditionalHydrogenHeliumDrag(const ConditionalHydrogenHeliumDrag &) = delete;
+  ConditionalHydrogenHeliumDrag &operator=(const ConditionalHydrogenHeliumDrag &) = delete;
   ConditionalHydrogenHeliumDrag(ConditionalHydrogenHeliumDrag &&) noexcept;
   ConditionalHydrogenHeliumDrag &operator=(ConditionalHydrogenHeliumDrag &&) noexcept;
   numerics::Status status() const noexcept;
@@ -104,7 +106,7 @@ public:
   const ConditionalDragSourceSnapshot *source_snapshot() const noexcept;
   const HydrogenHeliumHistory *history() const noexcept;
   ConditionalDragWork preparation_work() const noexcept;
-  // Supplied/effective cap record survives preparation refusal/copy/move.
+  // Supplied/effective cap record survives an admitted refusal and moves.
   // A moved-from/never-admitted owner returns nullptr.
   const ConditionalDragBudgetDiagnostics *budget_diagnostics() const noexcept;
   ConditionalDragBatch evaluate(std::span<const ConditionalDragInterval>) const;
