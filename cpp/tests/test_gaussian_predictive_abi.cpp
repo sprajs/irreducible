@@ -349,10 +349,12 @@ int main() {
       if (variant == 5)
         changed.future_noise_identity = {invalid.data(), invalid.size()};
       Result r;
-      need(irred_gaussian_predictive_evaluate(&changed, &q, &r.p) ==
-                   IRRED_INVALID_ARGUMENT &&
+      const auto expected = (variant == 6 || variant == 12)
+                                ? IRRED_ABI_MISMATCH
+                                : IRRED_INVALID_ARGUMENT;
+      need(irred_gaussian_predictive_evaluate(&changed, &q, &r.p) == expected &&
                !r.p,
-           "invalid ABI wire never executed");
+           "invalid ABI wire never executed; version disposition distinct");
     }
     {
       Result r;
@@ -373,7 +375,7 @@ int main() {
       auto bad_policy = q;
       bad_policy.abi_version = IRRED_ABI_VERSION + 1;
       need(irred_gaussian_predictive_evaluate(&b, &bad_policy, &r.p) ==
-                   IRRED_INVALID_ARGUMENT &&
+                   IRRED_ABI_MISMATCH &&
                !r.p,
            "bad policy version");
       alignas(void *)
