@@ -220,6 +220,13 @@ void no_species_shadow_diagnostic() {
            *mapping.scalar_witnesses, .5L, zero_k) == S::outside_domain &&
        !zero_k.forward && !zero_k.shadow,
        "positive-k diagnostic slice refuses zero x2 while old conversion remains available");
+  auto too_early = detail::thermal_conformal_epoch(background, 0x1p-1024L, .01L,
+      mapping.model->omega_gamma, ThermalPolicy{});
+  need(too_early.status == S::ok &&
+       detail::thermal_conformal_no_species_diagnostics(background, *captured,
+           *mapping.scalar_witnesses, 0x1p-1024L, too_early) == S::conditioning_budget_exceeded &&
+       !too_early.forward && !too_early.shadow,
+       "new bounded diagnostic domain refuses while original thermal epoch remains available");
   const auto rounding = std::fegetround();
   auto epoch = detail::thermal_conformal_epoch(background, .5L, .01L,
       mapping.model->omega_gamma, ThermalPolicy{});

@@ -187,7 +187,8 @@ inline ThermalConformalEpoch thermal_conformal_epoch(
   return thermal_conformal_epoch_from_scaled(background, scaled, a, k, radiation);
 }
 // Opt-in dependency diagnostic for the physical mapped photon/cold matter
-// source only. The same consumer owns the once-captured retained coefficient
+// source only, with strictly positive mapped photon/baryon/CDM coefficients
+// and 2^-512<=a<=1. The same consumer owns the once-captured retained coefficient
 // witness, original four mapper records and this already charged epoch/query.
 // No species, other radiation, remap, getter, P/H query or alternate H here.
 // These conditional estimates inherit the mapper's deterministic operation
@@ -210,7 +211,7 @@ inline numerics::Status thermal_conformal_no_species_diagnostics(
       epoch.raw_scaled_query->a4_e2 != epoch.p ||
       epoch.raw_scaled_query->error_estimate != epoch.p_error ||
       retained.momentum_method != background.momentum_method() ||
-      !(a > 0 && a <= 1) || !std::isfinite(a))
+      !(a >= 0x1p-512L && a <= 1) || !std::isfinite(a))
     return S::conditioning_budget_exceeded;
   if (!source.species.empty() || source.omega_massless_nonphoton != 0 ||
       !(source.omega_gamma > 0) || !(source.omega_b > 0) || !(source.omega_cdm > 0) ||
@@ -324,6 +325,8 @@ inline numerics::Status thermal_conformal_no_species_diagnostics(
   forward.x2_absolute_estimate = std::abs(epoch.x2) *
       (2 * relative_h + relative_h * relative_h) +
       16 * e * std::abs(epoch.x2) * (1 + relative_h) * (1 + relative_h);
+  if (!(forward.x2_absolute_estimate > 0))
+    return S::conditioning_budget_exceeded;
   shadow.dp = shadow.q - 2 * (epoch.g + 1);
   shadow.dp_radius = shadow.q_radius + 2 * forward.g_absolute_estimate +
                     8 * e * (std::abs(shadow.q) + 2 * std::abs(epoch.g + 1));
