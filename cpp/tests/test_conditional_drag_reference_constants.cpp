@@ -55,7 +55,9 @@ void original_atomic_and_absolute_cold_controls() {
   ref::Arithmetic arithmetic(owner);
   need(arithmetic.prepare_directions(), "atomic direction source");
   ref::SourceNumbers numbers(arithmetic);
-  ref::AtomicNumbers constants;
+  ref::AtomicNumbers constants = ref::AtomicNumbers(); // Guaranteed elision, () constructor route.
+  need(!constants.kb.valid && !constants.chiHe.valid,
+       "parenthesized atomic construction exposes no acquired Wide values");
   const bool acquired = numbers.atomic(constants);
   need(acquired, "all original declared source constants acquired");
   if (!acquired) return; // Do not read intentionally unassigned Wide fields after refusal.
@@ -71,7 +73,9 @@ void original_atomic_and_absolute_cold_controls() {
        constants.chiHe.lower <= original::chiHe && constants.chiHe.upper >= original::chiHe,
        "exact source enclosures cover every unchanged original stored central symbol");
   ref::Interval argument;
-  ref::ColdImage cold;
+  ref::ColdImage cold = ref::ColdImage();
+  need(!cold.value.valid && !cold.absolute_cold,
+       "parenthesized cold construction has only initialized integer admission flags");
   need(numbers.integer(argument, -90) && numbers.cold_exp(cold, argument) &&
        cold.value.valid && cold.absolute_cold && cold.value.lower == 0 &&
        cold.value.upper == 0x1p-128L && cold.value.upper > 0,

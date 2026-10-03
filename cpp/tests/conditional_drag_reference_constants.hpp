@@ -7,10 +7,13 @@
 namespace conditional_drag_reference_certificate {
 struct AtomicNumbers {
   Interval kb, h, c, ev, me, G, sigma, chiH, chiHe;
+  // Automatic/runtime construction only; prevent () from zeroing Wide slots.
+  AtomicNumbers() noexcept {}
 };
 struct ColdImage {
   Interval value;
   bool absolute_cold = false;
+  ColdImage() noexcept {} // No floating initialization under () or {}.
 };
 class SourceNumbers {
   Owner &owner_;
