@@ -61,8 +61,10 @@ struct Campaign {
     for(unsigned i=0;i<9;++i)total.counters[i]+=delta.counters[i];
     scalar_total+=scalar;++finished;
     if(!emit)return true;
-    wire.text("[\"served\",");wire.integer(id);wire.character(',');wire.work(delta);
-    wire.character(',');wire.integer(scalar);wire.character(']');return wire.flush();
+    return wire.record([&](auto &sink){
+    sink.text("[\"served\",");sink.integer(id);sink.character(',');sink.work(delta);
+    sink.character(',');sink.integer(scalar);sink.character(']');
+    });
   }
 } campaign;
 bool begin_control(Request &q,elementary_test::Wire &wire,unsigned id,unsigned kind,unsigned descriptor=0) {
@@ -85,20 +87,24 @@ bool fixture(elementary_test::Wire &wire) {
   campaign.start(q);
 #endif
   auto &refusal=q.result.refusal;auto &control=q.result.control_work;
-  wire.text("[\"ieee80-le\",[\"basic\",\"next\",\"scale\",\"term\",\"lib\",\"write\",\"copy\",\"guard\",\"attempt\"],\"clock150249\",\"");
+  if(!wire.record([&](auto &sink){
+  sink.text("[\"ieee80-le\",[\"basic\",\"next\",\"scale\",\"term\",\"lib\",\"write\",\"copy\",\"guard\",\"attempt\"],\"clock150249\",\"");
 #ifdef IRRED_ELEMENTARY_SOURCE_SHA256
-  wire.text(IRRED_ELEMENTARY_SOURCE_SHA256);
+  sink.text(IRRED_ELEMENTARY_SOURCE_SHA256);
 #else
-  wire.text("unconfigured");
+  sink.text("unconfigured");
 #endif
-  wire.text("\"]");if(!wire.flush())return false;
+  sink.text("\"]");
+  }))return false;
   allocation_active=true;
   d::prepare_elementary_log(q.context,q.budget,q.scratch);
   wire.add_control(q.context.control_work);
   allocation_active=false;
-  wire.text("[\"prep\",");wire.integer(static_cast<unsigned>(q.context.status));wire.character(',');
-  wire.work(q.context.preparation_work);wire.character(',');wire.control(q.context.control_work);
-  wire.character(']');if(!wire.flush())return false;
+  if(!wire.record([&](auto &sink){
+  sink.text("[\"prep\",");sink.integer(static_cast<unsigned>(q.context.status));sink.character(',');
+  sink.work(q.context.preparation_work);sink.character(',');sink.control(q.context.control_work);
+  sink.character(']');
+  }))return false;
   if(q.context.status!=Status::ok)return false;
   for(unsigned row=0;row<2;++row) {
     allocation_active=true;
@@ -151,16 +157,18 @@ bool fixture(elementary_test::Wire &wire) {
   }
   check(q.ledger.served.counters[4]==6 && q.ledger.served.counters[8]==7,"fixed original calls/attempts");
   check(new_calls==0 && malloc_calls==0,"native owning fixture allocations");
-  wire.text("[\"summary\",");wire.integer(envelope);wire.character(',');wire.work(q.ledger.served);
-  wire.character(',');wire.integer(q.ledger.scalar_total);wire.character(',');wire.integer(new_calls);
-  wire.character(',');wire.integer(malloc_calls);wire.character(',');wire.integer(wire.io_calls+1);
-  wire.character(',');wire.aggregate_control();
-  wire.character(',');wire.character('[');wire.integer(wire.maximum_reads);wire.character(',');
-  wire.integer(wire.maximum_writes);wire.character(',');wire.integer(wire.maximum_steps);
-  wire.character(',');wire.integer(wire.maximum_branches);wire.character(']');
-  wire.character(',');wire.integer(sizeof(Request));wire.character(',');wire.integer(sizeof(elementary_test::Wire));
-  wire.text("]");
-  if(!wire.flush(true))return false; // Final receipt must be dominated by emitted maxima.
+  if(!wire.record([&](auto &sink){
+  sink.text("[\"summary\",");sink.integer(envelope);sink.character(',');sink.work(q.ledger.served);
+  sink.character(',');sink.integer(q.ledger.scalar_total);sink.character(',');sink.integer(new_calls);
+  sink.character(',');sink.integer(malloc_calls);sink.character(',');sink.integer(wire.io_calls+1);
+  sink.character(',');sink.aggregate_control(wire.whole_control);
+  sink.character(',');sink.character('[');sink.integer(wire.maximum_reads);sink.character(',');
+  sink.integer(wire.maximum_writes);sink.character(',');sink.integer(wire.maximum_steps);
+  sink.character(',');sink.integer(wire.maximum_branches);sink.character(']');
+  sink.character(',');sink.integer(sizeof(Request));sink.character(',');sink.integer(sizeof(elementary_test::Wire));
+  sink.text("]");
+
+  },true))return false; // Final receipt must be dominated by emitted maxima.
 #ifndef IRRED_ELEMENTARY_FIXTURE_ONLY
   if(!campaign.finish(q,wire,0,false))return false;
 #endif
@@ -401,9 +409,11 @@ bool entry_controls(elementary_test::Wire &wire) {
 }
 bool campaign_summary(elementary_test::Wire &wire,unsigned expected) {
   check(requests_started==expected && campaign.finished==expected,"complete mandatory campaign inventory");
-  wire.text("[\"campaign\",");wire.integer(requests_started);wire.character(',');wire.integer(campaign.finished);
-  wire.character(',');wire.work(campaign.total);wire.character(',');wire.integer(campaign.scalar_total);
-  wire.character(',');wire.aggregate_control();wire.character(']');return wire.flush();
+  return wire.record([&](auto &sink){
+  sink.text("[\"campaign\",");sink.integer(requests_started);sink.character(',');sink.integer(campaign.finished);
+  sink.character(',');sink.work(campaign.total);sink.character(',');sink.integer(campaign.scalar_total);
+  sink.character(',');sink.aggregate_control(wire.whole_control);sink.character(']');
+  });
 }
 #endif
 } // namespace

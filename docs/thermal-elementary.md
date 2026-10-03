@@ -139,15 +139,21 @@ Default source/flag mutation checks require an isolated checkout and direct
 compiled binaries, with no competing build; ordinary control execution does not
 authorize those mutations.
 
-The serializer uses compiled literal text and fixed block graphs, with separate
+The serializer uses compiled literal text and one finite typed-record planner
+and encoder, with separate
 1024-byte-write, 256-byte-read, 4096-integer-operation and 512-source-branch limits
-per completed record. These count source byte assignments and conservative
+per completed record. The planner records at most 37 decimal lengths without
+initializing unassigned length bytes; it remains live through encoding and flush.
+Decimal digits are written directly in reverse positions inside their final
+buffer span. These count source byte assignments and conservative
 integer/control graphs; they are not compiler instruction counts. Native receipts
 emit the largest observed charged blocks. The final summary must itself be
 dominated by those emitted extrema, or the whole protocol refuses. Ledger/cache
 invariants are checked before every admission commit. Normal-or-zero binary64
 imports require the selected profile before conversion. Actual runtime support
 for these source bounds remains pending the five compiled contracts. Independent
-source review found omitted reservation bookkeeping in the current small encoder
-blocks. Wire accounting is withheld until its complete record graph is repaired;
-charged extrema alone cannot establish the claimed bound.
+source review found omitted reservation bookkeeping in the prior small encoder
+blocks. The successor has one owner for planning, whole-record admission,
+composed conditionals, encoding and flush. Its source table and actual complete
+frames still require review and validation; charged extrema alone cannot
+establish a bound.

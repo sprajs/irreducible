@@ -66,26 +66,43 @@ def qualify(build,target,summary):
         caller_extra=max(0,max(main)-wire_bytes)+max(0,max(fixture)-request_bytes)
     else:
         caller_extra=max(0,max(main)-wire_bytes-request_bytes)
-    dag={"reserve":(),"character":("reserve",),"text":("reserve","character"),
-         "integer":("reserve","character"),"wide":("reserve","character"),
+    dag={"character":(),"text":(),"integer":(),"wide":(),"coordinate_value":(),
          "work":("character","integer"),"control":("character","integer"),
-         "aggregate_control":("character","integer"),"flush":("character",),
-         "result":("character","integer","wide","work","control","flush"),
-         "refused":("text","integer","reserve","character","wide","work","control","flush"),
-         "gate":("text","integer","character","work","control","flush"),"add_control":()}
-    sizes={method:max([size for name,size in caller if f"Wire::{method}(" in name],default=0) for method in dag}
+         "aggregate_control":("character","integer"),"flush":(),"record":(),
+         "result":(),"refused":(),"gate":(),"add_control":()}
+    def primary(name):
+        return name.split(" [with ",1)[0]
+    def callback(name):
+        return "lambda" in primary(name) and "operator()" in primary(name)
+    sizes={method:max([size for name,size in caller if f"Wire::{method}(" in primary(name)
+                      and not callback(name)],default=0) for method in dag}
     def chain(method):
         return sizes[method]+max([chain(child) for child in dag[method]],default=0)
+    plan_methods=("integer","character","text","wide","coordinate_value","work","control","aggregate_control")
+    plan_sizes={method:max([size for name,size in caller if f"RecordPlan::{method}(" in primary(name)],default=0)
+                for method in plan_methods}
+    plan_leaf=max(plan_sizes[m] for m in ("integer","character","text","wide","coordinate_value"))
+    plan_chain=max(plan_leaf,max(plan_sizes[m]+plan_leaf for m in ("work","control","aggregate_control")))
+    callbacks=[(name,size) for name,size in caller if callback(name)]
+    # Fixed schema callbacks contain only primitive/field sink calls. Planning
+    # and encoding are sequential; Plan remains in record's measured frame.
+    primitive=max(chain(m) for m in ("character","text","integer","wide","coordinate_value",
+                                     "work","control","aggregate_control"))
+    record_chain=sizes["record"]+max(max([size for _,size in callbacks],default=0)+max(plan_chain,primitive),
+                                   sizes["flush"])
+    typed_encoder=max(record_chain,max(sizes[m]+record_chain for m in ("result","refused","gate")))
     unmatched_wire=[(name,size) for name,size in caller if "Wire::" in name and
-                    not any(f"Wire::{method}(" in name for method in dag)]
+                    not callback(name) and
+                    not any(f"Wire::{method}(" in primary(name) for method in dag)]
     # Unknown template/outlining spelling never becomes a free encoder frame.
-    encoder=max(chain(method) for method in dag)+sum(size for _,size in unmatched_wire)
+    encoder=max(typed_encoder,sizes["add_control"])+sum(size for _,size in unmatched_wire)
     # Zero-allocation observer and failing assertion/I/O observers are separate
     # validation paths. They cannot qualify a successful fixture via this gate.
     if summary[4] or summary[5]:
         raise RuntimeError("allocation observation cannot qualify frame profile")
     unknown=[(name,size) for name,size in caller if "main(" not in name and "fixture(" not in name
              and "Wire::" not in name and "operator new" not in name and "operator delete" not in name
+             and "RecordPlan::" not in name and not callback(name)
              and "__wrap_" not in name and "check(" not in name]
     active=max(max(entries)+sum(other),encoder)+caller_extra+sum(size for _,size in unknown)
     peak=request_bytes+wire_bytes+active+512+176+384
@@ -93,6 +110,8 @@ def qualify(build,target,summary):
              "active_helper_control_copy_frame_upper":active,"native_owned_peak_upper":peak,
              "encoder_literal_DAG_frame_upper":encoder,"conservative_unknown_caller_frames":unknown,
              "conservative_unmatched_encoder_frames":unmatched_wire,
+             "record_plan_raw":[(name,size) for name,size in caller if "RecordPlan::" in name],
+             "fixed_schema_callback_raw":callbacks,
              "opaque_primitive512_profile_assumption":True,
              "compiler_receipt_sha256":[hashlib.sha256(p.read_bytes()).hexdigest() for p in (helper_path,caller_path)]}
     print(json.dumps(receipt))
