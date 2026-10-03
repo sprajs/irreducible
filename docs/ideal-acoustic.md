@@ -1,11 +1,17 @@
 # Ideal photon–baryon acoustic perturbations
 
-The work-branch source implements a distinct ideal photon fluid, cold baryons,
-CDM and smooth nonnegative Lambda. The first GCC Release build and raw analytic,
-ordered-batch and refusal controls passed at e035f10. Complete independent numerical,
-installed SDK and source-error admission gates remain pending. It supplies no
-finite opacity, recombination, photon hierarchy, polarization, CMB spectrum or
-ordinary full-support matter amplitude.
+The standalone C++ library evolves a distinct ideal photon fluid, cold baryons,
+CDM and smooth nonnegative Lambda using one retained thermal state. A fresh strict
+Release build at 930adcc passed the shared contract, all 36 native fields and
+all 18 installed-consumer fields in 102.42 seconds. The named fixture uses the
+explicit 2M-per-k/4M-batch RHS policy; the original default policy remains 1M/2M.
+All five attempts per k complete within the unchanged 30M destination-write cap.
+These outputs pass the declared conditional empirical error gates. Complete
+independent reference, arithmetic-provider and physical qualification remain open.
+It supplies no finite opacity, recombination, photon hierarchy, polarization,
+CMB spectrum or ordinary full-support matter amplitude.
+
+The earlier checks and failed results below retain their original identities.
 
 At 8e87b8f, the fresh strict Release build compiled the native, portable peer,
 optional MPFR reference and shared diagnostic targets. The native and shared
@@ -85,8 +91,18 @@ final addition. Each final signed derivative is stored once; its original
 assembly allowances remain unchanged. This removes 160 actual destinations per
 completed step, from 844 to 684, without changing five-attempt meshes, caps,
 RHS owners or error shares. Association, cancellation and prefix-refusal controls
-cover the affected vector consumers. This source successor has not run; its
-conditional resource bound does not establish complete-batch admission.
+cover the affected vector consumers. Its fresh 930adcc trial passed all seven
+serial build/shared/native/install/SDK stages. Native work was 2,550,912 RHS calls,
+79,741 background queries, 15 age queries and 27,268,012 destinations; SDK work
+was 2,550,784 RHS calls and 27,264,634 destinations. The SDK publishes all 18
+finite values and their conditional error estimates. The native caller asserts
+all 36 component/status gates; its log prints the center values rather than every
+individual error component. All 18 previously available high-k center strings
+are literally unchanged from the failed 4543066 run. This is a regression
+witness with shared ancestry. Native preflight bound 56,272 bytes and owner floor
+49,896 bytes belong to a separate one-k/one-epoch control; the main native payload
+number is not printed. The SDK's actual two-k/one-epoch bound is 61,162 bytes.
+These payload bounds are distinct from process memory and reference ownership.
 
 The declared infinite momentum-coupling limit first sums the photon and baryon
 enthalpy-weighted momentum equations. Their exchange cancels before their common
@@ -186,8 +202,9 @@ flow bound translates all five physical coordinates and eta to that epoch,
 including a stored exp/log roundtrip that happens to equal the requested a.
 An unresolved or singular endpoint allowance refuses. These are
 conditional numerical estimates; no universal libm or inference qualification
-is asserted. The integrated source successor's first execution refused as
-recorded above; its complete conditional admission remains open.
+is asserted. The original refusals above remain preserved. The 930adcc native
+and installed fixtures pass these conditional component gates; complete
+independent reference admission remains open.
 
 Each failed numerical attempt now retains an operation-owned first-refusal
 stage, RK input stage1..4 when applicable, the last committed nominal-state
@@ -225,8 +242,9 @@ cause of an earlier refusal or qualifying the full response method.
 The continuous cooperative comparison equations preserve positive radii, but
 that theorem alone does not establish positivity of a classical RK4 stage.
 The 1f0d797 witness identified dV and its finite negative completed operands.
-The selected positive-propagation successor above still needs numerical checks;
-no completed radius is clipped.
+The selected positive-propagation successor passes the named native and SDK
+fixtures above. Independent full-reference and continuous-envelope qualification
+remain open; no completed radius is clipped.
 
 An optional MPFR reference target advances a separate conformal-time photon
 oscillator and spatial Einstein trace. It uses the same emitted source and

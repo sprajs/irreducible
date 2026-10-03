@@ -130,6 +130,17 @@ sigma8, measured RSD compatibility and primary CMB remain open. This amplitude
 cannot be composed with the existing radiation-free GR f without a compatible
 new consumer.
 
+The standalone C++ [ideal acoustic transfer](ideal-acoustic.md) evolves signed
+photon/cold-baryon/CDM fields per asymptotic unit curvature with infinite photon–
+baryon momentum coupling and smooth Lambda. It retains one mapped thermal state,
+caller k order, five numerical attempts and nine requested dimensionless fields.
+The explicit augmented RHS policy passes the named 36-field native and 18-field
+installed fixtures within the original destination/storage/error gates. Radius
+and clock estimates retain their empirical arithmetic assumptions. The original
+100M-write independent-reference refusal and separate 400M diagnostic are
+preserved; complete independent reference and physical qualification remain open.
+There is no finite opacity, relic hierarchy, CMB source or full-support sigma8.
+
 The standalone C++ [continuous scalar CMB projector](continuous-cmb-projection.md)
 integrates explicitly supplied split temperature and E-polarization sources over
 their finite conformal-time support. It retains one immutable source object and
