@@ -30,10 +30,19 @@ enum class BoxStage {
   unassessed, gaussian_completion, endpoint_margins, rectangle_enclosure,
   normalization_enclosures, quantile_enclosure, complete
 };
+// Attempted completion gate, independent of the last available output stage.
+// A refusal before completion still identifies the inherited numerical gate.
+enum class BoxCompletionStep {
+  unassessed, profile_evaluation, source_whitening, qr_completion,
+  marginal_variances, covariance_determinant, complete
+};
 struct GaussianBoxResult {
   DensityStatus status = DensityStatus::invalid_input;
   numerics::Status numerical_status = numerics::Status::invalid_input;
   BoxStage stage = BoxStage::unassessed;
+  BoxCompletionStep completion_step = BoxCompletionStep::unassessed;
+  // Present only while attempting a marginal variance in active source order.
+  std::optional<std::size_t> completion_parameter_index;
   // The operation sets availability explicitly. Refusals retain earned
   // diagnostics, while zero-initialized absent fields are never predictions.
   bool gaussian_completion_available = false, endpoint_margins_available = false,
