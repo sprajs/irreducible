@@ -24,6 +24,9 @@
 #include <string>
 #include <utility>
 #include <vector>
+#if defined(__FAST_MATH__) || (defined(__FINITE_MATH_ONLY__) && __FINITE_MATH_ONLY__)
+#error "The conditional full reference requires strict floating arithmetic"
+#endif
 
 namespace reference {
 constexpr unsigned L=192, D=2*L+8, degree=5;
@@ -224,8 +227,9 @@ struct Arithmetic {
   }
   void absolute(Interval &r,const Interval &a) {
     auto &t=temporary[0];work().guard(2);
-    if(mpfr_cmp_si(a.lo,0)>=0){r.set(a);return;}
-    if(mpfr_cmp_si(a.hi,0)<=0){scale(r,a,-1);return;}
+    const int low=mpfr_cmp_si(a.lo,0),high=mpfr_cmp_si(a.hi,0);
+    if(low>=0){r.set(a);return;}
+    if(high<=0){scale(r,a,-1);return;}
     work().charge(1,2);mpfr_set_zero(t.lo,1);mpfr_neg(t.hi,a.lo,MPFR_RNDU);
     work().guard(1);if(mpfr_cmp(t.hi,a.hi)<0){work().copy(1);mpfr_set(t.hi,a.hi,MPFR_RNDU);}r.set(t);
   }
@@ -596,8 +600,8 @@ void decode_endpoint(mpfr_ptr out,const EncodedEndpoint &wire) {
 void encode(WireBox &out,const Interval &value,Arithmetic &a,Interval &roundtrip) {
   a.check(value);encode_endpoint(out.low,value.lo);encode_endpoint(out.high,value.hi);
   decode_endpoint(roundtrip.lo,out.low);decode_endpoint(roundtrip.hi,out.high);
-  work().guard(2);
-  if(mpfr_cmp(value.lo,roundtrip.lo)||mpfr_cmp(value.hi,roundtrip.hi))throw Refusal("endpoint changed in byte roundtrip");
+  work().guard(2);const int low=mpfr_cmp(value.lo,roundtrip.lo),high=mpfr_cmp(value.hi,roundtrip.hi);
+  if(low||high)throw Refusal("endpoint changed in byte roundtrip");
 }
 void decode(Interval &out,const WireBox &wire,Arithmetic &a){decode_endpoint(out.lo,wire.low);decode_endpoint(out.hi,wire.high);a.check(out);}
 
@@ -915,7 +919,8 @@ void campaign(ClosedRun &run,const Input &in,unsigned subdivisions,unsigned prec
         a.sub(h,increment,left);a.divide_integer(h,h,subdivisions);
         for(unsigned sub=0;sub<subdivisions;++sub){reached_ti=ti;reached_sub=sub;stepper.step(y,eta,h);}
         a.stored(increment,in.time[ti]);work().guard(2);
-        require(mpfr_cmp(eta.lo,increment.lo)==0&&mpfr_cmp(eta.hi,increment.hi)==0,"exact emitted target landing without reset");
+        const int low=mpfr_cmp(eta.lo,increment.lo),high=mpfr_cmp(eta.hi,increment.hi);
+        require(low==0&&high==0,"exact emitted target landing without reset");
         output(run,stepper,y,eta,ki,ti);}
     }catch(const Refusal &error){
       // The campaign reserves one million primitives of the unchanged100M
