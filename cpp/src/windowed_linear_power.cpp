@@ -395,7 +395,8 @@ Result Prepared::evaluate(const ModelPoint& model, const EvaluationPolicy& polic
   if (status_!=Status::ok || !owns_source_) return result;
   auto fail=[&](Status status) {
     result.status=status;
-    result.mean.clear(); result.input_multipoles.clear();
+    std::vector<MeanRow>().swap(result.mean);
+    std::vector<MultipoleRow>().swap(result.input_multipoles);
     return std::move(result);
   };
   if (!std::isfinite(policy.maximum_multipole_absolute_error_estimate_mpc3) ||

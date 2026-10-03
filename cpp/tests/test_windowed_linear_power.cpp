@@ -58,7 +58,8 @@ bool close(double a,long double b,double tolerance=1e-6) {
   return std::isfinite(a) && std::abs(static_cast<long double>(a)-b)<=tolerance;
 }
 bool empty_failure(const p::Result& r,p::Status status) {
-  return r.status==status && r.mean.empty() && r.input_multipoles.empty();
+  return r.status==status && r.mean.empty() && r.input_multipoles.empty() &&
+      r.mean.capacity()==0 && r.input_multipoles.capacity()==0;
 }
 #define REQUIRE(x) do { if (!(x)) { std::cerr << "line " << __LINE__ << ": " << #x << '\n'; return 1; } } while (false)
 }

@@ -85,6 +85,8 @@ metadata and requested numerical vectors. Required late failure withholds the
 whole numerical batch and preserves acquired identities and all attempted
 work. Early policy/payload/arithmetic rejection before result-metadata
 acquisition reports empty metadata; the prepared source remains retained.
+Refusal disposes of numerical output reservations while retaining acquired
+provenance and attempted-work diagnostics.
 
 ## Numerical and resource scope
 
