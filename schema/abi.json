@@ -7,7 +7,8 @@
     "INVALID_INPUT": 2,
     "OVERFLOW": 3,
     "ALLOCATION_FAILURE": 4,
-    "EXCEPTION": 5
+    "EXCEPTION": 5,
+    "GAUSSIAN_POSTERIOR_QUOTA_REFUSED": 6
   },
   "element_type": "signed_i64",
   "ownership": "synchronous_borrowed_inputs_owned_result",
@@ -2737,6 +2738,298 @@
           "Bytes"
         ]
       ]
+    },
+    {
+      "c_name": "irred_gaussian_posterior_policy",
+      "rust_name": "GaussianPosteriorPolicy",
+      "fields": [
+        [
+          "struct_size",
+          "u32"
+        ],
+        [
+          "abi_version",
+          "u32"
+        ],
+        [
+          "arithmetic",
+          "u32"
+        ],
+        [
+          "reserved",
+          "u32"
+        ],
+        [
+          "maximum_elements",
+          "u64"
+        ],
+        [
+          "maximum_cases",
+          "u64"
+        ],
+        [
+          "maximum_string_bytes",
+          "u64"
+        ],
+        [
+          "maximum_native_bytes",
+          "u64"
+        ],
+        [
+          "maximum_work_units",
+          "u64"
+        ],
+        [
+          "maximum_forward_sensitivity",
+          "f64"
+        ]
+      ]
+    },
+    {
+      "c_name": "irred_gaussian_posterior_batch",
+      "rust_name": "GaussianPosteriorBatch",
+      "fields": [
+        [
+          "struct_size",
+          "u32"
+        ],
+        [
+          "abi_version",
+          "u32"
+        ],
+        [
+          "source_semantics",
+          "u32"
+        ],
+        [
+          "noise_independence_declared",
+          "u32"
+        ],
+        [
+          "case_count",
+          "u64"
+        ],
+        [
+          "noise_covariance",
+          "F64Buffer"
+        ],
+        [
+          "design",
+          "F64Buffer"
+        ],
+        [
+          "prior_mean",
+          "F64Buffer"
+        ],
+        [
+          "prior_covariance",
+          "F64Buffer"
+        ],
+        [
+          "conditioning_vectors",
+          "F64Buffer"
+        ],
+        [
+          "noise_row_ids",
+          "Strings"
+        ],
+        [
+          "noise_event_ids",
+          "Strings"
+        ],
+        [
+          "design_row_ids",
+          "Strings"
+        ],
+        [
+          "design_parameter_ids",
+          "Strings"
+        ],
+        [
+          "design_parameter_units",
+          "Strings"
+        ],
+        [
+          "column_units",
+          "Strings"
+        ],
+        [
+          "prior_parameter_ids",
+          "Strings"
+        ],
+        [
+          "prior_parameter_units",
+          "Strings"
+        ],
+        [
+          "shared_nuisance_ids",
+          "Strings"
+        ],
+        [
+          "conditioning_row_ids",
+          "Strings"
+        ],
+        [
+          "conditioning_event_ids",
+          "Strings"
+        ],
+        [
+          "case_ids",
+          "Strings"
+        ],
+        [
+          "residual_unit",
+          "Bytes"
+        ],
+        [
+          "noise_identity",
+          "Bytes"
+        ],
+        [
+          "calibration_identity",
+          "Bytes"
+        ],
+        [
+          "noise_dependence_identity",
+          "Bytes"
+        ],
+        [
+          "ordering_provenance",
+          "Bytes"
+        ],
+        [
+          "design_identity",
+          "Bytes"
+        ],
+        [
+          "prior_identity",
+          "Bytes"
+        ],
+        [
+          "parameter_measure",
+          "Bytes"
+        ],
+        [
+          "prior_dependence_identity",
+          "Bytes"
+        ]
+      ]
+    },
+    {
+      "c_name": "irred_gaussian_posterior_row",
+      "rust_name": "GaussianPosteriorRow",
+      "fields": [
+        [
+          "struct_size",
+          "u32"
+        ],
+        [
+          "abi_version",
+          "u32"
+        ],
+        [
+          "status",
+          "u32"
+        ],
+        [
+          "numerical_status",
+          "u32"
+        ],
+        [
+          "case_index",
+          "u64"
+        ],
+        [
+          "mean",
+          "F64Buffer"
+        ],
+        [
+          "absolute_error_estimates",
+          "F64Buffer"
+        ],
+        [
+          "backward_residual",
+          "f64"
+        ],
+        [
+          "estimated_forward_sensitivity",
+          "f64"
+        ]
+      ]
+    },
+    {
+      "c_name": "irred_gaussian_posterior_view",
+      "rust_name": "GaussianPosteriorView",
+      "fields": [
+        [
+          "struct_size",
+          "u32"
+        ],
+        [
+          "abi_version",
+          "u32"
+        ],
+        [
+          "status",
+          "u32"
+        ],
+        [
+          "numerical_status",
+          "u32"
+        ],
+        [
+          "phase",
+          "u32"
+        ],
+        [
+          "reserved",
+          "u32"
+        ],
+        [
+          "case_count",
+          "u64"
+        ],
+        [
+          "rows",
+          "const_GaussianPosteriorRow_ptr"
+        ],
+        [
+          "covariance",
+          "F64Buffer"
+        ],
+        [
+          "covariance_relative_error_estimate",
+          "f64"
+        ],
+        [
+          "minimum_result_bytes",
+          "u64"
+        ],
+        [
+          "declared_work_units",
+          "u64"
+        ],
+        [
+          "pooled_numeric_elements",
+          "u64"
+        ],
+        [
+          "peak_payload_bytes",
+          "u64"
+        ],
+        [
+          "retained_payload_bytes",
+          "u64"
+        ],
+        [
+          "method",
+          "Bytes"
+        ],
+        [
+          "arithmetic",
+          "Bytes"
+        ]
+      ]
     }
   ],
   "functions": [
@@ -3627,6 +3920,45 @@
           "sampled_photometry_result"
         ]
       ]
+    },
+    {
+      "name": "irred_gaussian_posterior_evaluate",
+      "args": [
+        [
+          "batch",
+          "const_GaussianPosteriorBatch_ptr"
+        ],
+        [
+          "policy",
+          "const_GaussianPosteriorPolicy_ptr"
+        ],
+        [
+          "result_out",
+          "gaussian_posterior_result_out"
+        ]
+      ]
+    },
+    {
+      "name": "irred_gaussian_posterior_result_view",
+      "args": [
+        [
+          "result",
+          "const_gaussian_posterior_result"
+        ],
+        [
+          "view",
+          "GaussianPosteriorView_ptr"
+        ]
+      ]
+    },
+    {
+      "name": "irred_gaussian_posterior_result_destroy",
+      "args": [
+        [
+          "result",
+          "gaussian_posterior_result"
+        ]
+      ]
     }
   ],
   "max_batch_elements": 1000000,
@@ -3830,7 +4162,8 @@
     "bao_result": "irred_bao_result",
     "sound_horizon_result": "irred_sound_horizon_result",
     "photometry_result": "irred_photometry_result",
-    "sampled_photometry_result": "irred_sampled_photometry_result"
+    "sampled_photometry_result": "irred_sampled_photometry_result",
+    "gaussian_posterior_result": "irred_gaussian_posterior_result"
   },
   "expansion_contract": {
     "operation": "background.evaluate",
@@ -3911,5 +4244,25 @@
     "payload": "owner plus curve owner objects, exact ID bytes, two double arrays per curve, exported curve descriptors and result rows; borrowed caller storage, scalar frames, allocator overhead and RSS excluded; fixed empty work-limit diagnostic owner excluded at quota zero",
     "failures": "invalid reference yields invalid_input row; malformed/version/alignment/count/overflow/hard cap/duplicate IDs null transport error; physical/scientific failures preserve independent requested groups; omitted groups remain omitted",
     "qualification": "existing native sampled equations and named numerical allocations; no noise, calibration covariance, observational or inference qualification"
+  },
+  "gaussian_posterior_contract": {
+    "operation": "statistics.gaussian_posterior",
+    "arithmetic": {
+      "0": "binary64 source factor",
+      "1": "wide source factor"
+    },
+    "source_semantics": {
+      "1": "synthetic controls"
+    },
+    "quota_transport": "Only new evaluator may return GAUSSIAN_POSTERIOR_QUOTA_REFUSED=6/null before allocation if original cap cannot hold allocation-free-default minimal result owner. Numerical work_limit=4 is distinct.",
+    "ownership": "One synchronous borrowed pooled batch; result owns one optional engaged native posterior and moved means. Covariance view borrows posterior; failed row views have empty numeric spans.",
+    "outputs": [
+      "posterior_covariance",
+      "posterior_means"
+    ],
+    "work": "32*(n^3+n^2*p+n*p^2+8*p^3+B*(n^2+n*p+p^2)) charged before every requested attempt",
+    "elements": "n*n+n*p+p+2*p*p+B*n+2*B*p pooled input/output elements",
+    "bytes": "Minimal owner charged before allocation; metadata/source/posterior/evaluation phase envelopes retain source once, pooled results/capacities and serial scratch. Borrowed Rust/wire/JSON/stack/allocator/RSS excluded; no uncharged failure allocation.",
+    "batch": "Family of conditionals under ONE fixed noise/design/independent proper prior; no joint across cases, IID or emitted law."
   }
 }

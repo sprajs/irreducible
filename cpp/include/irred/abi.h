@@ -17,12 +17,14 @@ typedef struct irred_bao_result irred_bao_result;
 typedef struct irred_sound_horizon_result irred_sound_horizon_result;
 typedef struct irred_photometry_result irred_photometry_result;
 typedef struct irred_sampled_photometry_result irred_sampled_photometry_result;
+typedef struct irred_gaussian_posterior_result irred_gaussian_posterior_result;
 #define IRRED_OK 0u
 #define IRRED_ABI_MISMATCH 1u
 #define IRRED_INVALID_INPUT 2u
 #define IRRED_OVERFLOW 3u
 #define IRRED_ALLOCATION_FAILURE 4u
 #define IRRED_EXCEPTION 5u
+#define IRRED_GAUSSIAN_POSTERIOR_QUOTA_REFUSED 6u
 #define IRRED_UNIT_ONE 1u
 #define IRRED_UNIT_METRE 2u
 #define IRRED_UNIT_KILOMETRE 3u
@@ -247,6 +249,10 @@ typedef struct { uint32_t struct_size; uint32_t abi_version; const irred_sampled
 typedef struct { uint32_t struct_size; uint32_t abi_version; uint32_t requested_outputs; uint32_t reserved; uint64_t maximum_rows; uint64_t maximum_native_bytes; uint64_t maximum_total_samples; uint64_t maximum_samples; uint64_t maximum_segments; } irred_sampled_photometry_policy;
 typedef struct { uint32_t struct_size; uint32_t abi_version; irred_sampled_photometry_exposure source; uint32_t admission_status; uint32_t reserved; irred_photometry_scalar incident_band_flux; irred_photometry_scalar collected_energy; irred_photometry_scalar expected_transmitted_photons; } irred_sampled_photometry_row;
 typedef struct { uint32_t struct_size; uint32_t abi_version; uint32_t numerical_status; uint32_t reserved; const irred_sampled_photometry_curve* spectra; uint64_t spectrum_count; const irred_sampled_photometry_curve* passbands; uint64_t passband_count; const irred_sampled_photometry_row* rows; uint64_t row_count; irred_bytes model_id; irred_bytes constants_id; irred_bytes method_id; irred_bytes arithmetic_id; irred_bytes propagation_id; } irred_sampled_photometry_view;
+typedef struct { uint32_t struct_size; uint32_t abi_version; uint32_t arithmetic; uint32_t reserved; uint64_t maximum_elements; uint64_t maximum_cases; uint64_t maximum_string_bytes; uint64_t maximum_native_bytes; uint64_t maximum_work_units; double maximum_forward_sensitivity; } irred_gaussian_posterior_policy;
+typedef struct { uint32_t struct_size; uint32_t abi_version; uint32_t source_semantics; uint32_t noise_independence_declared; uint64_t case_count; irred_f64_buffer noise_covariance; irred_f64_buffer design; irred_f64_buffer prior_mean; irred_f64_buffer prior_covariance; irred_f64_buffer conditioning_vectors; irred_strings noise_row_ids; irred_strings noise_event_ids; irred_strings design_row_ids; irred_strings design_parameter_ids; irred_strings design_parameter_units; irred_strings column_units; irred_strings prior_parameter_ids; irred_strings prior_parameter_units; irred_strings shared_nuisance_ids; irred_strings conditioning_row_ids; irred_strings conditioning_event_ids; irred_strings case_ids; irred_bytes residual_unit; irred_bytes noise_identity; irred_bytes calibration_identity; irred_bytes noise_dependence_identity; irred_bytes ordering_provenance; irred_bytes design_identity; irred_bytes prior_identity; irred_bytes parameter_measure; irred_bytes prior_dependence_identity; } irred_gaussian_posterior_batch;
+typedef struct { uint32_t struct_size; uint32_t abi_version; uint32_t status; uint32_t numerical_status; uint64_t case_index; irred_f64_buffer mean; irred_f64_buffer absolute_error_estimates; double backward_residual; double estimated_forward_sensitivity; } irred_gaussian_posterior_row;
+typedef struct { uint32_t struct_size; uint32_t abi_version; uint32_t status; uint32_t numerical_status; uint32_t phase; uint32_t reserved; uint64_t case_count; const irred_gaussian_posterior_row* rows; irred_f64_buffer covariance; double covariance_relative_error_estimate; uint64_t minimum_result_bytes; uint64_t declared_work_units; uint64_t pooled_numeric_elements; uint64_t peak_payload_bytes; uint64_t retained_payload_bytes; irred_bytes method; irred_bytes arithmetic; } irred_gaussian_posterior_view;
 uint32_t irred_add(const irred_i64_buffer* a, const irred_i64_buffer* b, uint32_t fault, irred_result** out);
 uint32_t irred_result_view(const irred_result* r, const int64_t** data, uint64_t* n);
 uint32_t irred_result_destroy(irred_result* r);
@@ -299,6 +305,9 @@ uint32_t irred_photometry_result_destroy(irred_photometry_result* result);
 uint32_t irred_sampled_photometry_evaluate(const irred_sampled_photometry_batch* batch, const irred_sampled_photometry_policy* policy, irred_sampled_photometry_result** output);
 uint32_t irred_sampled_photometry_result_view(const irred_sampled_photometry_result* result, irred_sampled_photometry_view* output);
 uint32_t irred_sampled_photometry_result_destroy(irred_sampled_photometry_result* result);
+uint32_t irred_gaussian_posterior_evaluate(const irred_gaussian_posterior_batch* batch, const irred_gaussian_posterior_policy* policy, irred_gaussian_posterior_result** result_out);
+uint32_t irred_gaussian_posterior_result_view(const irred_gaussian_posterior_result* result, irred_gaussian_posterior_view* view);
+uint32_t irred_gaussian_posterior_result_destroy(irred_gaussian_posterior_result* result);
 static inline uint64_t irred_numerics_output_length(uint32_t operation,uint64_t input) {switch(operation) {
 case IRRED_NUMERICAL_OPERATION_COMPENSATED_SUM:return 1;
 case IRRED_NUMERICAL_OPERATION_LOG_SUM_EXP:return 1;

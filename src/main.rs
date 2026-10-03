@@ -1,3 +1,4 @@
+mod gaussian_posterior_run;
 mod sound_horizon_run;
 mod bao_ingestion;
 mod bridge;

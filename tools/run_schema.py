@@ -122,6 +122,33 @@ def build_schema(abi, fixture):
         "maximum_preparation_bytes": uint, "maximum_evaluation_bytes": uint,
         "maximum_batch_elements": uint,
         "maximum_forward_sensitivity": {**number, "exclusiveMinimum": 0}}, ("response", "proper_prior"))
+    posterior_text = {"type": "string", "minLength": 1, "maxLength": 256,
+                      "description": "1..256 UTF-8 bytes; native byte admission also applies"}
+    posterior_ids = array(posterior_text, 65536)
+    posterior_numbers = array(number, 1000000)
+    defs["gaussian_posterior"] = operation("statistics.gaussian_posterior", {
+        "source_semantics": {"const": "synthetic_controls"},
+        "noise": obj({"ordered_row_ids": posterior_ids, "event_ids": posterior_ids,
+            "residual_unit": posterior_text, "covariance_row_major": posterior_numbers,
+            "noise_identity": posterior_text, "calibration_identity": posterior_text,
+            "dependence_identity": posterior_text, "ordering_provenance": posterior_text}),
+        "design": obj({"ordered_row_ids": posterior_ids, "ordered_parameter_ids": posterior_ids,
+            "parameter_units": posterior_ids, "column_units": posterior_ids,
+            "values_row_major": posterior_numbers, "design_identity": posterior_text}),
+        "parameter_prior": obj({"ordered_parameter_ids": posterior_ids, "parameter_units": posterior_ids,
+            "shared_nuisance_ids": posterior_ids, "mean": posterior_numbers,
+            "covariance_row_major": posterior_numbers, "prior_identity": posterior_text,
+            "parameter_measure": posterior_text, "dependence_identity": posterior_text,
+            "noise_independence_declared": {"type": "boolean"}}),
+        "conditioning": obj({"ordered_row_ids": posterior_ids, "event_ids": posterior_ids,
+            "case_ids": posterior_ids, "vectors": array(posterior_numbers, 65536)}),
+        "resource_policy": obj({"arithmetic": arithmetic,
+            "maximum_elements": {**uint, "maximum": 1000000},
+            "maximum_cases": {**uint, "maximum": 65536},
+            "maximum_string_bytes": {**uint, "maximum": 1048576},
+            "maximum_native_bytes": {**uint, "maximum": 268435456},
+            "maximum_work_units": {**uint, "maximum": 100000000},
+            "maximum_forward_sensitivity": {**number, "exclusiveMinimum": 0}})})
     photometry_fields = ("luminosity_watt_per_metre", "rest_lower_metre", "rest_upper_metre",
         "observed_lower_metre", "observed_upper_metre", "luminosity_distance_metre", "redshift",
         "collecting_area_square_metre", "optical_transmission", "observer_exposure_second")
@@ -171,5 +198,5 @@ def build_schema(abi, fixture):
     return {"$schema": "https://json-schema.org/draft/2020-12/schema",
         "$id": "cosmology.run.v2", "$defs": defs,
         "oneOf": [ref(name) for name in ("fixture", "quantity", "numerics", "observations",
-                                          "background", "statistics", "supernova", "bao", "sound_horizon", "photometry", "sampled_photometry")],
+                                          "background", "statistics", "gaussian_posterior", "supernova", "bao", "sound_horizon", "photometry", "sampled_photometry")],
         "description": "Structural compiled requests; native domains, numerical gates and scientific qualifications remain distinct."}

@@ -548,3 +548,9 @@ if(CMAKE_SIZEOF_VOID_P EQUAL 8 AND CMAKE_SYSTEM_NAME STREQUAL "Linux" AND CMAKE_
     "-Wl,--wrap=_ZN5irred8numerics6whitenERKNS0_13FactorizationESt4spanIKeLm18446744073709551615EEmmd"
     "-Wl,--wrap=_ZN5irred8numerics5solveERKNS0_13FactorizationESt4spanIKdLm18446744073709551615EEd")
 endif()
+
+target_sources(irred_core PRIVATE src/gaussian_posterior_abi.cpp)
+add_executable(test_gaussian_posterior_abi tests/test_gaussian_posterior_abi.cpp)
+target_link_libraries(test_gaussian_posterior_abi PRIVATE irred_core)
+target_compile_options(test_gaussian_posterior_abi PRIVATE -Wall -Wextra -Wpedantic -fno-fast-math -ffp-contract=off)
+add_test(NAME gaussian_posterior_abi_contract COMMAND test_gaussian_posterior_abi)

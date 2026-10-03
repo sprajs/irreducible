@@ -10,6 +10,8 @@ The native [H/He equilibrium](https://github.com/sprajs/irreducible/blob/main/do
 
 The [proper-prior synthetic ladder](https://github.com/sprajs/irreducible/blob/main/docs/calibration-predictive.md) shares anchor/Cepheid/SN equations with relative recovery and retains a joint law for explicitly disjoint future rows. It supplies no observational H0 result. Thermal consumers can select [nested FD integration](https://github.com/sprajs/irreducible/blob/main/docs/thermal-neutrino.md) at unchanged numerical allocations; direct integration remains the default.
 
+The [proper Gaussian posterior](https://github.com/sprajs/irreducible/blob/main/docs/gaussian-posterior.md) also has an inline CLI consumer for synthetic fixed-design conditionals: one common covariance and a mean for each supplied training vector under the same independent proper prior. Numerical errors remain separate from posterior variance, and the batch is not an independent sampling law or a released-data fit.
+
 A future recipe format would put the data sources, model choices and calculation steps in one file, so another person or agent could repeat a paper test and see its assumptions. There is no recipe runner yet. New equations belong in compiled code with tests and review.
 
 ## Try, explore or contribute
