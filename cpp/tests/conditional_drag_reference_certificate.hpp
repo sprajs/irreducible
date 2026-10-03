@@ -344,6 +344,7 @@ class Arithmetic {
   }
 public:
   explicit Arithmetic(Owner &o) noexcept : owner_(o) {}
+  Owner &owner() noexcept { return owner_; }
   Arithmetic(const Arithmetic &) = delete;
   Arithmetic &operator=(const Arithmetic &) = delete;
   Arithmetic(Arithmetic &&) = delete;
