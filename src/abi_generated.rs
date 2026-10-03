@@ -7,6 +7,7 @@ pub const OVERFLOW: u32 = 3;
 pub const ALLOCATION_FAILURE: u32 = 4;
 pub const EXCEPTION: u32 = 5;
 pub const GAUSSIAN_POSTERIOR_QUOTA_REFUSED: u32 = 6;
+pub const GAUSSIAN_PREDICTIVE_QUOTA_REFUSED: u32 = 6;
 pub const MAX_BATCH_ELEMENTS: u64 = 1000000;
 pub const OBSERVATION_PROFILE_PANTHEON_PLUS_RELEASED_V1: u32 = 0;
 pub const OBSERVATION_PROFILE_GAUSSIAN_FIXTURE_V1: u32 = 1;
@@ -1142,6 +1143,91 @@ pub struct GaussianPosteriorView {
     pub method: Bytes,
     pub arithmetic: Bytes,
 }
+#[allow(non_snake_case)]
+#[repr(C)]
+pub struct GaussianPredictiveBatch {
+    pub struct_size: u32,
+    pub abi_version: u32,
+    pub requested_outputs: u32,
+    pub reserved: u32,
+    pub future_noise_independence_declared: u32,
+    pub noise_conditional_on_parameters_declared: u32,
+    pub training: GaussianPosteriorBatch,
+    pub future_noise_covariance: F64Buffer,
+    pub future_response: F64Buffer,
+    pub future_vectors: F64Buffer,
+    pub future_noise_row_ids: Strings,
+    pub future_noise_event_ids: Strings,
+    pub future_response_row_ids: Strings,
+    pub future_parameter_ids: Strings,
+    pub future_parameter_units: Strings,
+    pub future_column_units: Strings,
+    pub future_vector_row_ids: Strings,
+    pub future_vector_event_ids: Strings,
+    pub future_unit: Bytes,
+    pub future_noise_identity: Bytes,
+    pub future_calibration_identity: Bytes,
+    pub future_noise_dependence_identity: Bytes,
+    pub future_ordering_provenance: Bytes,
+    pub future_response_identity: Bytes,
+    pub future_covariance_unit: Bytes,
+    pub future_measure: Bytes,
+    pub conditioning_identity: Bytes,
+    pub prediction_dependence_identity: Bytes,
+}
+#[allow(non_snake_case)]
+#[repr(C)]
+pub struct GaussianPredictiveRow {
+    pub struct_size: u32,
+    pub abi_version: u32,
+    pub status: u32,
+    pub numerical_status: u32,
+    pub case_index: u64,
+    pub mean: F64Buffer,
+    pub absolute_error_estimates: F64Buffer,
+    pub joint_density_available: u32,
+    pub reserved: u32,
+    pub log_density: f64,
+    pub quadratic: f64,
+    pub log_determinant: f64,
+    pub normalization: f64,
+    pub backward_residual: f64,
+    pub estimated_forward_sensitivity: f64,
+}
+#[allow(non_snake_case)]
+#[repr(C)]
+pub struct GaussianPredictiveView {
+    pub struct_size: u32,
+    pub abi_version: u32,
+    pub status: u32,
+    pub numerical_status: u32,
+    pub phase: u32,
+    pub requested_outputs: u32,
+    pub training_noise_attempted: u32,
+    pub training_noise_prepared: u32,
+    pub posterior_attempted: u32,
+    pub posterior_prepared: u32,
+    pub future_noise_attempted: u32,
+    pub future_noise_prepared: u32,
+    pub predictive_attempted: u32,
+    pub predictive_prepared: u32,
+    pub batch_called: u32,
+    pub batch_admission_completed: u32,
+    pub case_count: u64,
+    pub rows: *const GaussianPredictiveRow,
+    pub declared_training_noise_work: u64,
+    pub declared_posterior_work: u64,
+    pub declared_future_noise_work: u64,
+    pub declared_predictive_work: u64,
+    pub declared_batch_work: u64,
+    pub declared_total_work: u64,
+    pub pooled_numeric_elements: u64,
+    pub minimum_result_bytes: u64,
+    pub peak_payload_bytes: u64,
+    pub retained_payload_bytes: u64,
+    pub method: Bytes,
+    pub arithmetic: Bytes,
+}
 unsafe extern "C" {
     pub fn irred_add(
         a: *const Buffer,
@@ -1384,6 +1470,16 @@ unsafe extern "C" {
         view: *mut GaussianPosteriorView,
     ) -> u32;
     pub fn irred_gaussian_posterior_result_destroy(result: *mut std::ffi::c_void) -> u32;
+    pub fn irred_gaussian_predictive_evaluate(
+        batch: *const GaussianPredictiveBatch,
+        policy: *const GaussianPosteriorPolicy,
+        result: *mut *mut std::ffi::c_void,
+    ) -> u32;
+    pub fn irred_gaussian_predictive_result_view(
+        result: *const std::ffi::c_void,
+        view: *mut GaussianPredictiveView,
+    ) -> u32;
+    pub fn irred_gaussian_predictive_result_destroy(result: *mut std::ffi::c_void) -> u32;
 }
 #[derive(Clone, serde::Deserialize, serde::Serialize)]
 #[serde(deny_unknown_fields)]
