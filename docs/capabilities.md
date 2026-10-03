@@ -147,6 +147,16 @@ now passes all four original 604-row PL geometry checks against independent
 angular references, with signed Doppler, endpoint, ownership and refusal controls.
 This does not bound the producer's smooth source, radial or omitted-support error.
 
+The C++ [finite-opacity source producer](finite-opacity-source.md) evolves a
+distinct photon/cold-baryon/CDM/Lambda finite initial-value problem with supplied
+conformal opacity, polarized moments and a retained surviving boundary. Analytic
+collision/constraint limits, an independently assembled small dense stage solve
+and installed ownership/refusal controls pass. A complete raw source can be
+returned with `conditioning_budget_exceeded` and numerical admission false:
+integrated clock/background, arithmetic and source-grid errors remain absent.
+This diagnostic producer does not qualify a regular full-species mode, physical
+recombination, complete projected transfer or primary CMB observable.
+
 The native [ground-state hydrogen equilibrium](hydrogen-equilibrium.md) operator
 solves the supplied-temperature/physical-density Saha model with separately
 represented positive ionized and neutral fractions. Exact SI definitions and
