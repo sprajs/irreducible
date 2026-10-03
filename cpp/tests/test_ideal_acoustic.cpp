@@ -114,18 +114,59 @@ int main() {
   augmented.maximum_rhs_per_wavenumber=2000000;
   augmented.maximum_rhs_batch=4000000;
   const auto batch=owner.evaluate(k,a,acoustic_all_outputs,augmented);
-  need(batch.status==S::ok && batch.shared_dependency_status==S::ok,
-       "explicit augmented source-inclusive native consumer");
-  need(batch.rows.size()==4 && batch.trajectories.size()==2,"coarse grid shape");
-  need(batch.evaluation_work.physical_mappings==0 && batch.evaluation_work.background_preparations==0,
-       "evaluation reuses physical source");
+  // Preserve the failed batch before asserting admission: its owner counters,
+  // attempted source states and finite computed fields explain a refusal.
   std::cout<<std::setprecision(std::numeric_limits<W>::max_digits10)
            <<"raw_batch status="<<static_cast<int>(batch.status)
            <<" shared="<<static_cast<int>(batch.shared_dependency_status)
            <<" rhs="<<batch.evaluation_work.rhs_evaluations
            <<" P="<<batch.evaluation_work.background_evaluations
            <<" age="<<batch.evaluation_work.age_evaluations
-           <<" writes="<<batch.evaluation_work.state_element_writes<<'\n';
+           <<" writes="<<batch.evaluation_work.state_element_writes
+           <<" diagnostics="<<batch.evaluation_work.diagnostic_evaluations<<'\n';
+  if (batch.status!=S::ok) {
+    for (const auto &trajectory:batch.trajectories)
+      for (std::size_t r=0;r<trajectory.attempts_started;++r) {
+        const auto &trial=trajectory.attempts[r];
+        std::cout<<"raw_refused_attempt k_index="<<trajectory.original_k_index
+                 <<" attempt="<<r<<" status="<<static_cast<int>(trial.status)
+                 <<" rhs="<<trial.work.rhs_evaluations
+                 <<" P="<<trial.work.background_evaluations
+                 <<" writes="<<trial.work.state_element_writes
+                 <<" raw_H="<<trial.maximum_direct_hamiltonian_residual
+                 <<" normalized_H="<<trial.maximum_normalized_hamiltonian_residual<<'\n';
+      }
+    for (const auto &row:batch.rows) {
+      std::cout<<"raw_refused_epoch k_index="<<row.original_k_index
+               <<" a_index="<<row.original_a_index
+               <<" status="<<static_cast<int>(row.epoch.status)
+               <<" requested_a="<<row.requested_scale_factor
+               <<" actual_a="<<row.epoch.state_scale_factor
+               <<" Hcal="<<row.epoch.hcal_mpc_inverse
+               <<" eta="<<row.epoch.conformal_age_mpc<<'\n';
+      const auto print=[](const char *name,const auto &v) {
+        std::cout<<' '<<name<<'=';
+        if (v) std::cout<<*v; else std::cout<<"null";
+      };
+      for (std::size_t f=0;f<row.outputs.size();++f) {
+        const auto &v=row.outputs[f];
+        std::cout<<"raw_refused_field k_index="<<row.original_k_index
+                 <<" a_index="<<row.original_a_index<<" field="<<f
+                 <<" status="<<static_cast<int>(v.status);
+        print("computed",v.computed); print("value",v.value);
+        std::cout<<" time="<<v.error.time_refinement
+                 <<" initial="<<v.error.initial_refinement;
+        print("source",v.error.common_source_background_age);
+        print("arithmetic",v.error.arithmetic_storage_constraint);
+        print("total",v.error.absolute_error_estimate); std::cout<<'\n';
+      }
+    }
+  }
+  need(batch.status==S::ok && batch.shared_dependency_status==S::ok,
+       "explicit augmented source-inclusive native consumer");
+  need(batch.rows.size()==4 && batch.trajectories.size()==2,"coarse grid shape");
+  need(batch.evaluation_work.physical_mappings==0 && batch.evaluation_work.background_preparations==0,
+       "evaluation reuses physical source");
   for (std::size_t i=0;i<k.size();++i) {
     const auto &trajectory=batch.trajectories[i];
     need(trajectory.attempts_started==5,"all original five attempts retained");
