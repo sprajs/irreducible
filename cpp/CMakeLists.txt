@@ -532,6 +532,9 @@ add_test(NAME growth_rsd_peer_contract COMMAND test_growth_rsd_peer)
 # Joint finite optical-state detector and all-band selection consumer.
 include(cmake/optical_detector.cmake)
 
+# Finite uniform-box normalization of a retained Gaussian linear target.
+include(cmake/gaussian_box.cmake)
+
 # Forwarding observation of invariant predictive preparation and batch solves.
 if(CMAKE_SIZEOF_VOID_P EQUAL 8 AND CMAKE_SYSTEM_NAME STREQUAL "Linux" AND CMAKE_CXX_COMPILER_ID MATCHES "^(GNU|Clang)$")
   target_compile_definitions(test_gaussian_predictive PRIVATE IRRED_PREDICTIVE_WORK_OBSERVATION)

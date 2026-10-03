@@ -35,6 +35,16 @@ See [photometry](photometry.md) for the bounded deterministic projection.
 
 The standalone C++ library also provides a retained multi-column Gaussian design profile. Preparation consumes a Gaussian owner and retains its covariance factor and design calculations across residual evaluations. Ordered row/parameter identities, units and declared shared nuisance coordinates are explicit. This native API has no CLI request or C ABI exposure yet; its relative score is not a normalized density or evidence. See [Gaussian design](gaussian-design.md) for its retained covariance-whitened pivoted QR, conditioning admission and limits.
 
+The native [Gaussian box](gaussian-box.md) consumer reuses that retained design
+for an explicit normalized uniform prior over ordered finite active coordinates.
+It bounds broad-box mass, normalization and one coordinate quantile while
+retaining fixed coordinates as separately declared point masses. Its arithmetic
+and truncation enclosures are conditional on the reported numerical Gaussian
+completion; they do not certify the original supplied covariance/design.
+Late refusals retain earned diagnostics and actual work. Named small analytic
+and independent high-precision controls pass. Qualification of the original
+released active46 target and any observed H0 interpretation remain separate.
+
 The standalone C++ library also provides `photometry::evaluate_sampled` for finite piecewise-linear rest-wavelength luminosity and observed optical transmission. It integrates the declared interpolation model, with supplied distance and redshift, to incident band flux, transmitted energy and expected photons. A coarse ABI2 batch and the same `photometry.predict` CLI operation now own pooled curves once and evaluate indexed exposures; source roles/provenance remain explicit. Sample interpolation and fixed calibration are assumptions; their uncertainty is not a numerical error estimate. See the sampled contract in [photometry](photometry.md).
 
 The standalone C++ [synthetic calibration ladder](calibration-ladder.md) predicts anchor moduli, Cepheid period/metallicity relations, calibrator SNe and Hubble-flow SNe with a supplied reference distance shape and one shared calibration coordinate. A retained ordered covariance/design supports a relative joint fit and a checked H0 projection. Exact Gaussian/model provenance, conventions, identities and rank admission are required. Named noiseless, correlated, KKT, direct-versus-compressed and held-out anchor/Cepheid controls establish numerical recovery within their allocations. This native API supplies no CLI/C ABI route, observational H0 measurement, normalized posterior or model evidence.
