@@ -58,6 +58,105 @@ struct Counters {
   }
 };
 
+inline void signed_rhs_fusion_controls(
+    const detail::IdealAcousticTransportFrame &frame,
+    const detail::IdealAcousticSourceUncertainty &u) {
+  namespace arithmetic = detail::ideal_acoustic_transport_internal;
+  // This is an affected-consumer association/ownership check through the
+  // existing vector interfaces, not an independent physical algorithm.
+  struct RhsCounter {
+    std::size_t cap, writes=0, diagnostics=0;
+    static bool write(void *opaque,std::size_t n) noexcept {
+      auto &self=*static_cast<RhsCounter *>(opaque);
+      if (n>self.cap || self.writes>self.cap-n) return false;
+      self.writes+=n;
+      return true;
+    }
+    static bool diagnostic(void *opaque) noexcept {
+      ++static_cast<RhsCounter *>(opaque)->diagnostics;
+      return true;
+    }
+    detail::IdealAcousticTransportAccounting accounting() noexcept {
+      return {this,write,diagnostic};
+    }
+  };
+  const std::array<W,6> y{.25L,-.125L,.0625L,-.5L,.75L,1};
+  std::array<W,24> z;
+  for (unsigned j=0;j<4;++j)
+    for (unsigned i=0;i<6;++i)
+      z[6*j+i]=(j%2 ? -1 : 1)*W((i+1)*(j+1))/32;
+  for (unsigned i=0;i<6;++i) z[i]=y[i];
+  for (unsigned fixture=0;fixture<3;++fixture) {
+    auto selected=frame;
+    if (fixture) {
+      // Synthetic opposite operator produces exact signed cancellation in
+      // S and dV, and in Delta when the separately retained defect is zero.
+      // It is not a new physical source or a source-accuracy certificate.
+      const auto &e=selected.actual;
+      selected.directions.gradient[0]={-e.x2,-e.F,-e.B,-e.L,
+          -e.loading_over_one_plus_loading,-e.sound_speed_squared};
+      selected.actual.acceleration_defect=fixture==1 ? 0 : .125L;
+    }
+    std::array<W,24> expected,dz;
+    std::array<W,6> tau;
+    arithmetic::Arithmetic reference;
+    arithmetic::Bands bands;
+    require(arithmetic::bands(selected,u,bands,reference)==S::ok,
+            "fusion reference retains admitted diagnostic bands");
+    for (unsigned j=0;j<4;++j) {
+      std::array<W,5> partial;
+      detail::ideal_acoustic_derivative(
+          std::span<const W,5>(z.data()+6*j,5),selected.actual,partial);
+      const auto force=detail::ideal_acoustic_source_force(
+          std::span<const W,5>(y.data(),5),selected.directions.gradient[j]);
+      for (unsigned i=0;i<5;++i)
+        expected[6*j+i]=reference.add(partial[i],force[i]);
+      expected[6*j+5]=-reference.div(reference.mul(bands.inverse_h,bands.pj[j]),
+                                    reference.mul(2,selected.center.shadow_p));
+    }
+    require(reference.status==S::ok,"materialized reference uses normal arithmetic");
+    RhsCounter exact{54};
+    require(detail::ideal_acoustic_transport_rhs(y,z,selected,u,dz,tau,
+                exact.accounting())==S::ok && exact.writes==54 &&
+                exact.diagnostics==1,
+            "fused signed RHS stores exactly its 54 actual destinations");
+    for (unsigned i=0;i<24;++i)
+      require(std::isfinite(dz[i]) && dz[i]==expected[i] &&
+                  std::signbit(dz[i])==std::signbit(expected[i]),
+              "fused final signed derivative preserves vector-route Wide result");
+    for (W v:tau)
+      require(arithmetic::radius(v),"original literal RHS allowances remain available");
+    if (fixture)
+      require(dz[1]==0 && dz[2]==0 &&
+                  (fixture==1 ? dz[0]==0 : dz[0]!=0),
+              "cancellation retains the separately supplied acceleration defect");
+  }
+  std::array<W,24> dz;
+  std::array<W,6> tau;
+  dz.fill(7); tau.fill(7);
+  const auto untouched_dz=dz;
+  const auto untouched_tau=tau;
+  RhsCounter before_first_store{5};
+  require(detail::ideal_acoustic_transport_rhs(y,z,frame,u,dz,tau,
+              before_first_store.accounting())==S::work_limit &&
+              before_first_store.writes==0 && dz==untouched_dz &&
+              tau==untouched_tau,
+          "initial six-slot reservation refuses before mutation");
+  RhsCounter one_short{53};
+  require(detail::ideal_acoustic_transport_rhs(y,z,frame,u,dz,tau,
+              one_short.accounting())==S::work_limit && one_short.writes==48,
+          "one-short RHS cap retains actual prefix and refuses final tau update");
+  dz=untouched_dz; tau=untouched_tau;
+  auto invalid=y;
+  invalid[2]=std::numeric_limits<W>::quiet_NaN();
+  RhsCounter invalid_input{54};
+  require(detail::ideal_acoustic_transport_rhs(invalid,z,frame,u,dz,tau,
+              invalid_input.accounting())==S::outside_domain &&
+              invalid_input.writes==0 && invalid_input.diagnostics==0 &&
+              dz==untouched_dz && tau==untouched_tau,
+          "nonnormal state refuses before work or output mutation");
+}
+
 inline void signed_radius_assembly_controls() {
   namespace arithmetic = detail::ideal_acoustic_transport_internal;
   // Powers of two make these exact real sums independent of RK/source
@@ -757,6 +856,7 @@ inline void controls() {
                                      counter);
       endpoint_controls(broad,family,counter);
       positive_transport_controls(broad,family,counter);
+      signed_rhs_fusion_controls(broad,family);
     }
   }
   require(counter.diagnostics > 0 && counter.writes > 0,

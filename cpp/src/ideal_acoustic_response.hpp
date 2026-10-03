@@ -69,13 +69,28 @@ inline IdealAcousticSourceDirections ideal_acoustic_source_directions(
 // The signed source force A_j Y preserves radiation/adiabatic cancellations.
 // Acceleration-defect differences belong to actual-versus-shadow arithmetic,
 // not an extra physical source direction: every exact ideal source has Rbg=0.
+template<unsigned I>
+inline long double ideal_acoustic_source_force_coordinate(
+    std::span<const long double,5> y,const IdealAcousticSourceGradient &g) noexcept {
+  static_assert(I<5);
+  if constexpr (I==0)
+    return -g.x2*y[3]+4.5L*g.B*y[2];
+  else if constexpr (I==1)
+    return g.x2*y[2];
+  else if constexpr (I==2)
+    return (g.L-g.loading_fraction)*y[2]+g.sound_speed_squared*(y[0]-y[1]);
+  else if constexpr (I==3)
+    return g.L*y[3];
+  else
+    return 1.5L*g.F*y[3]+1.5L*g.B*y[2];
+}
 inline std::array<long double,5> ideal_acoustic_source_force(
     std::span<const long double,5> y,const IdealAcousticSourceGradient &g) noexcept {
-  return {-g.x2*y[3]+4.5L*g.B*y[2],
-          g.x2*y[2],
-          (g.L-g.loading_fraction)*y[2]+g.sound_speed_squared*(y[0]-y[1]),
-          g.L*y[3],
-          1.5L*g.F*y[3]+1.5L*g.B*y[2]};
+  return {ideal_acoustic_source_force_coordinate<0>(y,g),
+          ideal_acoustic_source_force_coordinate<1>(y,g),
+          ideal_acoustic_source_force_coordinate<2>(y,g),
+          ideal_acoustic_source_force_coordinate<3>(y,g),
+          ideal_acoustic_source_force_coordinate<4>(y,g)};
 }
 struct IdealAcousticQuotientRemainder {
   numerics::Status status=numerics::Status::invalid_input;

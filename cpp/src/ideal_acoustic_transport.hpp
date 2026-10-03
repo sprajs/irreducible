@@ -440,15 +440,22 @@ inline numerics::Status ideal_acoustic_transport_rhs(
   for (std::size_t i = 0; i < 6; ++i) tau[i] = a.loss(nominal_scale[i]);
   for (std::size_t j = 0; j < 4; ++j) {
     const std::span<const W, 6> zj(z.data() + 6*j, 6);
-    if (!work.state_writes(work.context, 5)) return S::work_limit;
-    ideal_acoustic_derivative(std::span<const W, 5>(zj.data(), 5), f.actual,
-                              std::span<W, 5>(dz.data() + 6*j, 5));
-    if (!work.state_writes(work.context, 5)) return S::work_limit;
-    const auto force = ideal_acoustic_source_force(
-        std::span<const W, 5>(y.data(), 5), f.directions.gradient[j]);
     if (!work.state_writes(work.context, 6)) return S::work_limit;
-    for (std::size_t i = 0; i < 5; ++i)
-      dz[6*j+i] = a.add(dz[6*j+i], force[i]);
+    // Keep the separately rounded original derivative/source expressions and
+    // their final addition. Neither intermediate five-state vector is stored.
+    // Scalar expression scratch retains the existing diagnostic ownership.
+    const auto assign = [&]<unsigned I>() noexcept {
+      dz[6*j+I] = a.add(ideal_acoustic_derivative_coordinate<I>(
+                            std::span<const W,5>(zj.data(),5), f.actual),
+                        ideal_acoustic_source_force_coordinate<I>(
+                            std::span<const W,5>(y.data(),5),
+                            f.directions.gradient[j]));
+    };
+    assign.template operator()<0>();
+    assign.template operator()<1>();
+    assign.template operator()<2>();
+    assign.template operator()<3>();
+    assign.template operator()<4>();
     dz[6*j+5] = -a.div(a.mul(b.inverse_h, b.pj[j]),
                         a.mul(2, f.center.shadow_p));
     const auto sensitivity_scale = rhs_scale(zj, f.actual, 0, a);

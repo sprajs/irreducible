@@ -69,8 +69,24 @@ This is a conditional empirical estimator with second-order radius propagation;
 pure decay proves that positivity alone does not establish a continuous upper
 envelope. Source and arithmetic radii keep their own original mesh/start
 refinement allowances, all coordinate shares and independent comparison gates.
-No radius is clipped or reset. The new source and analytic/impulse controls have
-not yet run; source selection does not establish numerical passage.
+No radius is clipped or reset. At 4543066, the fresh strict Release build and
+shared thermal contract passed. The native test completed all five attempts
+and all eighteen bounded fields for k=.01, then reached the original 30M
+state-write ceiling during the fourth low-k attempt. That attempt retained
+a committed epoch about .002151255 and an attempted coefficient epoch about
+.002161639. The batch refused with 29,999,976 charged writes; all eighteen
+low-k fields remained absent. Installation, the SDK caller and independent
+reference execution were not reached. The full batch remains unqualified.
+
+The current source removes two intermediate five-state vectors from each
+signed sensitivity RHS. The shared coordinate equation owners keep the original
+derivative and source-force grouping and their separate Wide results before the
+final addition. Each final signed derivative is stored once; its original
+assembly allowances remain unchanged. This removes 160 actual destinations per
+completed step, from 844 to 684, without changing five-attempt meshes, caps,
+RHS owners or error shares. Association, cancellation and prefix-refusal controls
+cover the affected vector consumers. This source successor has not run; its
+conditional resource bound does not establish complete-batch admission.
 
 The declared infinite momentum-coupling limit first sums the photon and baryon
 enthalpy-weighted momentum equations. Their exchange cancels before their common
