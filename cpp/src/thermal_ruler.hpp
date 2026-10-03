@@ -185,6 +185,36 @@ inline std::optional<ThermalWide> loading_xi(const ThermalBaryonLoading &r, Ther
   if (!std::isnormal(xi)) return {};
   return xi + thermal_loading_floor * xi;
 }
+// One diagnostic composition owner serves the real integral and direct
+// analytic/adversarial controls. Positive flags retain mathematical witnesses
+// when an earlier scaling product is represented as zero.
+inline numerics::Status complete_diagnostics(ThermalRulerIntegral &out,
+    ThermalWide value, ThermalWide quad, bool positive_quad,
+    ThermalWide rho, ThermalWide eta, ThermalWide xi,
+    ThermalWide half_ulp, bool positive_half_ulp) noexcept {
+  using S = numerics::Status;
+  if (!(value > 0) || !std::isnormal(value) || !(quad >= 0) || !std::isfinite(quad) ||
+      !(rho >= 0) || !std::isfinite(rho) || !(eta >= 0) || !(eta < 1) ||
+      !(xi >= 0) || !std::isfinite(xi) || !(half_ulp >= 0) || !std::isfinite(half_ulp))
+    return S::conditioning_budget_exceeded;
+  out.value_mpc = value; out.outer_quadrature_estimate_mpc = quad;
+  const ThermalWide response_scale = (std::abs(value) + quad) / (1 - eta),
+      cast_component = response_scale * eta,
+      operation_component = value * (64 * std::numeric_limits<double>::epsilon());
+  out.background_estimate_mpc = response_scale * rho;
+  out.arithmetic_estimate_mpc = cast_component + operation_component + half_ulp;
+  const ThermalWide E0 = quad + out.background_estimate_mpc + out.arithmetic_estimate_mpc;
+  out.loading_estimate_mpc = (std::abs(value) + E0) * xi;
+  out.error_estimate_mpc = E0 + out.loading_estimate_mpc;
+  const bool resolved = (!positive_quad || (quad > 0 && std::isnormal(quad))) &&
+      (rho == 0 || (out.background_estimate_mpc > 0 && std::isnormal(out.background_estimate_mpc))) &&
+      (eta == 0 || (cast_component > 0 && std::isnormal(cast_component))) &&
+      operation_component > 0 && std::isnormal(operation_component) &&
+      (!positive_half_ulp || (half_ulp > 0 && std::isnormal(half_ulp))) &&
+      (xi == 0 || (out.loading_estimate_mpc > 0 && std::isnormal(out.loading_estimate_mpc)));
+  return resolved && out.error_estimate_mpc > 0 && std::isnormal(out.error_estimate_mpc)
+      ? S::ok : S::conditioning_budget_exceeded;
+}
 } // namespace thermal_ruler_internal
 inline ThermalRulerIntegral integrate_thermal_ruler(
     const ThermalBackground &background, const ThermalBaryonLoading &loading,
@@ -207,27 +237,10 @@ inline ThermalRulerIntegral integrate_thermal_ruler(
       {absolute, p.relative_tolerance / 8, available, p.maximum_depth});
   out.status = c.status == S::ok ? q.status : c.status;
   if (out.status != S::ok) return out;
-  out.value_mpc = scale * q.value;
-  out.outer_quadrature_estimate_mpc = scale * q.error_estimate;
-  if (!(c.kernel_cast_relative < 1)) { out.status = S::conditioning_budget_exceeded; return out; }
-  const ThermalWide response_scale = (std::abs(out.value_mpc) + out.outer_quadrature_estimate_mpc) /
-      (1 - c.kernel_cast_relative);
-  out.background_estimate_mpc = response_scale * c.background_relative;
-  const ThermalWide cast_component = response_scale * c.kernel_cast_relative,
-      operation_component = out.value_mpc * (64 * std::numeric_limits<double>::epsilon());
-  out.arithmetic_estimate_mpc = cast_component + operation_component +
-      scale * std::abs(ThermalWide(std::nextafter(q.value, INFINITY)) - q.value) / 2;
-  const ThermalWide E0 = out.outer_quadrature_estimate_mpc + out.background_estimate_mpc + out.arithmetic_estimate_mpc;
-  out.loading_estimate_mpc = (std::abs(out.value_mpc) + E0) * *xi;
-  out.error_estimate_mpc = E0 + out.loading_estimate_mpc;
-  const bool positive_components_resolved =
-      (q.error_estimate == 0 || std::isnormal(out.outer_quadrature_estimate_mpc)) &&
-      (c.background_relative == 0 || std::isnormal(out.background_estimate_mpc)) &&
-      (c.kernel_cast_relative == 0 || std::isnormal(cast_component)) &&
-      std::isnormal(operation_component) &&
-      (*xi == 0 || std::isnormal(out.loading_estimate_mpc));
-  if (!positive_components_resolved || !std::isfinite(out.error_estimate_mpc) || !std::isnormal(out.value_mpc) ||
-      !(out.error_estimate_mpc > 0) || !std::isnormal(out.error_estimate_mpc)) out.status = S::conditioning_budget_exceeded;
+  out.status = thermal_ruler_internal::complete_diagnostics(out, scale * q.value,
+      scale * q.error_estimate, q.error_estimate > 0, c.background_relative,
+      c.kernel_cast_relative, *xi,
+      scale * std::abs(ThermalWide(std::nextafter(q.value, INFINITY)) - q.value) / 2, true);
   return out;
 }
 struct ThermalSoundDistanceBound {

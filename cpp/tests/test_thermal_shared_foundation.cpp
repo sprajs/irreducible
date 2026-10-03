@@ -82,8 +82,23 @@ void retained_controls(){
  detail::ThermalRulerAllowance zero_allowance;zero_allowance.absolute_tolerance_mpc=1e-8;
  need(detail::integrate_thermal_ruler(bg,load,.5L,zero_allowance,zero_budget).status==S::work_limit && spent==0,
   "named zero outer allowance refuses before callback");
- // Exact positive-interval response shape, separate from small rounding eta.
- need((1.L+.25L)/(1-.25L)>1.L+.25L,"cast/background response retains mixed denominator");
+ // Rational diagnostic law: Eq + (|I|+Eq)*(rho+eta)/(1-eta),
+ // then the loading cross term. These call the actual integral's owner.
+ detail::ThermalRulerIntegral composed;
+ const auto composition=detail::thermal_ruler_internal::complete_diagnostics(composed,2,.25L,true,.5L,.25L,.5L,0,false);
+ const W op=2*64*std::numeric_limits<double>::epsilon();
+ need(composition==S::ok && std::abs(composed.error_estimate_mpc-(4.75L+1.5L*op))<1e-17L,
+  "actual production response includes cast denominator, quadrature transfer and loading cross");
+ need(composed.background_estimate_mpc==1.5L && composed.outer_quadrature_estimate_mpc==.25L,
+  "production category decomposition independent rational values");
+ detail::ThermalRulerIntegral underflow;
+ const W tiny_xi=16*std::numeric_limits<W>::min();
+ need(detail::thermal_ruler_internal::complete_diagnostics(underflow,1e-10L,0,false,0,0,tiny_xi,0,false)==S::conditioning_budget_exceeded,
+  "actual production positive loading contribution underflow refuses");
+ need(detail::thermal_ruler_internal::complete_diagnostics(underflow,1e-10L,0,false,0,0,0,0,false)==S::ok && underflow.loading_estimate_mpc==0,
+  "genuine zero loading correction admitted separately");
+ need(detail::thermal_ruler_internal::complete_diagnostics(underflow,1,0,true,0,0,0,0,false)==S::conditioning_budget_exceeded,
+  "positive quadrature witness cannot be replaced by represented zero");
  for(W a:{.5L,.8L}){
   spent=outer=momentum=0;detail::ThermalRulerWorkBudget b(spent,200000,outer,momentum,200000,200000);
   detail::ThermalRulerAllowance allowance;allowance.absolute_tolerance_mpc=1e-8;allowance.relative_tolerance=2e-10;allowance.maximum_outer_callbacks=200000;
