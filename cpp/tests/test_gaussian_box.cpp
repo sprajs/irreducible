@@ -67,6 +67,68 @@ int main() {try {
   check(contains(r.log_prior_volume,std::log(320.)),"two active widths only; fixed point excluded");
   check(r.lower_endpoint_cdf.lower<=.5&&r.upper_endpoint_cdf.upper>=.5,
         "median endpoint CDF witnesses");
+  // Every observation remains in the likelihood even when its design row is
+  // exactly zero. The small isolated variance affects logdet(C), not H.
+  auto isolated_metadata=metadata();
+  isolated_metadata.ordered_ids.push_back("isolated-r2");
+  const std::vector<double> isolated_covariance={1,0,0,0,1,0,0,0,0x1p-40};
+  const std::vector<double> isolated_design={1,0,0,1,0,0};
+  auto isolated_gaussian=prepare_gaussian(isolated_covariance,MatrixKind::covariance,
+      isolated_metadata,9,1e-10,irred::numerics::Arithmetic::longdouble_cpu_v1);
+  check(isolated_gaussian.status()==DensityStatus::finite,"dyadic isolated covariance admitted");
+  const std::vector<double> isolated_zero(3,0);
+  const auto unnecessary_solve=isolated_gaussian.evaluate(isolated_zero,
+      isolated_metadata.ordered_ids,1e-10);
+  // The preserved refusal is specific to the qualified 64-bit mantissa
+  // profile. A wider mantissa can admit this separate inverse request.
+  if constexpr(std::numeric_limits<long double>::digits==64)
+    check(unnecessary_solve.density.status==DensityStatus::numerical_failure&&
+        unnecessary_solve.density.numerical_status==irred::numerics::Status::conditioning_budget_exceeded,
+        "full covariance inverse sensitivity is a separate unchanged solve gate");
+  auto isolated_profile=DesignProfile::prepare(std::move(isolated_gaussian),
+      isolated_design,isolated_metadata.ordered_ids,design_metadata());
+  auto isolated_box=GaussianBox::prepare(std::move(isolated_profile),
+      support(.125-8,.125+8,-.25-8,-.25+8));
+  const std::vector<double> isolated_y={.125,-.25,0};
+  const auto isolated=isolated_box.evaluate(isolated_y,isolated_metadata.ordered_ids,{0,.5});
+  check(isolated.status==DensityStatus::finite&&isolated.stage==BoxStage::complete&&
+      isolated.completion_step==BoxCompletionStep::complete&&!isolated.completion_parameter_index,
+      "retained determinant completes without an artificial inverse solve");
+  near(isolated.unboxed_mean[0],.125,"dyadic first fitted mean");
+  near(isolated.unboxed_mean[1],-.25,"dyadic second fitted mean");
+  near(isolated.unboxed_variance[0],1,"isolated first variance");
+  near(isolated.unboxed_variance[1],1,"isolated second variance");
+  near(isolated.minimum_quadratic,0,"isolated zero residual contributes exact zero q");
+  near(isolated.log_design_precision_determinant,0,"isolated row contributes no design information");
+  near(isolated.source_covariance_log_determinant,-40*std::log(2.),
+      "isolated row retains its exact dyadic determinant contribution");
+  check(contains(isolated.requested_quantile,.125),"isolated symmetric conditional median");
+  const auto midpoint=[](BoxInterval v) {return (v.lower+v.upper)/2;};
+  // Independent scalar facts from the refined Decimal control: log(2pi) and
+  // Q(8). log[(1-2Q8)^2] differs from -4Q8 by less than 2e-30.
+  const double isolated_log_evidence=12*std::log(2.)-.5*1.83787706640934548356
+      -4*6.2209605742717841235e-16;
+  near(midpoint(isolated.log_observation_normalized_evidence),isolated_log_evidence,
+      "all three observation dimensions and retained tiny determinant normalize evidence");
+  const std::vector<double> isolated_nonzero_y={.125,-.25,0x1p-20};
+  const auto isolated_nonzero=isolated_box.evaluate(isolated_nonzero_y,
+      isolated_metadata.ordered_ids,{0,.5});
+  check(isolated_nonzero.status==DensityStatus::finite,"isolated nonzero residual admitted");
+  near(isolated_nonzero.minimum_quadratic,1,"retained isolated residual adds exactly one to q minimum");
+  near(midpoint(isolated_nonzero.log_observation_normalized_evidence),isolated_log_evidence-.5,
+      "isolated nonzero residual reduces normalized evidence by one half");
+  BoxPolicy tight_profile;tight_profile.design.maximum_forward_sensitivity=1e-18;
+  const auto inherited_refusal=isolated_box.evaluate(isolated_y,
+      isolated_metadata.ordered_ids,{0,.5},tight_profile);
+  check(inherited_refusal.status==DensityStatus::numerical_failure&&
+      inherited_refusal.numerical_status==irred::numerics::Status::conditioning_budget_exceeded&&
+      inherited_refusal.completion_step==BoxCompletionStep::profile_evaluation&&
+      !inherited_refusal.completion_parameter_index&&inherited_refusal.stage==BoxStage::unassessed&&
+      !inherited_refusal.gaussian_completion_available&&!inherited_refusal.endpoint_margins_available&&
+      !inherited_refusal.rectangle_enclosure_available&&!inherited_refusal.normalization_enclosures_available&&
+      !inherited_refusal.quantile_enclosure_available&&!inherited_refusal.endpoint_cdf_enclosures_available&&
+      inherited_refusal.unboxed_mean.empty()&&inherited_refusal.unboxed_variance.empty(),
+      "genuine inherited profile sensitivity refusal preserves attempted gate without outputs");
   auto lower=evaluate(b,{0,.025}),upper=evaluate(b,{0,.975});
   check(lower.status==DensityStatus::finite&&upper.status==DensityStatus::finite,
         "two tail quantiles admitted");
@@ -117,7 +179,8 @@ int main() {try {
   check(refused.status==DensityStatus::numerical_failure&&refused.gaussian_completion_available&&
         refused.endpoint_margins_available&&!refused.rectangle_enclosure_available&&
         !refused.normalization_enclosures_available&&!refused.quantile_enclosure_available&&
-        refused.stage==BoxStage::endpoint_margins&&refused.unboxed_mean.size()==2,
+        refused.stage==BoxStage::endpoint_margins&&refused.unboxed_mean.size()==2&&
+        refused.completion_step==BoxCompletionStep::complete&&!refused.completion_parameter_index,
         "boundary refusal retains earned completion and every tail margin");
   auto negative_profile=profile();auto negative=GaussianBox::prepare(std::move(negative_profile),support(1,8,-10,10));
   check(evaluate(negative).status==DensityStatus::numerical_failure,
@@ -137,7 +200,9 @@ int main() {try {
   const std::vector<double> invalid_y={std::numeric_limits<double>::quiet_NaN(),0};
   const auto no_completion=moved.evaluate(invalid_y,metadata().ordered_ids,{0,.5});
   check(no_completion.status==DensityStatus::invalid_input&&no_completion.stage==BoxStage::unassessed&&
-        !no_completion.gaussian_completion_available&&no_completion.unboxed_mean.empty(),
+        !no_completion.gaussian_completion_available&&no_completion.unboxed_mean.empty()&&
+        no_completion.completion_step==BoxCompletionStep::profile_evaluation&&
+        !no_completion.completion_parameter_index,
         "invalid input has no fabricated zero completion");
   quota={};quota.maximum_bisections=1;
   check(evaluate(moved,{0,.975},quota).numerical_status==irred::numerics::Status::work_limit,
