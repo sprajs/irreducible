@@ -13,6 +13,7 @@
 #include <irred/hydrogen_equilibrium.hpp>
 #include <irred/hydrogen_helium_equilibrium.hpp>
 #include <irred/hydrogen_helium_history.hpp>
+#include <irred/conditional_hydrogen_helium_drag.hpp>
 #include <irred/baryon_abundance.hpp>
 #include <irred/recombination_drag.hpp>
 #include <irred/sis_thin_lens.hpp>
@@ -34,6 +35,96 @@
 #include <cmath>
 #include <limits>
 #include <numbers>
+#include <utility>
+namespace next16_installed_caller {
+using namespace irred::cosmology;
+constexpr std::optional<std::size_t> checked_remaining(
+    std::size_t total, std::size_t already_spent) noexcept {
+  if (already_spent > total) return std::nullopt;
+  return total - already_spent;
+}
+inline constexpr std::size_t total_work = 4000000;
+inline constexpr std::size_t total_bytes = 32 * 1024 * 1024;
+inline constexpr std::size_t source_map_reservation = 2;
+inline constexpr std::size_t envelope_reservation_bytes = 8192;
+inline constexpr auto history_work =
+    checked_remaining(total_work, source_map_reservation);
+inline constexpr auto history_bytes =
+    checked_remaining(total_bytes, envelope_reservation_bytes);
+static_assert(history_work && *history_work == 3999998);
+static_assert(history_bytes && *history_bytes == 33546240);
+struct SyntheticConditionalReceipt {
+  ConditionalHydrogenHeliumDrag owner; // retains original source and snapshot
+  ConditionalDragBatch batch;
+};
+SyntheticConditionalReceipt run_synthetic_request() {
+  const ConditionalHydrogenHeliumDragRequest request{
+      {67.4, .02237, .12, 2.7255, 1.7e-5, {}},
+      .245, 1.6735328383153192e-27, 6.646479071583153e-27,
+      "NEXT16 v3 exact emitted nuclei/thermal working source",
+      "caller-chosen neutral-effective kg masses; no atomic measurement claim",
+      2700, 300};
+  ConditionalHydrogenHeliumDragPolicy policy;
+  policy.history.base_intervals = 16384; // explicit; defaults stay unchanged
+  policy.history.maximum_fine_intervals = 65536;
+  policy.maximum_total_work = total_work;
+  policy.maximum_native_bytes = total_bytes;
+  // Exact requested history caps match frozen candidate.json. The prepared
+  // owner must additionally enforce actual remaining whole-phase budget.
+  policy.history.maximum_total_work = *history_work;
+  policy.history.maximum_native_bytes = *history_bytes;
+  policy.total_ruler_absolute_tolerance_mpc = 1e-3;
+  policy.total_ruler_relative_tolerance = 0;
+  auto owner = prepare_conditional_hydrogen_helium_drag(request, policy);
+  const std::array<ConditionalDragInterval, 3> tails{{
+      {"synthetic-depth-sensitivity", .01, .02,
+       "supplied synthetic interval; no tail shape or probability"},
+      {"zero-tail-truncated-control", 0, 0,
+       "explicit truncated control; no physical negligible-tail assertion"},
+      {"collapsed-supplied-depth-control", .01, .01,
+       "fixed synthetic supplied-depth control"}}};
+  // Even a preparation/query refusal must retain source and actual earned work.
+  // Return the actual prepared owner with the ordered result, so its original
+  // source/snapshot and preparation work survive this function. The installed
+  // harness reads owner.budget_diagnostics() (requested/served limits), source,
+  // separate statuses, TOTAL estimates and payloads, including refusal costs.
+  auto batch = owner.evaluate(tails);
+  return {std::move(owner), std::move(batch)};
+}
+} // namespace next16_installed_caller
+
+int installed_conditional_hydrogen_helium_drag() {
+ using S=irred::numerics::Status;
+ using namespace next16_installed_caller;
+ auto receipt=run_synthetic_request();
+ const auto *source=receipt.owner.source();const auto *snapshot=receipt.owner.source_snapshot();
+ const auto *budget=receipt.owner.budget_diagnostics();
+ if(receipt.owner.status()!=S::ok || !source || !snapshot || !budget ||
+    !budget->history_preparation_attempted || budget->requested_total_work!=total_work ||
+    budget->requested_native_bytes!=total_bytes || budget->requested_history_work!=*history_work ||
+    budget->requested_history_native_bytes!=*history_bytes || !budget->served_history_work ||
+    !budget->served_history_native_bytes || *budget->served_history_work>*history_work ||
+    *budget->served_history_native_bytes>*history_bytes || !budget->earned_work_before_history ||
+    *budget->earned_work_before_history!=2 || !budget->parent_live_bytes_before_history ||
+    *budget->parent_live_bytes_before_history>total_bytes ||
+    *budget->served_history_native_bytes>total_bytes-*budget->parent_live_bytes_before_history ||
+    source->mass_origin!="caller-chosen neutral-effective kg masses; no atomic measurement claim" ||
+    receipt.batch.status!=S::ok || receipt.batch.rows.size()!=3 || !receipt.batch.work.checked_total() ||
+    *receipt.batch.work.checked_total()>total_work || receipt.batch.peak_payload_bytes>total_bytes ||
+    snapshot->fixed_mapped_thermal_source.h0_km_s_mpc!=source->model.h0_km_s_mpc ||
+    !receipt.owner.history() || !receipt.owner.history()->thermal_mapping_witnesses())return 31;
+ for(const auto &row:receipt.batch.rows)for(const auto &endpoint:row.endpoints)
+  if(endpoint.root_status!=S::ok || endpoint.ruler_status!=S::ok || !endpoint.redshift || !endpoint.comoving_ruler_mpc ||
+     !(endpoint.total_ruler_numerical_estimate_mpc>0) || endpoint.total_ruler_numerical_estimate_mpc>1e-3)return 31;
+ if(*receipt.batch.rows[0].endpoints[0].redshift>*receipt.batch.rows[0].endpoints[1].redshift ||
+    *receipt.batch.rows[0].endpoints[0].comoving_ruler_mpc<*receipt.batch.rows[0].endpoints[1].comoving_ruler_mpc)return 31;
+ const auto bits=snapshot->emitted_nuclei_binary64_bits;
+ auto moved=std::move(receipt.owner);
+ if(receipt.owner.source() || receipt.owner.budget_diagnostics() || receipt.owner.source_snapshot() ||
+    !moved.source_snapshot() || moved.source_snapshot()->emitted_nuclei_binary64_bits!=bits)return 31;
+ return 0;
+}
+
 int installed_perfect_fluid_transfer() {
  using namespace irred::cosmology;
  const auto background=prepare_thermal_background({70,0,0,0,1,{}});
@@ -825,5 +916,6 @@ int main() {
 
  if(const auto rsd_status=installed_growth_rsd();rsd_status!=0) return rsd_status;
  if(const auto hhe_history_status=installed_hydrogen_helium_history();hhe_history_status!=0) return hhe_history_status;
+ if(const auto conditional_drag_status=installed_conditional_hydrogen_helium_drag();conditional_drag_status!=0)return conditional_drag_status;
  return installed_correlated_calibration();
 }

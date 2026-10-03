@@ -79,4 +79,147 @@ struct HydrogenHeliumCellAccess {
     return p.result();
   }
 };
+
+// Bounded nonnegative Bernstein algebra. Restrict before integration; small
+// intervals never subtract nearby global antiderivatives. The arithmetic
+// allowance is explicit empirical wide-operation diagnostics, not certification.
+struct HHePositivePolynomial {
+  using W = long double;
+  std::array<W, 9> coefficient{};
+  unsigned degree = 0;
+  bool valid = true;
+  static constexpr W arithmetic = 4096 * std::numeric_limits<W>::epsilon();
+  static unsigned choose(unsigned n, unsigned k) noexcept {
+    unsigned v = 1;
+    for (unsigned i = 1; i <= k; ++i) v = v * (n - i + 1) / i;
+    return v;
+  }
+  bool admissible() const noexcept {
+    if (!valid || degree > 8) return false;
+    for (unsigned i = 0; i <= degree; ++i)
+      if (coefficient[i] < 0 || !std::isfinite(coefficient[i]) ||
+          (coefficient[i] != 0 && !std::isnormal(coefficient[i]))) return false;
+    return true;
+  }
+  HHePositivePolynomial scaled(W scale) const noexcept {
+    auto out = *this;
+    if (!(scale >= 0) || !std::isfinite(scale)) { out.valid = false; return out; }
+    for (unsigned i = 0; i <= degree; ++i) out.coefficient[i] *= scale;
+    return out;
+  }
+  HHePositivePolynomial elevated(unsigned n) const noexcept {
+    auto out = *this;
+    if (n < degree || n > 8) { out.valid = false; return out; }
+    while (out.degree < n) {
+      const auto old = out.coefficient;
+      const unsigned d = ++out.degree;
+      out.coefficient[0] = old[0]; out.coefficient[d] = old[d - 1];
+      for (unsigned i = 1; i < d; ++i)
+        out.coefficient[i] = (W(i) * old[i - 1] + W(d - i) * old[i]) / d;
+    }
+    return out;
+  }
+  HHePositivePolynomial plus(const HHePositivePolynomial &other) const noexcept {
+    const auto n = std::max(degree, other.degree);
+    auto out = elevated(n); const auto q = other.elevated(n);
+    out.valid = out.valid && q.valid;
+    for (unsigned i = 0; i <= n; ++i) out.coefficient[i] += q.coefficient[i];
+    return out;
+  }
+  HHePositivePolynomial times(const HHePositivePolynomial &q) const noexcept {
+    HHePositivePolynomial out;
+    out.degree = degree + q.degree;
+    out.valid = valid && q.valid && out.degree <= 8;
+    if (!out.valid) return out;
+    for (unsigned i = 0; i <= degree; ++i)
+      for (unsigned j = 0; j <= q.degree; ++j)
+        out.coefficient[i + j] += coefficient[i] * q.coefficient[j] *
+            (W(choose(degree, i)) * choose(q.degree, j) / choose(out.degree, i + j));
+    return out;
+  }
+  std::array<HHePositivePolynomial, 2> split(W t) const noexcept {
+    auto left = *this, right = *this;
+    auto triangle = coefficient;
+    left.coefficient[0] = triangle[0]; right.coefficient[degree] = triangle[degree];
+    for (unsigned level = 1; level <= degree; ++level) {
+      for (unsigned i = 0; i <= degree - level; ++i)
+        triangle[i] = (1 - t) * triangle[i] + t * triangle[i + 1];
+      left.coefficient[level] = triangle[0];
+      right.coefficient[degree - level] = triangle[degree - level];
+    }
+    left.valid = right.valid = valid && t >= 0 && t <= 1 && std::isfinite(t);
+    return {left, right};
+  }
+  HHePositivePolynomial restricted(W low, W high) const noexcept {
+    if (!(low >= 0) || !(high >= low) || high > 1) { auto out = *this; out.valid = false; return out; }
+    if (low == 0) return split(high)[0];
+    if (low == 1) return split(1)[1];
+    return split(low)[1].split((high - low) / (1 - low))[0];
+  }
+  W integral(W width) const noexcept {
+    W sum = 0, correction = 0;
+    for (unsigned i = 0; i <= degree; ++i) {
+      const W y = coefficient[i] - correction, next = sum + y;
+      correction = (next - sum) - y; sum = next;
+    }
+    return width * (sum / (degree + 1));
+  }
+  W lower() const noexcept {
+    W lo = coefficient[0], hi = coefficient[0];
+    for (unsigned i = 1; i <= degree; ++i) { lo = std::min(lo, coefficient[i]); hi = std::max(hi, coefficient[i]); }
+    return lo - arithmetic * hi;
+  }
+};
+struct HHeDragCell {
+  numerics::Status status = numerics::Status::invalid_input;
+  long double low = 0, high = 0;
+  HHePositivePolynomial rate, error;
+  struct Integral { numerics::Status status; long double value, error; };
+  Integral integrate(long double zlow, long double zhigh) const noexcept {
+    using S = numerics::Status;
+    if (status != S::ok) return {status, 0, 0};
+    if (zlow < low || zhigh > high || zhigh < zlow) return {S::outside_domain, 0, 0};
+    if (zlow == zhigh) return {S::ok, 0, 0};
+    const long double width = high - low, l = (zlow - low) / width, h = (zhigh - low) / width;
+    const auto r = rate.restricted(l, h), e = error.restricted(l, h);
+    const long double v = r.integral(zhigh - zlow),
+        diagnostic = e.integral(zhigh - zlow) + HHePositivePolynomial::arithmetic * v;
+    if (!r.admissible() || !e.admissible() || !std::isnormal(v) || !std::isnormal(diagnostic))
+      return {S::conditioning_budget_exceeded, 0, 0};
+    return {S::ok, v, diagnostic};
+  }
+  long double lower(long double zlow, long double zhigh) const noexcept {
+    const long double dz = high - low;
+    return rate.restricted((zlow - low) / dz, (zhigh - low) / dz).lower();
+  }
+};
+inline HHeDragCell hydrogen_helium_drag_cell(const HydrogenHeliumCell &c,
+    long double nH, long double nHe, long double R, long double ER) noexcept {
+  using W = long double;
+  using P = HHePositivePolynomial;
+  using S = numerics::Status;
+  HHeDragCell out; out.low = c.low; out.high = c.high;
+  if (!(R > ER) || !(ER >= 0) || !(c.high > c.low) || !(nH > 0) || !(nHe > 0)) return out;
+  auto affine = [](const std::array<W, 2> &v) { P p; p.degree = 1; p.coefficient[0] = v[1]; p.coefficient[1] = v[0]; return p; };
+  auto error = [&](const std::array<W, 2> &v, W curvature) {
+    auto p = affine(v).elevated(2);
+    const W dz = c.high - c.low;
+    p.coefficient[1] += dz * dz * curvature / 4;
+    return p;
+  };
+  P u; u.degree = 1; u.coefficient[0] = 1 + c.low; u.coefficient[1] = 1 + c.high;
+  const auto u3 = u.times(u).times(u),
+      C = affine(c.hydrogen).scaled(nH).plus(affine(c.helium).scaled(nHe)),
+      eC = error(c.hydrogen_error, c.curvature[0]).scaled(nH).plus(error(c.helium_error, c.curvature[1]).scaled(nHe)),
+      ne = u3.times(C),
+      ene = u3.times(eC).plus(ne.scaled(128 * std::numeric_limits<double>::epsilon())),
+      A = affine(c.coefficient), eA = error(c.coefficient_error, c.curvature[3]),
+      qT = A.times(ne), eqT = A.times(ene).plus(ne.plus(ene).times(eA));
+  out.rate = u.times(qT).scaled(1 / R);
+  out.error = u.times(eqT.plus(qT.plus(eqT).scaled(ER / (R - ER)))).scaled(1 / R)
+      .plus(out.rate.scaled(P::arithmetic));
+  out.status = out.rate.admissible() && out.error.admissible() && out.rate.lower() > 0
+      ? S::ok : S::conditioning_budget_exceeded;
+  return out;
+}
 } // namespace irred::cosmology::detail

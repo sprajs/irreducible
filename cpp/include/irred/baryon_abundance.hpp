@@ -2,6 +2,7 @@
 #include "irred/hydrogen_helium_equilibrium.hpp"
 #include <string>
 namespace irred::cosmology {
+namespace detail { struct ConditionalDragAbundanceAccess; }
 inline constexpr std::string_view baryon_abundance_model_id =
     "supplied-H1-He4-neutral-effective-mass-abundance/v1";
 inline constexpr std::string_view baryon_abundance_method_id =
@@ -68,6 +69,7 @@ private:
   long double rho0_ = 0, rho_error_ = 0;
   BaryonAbundanceRow map(double) const;
   std::optional<std::size_t> payload() const noexcept;
+  friend struct detail::ConditionalDragAbundanceAccess;
   friend BaryonAbundance prepare_baryon_abundance(const BaryonAbundanceSource &, BaryonAbundancePolicy);
 };
 // Supplied Y is the He4 share of the declared fixed neutral-effective mass

@@ -540,6 +540,9 @@ include(cmake/linear_transfer.cmake)
 # Distinct bounded singlet H/He history with one shared electron density.
 include(cmake/hydrogen_helium_history.cmake)
 
+# Synthetic conditional tail-depth interval and retained H/He drag/ruler.
+include(cmake/conditional_hydrogen_helium_drag.cmake)
+
 # Forwarding observation of invariant predictive preparation and batch solves.
 if(CMAKE_SIZEOF_VOID_P EQUAL 8 AND CMAKE_SYSTEM_NAME STREQUAL "Linux" AND CMAKE_CXX_COMPILER_ID MATCHES "^(GNU|Clang)$")
   target_compile_definitions(test_gaussian_predictive PRIVATE IRRED_PREDICTIVE_WORK_OBSERVATION)
