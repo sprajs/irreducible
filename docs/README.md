@@ -26,6 +26,7 @@ Read [AGENTS.md](../AGENTS.md) first, then choose a guide:
 | Evaluate explicit thermal relic density, pressure and flat E/H in C++ | [Thermal neutrino background](thermal-neutrino.md) |
 | Map physical densities/temperatures and evaluate thermal distances/ruler ratios | [Thermal observables](thermal-observables.md) |
 | Evaluate a supplied-drag BAO density with a retained ordered covariance in C++ | [Massless conditional BAO](bao-conditional.md) or [thermal conditional BAO](bao-thermal.md) |
+| Inspect the bounded thermal BAO inline consumer and its pending allocation gate | [Thermal BAO CLI](bao-thermal-cli.md) |
 | Calculate a pressureless GR growing mode in C++ | [GR growth](gr-growth.md) |
 | Predict bounded perfect-fluid CDM transfer and a declared primordial band variance | [Perfect-fluid transfer](linear-transfer.md) |
 | Inspect the open primary CMB projection prerequisites | [Primary CMB contract](primary-cmb-projection.md) |

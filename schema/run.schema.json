@@ -1580,6 +1580,420 @@
         "numerical_policy"
       ]
     },
+    "bao_thermal": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "schema_version": {
+          "const": 2
+        },
+        "operation": {
+          "const": "bao.thermal_density"
+        },
+        "source_semantics": {
+          "const": "synthetic_controls"
+        },
+        "observation": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "ordered_row_ids": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 256
+              },
+              "maxItems": 64
+            },
+            "queries": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "redshift": {
+                    "type": "number"
+                  },
+                  "observable": {
+                    "enum": [
+                      "DM_over_rs",
+                      "DH_over_rs",
+                      "DV_over_rs"
+                    ]
+                  }
+                },
+                "required": [
+                  "redshift",
+                  "observable"
+                ]
+              },
+              "maxItems": 64
+            },
+            "observed_ratios": {
+              "type": "array",
+              "items": {
+                "type": "number"
+              },
+              "maxItems": 64
+            },
+            "covariance_axis_ids": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 256
+              },
+              "maxItems": 64
+            },
+            "covariance_row_major": {
+              "type": "array",
+              "items": {
+                "type": "number"
+              },
+              "maxItems": 4096
+            },
+            "ratio_unit": {
+              "const": "one"
+            },
+            "covariance_unit": {
+              "const": "ratio_squared"
+            },
+            "table_identity": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 256
+            },
+            "covariance_identity": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 256
+            },
+            "ordering_provenance": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 256
+            },
+            "calibration_provenance": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 256
+            },
+            "dependence_provenance": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 256
+            },
+            "redshift_convention": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 256
+            }
+          },
+          "required": [
+            "ordered_row_ids",
+            "queries",
+            "observed_ratios",
+            "covariance_axis_ids",
+            "covariance_row_major",
+            "ratio_unit",
+            "covariance_unit",
+            "table_identity",
+            "covariance_identity",
+            "ordering_provenance",
+            "calibration_provenance",
+            "dependence_provenance",
+            "redshift_convention"
+          ]
+        },
+        "models": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "id": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 256
+              },
+              "physical_model": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "h0_km_s_mpc": {
+                    "type": "number"
+                  },
+                  "physical_baryon_density": {
+                    "type": "number"
+                  },
+                  "physical_cdm_density": {
+                    "type": "number"
+                  },
+                  "tcmb_kelvin": {
+                    "type": "number"
+                  },
+                  "physical_massless_nonphoton_density": {
+                    "type": "number"
+                  },
+                  "species": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "properties": {
+                        "mass_ev": {
+                          "type": "number"
+                        },
+                        "temperature_today_kelvin": {
+                          "type": "number"
+                        },
+                        "statistical_weight": {
+                          "type": "number"
+                        }
+                      },
+                      "required": [
+                        "mass_ev",
+                        "temperature_today_kelvin",
+                        "statistical_weight"
+                      ]
+                    },
+                    "maxItems": 16
+                  }
+                },
+                "required": [
+                  "h0_km_s_mpc",
+                  "physical_baryon_density",
+                  "physical_cdm_density",
+                  "tcmb_kelvin",
+                  "physical_massless_nonphoton_density",
+                  "species"
+                ]
+              },
+              "z_drag": {
+                "type": "number"
+              },
+              "drag_origin": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 256
+              },
+              "source_origin": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 256
+              }
+            },
+            "required": [
+              "id",
+              "physical_model",
+              "z_drag",
+              "drag_origin",
+              "source_origin"
+            ]
+          },
+          "maxItems": 16
+        },
+        "requested_outputs": {
+          "type": "array",
+          "items": {
+            "enum": [
+              "normalized_density",
+              "predictions",
+              "residuals"
+            ]
+          },
+          "minItems": 1,
+          "uniqueItems": true
+        },
+        "resource_policy": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "arithmetic": {
+              "enum": [
+                "binary64",
+                "wide"
+              ]
+            },
+            "maximum_rows": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 64
+            },
+            "maximum_matrix_elements": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 4096
+            },
+            "maximum_models": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 16
+            },
+            "maximum_species_per_model": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 16
+            },
+            "maximum_string_bytes": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 65536
+            },
+            "maximum_output_array_elements": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 2048
+            },
+            "maximum_native_bytes": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 67108864
+            },
+            "maximum_preparation_native_bytes": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 67108864
+            },
+            "maximum_evaluation_native_bytes": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 67108864
+            },
+            "maximum_total_callbacks": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 200000000
+            },
+            "maximum_forward_sensitivity": {
+              "type": "number"
+            },
+            "maximum_projection_log_density_error": {
+              "type": "number"
+            },
+            "predictions": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "absolute_tolerance_mpc": {
+                  "type": "number"
+                },
+                "relative_tolerance": {
+                  "type": "number"
+                },
+                "absolute_tolerance_ratio": {
+                  "type": "number"
+                },
+                "relative_tolerance_ratio": {
+                  "type": "number"
+                },
+                "maximum_callbacks_per_point": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 20000000
+                },
+                "maximum_total_callbacks": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 100000000
+                },
+                "maximum_depth": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 64
+                },
+                "maximum_native_bytes": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 67108864
+                },
+                "thermal": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "properties": {
+                    "absolute_tolerance": {
+                      "type": "number"
+                    },
+                    "relative_tolerance": {
+                      "type": "number"
+                    },
+                    "maximum_callbacks_per_evaluation": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 200000
+                    },
+                    "maximum_total_callbacks": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 100000000
+                    },
+                    "maximum_depth": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 64
+                    },
+                    "maximum_native_bytes": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 67108864
+                    },
+                    "momentum_method": {
+                      "const": "direct_adaptive"
+                    }
+                  },
+                  "required": [
+                    "absolute_tolerance",
+                    "relative_tolerance",
+                    "maximum_callbacks_per_evaluation",
+                    "maximum_total_callbacks",
+                    "maximum_depth",
+                    "maximum_native_bytes",
+                    "momentum_method"
+                  ]
+                }
+              },
+              "required": [
+                "absolute_tolerance_mpc",
+                "relative_tolerance",
+                "absolute_tolerance_ratio",
+                "relative_tolerance_ratio",
+                "maximum_callbacks_per_point",
+                "maximum_total_callbacks",
+                "maximum_depth",
+                "maximum_native_bytes",
+                "thermal"
+              ]
+            }
+          },
+          "required": [
+            "arithmetic",
+            "maximum_rows",
+            "maximum_matrix_elements",
+            "maximum_models",
+            "maximum_species_per_model",
+            "maximum_string_bytes",
+            "maximum_output_array_elements",
+            "maximum_native_bytes",
+            "maximum_preparation_native_bytes",
+            "maximum_evaluation_native_bytes",
+            "maximum_total_callbacks",
+            "maximum_forward_sensitivity",
+            "maximum_projection_log_density_error",
+            "predictions"
+          ]
+        }
+      },
+      "required": [
+        "schema_version",
+        "operation",
+        "source_semantics",
+        "observation",
+        "models",
+        "requested_outputs",
+        "resource_policy"
+      ]
+    },
     "statistics": {
       "type": "object",
       "additionalProperties": false,
@@ -3328,6 +3742,9 @@
     },
     {
       "$ref": "#/$defs/bao"
+    },
+    {
+      "$ref": "#/$defs/bao_thermal"
     },
     {
       "$ref": "#/$defs/sound_horizon"

@@ -258,3 +258,6 @@ pub(crate) mod gaussian_posterior;
 
 #[path = "gaussian_predictive_bridge.rs"]
 pub(crate) mod gaussian_predictive;
+
+#[path = "bao_thermal_bridge.rs"]
+pub(crate) mod bao_thermal;

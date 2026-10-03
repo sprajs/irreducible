@@ -65,6 +65,7 @@ pub(crate) fn execute() -> Result<(), String> {
                         {"id":"statistics.gaussian_posterior","implementation":"implemented","scientific":true,"qualification":"unqualified","outputs":["posterior_covariance","posterior_means"],"source_semantics":"synthetic controls","ownership":"one native fixed-design/noise/prior owner per coarse batch"},
                         {"id":"statistics.gaussian","implementation":"implemented","scientific":true,"qualification":"unqualified","modes":["normalized_density","profile_offset_score"]},
                         {"id":"supernova.profile","implementation":"implemented","scientific":true,"qualification":"unqualified","models":["lcdm","constant_q","cpl","fixed_q5"],"source_effects":["none","grey_log1p_magnitude"],"target":"conditional single-offset relative profile"},
+                        {"id":"bao.thermal_density","implementation":"implemented","scientific":true,"qualification":"unqualified","source_semantics":"synthetic_controls","outputs":["normalized_density","predictions","residuals"],"execution_gate":"unsupported allocation profile refuses before native execution","ownership":"one native retained full covariance/factor per coarse model batch","target":"explicit physical thermal state and supplied drag"},
                         {"id":"bao.density","implementation":"implemented","scientific":true,"qualification":"unqualified","models":["lcdm","constant_q","cpl","fixed_q5"],"target":"conditional free-H0rd normalized Gaussian density"},
                         {"id":"photometry.predict","implementation":"implemented","scientific":true,"qualification":"unqualified","source_models":["constant_rest_luminosity_rectangular_band","piecewise_linear_rest_luminosity_observed_optical_passband"],"requested_groups":["incident_band_flux","collected_energy","expected_transmitted_photons"],"scope":"deterministic supplied-distance standard-redshift optical transmission; no noise, selection or detector electronics"}],
                     "abi_schema":serde_json::from_str::<Value>(include_str!("../schema/abi.json")).map_err(|e|e.to_string())?,
@@ -172,6 +173,7 @@ pub(crate) fn execute() -> Result<(), String> {
                         "statistics.gaussian" => crate::statistics_run::execute(&input,&store),
                         "statistics.gaussian_posterior" => crate::gaussian_posterior_run::execute(&input),
                         "statistics.gaussian_predictive" => crate::gaussian_predictive_run::execute(&input),
+                        "bao.thermal_density" => crate::bao_thermal_run::execute(&input),
                         "observations.prepare" => crate::observation_run::execute(&input,&store),
                         _ => Err("UNSUPPORTED_SPECIFICATION".into()),
                     }

@@ -112,6 +112,41 @@ def build_schema(abi, fixture):
         "models": array(obj({"expansion": expansion, "geometry": geometry, "h0_rd_km_s": number}), 65536),
         "requested_outputs": outputs(["normalized_density", "predictions", "residuals"]),
         "numerical_policy": evaluation})
+    thermal_text = {"type": "string", "minLength": 1, "maxLength": 256}
+    thermal_species = obj({key: number for key in ("mass_ev", "temperature_today_kelvin", "statistical_weight")})
+    thermal_physical = obj({**{key: number for key in ("h0_km_s_mpc", "physical_baryon_density",
+        "physical_cdm_density", "tcmb_kelvin", "physical_massless_nonphoton_density")},
+        "species": array(thermal_species, 16)})
+    thermal_momentum = obj({"absolute_tolerance": number, "relative_tolerance": number,
+        "maximum_callbacks_per_evaluation": {**uint, "maximum": 200000},
+        "maximum_total_callbacks": {**uint, "maximum": 100000000},
+        "maximum_depth": {**uint, "maximum": 64},
+        "maximum_native_bytes": {**uint, "maximum": 67108864},
+        "momentum_method": {"const": "direct_adaptive"}})
+    thermal_prediction = obj({**{key: number for key in ("absolute_tolerance_mpc", "relative_tolerance",
+        "absolute_tolerance_ratio", "relative_tolerance_ratio")},
+        "maximum_callbacks_per_point": {**uint, "maximum": 20000000},
+        "maximum_total_callbacks": {**uint, "maximum": 100000000},
+        "maximum_depth": {**uint, "maximum": 64},
+        "maximum_native_bytes": {**uint, "maximum": 67108864}, "thermal": thermal_momentum})
+    thermal_caps = {"maximum_rows":64,"maximum_matrix_elements":4096,"maximum_models":16,
+        "maximum_species_per_model":16,"maximum_string_bytes":65536,"maximum_output_array_elements":2048,
+        "maximum_native_bytes":67108864,"maximum_preparation_native_bytes":67108864,
+        "maximum_evaluation_native_bytes":67108864,"maximum_total_callbacks":200000000}
+    defs["bao_thermal"] = operation("bao.thermal_density", {
+        "source_semantics": {"const":"synthetic_controls"},
+        "observation": obj({"ordered_row_ids":array(thermal_text,64),
+            "queries":array(obj({"redshift":number,"observable":enum(["DM_over_rs","DH_over_rs","DV_over_rs"])}),64),
+            "observed_ratios":array(number,64),"covariance_axis_ids":array(thermal_text,64),
+            "covariance_row_major":array(number,4096),"ratio_unit":{"const":"one"},
+            "covariance_unit":{"const":"ratio_squared"},**{key:thermal_text for key in (
+                "table_identity","covariance_identity","ordering_provenance","calibration_provenance",
+                "dependence_provenance","redshift_convention")}}),
+        "models":array(obj({"id":thermal_text,"physical_model":thermal_physical,"z_drag":number,
+            "drag_origin":thermal_text,"source_origin":thermal_text}),16),
+        "requested_outputs":outputs(["normalized_density","predictions","residuals"]),
+        "resource_policy":obj({"arithmetic":arithmetic,**{key:{**uint,"maximum":maximum} for key,maximum in thermal_caps.items()},
+            "maximum_forward_sensitivity":number,"maximum_projection_log_density_error":number,"predictions":thermal_prediction})})
     prior = obj({"response": array(number), "ordered_ids": array(text), "mean": number,
         "variance": number, "latent_identity": text, "independence_declared": {"type": "boolean"}})
     defs["statistics"] = operation("statistics.gaussian", {
@@ -224,5 +259,5 @@ def build_schema(abi, fixture):
     return {"$schema": "https://json-schema.org/draft/2020-12/schema",
         "$id": "cosmology.run.v2", "$defs": defs,
         "oneOf": [ref(name) for name in ("fixture", "quantity", "numerics", "observations",
-                                          "background", "statistics", "gaussian_posterior", "gaussian_predictive", "supernova", "bao", "sound_horizon", "photometry", "sampled_photometry")],
+                                          "background", "statistics", "gaussian_posterior", "gaussian_predictive", "supernova", "bao", "bao_thermal", "sound_horizon", "photometry", "sampled_photometry")],
         "description": "Structural compiled requests; native domains, numerical gates and scientific qualifications remain distinct."}

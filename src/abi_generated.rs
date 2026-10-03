@@ -8,6 +8,7 @@ pub const ALLOCATION_FAILURE: u32 = 4;
 pub const EXCEPTION: u32 = 5;
 pub const GAUSSIAN_POSTERIOR_QUOTA_REFUSED: u32 = 6;
 pub const GAUSSIAN_PREDICTIVE_QUOTA_REFUSED: u32 = 6;
+pub const BAO_THERMAL_QUOTA_REFUSED: u32 = 7;
 pub const MAX_BATCH_ELEMENTS: u64 = 1000000;
 pub const OBSERVATION_PROFILE_PANTHEON_PLUS_RELEASED_V1: u32 = 0;
 pub const OBSERVATION_PROFILE_GAUSSIAN_FIXTURE_V1: u32 = 1;
@@ -1228,6 +1229,180 @@ pub struct GaussianPredictiveView {
     pub method: Bytes,
     pub arithmetic: Bytes,
 }
+#[allow(non_snake_case)]
+#[repr(C)]
+pub struct BaoThermalSpecies {
+    pub struct_size: u32,
+    pub abi_version: u32,
+    pub reserved0: u32,
+    pub reserved1: u32,
+    pub mass_ev: f64,
+    pub temperature_today_kelvin: f64,
+    pub statistical_weight: f64,
+}
+#[allow(non_snake_case)]
+#[repr(C)]
+pub struct BaoThermalModel {
+    pub struct_size: u32,
+    pub abi_version: u32,
+    pub reserved0: u32,
+    pub reserved1: u32,
+    pub id: Bytes,
+    pub h0_km_s_mpc: f64,
+    pub physical_baryon_density: f64,
+    pub physical_cdm_density: f64,
+    pub tcmb_kelvin: f64,
+    pub physical_massless_nonphoton_density: f64,
+    pub species: *const BaoThermalSpecies,
+    pub species_count: u64,
+    pub species_byte_length: u64,
+    pub z_drag: f64,
+    pub drag_origin: Bytes,
+    pub source_origin: Bytes,
+}
+#[allow(non_snake_case)]
+#[repr(C)]
+pub struct BaoThermalBatch {
+    pub struct_size: u32,
+    pub abi_version: u32,
+    pub models: *const BaoThermalModel,
+    pub model_count: u64,
+    pub model_byte_length: u64,
+}
+#[allow(non_snake_case)]
+#[repr(C)]
+pub struct BaoThermalSource {
+    pub struct_size: u32,
+    pub abi_version: u32,
+    pub role: u32,
+    pub covariance_unit: u32,
+    pub queries: *const BaoQuery,
+    pub query_count: u64,
+    pub query_byte_length: u64,
+    pub observed: F64Buffer,
+    pub covariance: F64Buffer,
+    pub ordered_ids: Strings,
+    pub covariance_axis_ids: Strings,
+    pub table_identity: Bytes,
+    pub covariance_identity: Bytes,
+    pub ordering_provenance: Bytes,
+    pub calibration_provenance: Bytes,
+    pub dependence_provenance: Bytes,
+    pub redshift_convention: Bytes,
+}
+#[allow(non_snake_case)]
+#[repr(C)]
+pub struct BaoThermalPredictionPolicy {
+    pub struct_size: u32,
+    pub abi_version: u32,
+    pub momentum_method: u32,
+    pub maximum_depth: u32,
+    pub thermal_maximum_depth: u32,
+    pub reserved: u32,
+    pub absolute_tolerance_mpc: f64,
+    pub relative_tolerance: f64,
+    pub absolute_tolerance_ratio: f64,
+    pub relative_tolerance_ratio: f64,
+    pub thermal_absolute_tolerance: f64,
+    pub thermal_relative_tolerance: f64,
+    pub maximum_callbacks_per_point: u64,
+    pub maximum_total_callbacks: u64,
+    pub maximum_native_bytes: u64,
+    pub thermal_maximum_callbacks_per_evaluation: u64,
+    pub thermal_maximum_total_callbacks: u64,
+    pub thermal_maximum_native_bytes: u64,
+}
+#[allow(non_snake_case)]
+#[repr(C)]
+pub struct BaoThermalPolicy {
+    pub struct_size: u32,
+    pub abi_version: u32,
+    pub arithmetic: u32,
+    pub requested: u32,
+    pub maximum_rows: u64,
+    pub maximum_matrix_elements: u64,
+    pub maximum_models: u64,
+    pub maximum_species_per_model: u64,
+    pub maximum_string_bytes: u64,
+    pub maximum_output_array_elements: u64,
+    pub maximum_native_bytes: u64,
+    pub maximum_preparation_native_bytes: u64,
+    pub maximum_evaluation_native_bytes: u64,
+    pub maximum_total_callbacks: u64,
+    pub maximum_forward_sensitivity: f64,
+    pub maximum_projection_log_density_error: f64,
+    pub predictions: BaoThermalPredictionPolicy,
+}
+#[allow(non_snake_case)]
+#[repr(C)]
+pub struct BaoThermalDensity {
+    pub struct_size: u32,
+    pub abi_version: u32,
+    pub state: OutputState,
+    pub has_projection_estimate: u32,
+    pub reserved: u32,
+    pub projection_log_density_error_estimate: f64,
+    pub quadratic: f64,
+    pub log_determinant: f64,
+    pub log_normalization: f64,
+    pub log_density: f64,
+    pub backward_residual: f64,
+    pub estimated_forward_sensitivity: f64,
+}
+#[allow(non_snake_case)]
+#[repr(C)]
+pub struct BaoThermalRow {
+    pub struct_size: u32,
+    pub abi_version: u32,
+    pub model_index: u64,
+    pub source: BaoThermalModel,
+    pub preparation_status: u32,
+    pub numerical_status: u32,
+    pub prediction_state: OutputState,
+    pub residual_state: OutputState,
+    pub density: BaoThermalDensity,
+    pub predictions: F64Buffer,
+    pub residuals: F64Buffer,
+    pub callbacks: u64,
+    pub preparation_callbacks: u64,
+    pub outer_callbacks: u64,
+    pub momentum_callbacks: u64,
+}
+#[allow(non_snake_case)]
+#[repr(C)]
+pub struct BaoThermalView {
+    pub struct_size: u32,
+    pub abi_version: u32,
+    pub phase: u32,
+    pub numerical_status: u32,
+    pub density_status: u32,
+    pub source_prepare_call_attempted: u32,
+    pub source_factor_completed: u32,
+    pub thermal_batch_call_attempted: u32,
+    pub source_available: u32,
+    pub reserved: u32,
+    pub source: BaoThermalSource,
+    pub rows: *const BaoThermalRow,
+    pub model_count: u64,
+    pub row_byte_length: u64,
+    pub requested: u32,
+    pub arithmetic_requested: u32,
+    pub actual_source_arithmetic_id: Bytes,
+    pub source_measure: Bytes,
+    pub source_semantics: Bytes,
+    pub thermal_density_id: Bytes,
+    pub thermal_equation_id: Bytes,
+    pub physical_mapping_id: Bytes,
+    pub gaussian_density_id: Bytes,
+    pub retained_payload_bytes: u64,
+    pub preparation_peak_bound_bytes: u64,
+    pub evaluation_peak_bound_bytes: u64,
+    pub required_global_peak_bytes: u64,
+    pub callbacks: u64,
+    pub preparation_callbacks: u64,
+    pub outer_callbacks: u64,
+    pub momentum_callbacks: u64,
+}
 unsafe extern "C" {
     pub fn irred_add(
         a: *const Buffer,
@@ -1480,6 +1655,17 @@ unsafe extern "C" {
         view: *mut GaussianPredictiveView,
     ) -> u32;
     pub fn irred_gaussian_predictive_result_destroy(result: *mut std::ffi::c_void) -> u32;
+    pub fn irred_bao_thermal_evaluate(
+        source: *const BaoThermalSource,
+        batch: *const BaoThermalBatch,
+        policy: *const BaoThermalPolicy,
+        out: *mut *mut std::ffi::c_void,
+    ) -> u32;
+    pub fn irred_bao_thermal_result_view(
+        result: *const std::ffi::c_void,
+        out: *mut BaoThermalView,
+    ) -> u32;
+    pub fn irred_bao_thermal_result_destroy(result: *mut std::ffi::c_void) -> u32;
 }
 #[derive(Clone, serde::Deserialize, serde::Serialize)]
 #[serde(deny_unknown_fields)]

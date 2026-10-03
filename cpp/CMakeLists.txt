@@ -555,3 +555,5 @@ target_link_libraries(test_gaussian_posterior_abi PRIVATE irred_core)
 target_compile_options(test_gaussian_posterior_abi PRIVATE -Wall -Wextra -Wpedantic -fno-fast-math -ffp-contract=off)
 add_test(NAME gaussian_posterior_abi_contract COMMAND test_gaussian_posterior_abi)
 include(cmake/gaussian_predictive_abi.cmake)
+
+include(cmake/bao_thermal_abi.cmake)

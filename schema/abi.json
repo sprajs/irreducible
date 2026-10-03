@@ -9,7 +9,8 @@
     "ALLOCATION_FAILURE": 4,
     "EXCEPTION": 5,
     "GAUSSIAN_POSTERIOR_QUOTA_REFUSED": 6,
-    "GAUSSIAN_PREDICTIVE_QUOTA_REFUSED": 6
+    "GAUSSIAN_PREDICTIVE_QUOTA_REFUSED": 6,
+    "BAO_THERMAL_QUOTA_REFUSED": 7
   },
   "element_type": "signed_i64",
   "ownership": "synchronous_borrowed_inputs_owned_result",
@@ -3361,6 +3362,612 @@
           "Bytes"
         ]
       ]
+    },
+    {
+      "c_name": "irred_bao_thermal_species",
+      "rust_name": "BaoThermalSpecies",
+      "fields": [
+        [
+          "struct_size",
+          "u32"
+        ],
+        [
+          "abi_version",
+          "u32"
+        ],
+        [
+          "reserved0",
+          "u32"
+        ],
+        [
+          "reserved1",
+          "u32"
+        ],
+        [
+          "mass_ev",
+          "f64"
+        ],
+        [
+          "temperature_today_kelvin",
+          "f64"
+        ],
+        [
+          "statistical_weight",
+          "f64"
+        ]
+      ]
+    },
+    {
+      "c_name": "irred_bao_thermal_model",
+      "rust_name": "BaoThermalModel",
+      "fields": [
+        [
+          "struct_size",
+          "u32"
+        ],
+        [
+          "abi_version",
+          "u32"
+        ],
+        [
+          "reserved0",
+          "u32"
+        ],
+        [
+          "reserved1",
+          "u32"
+        ],
+        [
+          "id",
+          "Bytes"
+        ],
+        [
+          "h0_km_s_mpc",
+          "f64"
+        ],
+        [
+          "physical_baryon_density",
+          "f64"
+        ],
+        [
+          "physical_cdm_density",
+          "f64"
+        ],
+        [
+          "tcmb_kelvin",
+          "f64"
+        ],
+        [
+          "physical_massless_nonphoton_density",
+          "f64"
+        ],
+        [
+          "species",
+          "const_BaoThermalSpecies_ptr"
+        ],
+        [
+          "species_count",
+          "u64"
+        ],
+        [
+          "species_byte_length",
+          "u64"
+        ],
+        [
+          "z_drag",
+          "f64"
+        ],
+        [
+          "drag_origin",
+          "Bytes"
+        ],
+        [
+          "source_origin",
+          "Bytes"
+        ]
+      ]
+    },
+    {
+      "c_name": "irred_bao_thermal_batch",
+      "rust_name": "BaoThermalBatch",
+      "fields": [
+        [
+          "struct_size",
+          "u32"
+        ],
+        [
+          "abi_version",
+          "u32"
+        ],
+        [
+          "models",
+          "const_BaoThermalModel_ptr"
+        ],
+        [
+          "model_count",
+          "u64"
+        ],
+        [
+          "model_byte_length",
+          "u64"
+        ]
+      ]
+    },
+    {
+      "c_name": "irred_bao_thermal_source",
+      "rust_name": "BaoThermalSource",
+      "fields": [
+        [
+          "struct_size",
+          "u32"
+        ],
+        [
+          "abi_version",
+          "u32"
+        ],
+        [
+          "role",
+          "u32"
+        ],
+        [
+          "covariance_unit",
+          "u32"
+        ],
+        [
+          "queries",
+          "const_BaoQuery_ptr"
+        ],
+        [
+          "query_count",
+          "u64"
+        ],
+        [
+          "query_byte_length",
+          "u64"
+        ],
+        [
+          "observed",
+          "F64Buffer"
+        ],
+        [
+          "covariance",
+          "F64Buffer"
+        ],
+        [
+          "ordered_ids",
+          "Strings"
+        ],
+        [
+          "covariance_axis_ids",
+          "Strings"
+        ],
+        [
+          "table_identity",
+          "Bytes"
+        ],
+        [
+          "covariance_identity",
+          "Bytes"
+        ],
+        [
+          "ordering_provenance",
+          "Bytes"
+        ],
+        [
+          "calibration_provenance",
+          "Bytes"
+        ],
+        [
+          "dependence_provenance",
+          "Bytes"
+        ],
+        [
+          "redshift_convention",
+          "Bytes"
+        ]
+      ]
+    },
+    {
+      "c_name": "irred_bao_thermal_prediction_policy",
+      "rust_name": "BaoThermalPredictionPolicy",
+      "fields": [
+        [
+          "struct_size",
+          "u32"
+        ],
+        [
+          "abi_version",
+          "u32"
+        ],
+        [
+          "momentum_method",
+          "u32"
+        ],
+        [
+          "maximum_depth",
+          "u32"
+        ],
+        [
+          "thermal_maximum_depth",
+          "u32"
+        ],
+        [
+          "reserved",
+          "u32"
+        ],
+        [
+          "absolute_tolerance_mpc",
+          "f64"
+        ],
+        [
+          "relative_tolerance",
+          "f64"
+        ],
+        [
+          "absolute_tolerance_ratio",
+          "f64"
+        ],
+        [
+          "relative_tolerance_ratio",
+          "f64"
+        ],
+        [
+          "thermal_absolute_tolerance",
+          "f64"
+        ],
+        [
+          "thermal_relative_tolerance",
+          "f64"
+        ],
+        [
+          "maximum_callbacks_per_point",
+          "u64"
+        ],
+        [
+          "maximum_total_callbacks",
+          "u64"
+        ],
+        [
+          "maximum_native_bytes",
+          "u64"
+        ],
+        [
+          "thermal_maximum_callbacks_per_evaluation",
+          "u64"
+        ],
+        [
+          "thermal_maximum_total_callbacks",
+          "u64"
+        ],
+        [
+          "thermal_maximum_native_bytes",
+          "u64"
+        ]
+      ]
+    },
+    {
+      "c_name": "irred_bao_thermal_policy",
+      "rust_name": "BaoThermalPolicy",
+      "fields": [
+        [
+          "struct_size",
+          "u32"
+        ],
+        [
+          "abi_version",
+          "u32"
+        ],
+        [
+          "arithmetic",
+          "u32"
+        ],
+        [
+          "requested",
+          "u32"
+        ],
+        [
+          "maximum_rows",
+          "u64"
+        ],
+        [
+          "maximum_matrix_elements",
+          "u64"
+        ],
+        [
+          "maximum_models",
+          "u64"
+        ],
+        [
+          "maximum_species_per_model",
+          "u64"
+        ],
+        [
+          "maximum_string_bytes",
+          "u64"
+        ],
+        [
+          "maximum_output_array_elements",
+          "u64"
+        ],
+        [
+          "maximum_native_bytes",
+          "u64"
+        ],
+        [
+          "maximum_preparation_native_bytes",
+          "u64"
+        ],
+        [
+          "maximum_evaluation_native_bytes",
+          "u64"
+        ],
+        [
+          "maximum_total_callbacks",
+          "u64"
+        ],
+        [
+          "maximum_forward_sensitivity",
+          "f64"
+        ],
+        [
+          "maximum_projection_log_density_error",
+          "f64"
+        ],
+        [
+          "predictions",
+          "BaoThermalPredictionPolicy"
+        ]
+      ]
+    },
+    {
+      "c_name": "irred_bao_thermal_density",
+      "rust_name": "BaoThermalDensity",
+      "fields": [
+        [
+          "struct_size",
+          "u32"
+        ],
+        [
+          "abi_version",
+          "u32"
+        ],
+        [
+          "state",
+          "OutputState"
+        ],
+        [
+          "has_projection_estimate",
+          "u32"
+        ],
+        [
+          "reserved",
+          "u32"
+        ],
+        [
+          "projection_log_density_error_estimate",
+          "f64"
+        ],
+        [
+          "quadratic",
+          "f64"
+        ],
+        [
+          "log_determinant",
+          "f64"
+        ],
+        [
+          "log_normalization",
+          "f64"
+        ],
+        [
+          "log_density",
+          "f64"
+        ],
+        [
+          "backward_residual",
+          "f64"
+        ],
+        [
+          "estimated_forward_sensitivity",
+          "f64"
+        ]
+      ]
+    },
+    {
+      "c_name": "irred_bao_thermal_row",
+      "rust_name": "BaoThermalRow",
+      "fields": [
+        [
+          "struct_size",
+          "u32"
+        ],
+        [
+          "abi_version",
+          "u32"
+        ],
+        [
+          "model_index",
+          "u64"
+        ],
+        [
+          "source",
+          "BaoThermalModel"
+        ],
+        [
+          "preparation_status",
+          "u32"
+        ],
+        [
+          "numerical_status",
+          "u32"
+        ],
+        [
+          "prediction_state",
+          "OutputState"
+        ],
+        [
+          "residual_state",
+          "OutputState"
+        ],
+        [
+          "density",
+          "BaoThermalDensity"
+        ],
+        [
+          "predictions",
+          "F64Buffer"
+        ],
+        [
+          "residuals",
+          "F64Buffer"
+        ],
+        [
+          "callbacks",
+          "u64"
+        ],
+        [
+          "preparation_callbacks",
+          "u64"
+        ],
+        [
+          "outer_callbacks",
+          "u64"
+        ],
+        [
+          "momentum_callbacks",
+          "u64"
+        ]
+      ]
+    },
+    {
+      "c_name": "irred_bao_thermal_view",
+      "rust_name": "BaoThermalView",
+      "fields": [
+        [
+          "struct_size",
+          "u32"
+        ],
+        [
+          "abi_version",
+          "u32"
+        ],
+        [
+          "phase",
+          "u32"
+        ],
+        [
+          "numerical_status",
+          "u32"
+        ],
+        [
+          "density_status",
+          "u32"
+        ],
+        [
+          "source_prepare_call_attempted",
+          "u32"
+        ],
+        [
+          "source_factor_completed",
+          "u32"
+        ],
+        [
+          "thermal_batch_call_attempted",
+          "u32"
+        ],
+        [
+          "source_available",
+          "u32"
+        ],
+        [
+          "reserved",
+          "u32"
+        ],
+        [
+          "source",
+          "BaoThermalSource"
+        ],
+        [
+          "rows",
+          "const_BaoThermalRow_ptr"
+        ],
+        [
+          "model_count",
+          "u64"
+        ],
+        [
+          "row_byte_length",
+          "u64"
+        ],
+        [
+          "requested",
+          "u32"
+        ],
+        [
+          "arithmetic_requested",
+          "u32"
+        ],
+        [
+          "actual_source_arithmetic_id",
+          "Bytes"
+        ],
+        [
+          "source_measure",
+          "Bytes"
+        ],
+        [
+          "source_semantics",
+          "Bytes"
+        ],
+        [
+          "thermal_density_id",
+          "Bytes"
+        ],
+        [
+          "thermal_equation_id",
+          "Bytes"
+        ],
+        [
+          "physical_mapping_id",
+          "Bytes"
+        ],
+        [
+          "gaussian_density_id",
+          "Bytes"
+        ],
+        [
+          "retained_payload_bytes",
+          "u64"
+        ],
+        [
+          "preparation_peak_bound_bytes",
+          "u64"
+        ],
+        [
+          "evaluation_peak_bound_bytes",
+          "u64"
+        ],
+        [
+          "required_global_peak_bytes",
+          "u64"
+        ],
+        [
+          "callbacks",
+          "u64"
+        ],
+        [
+          "preparation_callbacks",
+          "u64"
+        ],
+        [
+          "outer_callbacks",
+          "u64"
+        ],
+        [
+          "momentum_callbacks",
+          "u64"
+        ]
+      ]
     }
   ],
   "functions": [
@@ -4329,6 +4936,49 @@
           "gaussian_predictive_result"
         ]
       ]
+    },
+    {
+      "name": "irred_bao_thermal_evaluate",
+      "args": [
+        [
+          "source",
+          "const_BaoThermalSource_ptr"
+        ],
+        [
+          "batch",
+          "const_BaoThermalBatch_ptr"
+        ],
+        [
+          "policy",
+          "const_BaoThermalPolicy_ptr"
+        ],
+        [
+          "out",
+          "bao_thermal_result_out"
+        ]
+      ]
+    },
+    {
+      "name": "irred_bao_thermal_result_view",
+      "args": [
+        [
+          "result",
+          "const_bao_thermal_result"
+        ],
+        [
+          "out",
+          "BaoThermalView_ptr"
+        ]
+      ]
+    },
+    {
+      "name": "irred_bao_thermal_result_destroy",
+      "args": [
+        [
+          "result",
+          "bao_thermal_result"
+        ]
+      ]
     }
   ],
   "max_batch_elements": 1000000,
@@ -4534,7 +5184,8 @@
     "photometry_result": "irred_photometry_result",
     "sampled_photometry_result": "irred_sampled_photometry_result",
     "gaussian_posterior_result": "irred_gaussian_posterior_result",
-    "gaussian_predictive_result": "irred_gaussian_predictive_result"
+    "gaussian_predictive_result": "irred_gaussian_predictive_result",
+    "bao_thermal_result": "irred_bao_thermal_result"
   },
   "expansion_contract": {
     "operation": "background.evaluate",
@@ -4636,5 +5287,20 @@
     "bytes": "Minimal owner charged before allocation; metadata/source/posterior/evaluation phase envelopes retain source once, pooled results/capacities and serial scratch. Borrowed Rust/wire/JSON/stack/allocator/RSS excluded; no uncharged failure allocation.",
     "batch": "Family of conditionals under ONE fixed noise/design/independent proper prior; no joint across cases, IID or emitted law.",
     "execution": "Native view owns attempted/completed noise and posterior preparation flags plus conditioning call count; flags survive global refusal without numeric payload. Returned arithmetic identity describes attempted contract until finite source preparation; no assertion of completed factor on refusal."
+  },
+  "bao_thermal_contract": {
+    "operation": "bao.thermal_density",
+    "source_semantics": "synthetic controls only",
+    "ownership": "One synchronous borrowed source plus ordered model batch; result owns one retained observation/factor, provenance pools and native returned rows. Views live until destroy; no per-row evaluation.",
+    "quota_transport": "Scoped7/null ONLY original GLOBAL byte cap<actual nonallocating default minimum owner; globally admitted subphase/count/string/array failures are charged owned numerical work_limit envelopes.",
+    "phase_tags": {
+      "admission": 0,
+      "source_preparation": 1,
+      "thermal_evaluation": 2,
+      "complete": 3
+    },
+    "arithmetic": "Requested arithmetic is distinct from actual completed source factor; attempt/completion flags remain explicit.",
+    "limits": "Original request16MiB GLOBAL/8MiB source+evaluation/200M callbacks. Whole native phase includes retained source/factor, wrapper pools/descriptors, owned input models, copied returned sources and serial kernel scratch. Allocator/RSS/stack and Rust caller separate.",
+    "qualification": "Body/source only pending strict compile/resource/numerical/lifetime/install gates; supplied drag and conditional full ratio covariance, no released compression or observational/inference qualification."
   }
 }

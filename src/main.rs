@@ -1,3 +1,4 @@
+mod bao_thermal_run;
 mod gaussian_predictive_run;
 mod gaussian_input;
 mod gaussian_posterior_run;

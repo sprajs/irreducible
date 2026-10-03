@@ -1,8 +1,10 @@
 # Thermal BAO CLI consumer
 
-The operation-local source for `bao.thermal_density` is being integrated. Its
-shared ABI declarations, CLI registration and allocation/runtime qualification
-are pending; this guide does not yet advertise an executable command.
+The operation-local source for `bao.thermal_density` is wired through the
+schema-owned coarse ABI and strict inline CLI dispatcher. Compilation and
+allocation/runtime qualification are pending. Its allocation-profile gate
+currently refuses before native execution; this guide does not yet advertise
+a numerical execution command.
 
 The consumer targets the standalone [thermal BAO](bao-thermal.md) owner. One
 strict inline synthetic observation supplies ordered queries, ratios and a full
