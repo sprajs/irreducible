@@ -29,6 +29,7 @@ Read [AGENTS.md](../AGENTS.md) first, then choose a guide:
 | Evaluate a supplied-drag BAO density with a retained ordered covariance in C++ | [Massless conditional BAO](bao-conditional.md) or [thermal conditional BAO](bao-thermal.md) |
 | Calculate a pressureless GR growing mode in C++ | [GR growth](gr-growth.md) |
 | Predict bounded perfect-fluid CDM transfer and a declared primordial band variance | [Perfect-fluid transfer](linear-transfer.md) |
+| Evolve bounded ideal photon/baryon/CDM acoustic fields in C++ | [Ideal acoustic perturbations](ideal-acoustic.md) |
 | Project supplied continuous scalar temperature/E sources in C++ | [Continuous CMB projection](continuous-cmb-projection.md) |
 | Inspect conditional finite-opacity source stages and surviving boundary | [Finite-opacity source](finite-opacity-source.md) |
 | Inspect the retained supplied-source angular comparison and native regression | [CMB geometry regression](continuous-cmb-projection-regression.md) |

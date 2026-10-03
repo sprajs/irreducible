@@ -537,6 +537,9 @@ include(cmake/gaussian_box.cmake)
 # Bounded perfect-fluid CDM transfer and declared finite-band primordial variance.
 include(cmake/linear_transfer.cmake)
 
+# Ideal infinitely coupled photon/baryon acoustic perturbations.
+include(cmake/ideal_acoustic.cmake)
+
 # Supplied linear Kaiser/geometric AP window means.
 include(cmake/windowed_linear_power.cmake)
 
