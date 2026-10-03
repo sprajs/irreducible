@@ -468,6 +468,7 @@ fn current_discovery_exposes_single_predictive_operation() {
         .collect();
     assert_eq!(matches.len(), 1);
     assert_eq!(matches[0]["qualification"], "unqualified");
+    assert_eq!(matches[0]["source_semantics"], "synthetic_controls");
     assert_eq!(
         matches[0]["outputs"],
         json!(["predictive_means", "joint_predictive_log_densities"])
