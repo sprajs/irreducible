@@ -30,16 +30,16 @@ fn run_raw(bytes: &[u8]) -> (Value, i32, Option<Value>) {
                 .unwrap()
                 .as_nanos()
         )));
-    fs::create_dir(&d0.0).unwrap();
-    let p = d0.0.join("request.json");
-    let store = d0.0.join("store");
+    fs::create_dir(&d.0).unwrap();
+    let p = d.0.join("request.json");
+    let store = d.0.join("store");
     fs::write(&p, bytes).unwrap();
     let out = Command::new(env!("CARGO_BIN_EXE_irred"))
         .args(["run", p.to_str().unwrap(), store.to_str().unwrap()])
         .output()
         .unwrap();
-    fs::write(d0.0.join("stdout.json"), &out.stdout).unwrap();
-    fs::write(d0.0.join("stderr.log"), &out.stderr).unwrap();
+    fs::write(d.0.join("stdout.json"), &out.stdout).unwrap();
+    fs::write(d.0.join("stderr.log"), &out.stderr).unwrap();
     let exit_status = json!({
         "exit_status_display": out.status.to_string(),
         "success": out.status.success(),
@@ -54,7 +54,7 @@ fn run_raw(bytes: &[u8]) -> (Value, i32, Option<Value>) {
         exit_status
     };
     fs::write(
-        d0.0.join("exit-status.json"),
+        d.0.join("exit-status.json"),
         serde_json::to_vec(&exit_status).unwrap(),
     )
     .unwrap();
@@ -79,8 +79,8 @@ fn run_raw(bytes: &[u8]) -> (Value, i32, Option<Value>) {
         }
     }
     let mut hashes = BTreeMap::new();
-    inventory(&d0.0, &d0.0, &mut hashes);
-    fs::write(d0.0.join("capture.json"), serde_json::to_vec_pretty(&json!({"request_sha256":format!("{:x}", Sha256::digest(bytes)),"files":hashes,"exit_status":exit_status})).unwrap()).unwrap();
+    inventory(&d.0, &d.0, &mut hashes);
+    fs::write(d.0.join("capture.json"), serde_json::to_vec_pretty(&json!({"request_sha256":format!("{:x}", Sha256::digest(bytes)),"files":hashes,"exit_status":exit_status})).unwrap()).unwrap();
     let v: Value = serde_json::from_slice(&out.stdout).unwrap();
     let digest = v["receipt"]["input_digest"].as_str().unwrap();
     assert_eq!(fs::read(store.join("objects").join(digest)).unwrap(), bytes);
@@ -302,7 +302,7 @@ fn original_smaller_quotas_are_completed_causal_refusals() {
 }
 #[test]
 fn supplied_independence_units_and_disjoint_lineage_are_mandatory() {
-    for variant in 0.0.6 {
+    for variant in 0..6 {
         let mut input = fixture();
         match variant {
             0 => input["prediction"]["future_noise_independence_declared"] = json!(false),
