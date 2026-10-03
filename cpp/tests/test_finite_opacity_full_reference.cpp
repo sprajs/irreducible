@@ -48,6 +48,7 @@ struct Ledger {
   std::size_t nonstep_primitives=0,nonstep_endpoints=0;
   bool step_active=false;
   std::size_t primitive_limit=100000000,endpoint_limit=800000000;
+  std::size_t byte_limit=64*1024*1024;
   unsigned precision=192;
   void charge(std::size_t p,std::size_t e) {
     if(p>primitive_limit || primitives>primitive_limit-p ||
@@ -69,7 +70,7 @@ struct Ledger {
   }
   void bytes(std::size_t n) {
     guard();
-    if(n>64*1024*1024 || byte_owners>64*1024*1024-n) {
+    if(n>byte_limit || byte_owners>byte_limit-n) {
       ++denied;throw Refusal("requested owned byte limit");
     }
     byte_owners+=n;peak_bytes=std::max(peak_bytes,byte_owners);
@@ -783,6 +784,18 @@ void arithmetic_and_operator_controls() {
   const auto old_limit=work().primitive_limit;work().primitive_limit=work().primitives;
   bool denied=false;try{a.integer(x[12],0);}catch(const Refusal &){denied=true;}
   work().primitive_limit=old_limit;require(denied,"work prefix denies before assignment");
+  const auto saved_bytes=work().byte_owners,saved_byte_limit=work().byte_limit;
+  work().byte_limit=saved_bytes;denied=false;
+  try{Bytes refused_owner(1);}catch(const Refusal &){denied=true;}
+  work().byte_limit=saved_byte_limit;
+  require(denied&&work().byte_owners==saved_bytes,"owned-byte prefix denies before allocation/initialization");
+  // Challenge the actual profile gate with a genuinely unavailable host
+  // rounding mode, then restore it before any remaining scientific operation.
+  work().status_call();const int saved_round=std::fegetround();
+  work().status_call();require(std::fesetround(FE_DOWNWARD)==0,"set adversarial profile");
+  bool profile_refused=false;try{profile();}catch(const Refusal &){profile_refused=true;}
+  work().status_call();const int restored=std::fesetround(saved_round);
+  require(restored==0&&profile_refused,"unavailable arithmetic profile causal refusal/restoration");
   std::cout<<"CONTROLS exact-Fraction/interval/Taylor/Thomson/polarization/source-sign/codec/lifetime/refusal passed\n";
 }
 void passive_bessel_control() {
