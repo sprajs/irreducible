@@ -539,3 +539,12 @@ include(cmake/linear_transfer.cmake)
 
 # Distinct bounded singlet H/He history with one shared electron density.
 include(cmake/hydrogen_helium_history.cmake)
+
+# Forwarding observation of invariant predictive preparation and batch solves.
+if(CMAKE_SIZEOF_VOID_P EQUAL 8 AND CMAKE_SYSTEM_NAME STREQUAL "Linux" AND CMAKE_CXX_COMPILER_ID MATCHES "^(GNU|Clang)$")
+  target_compile_definitions(test_gaussian_predictive PRIVATE IRRED_PREDICTIVE_WORK_OBSERVATION)
+  target_link_options(test_gaussian_predictive PRIVATE
+    "-Wl,--wrap=_ZN5irred8numerics8choleskyESt4spanIKdLm18446744073709551615EEmmNS0_10ArithmeticE"
+    "-Wl,--wrap=_ZN5irred8numerics6whitenERKNS0_13FactorizationESt4spanIKeLm18446744073709551615EEmmd"
+    "-Wl,--wrap=_ZN5irred8numerics5solveERKNS0_13FactorizationESt4spanIKdLm18446744073709551615EEd")
+endif()

@@ -100,10 +100,23 @@ values retain IEEE binary64 bits. Every refusal is retained in the native receip
 attempted denominator: `[hits/N,(hits+refusals)/N]`. Any main-cell refusal withholds
 empirical acceptance; the broad refusal probe makes no coverage claim. Numerical
 acceptance and synthetic agreement establish neither observed calibration
-uncertainty nor measured-data qualification. Existing predictive preparation is
-charged for every changed training vector; no new reconditioning operation is
-introduced. Receipts report generation work and conditional preparation/density
-time separately, and total campaign time includes stage and attempt logging.
+uncertainty nor measured-data qualification. The generic and narrow-ladder campaigns now use retained repeated prediction:
+one response/W owner serves both 32768-attempt ensembles in each campaign.
+Every available original training/future vector is compared immediately with
+complete preparation at identical arithmetic and requested mean/error/density
+outputs, independently of downstream acceptance. An upstream generating refusal
+retains its address/status and marks the original observation unavailable; it
+enters neither arm, and the campaign's attempted/refused denominator is unchanged.
+
+Matched predictive arm timers include output capture/storage and all attempted
+available vectors, with equality verification outside both arms. Setup time and
+observed ordinary allocation calls, retained payload and maximum batch envelope
+are reported separately once for the owner shared by both ensembles. Arm receipts
+report observed allocations and output payload peaks. This excludes allocator
+bookkeeping/RSS, original-input capture and other campaign stages from the arm
+timers; total campaign time includes generation, comparison and attempt logging.
+Setup plus both ensemble arm times is the complete retained predictive timing.
+These named controls measure this consumer at one thread, not universal speedup.
 The matched coarse/one-vector generation comparison excludes equality verification
 from both timed arms and separately charges retained comparison outputs; it is
 not a consolidated campaign throughput benchmark.

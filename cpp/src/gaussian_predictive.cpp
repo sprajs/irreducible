@@ -1,4 +1,5 @@
 #include "irred/gaussian_predictive.hpp"
+#include "offset_translation.hpp"
 #include "payload_accounting.hpp"
 #include <algorithm>
 #include <cfenv>
@@ -95,6 +96,49 @@ PredictivePolicy restrict(PredictivePolicy a, PredictivePolicy b) {
       std::min(a.maximum_payload_bytes, b.maximum_payload_bytes),
       std::min(a.maximum_work_units, b.maximum_work_units),
       std::min(a.maximum_forward_sensitivity, b.maximum_forward_sensitivity)};
+}
+PosteriorMean project_mean(const PosteriorMean &conditioned,
+                           std::span<const double> a, size_t k,
+                           PredictivePolicy policy) {
+  PosteriorMean out;
+  if (conditioned.status != DensityStatus::finite) {
+    out.status = conditioned.status;
+    out.numerical_status = conditioned.numerical_status;
+    return out;
+  }
+  const auto p = conditioned.value.size();
+  out.value.resize(k);
+  out.absolute_error_estimates.resize(k);
+  S ns = S::ok;
+  for (size_t i = 0; i < k; ++i) {
+    W mu = 0, absolute = 0, err = 0;
+    for (size_t j = 0; j < p; ++j) {
+      const W t = static_cast<W>(a[i * p + j]) * conditioned.value[j];
+      mu += t;
+      absolute += std::abs(t);
+      err += std::abs(a[i * p + j]) * conditioned.absolute_error_estimates[j];
+    }
+    if (!cast(mu, out.value[i], ns)) {
+      out.value.clear();
+      out.absolute_error_estimates.clear();
+      out.status = DensityStatus::numerical_failure;
+      out.numerical_status = ns;
+      return out;
+    }
+    err += (4 * p + 4) * std::numeric_limits<W>::epsilon() * absolute +
+           std::abs(mu - out.value[i]);
+    if (!cast(err, out.absolute_error_estimates[i], ns) ||
+        err / (1 + std::abs(mu)) > policy.maximum_forward_sensitivity) {
+      out.value.clear();
+      out.absolute_error_estimates.clear();
+      out.status = DensityStatus::numerical_failure;
+      out.numerical_status = S::conditioning_budget_exceeded;
+      return out;
+    }
+  }
+  out.status = DensityStatus::finite;
+  out.numerical_status = S::ok;
+  return out;
 }
 void clear(Metadata &m) noexcept {
   m.ordered_ids.clear();
@@ -219,11 +263,12 @@ GaussianPredictive::evaluation_payload_bound() const noexcept {
   detail::PayloadAccounting b(sizeof(GaussianResult));
   if (!predictive_)
     return {};
-  const auto e = predictive_->evaluation_payload_bound(mean_.size(), false);
+  const auto e = predictive_->evaluation_payload_bound(
+      future_noise_.ordered_ids.size(), false);
   if (!e)
     return {};
   b.add(*e, 1);
-  b.add(mean_.size(), 8 * sizeof(W));
+  b.add(future_noise_.ordered_ids.size(), 8 * sizeof(W));
   return b.result();
 }
 GaussianPredictive GaussianPredictive::prepare(
@@ -231,6 +276,13 @@ GaussianPredictive GaussianPredictive::prepare(
     std::span<const std::string> rows, const Gaussian &noise,
     std::span<const double> a, const PredictiveMetadata &m,
     PredictivePolicy policy) {
+  return prepare_impl(posterior, training, rows, noise, a, m, policy, false);
+}
+GaussianPredictive GaussianPredictive::prepare_impl(
+    const GaussianPosterior &posterior, std::span<const double> training,
+    std::span<const std::string> rows, const Gaussian &noise,
+    std::span<const double> a, const PredictiveMetadata &m,
+    PredictivePolicy policy, bool fixed) {
   GaussianPredictive out;
   const auto fail = [&](DensityStatus ds, S ns) {
     out.invalidate();
@@ -267,7 +319,7 @@ GaussianPredictive GaussianPredictive::prepare(
         !disjoint(rows, noise.metadata().ordered_ids) ||
         !disjoint(m.training_event_ids, m.future_event_ids))
       return fail(DensityStatus::incompatible_metadata, S::invalid_input);
-    if (training.size() != n || a.size() != k * p ||
+    if ((!fixed && training.size() != n) || a.size() != k * p ||
         m.response_units.size() != p || !m.future_noise_independence_declared ||
         !m.noise_conditional_on_parameters_declared ||
         m.response_identity.empty() || m.conditioning_identity.empty() ||
@@ -292,9 +344,13 @@ GaussianPredictive GaussianPredictive::prepare(
     PosteriorPolicy pp{policy.maximum_elements, policy.maximum_payload_bytes,
                        policy.maximum_work_units,
                        policy.maximum_forward_sensitivity};
-    const auto conditioned = posterior.condition(training, rows, pp);
-    if (conditioned.status != DensityStatus::finite)
-      return fail(conditioned.status, conditioned.numerical_status);
+    PosteriorMean projected;
+    if (!fixed) {
+      const auto conditioned = posterior.condition(training, rows, pp);
+      projected = project_mean(conditioned, a, k, policy);
+      if (projected.status != DensityStatus::finite)
+        return fail(projected.status, projected.numerical_status);
+    }
     const auto v = posterior.covariance();
     const auto eps = std::numeric_limits<W>::epsilon();
     W vnorm = 0;
@@ -306,25 +362,11 @@ GaussianPredictive GaussianPredictive::prepare(
     }
     const W inherited = vnorm * posterior.covariance_relative_error_estimate();
     std::vector<W> b(k * p), be(k * p), error(k * k), row_norm(k);
-    std::vector<double> covariance(k * k), mean(k), mean_error(k),
-        covariance_error(k * k);
+    std::vector<double> covariance(k * k), covariance_error(k * k);
     S projection = S::ok;
     for (size_t i = 0; i < k; ++i) {
-      W mu = 0, absolute = 0, err = 0;
-      for (size_t j = 0; j < p; ++j) {
-        const W t = static_cast<W>(a[i * p + j]) * conditioned.value[j];
-        mu += t;
-        absolute += std::abs(t);
+      for (size_t j = 0; j < p; ++j)
         row_norm[i] += std::abs(a[i * p + j]);
-        err += std::abs(a[i * p + j]) * conditioned.absolute_error_estimates[j];
-      }
-      if (!cast(mu, mean[i], projection))
-        return fail(DensityStatus::numerical_failure, projection);
-      err += (4 * p + 4) * eps * absolute + std::abs(mu - mean[i]);
-      if (!cast(err, mean_error[i], projection) ||
-          err / (1 + std::abs(mu)) > policy.maximum_forward_sensitivity)
-        return fail(DensityStatus::numerical_failure,
-                    S::conditioning_budget_exceeded);
       for (size_t j = 0; j < p; ++j) {
         W absolute_product = 0;
         for (size_t t = 0; t < p; ++t) {
@@ -409,8 +451,8 @@ GaussianPredictive GaussianPredictive::prepare(
     out.training_values_.assign(training.begin(), training.end());
     out.response_.assign(a.begin(), a.end());
     out.metadata_ = m;
-    out.mean_ = std::move(mean);
-    out.mean_error_ = std::move(mean_error);
+    out.mean_ = std::move(projected.value);
+    out.mean_error_ = std::move(projected.absolute_error_estimates);
     out.covariance_error_ = std::move(covariance_error);
     out.predictive_ = std::move(predictive);
     out.policy_ = policy;
@@ -430,10 +472,32 @@ GaussianPredictive GaussianPredictive::prepare(
     return fail(DensityStatus::invalid_input, S::work_limit);
   }
 }
+PosteriorMean GaussianPredictive::project(const PosteriorMean &mean,
+                                          PredictivePolicy policy) const {
+  return project_mean(mean, response_, future_noise_.ordered_ids.size(),
+                      policy);
+}
 GaussianResult
 GaussianPredictive::log_density(std::span<const double> y,
                                 std::span<const std::string> ids,
                                 PredictivePolicy requested) const {
+  if (status_ != DensityStatus::finite) {
+    GaussianResult out;
+    out.density.status = status_;
+    out.density.numerical_status = numerical_status_;
+    return out;
+  }
+  if (mean_.empty()) {
+    GaussianResult out;
+    out.density.status = DensityStatus::invalid_input;
+    return out;
+  }
+  return log_density_at_mean(y, ids, mean_, mean_error_, requested);
+}
+GaussianResult GaussianPredictive::log_density_at_mean(
+    std::span<const double> y, std::span<const std::string> ids,
+    std::span<const double> mean, std::span<const double> mean_error,
+    PredictivePolicy requested) const {
   GaussianResult out;
   const auto fail = [&](DensityStatus ds, S ns) {
     GaussianResult bad;
@@ -448,7 +512,7 @@ GaussianPredictive::log_density(std::span<const double> y,
   if (!valid(requested))
     return out;
   const auto policy = restrict(requested, policy_);
-  const auto k = mean_.size();
+  const auto k = mean.size();
   if (!same(ids, future_noise_.ordered_ids))
     return fail(DensityStatus::incompatible_metadata, S::invalid_input);
   if (y.size() != k)
@@ -471,13 +535,13 @@ GaussianPredictive::log_density(std::span<const double> y,
     for (size_t i = 0; i < k; ++i) {
       if (!normal(y[i]))
         return fail(DensityStatus::invalid_input, S::nonfinite_input);
-      const W wide = static_cast<W>(y[i]) - mean_[i];
+      const W wide = static_cast<W>(y[i]) - mean[i];
       if (!cast(wide, centered[i], projection))
         return fail(DensityStatus::numerical_failure, projection);
-      delta = std::max(delta, static_cast<W>(mean_error_[i]) +
+      delta = std::max(delta, static_cast<W>(mean_error[i]) +
                                   std::abs(wide - centered[i]) +
                                   4 * std::numeric_limits<W>::epsilon() *
-                                      (std::abs(y[i]) + std::abs(mean_[i])));
+                                      (std::abs(y[i]) + std::abs(mean[i])));
       z_l1 += std::abs(centered[i]);
     }
     out = predictive_->evaluate(centered, ids,
@@ -508,5 +572,270 @@ GaussianPredictive::log_density(std::span<const double> y,
   } catch (const std::length_error &) {
     return fail(DensityStatus::invalid_input, S::work_limit);
   }
+}
+
+std::optional<size_t>
+GaussianPredictive::batch_payload_bound(const GaussianPosterior &p,
+                                        size_t count, PredictiveOutputs outputs,
+                                        size_t extra) const noexcept {
+  if (status_ != DensityStatus::finite || p.status() != DensityStatus::finite ||
+      !count || (!outputs.means && !outputs.densities))
+    return {};
+  const auto n = p.source().metadata().ordered_ids.size(),
+             k = future_noise_.ordered_ids.size();
+  detail::PayloadAccounting b(sizeof(PredictiveBatch));
+  b.add(retained_payload_bound().value_or(SIZE_MAX), 1);
+  b.add(p.retained_payload_bound().value_or(SIZE_MAX), 1);
+  b.add(extra, 1);
+  b.add(p.evaluation_payload_bound().value_or(SIZE_MAX), 1);
+  b.add(evaluation_payload_bound().value_or(SIZE_MAX), 1);
+  b.add(n + k, sizeof(double)); // one exact translation scratch, if used
+  b.add(k, 4 * sizeof(double)); // projected and offset means/errors
+  b.add(count, sizeof(PredictiveRow));
+  if (outputs.means) {
+    if (k && count > SIZE_MAX / k)
+      return {};
+    b.add(count * k, 2 * sizeof(double));
+  }
+  if (outputs.densities)
+    b.add(count, sizeof(GaussianResult));
+  return b.result();
+}
+PredictiveBatch GaussianPredictive::condition_batch(
+    const GaussianPosterior &p, std::span<const double> training,
+    std::span<const std::string> rows, std::span<const double> future,
+    std::span<const std::string> future_rows, size_t count,
+    PredictiveOutputs outputs, PredictivePolicy requested,
+    std::span<const double> training_offsets,
+    std::span<const double> future_offsets, size_t extra) const {
+  const auto bad = [](DensityStatus ds, S ns) {
+    PredictiveBatch b;
+    b.status = ds;
+    b.numerical_status = ns;
+    return b;
+  };
+  if (status_ != DensityStatus::finite)
+    return bad(status_, numerical_status_);
+  if (!environment())
+    return bad(DensityStatus::unsupported_domain, S::outside_domain);
+  if (!valid(requested) || !count || (!outputs.means && !outputs.densities))
+    return bad(DensityStatus::invalid_input, S::invalid_input);
+  const auto policy = restrict(requested, policy_);
+  const auto n = p.source().metadata().ordered_ids.size(),
+             parameter_count = p.prior().mean.size(),
+             k = future_noise_.ordered_ids.size();
+  if (!same(rows, training_source_.ordered_ids) ||
+      (outputs.densities && !same(future_rows, future_noise_.ordered_ids)))
+    return bad(DensityStatus::incompatible_metadata, S::invalid_input);
+  if (!dimensions(n, parameter_count, k) || count > SIZE_MAX / n ||
+      count > SIZE_MAX / k || training.size() != count * n ||
+      (outputs.densities && future.size() != count * k) ||
+      (!training_offsets.empty() && training_offsets.size() != n) ||
+      (!future_offsets.empty() && future_offsets.size() != k))
+    return bad(DensityStatus::invalid_input, S::invalid_input);
+  detail::PayloadAccounting work_count(0);
+  work_count.add(n * n, 32);
+  work_count.add(n * parameter_count, 32);
+  work_count.add(parameter_count * parameter_count, 32);
+  work_count.add(k * parameter_count, 32);
+  if (outputs.densities)
+    work_count.add(k * k, 32);
+  work_count.add(training_offsets.size(), 1);
+  work_count.add(future_offsets.size(), 1 + (outputs.densities ? 1 : 0));
+  const auto one = work_count.result(),
+             peak = batch_payload_bound(p, count, outputs, extra);
+  if (!one || !peak || *one > SIZE_MAX / count ||
+      *one * count > policy.maximum_work_units ||
+      *peak > policy.maximum_payload_bytes ||
+      count * n > policy.maximum_elements ||
+      count * k > policy.maximum_elements || n * n > policy.maximum_elements ||
+      n * parameter_count > policy.maximum_elements ||
+      parameter_count * parameter_count > policy.maximum_elements ||
+      k * k > policy.maximum_elements)
+    return bad(DensityStatus::invalid_input, S::work_limit);
+  try {
+    PredictiveBatch out;
+    out.rows.resize(count);
+    if (outputs.means) {
+      out.means.resize(count * k);
+      out.mean_absolute_error_estimates.resize(count * k);
+    }
+    if (outputs.densities)
+      out.densities.resize(count);
+    out.work_units = *one * count;
+    out.payload_bound = *peak;
+    for (size_t i = 0; i < count; ++i) {
+      auto &row = out.rows[i];
+      try {
+        std::vector<double> translated_training, translated_future;
+        auto r = training.subspan(i * n, n);
+        if (!training_offsets.empty()) {
+          const auto ns =
+              detail::center_exact(r, training_offsets, translated_training);
+          if (ns != S::ok) {
+            row = {DensityStatus::numerical_failure, ns};
+            continue;
+          }
+          r = translated_training;
+        }
+        if (std::any_of(r.begin(), r.end(),
+                        [](double v) { return !normal(v); })) {
+          row = {DensityStatus::invalid_input, S::nonfinite_input};
+          continue;
+        }
+        PosteriorPolicy pp{
+            policy.maximum_elements, policy.maximum_payload_bytes,
+            policy.maximum_work_units, policy.maximum_forward_sensitivity};
+        auto mean = project(p.condition(r, rows, pp), policy);
+        if (mean.status != DensityStatus::finite) {
+          row = {mean.status, mean.numerical_status};
+          continue;
+        }
+        // Match complete ladder preparation: original-coordinate mean/error
+        // admission is required even when the mean is not requested for output.
+        std::vector<double> offset_mean, offset_error;
+        std::span<const double> stored_mean = mean.value,
+                                stored_error = mean.absolute_error_estimates;
+        if (!future_offsets.empty()) {
+          const auto ns = detail::add_offsets(
+              mean.value, mean.absolute_error_estimates, future_offsets,
+              policy.maximum_forward_sensitivity, offset_mean, offset_error);
+          if (ns != S::ok) {
+            row = {DensityStatus::numerical_failure, ns};
+            continue;
+          }
+          stored_mean = offset_mean;
+          stored_error = offset_error;
+        }
+        GaussianResult density;
+        if (outputs.densities) {
+          auto y = future.subspan(i * k, k);
+          if (!future_offsets.empty()) {
+            const auto ns =
+                detail::center_exact(y, future_offsets, translated_future);
+            if (ns != S::ok) {
+              row = {DensityStatus::numerical_failure, ns};
+              continue;
+            }
+            y = translated_future;
+          }
+          density = log_density_at_mean(y, future_rows, mean.value,
+                                        mean.absolute_error_estimates, policy);
+          if (density.density.status != DensityStatus::finite) {
+            row = {density.density.status, density.density.numerical_status};
+            continue;
+          }
+        }
+        row = {DensityStatus::finite, S::ok};
+        if (outputs.means) {
+          std::copy(stored_mean.begin(), stored_mean.end(),
+                    out.means.begin() + i * k);
+          std::copy(stored_error.begin(), stored_error.end(),
+                    out.mean_absolute_error_estimates.begin() + i * k);
+        }
+        if (outputs.densities)
+          out.densities[i] = density;
+      } catch (const std::bad_alloc &) {
+        row = {DensityStatus::invalid_input, S::work_limit};
+      } catch (const std::length_error &) {
+        row = {DensityStatus::invalid_input, S::work_limit};
+      }
+    }
+    out.status = DensityStatus::finite;
+    out.numerical_status = S::ok;
+    return out;
+  } catch (const std::bad_alloc &) {
+    return bad(DensityStatus::invalid_input, S::work_limit);
+  } catch (const std::length_error &) {
+    return bad(DensityStatus::invalid_input, S::work_limit);
+  }
+}
+GaussianPredictiveConditioning::GaussianPredictiveConditioning(
+    GaussianPredictiveConditioning &&o) noexcept
+    : posterior_(std::move(o.posterior_)), law_(std::move(o.law_)) {
+  o.posterior_.reset();
+}
+GaussianPredictiveConditioning &GaussianPredictiveConditioning::operator=(
+    GaussianPredictiveConditioning &&o) noexcept {
+  if (this != &o) {
+    this->~GaussianPredictiveConditioning();
+    new (this) GaussianPredictiveConditioning(std::move(o));
+  }
+  return *this;
+}
+GaussianPredictiveConditioning GaussianPredictiveConditioning::prepare(
+    GaussianPosterior &&p, const Gaussian &noise, std::span<const double> a,
+    const PredictiveMetadata &md, PredictivePolicy policy) {
+  GaussianPredictiveConditioning out;
+  if (p.status() != DensityStatus::finite ||
+      noise.status() != DensityStatus::finite) {
+    out.law_.status_ =
+        p.status() != DensityStatus::finite ? p.status() : noise.status();
+    out.law_.numerical_status_ = p.status() != DensityStatus::finite
+                                     ? p.numerical_status()
+                                     : noise.numerical_status();
+    return out;
+  }
+  const auto peak = preparation_payload_bound(p, noise, md);
+  if (!peak || *peak > policy.maximum_payload_bytes) {
+    out.law_.numerical_status_ = S::work_limit;
+    return out;
+  }
+  out.law_ = GaussianPredictive::prepare_impl(
+      p, {}, p.source().metadata().ordered_ids, noise, a, md, policy, true);
+  if (out.law_.status() == DensityStatus::finite) {
+    const auto pr = p.retained_payload_bound(),
+               lr = out.law_.retained_payload_bound();
+    detail::PayloadAccounting b(sizeof(out));
+    b.embedded(pr, sizeof(GaussianPosterior));
+    b.embedded(lr, sizeof(GaussianPredictive));
+    if (!b.result() || *b.result() > policy.maximum_payload_bytes) {
+      out.law_.invalidate();
+      out.law_.numerical_status_ = S::work_limit;
+    } else
+      out.posterior_ = std::move(p);
+  }
+  return out;
+}
+std::optional<size_t> GaussianPredictiveConditioning::preparation_payload_bound(
+    const GaussianPosterior &p, const Gaussian &noise,
+    const PredictiveMetadata &md) noexcept {
+  detail::PayloadAccounting b(sizeof(GaussianPredictiveConditioning) -
+                              sizeof(GaussianPredictive));
+  b.add(GaussianPredictive::preparation_payload_bound(p, noise, md)
+            .value_or(SIZE_MAX),
+        1);
+  return b.result();
+}
+std::optional<size_t>
+GaussianPredictiveConditioning::retained_payload_bound() const noexcept {
+  detail::PayloadAccounting b(sizeof(*this));
+  if (posterior_)
+    b.embedded(posterior_->retained_payload_bound(), sizeof(GaussianPosterior));
+  b.embedded(law_.retained_payload_bound(), sizeof(GaussianPredictive));
+  return b.result();
+}
+std::optional<size_t> GaussianPredictiveConditioning::batch_payload_bound(
+    size_t count, PredictiveOutputs outputs) const noexcept {
+  if (!posterior_)
+    return {};
+  const auto overhead =
+      sizeof(*this) - sizeof(GaussianPosterior) - sizeof(GaussianPredictive);
+  return law_.batch_payload_bound(*posterior_, count, outputs, overhead);
+}
+PredictiveBatch GaussianPredictiveConditioning::evaluate(
+    std::span<const double> training, std::span<const std::string> rows,
+    std::span<const double> future, std::span<const std::string> future_rows,
+    size_t count, PredictiveOutputs outputs, PredictivePolicy policy) const {
+  if (!posterior_) {
+    PredictiveBatch out;
+    out.status = status();
+    out.numerical_status = numerical_status();
+    return out;
+  }
+  const auto overhead =
+      sizeof(*this) - sizeof(GaussianPosterior) - sizeof(GaussianPredictive);
+  return law_.condition_batch(*posterior_, training, rows, future, future_rows,
+                              count, outputs, policy, {}, {}, overhead);
 }
 } // namespace irred::statistics

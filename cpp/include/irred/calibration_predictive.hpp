@@ -98,6 +98,12 @@ public:
                   statistics::PredictivePolicy = {}) const;
 
 private:
+  friend class LadderPredictiveConditioning;
+  static LadderPredictive
+  prepare_impl(const LadderPosterior &, std::span<const double>,
+               std::span<const std::string>, const statistics::Gaussian &,
+               Model, statistics::PredictiveMetadata,
+               statistics::PredictivePolicy, bool fixed);
   Model model_;
   Linearization linear_;
   statistics::GaussianPredictive predictive_;
@@ -105,5 +111,56 @@ private:
   statistics::PredictivePolicy policy_;
   statistics::DensityStatus status_ = statistics::DensityStatus::invalid_input;
   numerics::Status numerical_status_ = numerics::Status::invalid_input;
+};
+class LadderPredictiveConditioning {
+public:
+  LadderPredictiveConditioning() = default;
+  LadderPredictiveConditioning(const LadderPredictiveConditioning &) = delete;
+  LadderPredictiveConditioning &
+  operator=(const LadderPredictiveConditioning &) = delete;
+  LadderPredictiveConditioning(LadderPredictiveConditioning &&) noexcept;
+  LadderPredictiveConditioning &
+  operator=(LadderPredictiveConditioning &&) noexcept;
+  static LadderPredictiveConditioning
+  prepare(LadderPosterior &&, const statistics::Gaussian &, Model,
+          statistics::PredictiveMetadata, statistics::PredictivePolicy = {});
+  statistics::DensityStatus status() const noexcept { return law_.status(); }
+  numerics::Status numerical_status() const noexcept {
+    return law_.numerical_status();
+  }
+  // Requires status()==finite; views are invalidated by moves/destruction.
+  const LadderPosterior &posterior() const noexcept { return *posterior_; }
+  std::span<const double> covariance() const noexcept {
+    return law_.covariance();
+  }
+  const Model &model() const noexcept { return law_.model(); }
+  const Linearization &linearization() const noexcept {
+    return law_.linearization();
+  }
+  numerics::Arithmetic arithmetic() const noexcept {
+    return law_.predictive().arithmetic();
+  }
+  const char *method_id() const noexcept {
+    return "proper-prior-ladder-repeated-joint-predictive/v1";
+  }
+  static std::optional<std::size_t>
+  preparation_payload_bound(const LadderPosterior &,
+                            const statistics::Gaussian &, const Model &,
+                            const statistics::PredictiveMetadata &) noexcept;
+  std::optional<std::size_t> retained_payload_bound() const noexcept;
+  std::optional<std::size_t>
+  batch_payload_bound(std::size_t,
+                      statistics::PredictiveOutputs = {}) const noexcept;
+  statistics::PredictiveBatch
+  evaluate(std::span<const double> row_major_training_mag,
+           std::span<const std::string>,
+           std::span<const double> row_major_future_mag,
+           std::span<const std::string>, std::size_t count,
+           statistics::PredictiveOutputs = {},
+           statistics::PredictivePolicy = {}) const;
+
+private:
+  std::optional<LadderPosterior> posterior_;
+  LadderPredictive law_;
 };
 } // namespace irred::calibration
