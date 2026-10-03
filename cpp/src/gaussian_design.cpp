@@ -148,6 +148,9 @@ DesignProfile DesignProfile::prepare(Gaussian &&g, std::span<const double> x,
     out.numerical_status_ = s;
     out.rank_ = DesignRank::unresolved;
   };
+  // Return the actual failed whitening prefix even if a later retained-QR
+  // allocation refuses. The source Gaussian transfers only at success.
+  try {
   out.x_.assign(x.begin(), x.end());
   out.whitened_design_.resize(n * p);
   out.scales_.resize(p);
@@ -275,6 +278,10 @@ DesignProfile DesignProfile::prepare(Gaussian &&g, std::span<const double> x,
   out.numerical_status_ = numerics::Status::ok;
   out.rank_ = DesignRank::full_within_conditioning_contract;
   return out;
+  } catch (const std::bad_alloc &) {
+    fail(numerics::Status::work_limit);
+    return out;
+  }
 }
 DesignResult DesignProfile::evaluate(std::span<const double> r,
                                      std::span<const std::string> ids,

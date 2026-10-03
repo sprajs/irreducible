@@ -281,8 +281,11 @@ std::optional<std::size_t>GaussianBoxHeldout::evaluation_payload_bound(std::size
   auto training_completion=phase(2*sizeof(LD)+sizeof(double),3*sizeof(LD)+sizeof(double),training_completion_headers);
   auto joint_fit=phase(3*sizeof(LD)+sizeof(double),3*sizeof(LD),fit_headers);
   auto joint_completion=phase(sizeof(LD)+sizeof(double),4*sizeof(LD)+sizeof(double),joint_completion_headers);
-  if(!training_fit||!training_completion||!joint_fit||!joint_completion)return {};
-  return std::max({*training_fit,*training_completion,*joint_fit,*joint_completion});
+  // Refusal cleanup can construct a fresh result header while the persistent
+  // partial output still owns its buffers. No sizeof dominance is assumed.
+  auto cleanup=phase(0,0,sizeof(GaussianBoxResult));
+  if(!training_fit||!training_completion||!joint_fit||!joint_completion||!cleanup)return {};
+  return std::max({*training_fit,*training_completion,*joint_fit,*joint_completion,*cleanup});
 }
 std::optional<std::size_t>GaussianBoxHeldout::evaluation_work_bound(std::size_t n,std::size_t p,std::size_t g,std::size_t candidates,std::size_t r,std::size_t identity_bytes)noexcept {
   if(n<3||p<2||p>n-1||p>SIZE_MAX/p||n>SIZE_MAX/n)return {};
@@ -489,6 +492,7 @@ BoxHeldoutBatch GaussianBoxHeldout::evaluate(std::span<const double>pool,
     out.training_offset_subtraction_rounding_estimates.resize(g);out.training_refusal_witnesses.resize(g);
     out.training_cross_projection_error_estimates.resize(g);out.training_cross_projection_diagnostics_available.resize(g);
     out.training_offset_diagnostics_available.resize(g);out.densities.resize(requests.size());
+    out.output_layout_available=true;
     // Exactly 2p+2 wide scalar entries per training vector: QR head p, actual
     // RHS denominator sums p, orthogonal-tail quadratic and h^T whitened RHS.
     std::vector<std::vector<LD>>cache(g);const auto b=detail::RetainedQrAccess::normalized_design(i.training);
@@ -533,6 +537,7 @@ BoxHeldoutBatch GaussianBoxHeldout::evaluate(std::span<const double>pool,
         std::copy(column_scales.begin(),column_scales.end(),cache[k].begin()+p);
         cache[k][2*p]=tail;cache[k][2*p+1]=cross;++out.work.training_completed;
       }catch(const Refusal&f){out.training_refusal_witnesses[k]=f.witness;withhold(normal,f.status);}
+      catch(const std::bad_alloc&){withhold(normal,numerics::Status::work_limit);}
     }
     for(std::size_t q=0;q<requests.size();++q) {
       const auto request=requests[q];auto&result=out.densities[q];result.stage=BoxHeldoutStage::training_normalization;
@@ -597,6 +602,8 @@ BoxHeldoutBatch GaussianBoxHeldout::evaluate(std::span<const double>pool,
         result.stage=BoxHeldoutStage::complete;++out.work.compositions_completed;
       }catch(const Refusal&f){result.refusal_witness=f.witness;result.status=DensityStatus::numerical_failure;
         result.numerical_status=f.status;if(result.joint_normalization.status!=DensityStatus::finite)withhold(result.joint_normalization,f.status);}
+      catch(const std::bad_alloc&){result.status=DensityStatus::numerical_failure;
+        result.numerical_status=numerics::Status::work_limit;withhold(result.joint_normalization,numerics::Status::work_limit);}
       // Per-request actual attempted/completed deltas, separate from the batch
       // precharge. Shared training work is recorded once by the batch.
       result.work=out.work;result.work.charged_work_units=0;

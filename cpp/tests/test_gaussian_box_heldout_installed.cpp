@@ -128,6 +128,7 @@ void emit(const GaussianBoxHeldout&o,const BoxHeldoutBatch&b,char**argv,std::str
   std::cout<<"{\"schema_version\":1,\"declared_wrapper_identity\":{\"engine_head\":";string(argv[1]);
   std::cout<<",\"sdk_manifest_sha256\":";string(argv[2]);std::cout<<",\"compile_manifest_sha256\":";string(argv[3]);
   std::cout<<",\"executable_sha256\":";string(argv[4]);std::cout<<"},\"mode\":";string(mode);
+  std::cout<<",\"batch_origin\":";string(mode=="wire-partial-layout-control"?"serializer-only-partial-allocation-layout":"engine-synthetic-batch");
   std::cout<<",\"actual_environment\":{\"rounding_mode\":"<<std::fegetround()<<",\"double_digits\":"<<std::numeric_limits<double>::digits
     <<",\"long_double_digits\":"<<std::numeric_limits<long double>::digits<<",\"long_double_max_exponent\":"<<std::numeric_limits<long double>::max_exponent<<'}';
   std::cout<<",\"method_id\":";string(b.method_id);std::cout<<",\"law_id\":";string(b.law_id);std::cout<<",\"enclosure_scope\":";string(b.enclosure_scope);
@@ -169,14 +170,15 @@ void emit(const GaussianBoxHeldout&o,const BoxHeldoutBatch&b,char**argv,std::str
   std::cout<<",\"peak_payload_bound\":";count(r.peak_payload_bound);std::cout<<",\"retained_payload_bound\":";count(r.retained_payload_bound);
   std::cout<<",\"work\":";work(r.work);std::cout<<"},\"frozen_work_caps\":["<<p.maximum_preparation_work_units<<','<<p.maximum_evaluation_work_units<<']';
   std::cout<<",\"batch_status\":"<<int(b.status)<<",\"batch_numerical_status\":"<<int(b.numerical_status)<<",\"scratch_output_payload_bound\":";count(b.scratch_output_payload_bound);
+  std::cout<<",\"output_layout_available\":"<<b.output_layout_available;
   std::cout<<",\"training_normalizations\":[";for(std::size_t j=0;j<b.training_normalizations.size();++j){if(j)std::cout<<',';normalization(b.training_normalizations[j]);}
   std::cout<<"],\"training_refusal_witnesses\":[";for(std::size_t j=0;j<b.training_refusal_witnesses.size();++j){if(j)std::cout<<',';witness(b.training_refusal_witnesses[j]);}
   std::cout<<"],\"training_offset_subtraction_rounding_estimates\":[";
   for(std::size_t j=0;j<b.training_offset_subtraction_rounding_estimates.size();++j){if(j)std::cout<<',';
-    number(b.training_offset_subtraction_rounding_estimates[j],b.training_offset_diagnostics_available[j]);}
+    number(b.training_offset_subtraction_rounding_estimates[j],j<b.training_offset_diagnostics_available.size()&&b.training_offset_diagnostics_available[j]);}
   std::cout<<"],\"training_cross_projection_error_estimates\":[";
   for(std::size_t j=0;j<b.training_cross_projection_error_estimates.size();++j){if(j)std::cout<<',';
-    number(b.training_cross_projection_error_estimates[j],b.training_cross_projection_diagnostics_available[j]);}
+    number(b.training_cross_projection_error_estimates[j],j<b.training_cross_projection_diagnostics_available.size()&&b.training_cross_projection_diagnostics_available[j]);}
   std::cout<<"],\"training_offset_diagnostics_available\":[";
   for(std::size_t j=0;j<b.training_offset_diagnostics_available.size();++j){if(j)std::cout<<',';std::cout<<bool(b.training_offset_diagnostics_available[j]);}
   std::cout<<"],\"training_cross_projection_diagnostics_available\":[";
@@ -197,7 +199,7 @@ void emit(const GaussianBoxHeldout&o,const BoxHeldoutBatch&b,char**argv,std::str
 }
 int main(int argc,char**argv) {
   if(argc!=6||!hex(argv[1],40)||!hex(argv[2],64)||!hex(argv[3],64)||!hex(argv[4],64))return 1;
-  const std::string_view mode=argv[5];if(mode!="accepted"&&mode!="schur-refused"&&mode!="shape-refused"&&mode!="wire-nonfinite-control")return 1;
+  const std::string_view mode=argv[5];if(mode!="accepted"&&mode!="schur-refused"&&mode!="shape-refused"&&mode!="wire-nonfinite-control"&&mode!="wire-partial-layout-control")return 1;
   box_heldout_controls::Input in;if(mode=="schur-refused")in.covariance[8]=.3125+0x1p-50;
   auto g=in.gaussian();const auto before=g.status();const auto source_numerical=g.numerical_status();const auto source_kind=g.input_matrix_kind();auto p=in.policy(g);auto owner=in.prepare(std::move(g),p);
   BoxHeldoutBatch b;
@@ -207,6 +209,13 @@ int main(int argc,char**argv) {
   // diagnostics; it does not claim the engine produced this value.
   if(mode=="wire-nonfinite-control") {std::cout<<"{\"scope\":\"serializer-only-synthetic-witness\",\"witness\":";
     witness(std::numeric_limits<long double>::infinity());std::cout<<",\"absent\":";witness(std::nullopt);std::cout<<"}\n";return 0;}
+  // A serializer-only partial outer layout recreates the legal allocation
+  // prefix without claiming that the engine produced an allocation failure.
+  if(mode=="wire-partial-layout-control") {
+    b=BoxHeldoutBatch{};b.status=DensityStatus::numerical_failure;b.numerical_status=irred::numerics::Status::work_limit;
+    b.training_offset_subtraction_rounding_estimates={42};b.training_cross_projection_error_estimates={43};
+    emit(owner,b,argv,mode,before,source_numerical,source_kind,g.status(),p);return 0;
+  }
   emit(owner,b,argv,mode,before,source_numerical,source_kind,g.status(),p);
   if(owner.status()==DensityStatus::finite) {
     const auto same=[](auto a,auto b){return a.size()==b.size()&&std::equal(a.begin(),a.end(),b.begin());};

@@ -28,6 +28,7 @@ int main(){try {
   near(owner.preparation().schur_variance,11./16);
   check(owner.preparation().work.factor_attempts==1&&owner.preparation().work.factors_completed==1,"one training factor");
   auto result=evaluate(owner,policy);check(result.status==DensityStatus::finite,"batch shape admitted");
+  check(result.output_layout_available,"complete public output layout earned");
   check(result.densities[0].density_available,"analytic correlated heldout admitted");
   // Exact a=0 makes parameter integration cancel for every box and yT. The
   // scalar target is log sqrt(8/(11*pi)); libm here is a convenience check,

@@ -27,7 +27,7 @@ def normalization(value):
 def main():
     binary = sys.argv[1]
     identity = ["0" * 40, "1" * 64, "2" * 64, "3" * 64]
-    for mode in ("accepted", "schur-refused", "shape-refused", "wire-nonfinite-control"):
+    for mode in ("accepted", "schur-refused", "shape-refused", "wire-nonfinite-control", "wire-partial-layout-control"):
         run = subprocess.run([binary, *identity, mode], capture_output=True, text=True, check=False)
         require(run.returncode == 0, mode + " caller refusal/acceptance control")
         result = json.loads(run.stdout, parse_float=Decimal, parse_constant=reject_constant)
@@ -40,6 +40,21 @@ def main():
         declared = result["declared_wrapper_identity"]
         require(list(declared.values()) == identity, "single-quoted owning identity fields")
         require(isinstance(result["preparation"]["availability"], list), "preparation availability")
+        require(isinstance(result["output_layout_available"], bool), "outer output layout availability")
+        if result["output_layout_available"]:
+            count = len(result["training_normalizations"])
+            require(all(len(result[key]) == count for key in (
+                "training_refusal_witnesses", "training_offset_subtraction_rounding_estimates",
+                "training_cross_projection_error_estimates", "training_offset_diagnostics_available",
+                "training_cross_projection_diagnostics_available")), "earned matching training layout")
+        if mode == "wire-partial-layout-control":
+            require(result["batch_origin"] == "serializer-only-partial-allocation-layout", "partial layout control scope")
+            require(not result["output_layout_available"], "partial layout unavailable")
+            require(result["training_offset_subtraction_rounding_estimates"] == [None] and
+                    result["training_cross_projection_error_estimates"] == [None], "missing flags withhold actual values")
+            require(result["training_offset_diagnostics_available"] == [] and
+                    result["training_cross_projection_diagnostics_available"] == [], "missing flags retained")
+            continue
         for value in result["training_normalizations"]:
             normalization(value)
         for value in result["densities"]:

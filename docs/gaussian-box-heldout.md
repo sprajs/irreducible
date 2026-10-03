@@ -109,7 +109,17 @@ receipts move intact, and self moves preserve state.
 A failure retains only availability-qualified diagnostics. Optional raw refusal
 witnesses may be nonfinite and must be transported as tagged values, not bare
 JSON `nan`/`inf` or invented finite zero. The installed consumer source includes
-accepted, Schur-refused, shape-refused and serializer-only nonfinite controls.
+accepted, Schur-refused, shape-refused and serializer-only nonfinite and partial
+allocation-layout controls. A batch earns `output_layout_available` only after
+all public arrays finish initialization; a partial layout can have different
+array lengths and missing flags withhold their scalar as `null`. Per-item
+allocation failures retain their actual attempted work and earned diagnostics,
+while a failed training cache withholds every dependent request. Late retained
+QR allocations return the actual whitening prefix. The separate bounded
+allocation-ordinal source control checks tiny setup/profile/pooled-evaluation
+prefixes, requested C++ heap peaks and leak freedom; it disables injection
+before serialization. Argument construction before entry can still throw and
+cannot consume the original source.
 Synthetic analytic and independent direct rectangle-quadrature tests are
 separate from the released reference and its qualification.
 

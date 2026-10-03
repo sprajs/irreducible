@@ -95,6 +95,9 @@ struct BoxHeldoutBatch {
   // its availability. Shared admission refusals publish no usable scalar.
   DensityStatus status = DensityStatus::invalid_input;
   numerics::Status numerical_status = numerics::Status::invalid_input;
+  // False on a partial outer allocation prefix. Individual arrays may then
+  // have different sizes; only present availability flags qualify scalars.
+  bool output_layout_available = false;
   std::vector<GaussianBoxResult> training_normalizations;
   std::vector<double> training_offset_subtraction_rounding_estimates;
   // Absolute cached dot-product error estimate, not a certificate. Kept
