@@ -20,6 +20,13 @@ Start with a calculation an agent needs. Add a physical model, reader or numeric
 
 Do not mutate source while another build is reading it. Coordinate shared CPU/memory budgets. The exclusive build-identity test belongs in an isolated checkout and must run directly as described in [testing](testing.md).
 
+Generation compares final bytes, including the formatted Rust binding, before
+writing headers, bindings or the request schema. The build manifest is likewise
+written only when its complete serialized content changes. An unchanged build
+preserves these timestamps so CMake and Cargo can reuse their artifacts. Source,
+tool, flag, job-count and Git metadata changes still update the manifest and its
+embedded receipt; this is a build-efficiency rule, not a numerical speed claim.
+
 Use `irred` for generic C++ namespaces and `irred_core` for the native library. Public headers live under `cpp/include/irred/`. Expansion models use `irred::cosmology`; supernova and BAO consumers use `irred::supernova` and `irred::bao`. Cosmology is not the root for generic numerical or observation infrastructure. Keep one current public interface; coherent changes may replace obsolete C ABI names and callers together. Preserve immutable scientific/method/source identities rather than iteration plumbing.
 
 ## Publishing

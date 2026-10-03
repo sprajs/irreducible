@@ -2,6 +2,7 @@
 """One entry point: generate, CMake, then Cargo. No recursive build managers."""
 import argparse,hashlib,json,pathlib,subprocess,os,shutil
 from ci_identity import source_version
+from build_files import write_if_changed
 parser=argparse.ArgumentParser(description=__doc__)
 parser.add_argument("--profile",choices=["debug","release"],default="debug")
 parser.add_argument("--jobs",type=int,choices=range(1,5),default=4)
@@ -33,6 +34,6 @@ revision=manifest.pop('git_head')
 manifest['build_id']=hashlib.sha256(json.dumps(manifest,sort_keys=True,separators=(',',':')).encode()).hexdigest()
 manifest['git_head']=revision
 manifest['git_status']=subprocess.check_output(['git','status','--porcelain'],text=True)
-(root/'build').mkdir(exist_ok=True); (root/manifest_file).write_text(json.dumps(manifest,sort_keys=True,indent=2)+'\n')
+(root/'build').mkdir(exist_ok=True); write_if_changed(root/manifest_file,json.dumps(manifest,sort_keys=True,indent=2)+'\n')
 run(cmake,'--build',native_dir,'--parallel',str(jobs))
 run('cargo','build','--locked','--offline','-j',str(jobs),*(['--release'] if profile=='release' else []))

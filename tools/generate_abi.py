@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Generate both languages from one versioned structural schema; no science algebra."""
 import json,pathlib,re,subprocess
+from build_files import write_if_changed
 root=pathlib.Path(__file__).resolve().parents[1]
 s=json.loads((root/'schema/abi.json').read_text())
 types={'u32':('uint32_t','u32'),'u64':('uint64_t','u64'),'const_i64_ptr':('const int64_t*','*const i64'),'const_f64_ptr':('const double*','*const f64'),'const_i64_out':('const int64_t**','*mut *const i64'),'const_f64_out':('const double**','*mut *const f64'),'const_u32_out':('const uint32_t**','*mut *const u32'),'const_u64_out':('const uint64_t**','*mut *const u64'),'u64_ptr':('uint64_t*','*mut u64'),'result':('irred_result*','*mut std::ffi::c_void'),'const_result':('const irred_result*','*const std::ffi::c_void'),'result_out':('irred_result**','*mut *mut std::ffi::c_void')}
@@ -118,22 +119,24 @@ c.append('static inline uint64_t irred_numerics_output_length(uint32_t operation
 for name,shape in s['numerical_output_shapes'].items():c.append(f'case IRRED_NUMERICAL_OPERATION_{macro(name)}:return '+('1' if shape=='scalar' else 'input')+';')
 c.append('default:return UINT64_MAX;}}')
 c+=['#ifdef __cplusplus','}','#endif']
-(root/'cpp/include/irred/abi.h').write_text('\n'.join(c)+'\n');(root/'src/abi_generated.rs').write_text('\n'.join(r)+'\n')
+write_if_changed(root/'cpp/include/irred/abi.h','\n'.join(c)+'\n')
+# Compare the final formatted binding, not the transient unformatted generator text.
+formatted_rust=subprocess.run(['rustfmt','--emit','stdout'],input='\n'.join(r)+'\n',text=True,stdout=subprocess.PIPE,check=True).stdout
+write_if_changed(root/'src/abi_generated.rs',formatted_rust)
 checks=[]
 for group,enum in [('unit','Unit'),('role','Role'),('frame','Frame'),('convention','LengthConvention'),('quantity_status','QuantityStatus')]:
  for name in s['quantity_tags'][group]:checks.append(f'static_assert(static_cast<uint32_t>(irred::{enum}::{name}) == IRRED_{macro(group)}_{macro(name)});')
 for name in s['numerical_tags']['status']:checks.append(f'static_assert(static_cast<uint32_t>(irred::numerics::Status::{name}) == IRRED_NUMERICAL_STATUS_{macro(name)});')
-(root/'cpp/include/irred/quantity_enum_checks.inc').write_text('// Generated structural ID agreement; physical semantics owned by quantities.cpp.\n'+'\n'.join(checks)+'\n')
+write_if_changed(root/'cpp/include/irred/quantity_enum_checks.inc','// Generated structural ID agreement; physical semantics owned by quantities.cpp.\n'+'\n'.join(checks)+'\n')
 observation_checks=[]
 for group,enum in [('profile','Profile'),('role','Role'),('unit','Unit'),('calibration','Calibration'),('uncertainty','Uncertainty'),('uncertainty_unit','UncertaintyUnit'),('component','Component'),('selection','Selection'),('status','Status')]:
  for name in s.get('observation_tags',{}).get(group,{}):
   observation_checks.append(f'static_assert(static_cast<uint32_t>(irred::observations::{enum}::{name}) == IRRED_OBSERVATION_{macro(group)}_{macro(name)});')
-(root/'cpp/include/irred/observation_enum_checks.inc').write_text('// Generated structural observation tag agreement.\n'+'\n'.join(observation_checks)+'\n')
-subprocess.run(['rustfmt',str(root/'src/abi_generated.rs')],check=True)
+write_if_changed(root/'cpp/include/irred/observation_enum_checks.inc','// Generated structural observation tag agreement.\n'+'\n'.join(observation_checks)+'\n')
 
 # Agent-facing current requests use the same structural tags and one schema.
 from run_schema import build_schema
 run_path=root/'schema/run.schema.json'
 existing=json.loads(run_path.read_text())
 fixture=existing.get('$defs',{}).get('fixture',existing)
-run_path.write_text(json.dumps(build_schema(s,fixture),indent=2)+'\n')
+write_if_changed(run_path,json.dumps(build_schema(s,fixture),indent=2)+'\n')

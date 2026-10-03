@@ -26,6 +26,7 @@ python3 tools/build.py
 cargo test --locked --offline -j4
 python3 tools/check_docs.py
 python3 tools/check_install.py
+python3 tools/test_build_files.py
 ```
 
 C++ tests exercise scientific/numerical contracts and hostile ABI cases. Rust tests cover safe wrappers, request parsing, records and the CLI. `check_docs.py` checks tracked publication paths and relative Markdown file links; it does not validate equations, external websites or every Markdown feature.
@@ -45,6 +46,13 @@ Cargo prints the compiled test executable path. Run **that exact path**, followe
 ```
 
 Do not launch it through a nested Cargo test invocation. Ordinary Cargo testing intentionally ignores it. It checks that source changes (including `cpp/**/*.cmake` fragment digests) affect build identity, mutable local files do not, unsupported overrides fail, and poisoned CMake flags are reset. The fragment probe verifies actual CMake inclusion and restores both its bytes and the original include list before removal. Preserve the original checkout if the process is forcibly terminated before restoration.
+
+The mutation check builds with one compiler job. The unchanged-build case also
+requires preserved timestamps for generated
+headers/bindings/schema, the manifest, native archive and Rust executable. The
+fast `test_build_files.py` checks identical final generator bytes and timestamps,
+schema-change invalidation in a temporary tree, exact newline bytes and write
+failures. It runs in the documentation/contracts CI check.
 
 ## Fixture ancestry
 
