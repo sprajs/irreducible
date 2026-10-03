@@ -651,6 +651,13 @@ void append(ClosedRun &run,unsigned kind,unsigned ki,unsigned ti,unsigned coordi
   Bytes local(sizeof(WireRecord));work().copy(0);work().encoded_copy_bytes+=sizeof(WireRecord);
   WireRecord record;record.kind=kind;record.ki=ki;record.ti=ti;record.coordinate=coordinate;
   encode(record.box,value,a,roundtrip);run.append(std::move(record));
+  const auto &published=run.records[run.records.size()-1];
+  // Publish as soon as this exact record is complete. A later refinement,
+  // allocation or profile refusal cannot destroy earlier completed bytes.
+  std::cout<<"REFERENCE_RECORD n="<<run.subdivisions<<" precision="<<run.precision<<" kind="<<kind
+    <<" k="<<ki<<" ti="<<ti<<" coordinate="<<coordinate<<" partial_run=true interval="
+    <<published.box.low.bytes.data()<<','<<published.box.high.bytes.data()<<'\n';
+  require(std::cout.good(),"exact reference record output refusal");
 }
 void print_endpoint(mpfr_srcptr x) {
   Bytes local(sizeof(EncodedEndpoint));work().copy(0);work().encoded_copy_bytes+=sizeof(EncodedEndpoint);
@@ -808,10 +815,16 @@ void capture(Input &in,const irred::cosmology::FiniteOpacitySourceResult &native
           native.source->polarization.size()==10 && native.identity->seeds.size()==2 &&
           native.identity->original.k_mpc_inverse.size()==2 && native.identity->original.opacity.eta_mpc.size()==2 &&
           native.identity->original.opacity.differential_opacity_mpc_inverse.size()==2,"full native source shape");
+  require(native.source->k_mpc_inverse.size()==2 &&
+          native.source->k_mpc_inverse==native.identity->original.k_mpc_inverse &&
+          native.source->eta_mpc.front()==native.identity->original.opacity.eta_mpc.front() &&
+          native.source->eta_mpc.back()==native.identity->original.opacity.eta_mpc.back(),"same original source axis/order");
   for(const auto &attempt:native.attempts)require(attempt.status==S::ok&&attempt.reached_wavenumbers==2&&
       attempt.nodes.size()==10&&attempt.completed_steps==attempt.attempted_steps,"complete native attempt");
   const auto &last=native.attempts.back();require(last.hierarchy==192&&last.time_refinement==2&&
       last.final_temperature_tail.size()==380&&last.final_polarization_tail.size()==380,"endpoint-only native tails");
+  for(unsigned ki=0;ki<2;++ki)for(unsigned ti=0;ti<5;++ti){const auto &node=last.nodes[ki*5+ti];
+    require(node.k_index==ki&&node.eta_index==ti&&node.eta_mpc==native.source->eta_mpc[ti],"actual ordered node lineage");}
   for(const auto &d:native.diagnostics)require(!d.common_background_clock_error && !d.arithmetic_linear_error &&
       !d.source_grid_error,"native upstream missing error stays absent");
   const auto &id=*native.identity;const auto &bg=id.background.source();
@@ -824,7 +837,13 @@ void capture(Input &in,const irred::cosmology::FiniteOpacitySourceResult &native
   for(unsigned ki=0;ki<2;++ki)in.emitted_seed[ki]=id.seeds[ki].emitted_core;
   require(in.time[0]>=225&&in.time[0]<=640&&in.time[4]-in.time[0]<=2.5&&in.time[4]>in.time[0],"selected short low-phase source axis");
   for(unsigned ti=1;ti<5;++ti)require(in.time[ti]>in.time[ti-1],"actual emitted quarter order");
-  require(native.boundary()&&native.boundary()->survival_i>0&&native.boundary()->tau_i>0,"native positive boundary retained");
+  require(native.boundary()&&native.boundary()->survival_i>0&&native.boundary()->tau_i>0&&
+          native.boundary()->photon_monopole.size()==2&&native.boundary()->photon_dipole_theta_over_k.size()==2&&
+          native.boundary()->omitted_temperature_absolute_bound.size()==2,"native positive boundary retained");
+  for(unsigned ki=0;ki<2;++ki)require(std::isfinite(native.boundary()->photon_monopole[ki])&&
+      std::isfinite(native.boundary()->photon_dipole_theta_over_k[ki])&&
+      std::isfinite(native.boundary()->omitted_temperature_absolute_bound[ki])&&
+      native.boundary()->omitted_temperature_absolute_bound[ki]>0,"finite positive original boundary state");
 }
 void recurrence_and_zero_opacity_controls(const Input &original) {
   require(work().live_intervals==0,"isolated operator control lifetime");
@@ -931,6 +950,12 @@ bool compare(const std::array<ClosedRun,4> &runs,const irred::cosmology::FiniteO
       std::cout<<"SUPPLEMENTARY kind="<<r.kind<<" k="<<r.ki<<" ti="<<r.ti<<" coordinate="<<r.coordinate
                <<" refinement_overlap="<<refinement<<" interval="<<r.box.low.bytes.data()<<','<<r.box.high.bytes.data()
                <<" upstream_error=unavailable\n";
+      if(r.kind==5){const auto &boundary=*native.boundary();
+        a.stored(x[19],r.coordinate==0?boundary.tau_i:r.coordinate==1?boundary.survival_i:boundary.omitted_temperature_absolute_bound[r.ki]);
+        center(x[18],x[3]);a.sub(x[19],x[19],x[18]);a.absolute(x[19],x[19]);
+        std::cout<<"BOUNDARY_NOMINAL_DIFFERENCE k="<<r.ki<<" coordinate="<<r.coordinate<<" interval=";
+        print_box(x[19]);std::cout<<" allocation=unavailable;positive boundary is retained,not composed\n";
+      }
       accepted=accepted&&refinement;
       if(r.kind==4){ // aE must retain the same emitted seed's small E_i.
         const WireRecord *initial=nullptr;for(const auto &candidate:runs.back().records)
