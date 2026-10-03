@@ -63,6 +63,11 @@ different relevant raw inputs do not establish zero variance.
 
 ## Frozen finite-operation diagnostic graph
 
+This local caller requires GNU libstdc++ copied-string capacity semantics,
+nearest rounding, long double with at least 64 precision bits and exponent 16384,
+and compilation without fast/finite-only arithmetic or floating contraction.
+Unsupported profiles refuse before native work. These are caller profile
+restrictions, separately checked from the installed library's build profile.
 Let W be the supported strict nearest long double, u=epsilon(W)/2. Each
 nonzero normal wide add/subtract/multiply result r receives the finite-
 operation round allowance `r_round=abs(r)*u/(1-u)`, rounded upward in W.
@@ -123,12 +128,15 @@ intakes, four abundance prepare/map calls and each of the native four work
 categories once, including failure. Every child receives the remaining global
 work/byte ceiling; requested and served values are separately owned.
 
-Evaluation logical counts are two dispatches, six queried rows, twelve required
+Evaluation logical counts are two dispatches, six requested row attempts, twelve required
 scalar collections, six bounded raw-input witnesses, six mean coordinates,
 six difference coordinates, twenty-one upper-triangle products and twenty-seven
 result projections. Failed operations still count. These are bounded logical
-categories, not CPU instruction counts. Physical preparation work is reported
-separately; output work sums never supply ledger freshness.
+categories, not CPU instruction counts. Row attempts are charged before the
+pooled native dispatch even if allocation refusal leaves no native rows. Every
+actual native preparation counter imports independently; checked overflow
+withholds a total rather than truncating failed work. Physical preparation work
+is reported separately; output work sums never supply ledger freshness.
 
 The whole-live expression reserves two complete public
 `hydrogen_helium_history_payload_bound` envelopes using the admitted maximum
@@ -139,7 +147,8 @@ node capacities. Caller-known actual capacities are reported separately.
 Add two local owner headers for unelided return/move, the immutable source
 header and all string/species copy envelopes, abundance source/owner/temporary
 headers/strings, a history request header/origin, map/emitted snapshots,
-both prior and new complete query receipt headers/native row capacities,
+prior, local-return and new destination receipt headers, both receipts' native
+row capacities,
 fixed six-axis/full-36-cell moments and diagnostics, and wide reduction scratch.
 All fixed arrays are charged at their full sizeof storage; their stack location
 does not exempt them. Shared source is charged once. Checked products/additions
@@ -165,6 +174,20 @@ the caller. Their actual execution must be recorded before they are described
 as passing. A fresh installed-header/static-library caller gate is independent
 of simply linking tests inside the build tree.
 
+The dedicated CMake fragment separates quick source/rational controls, native
+history controls and the complete preparation/query allocation-site sweep.
+The sweep is a finite set of original-source preparations at the allocation
+sites observed in its successful baseline; each is a separately capped scope.
+Its total execution admission is separate from one caller's 8,000,006 preparation
+budget. An unsafe caller flag target must refuse before native work.
+`tools/check_abundance_history_cohort_install.py` installs a matching native
+build into a fresh prefix and compiles the caller using that prefix's public
+headers/static library. `--output-receipt` preserves each install, compile and
+execution stage, including failures. `--require-library-no-elision` requires
+all recorded core compile commands to request no elision; exact compiled-object
+and runtime evidence is still needed. No source/profile metadata earns runtime
+acceptance. This worker has executed none of these gates.
+
 An independent complete trajectory/moment comparison must use exact emitted
 working inputs and restore original row order and duplicates. All affecting
 arithmetic, nonlinear-solve, interpolation/projection and refinement error must
@@ -173,6 +196,18 @@ remapping/sorting reference cannot be run unchanged for this law. Complete
 five-percent reference qualification remains withheld; inherited Decimal rate
 facts and long-double/system-libm stiff agreement are not a full high-precision
 trajectory certificate. Fixed support/allocations cannot be tuned after failure.
+
+The focused reference extension preserves the existing physical-remapping
+`integrate` entry point, solver, constants and sorted unique output convention.
+The distinct `EmittedThermalSource`/`integrate_emitted` route takes retained
+binary64 photon/baryon/CDM/other massless fractional densities and emitted
+nuclei. It holds the mapped photon energy fixed for Compton exchange; raw T0
+continues to define the source photon temperature/initial matter temperature.
+The route restores the original requested order and duplicate occurrences after
+the unchanged sorted-stop integration. Its sorted and restored row buffers
+coexist during that restoration, and all original work counters are preserved.
+This adapter supplies source identity and order; it does not qualify the full
+reference arithmetic or propagate abundance-map error into kinetics.
 
 This synthetic pushforward supplies neither a physical joint abundance law,
 BBN, atomic/model uncertainty, arbitrary matter-T history, full helium stages,

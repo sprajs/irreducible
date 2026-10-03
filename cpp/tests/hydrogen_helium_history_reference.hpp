@@ -8,7 +8,9 @@
 #include <cmath>
 #include <limits>
 #include <numbers>
+#include <optional>
 #include <stdexcept>
+#include <utility>
 #include <vector>
 namespace hydrogen_helium_history_reference {
 using W = long double;
@@ -22,6 +24,11 @@ struct Model {
       other = 1.7e-5, nH0 = .19, nHe0 = .015, initial = 2700, late = 300;
   std::vector<std::array<double, 2>> massless_species;
 };
+// Defining emitted working inputs, not reference expectations or propagated
+// physical mapping uncertainty. Fractions are today's Omega, not omega=Omega*h^2.
+struct EmittedThermalSource {
+  double photon_fraction, baryon_fraction, cdm_fraction, other_massless_fraction;
+};
 struct Stats { std::size_t steps = 0, rhs = 0, newton = 0; W root_correction = 0; };
 W mpc() { return 1e6L * 648000 / std::numbers::pi_v<W> * 149597870700.L; }
 W radiation_constant() {
@@ -30,6 +37,8 @@ W radiation_constant() {
 struct Physics {
   Model model;
   W photon, radiation, matter, lambda, H100;
+  std::optional<EmittedThermalSource> emitted_source;
+  std::optional<W> fixed_photon_energy_today;
   explicit Physics(Model m) : model(m) {
     H100 = 100000 / mpc();
     const W critical = 3 * H100 * H100 / (8 * std::numbers::pi_v<W> * G);
@@ -40,6 +49,31 @@ struct Physics {
     matter = W(m.baryon) + m.cdm;
     lambda = std::pow(W(m.H0) / 100, 2) - radiation - matter;
     if (!(lambda >= 0)) throw std::runtime_error("reference flat closure");
+  }
+  // Distinct exact-emitted source route. Original Model H0/T0/emitted nH0/nHe0
+  // and boundaries remain retained. Physical baryon/CDM/other values are
+  // provenance here and are deliberately not remapped into the working law.
+  Physics(Model m, const EmittedThermalSource &source) : model(std::move(m)), emitted_source(source) {
+    if (!model.massless_species.empty()) throw std::runtime_error("emitted reference requires empty species");
+    for (double v : {model.H0, model.T0, model.nH0, model.nHe0, model.initial, model.late,
+                     source.photon_fraction, source.baryon_fraction, source.cdm_fraction,
+                     source.other_massless_fraction})
+      if (!std::isfinite(v)) throw std::runtime_error("nonfinite emitted reference source");
+    if (!(model.H0 > 0 && model.T0 > 0 && model.nH0 > 0 && model.nHe0 > 0 &&
+          model.initial > model.late && model.late >= 0 && source.photon_fraction > 0 &&
+          source.baryon_fraction > 0 && source.cdm_fraction > 0 && source.other_massless_fraction >= 0))
+      throw std::runtime_error("emitted reference source domain");
+    H100 = 100000 / mpc();
+    const W h_ratio = W(model.H0) / 100, h2 = h_ratio * h_ratio,
+        critical = 3 * H100 * H100 / (8 * std::numbers::pi_v<W> * G),
+        radiation_fraction = W(source.photon_fraction) + source.other_massless_fraction,
+        matter_fraction = W(source.baryon_fraction) + source.cdm_fraction,
+        lambda_fraction = 1 - radiation_fraction - matter_fraction;
+    if (!(lambda_fraction >= 0)) throw std::runtime_error("emitted reference flat closure");
+    photon = W(source.photon_fraction) * h2;
+    radiation = radiation_fraction * h2; matter = matter_fraction * h2;
+    lambda = lambda_fraction * h2;
+    fixed_photon_energy_today = photon * critical * c * c;
   }
   W hubble(W u) const { return H100 * std::sqrt(radiation * u * u * u * u + matter * u * u * u + lambda); }
   State initial() const {
@@ -84,8 +118,11 @@ struct Physics {
         CHe = (51.3L + escapeHe) / (51.3L + escapeHe + betaHe),
         groundH = alphaH * Q * std::exp(-chiH / (kb * T)),
         groundHe = 4 * alphaHe * Q * std::exp(-chiHe / (kb * T)),
-        gamma_over_H = 8 * sigma * radiation_constant() * std::pow(Tr, 4) /
-                       (3 * me * c * H) * ne / (nH + nHe + ne);
+        gamma_over_H = fixed_photon_energy_today
+            ? 8 * sigma * *fixed_photon_energy_today * u * u * u * u /
+                (3 * me * c * H) * ne / (nH + nHe + ne)
+            : 8 * sigma * radiation_constant() * std::pow(Tr, 4) /
+                (3 * me * c * H) * ne / (nH + nHe + ne);
     return {-CH * (alphaH * ne * state[0] - groundH * (1 - state[0])) / H,
             -CHe * (alphaHe * ne * state[1] - groundHe * (1 - state[1])) / H,
             -state[2] - gamma_over_H * (state[2] - 1)};
@@ -176,8 +213,9 @@ State step(const Physics &f, W s, W ds, State y, Stats &stats) {
 }
 struct Row { W z, hydrogen, helium, temperature, electrons, opacity; };
 struct Result { std::vector<Row> rows; Stats stats; };
-Result integrate(Model model, const std::vector<W> &requested, unsigned refinement) {
-  Physics f(model); State state = f.initial(); W s = 0;
+Result integrate_physics(Physics f, const std::vector<W> &requested, unsigned refinement) {
+  const Model &model = f.model;
+  State state = f.initial(); W s = 0;
   std::vector<W> stops = requested; stops.push_back(model.initial); stops.push_back(model.late);
   stops.push_back(W(model.initial) - .1L);
   std::sort(stops.begin(), stops.end(), std::greater<W>());
@@ -204,5 +242,34 @@ Result integrate(Model model, const std::vector<W> &requested, unsigned refineme
     if (std::find(requested.begin(), requested.end(), stops[j]) != requested.end()) append(stops[j]);
   }
   return out;
+}
+// Existing actual consumer retains the physical-remapping entry point and
+// sorted unique result convention. Solver, mesh, Newton and source facts are
+// unchanged. The exact-emitted cohort has a separately identified entry point.
+Result integrate(Model model, const std::vector<W> &requested, unsigned refinement) {
+  return integrate_physics(Physics(std::move(model)), requested, refinement);
+}
+Result restore_original_rows(Result out, const std::vector<W> &requested) {
+  // Own both buffers while restoring literal source order and duplicate
+  // occurrences. The returned rows have exactly the original requested length;
+  // caller row IDs remain attached by original index, never by a sorted join.
+  std::vector<Row> restored;
+  restored.reserve(requested.size());
+  for (W z : requested) {
+    const auto row = std::find_if(out.rows.begin(), out.rows.end(),
+                                  [&](const Row &r) { return r.z == z; });
+    if (row == out.rows.end()) throw std::runtime_error("missing emitted reference row");
+    restored.push_back(*row);
+  }
+  out.rows.swap(restored);
+  return out;
+}
+Result integrate_emitted(Model model, const EmittedThermalSource &source,
+                         const std::vector<W> &requested, unsigned refinement) {
+  for (W z : requested)
+    if (!std::isfinite(z) || z < W(model.late) || z > W(model.initial))
+      throw std::runtime_error("emitted reference query domain");
+  auto out = integrate_physics(Physics(std::move(model), source), requested, refinement);
+  return restore_original_rows(std::move(out), requested);
 }
 } // namespace hydrogen_helium_history_reference
