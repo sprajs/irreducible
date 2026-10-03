@@ -7,6 +7,13 @@ installed SDK and source-error admission gates remain pending. It supplies no
 finite opacity, recombination, photon hierarchy, polarization, CMB spectrum or
 ordinary full-support matter amplitude.
 
+At 8e87b8f, the fresh strict Release build compiled the native, portable peer,
+optional MPFR reference and shared diagnostic targets. The native and shared
+contracts passed. The portable peer then exposed an exhausted early-age budget
+being reported as a generic invalid integration policy; the run stopped before
+the MPFR campaign. That original failure is retained. The narrow owner refusal
+correction and limits 0, 1 and 2 controls await a fresh validation run.
+
 The declared infinite momentum-coupling limit first sums the photon and baryon
 enthalpy-weighted momentum equations. Their exchange cancels before their common
 velocity is imposed. Cold baryon pressure and zero photon shear are additional

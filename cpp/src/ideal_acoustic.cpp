@@ -148,10 +148,20 @@ double age_integrand(double u,const void *opaque) {
 }
 struct InitialAge { S status=S::invalid_input; W value=0, estimate=0; };
 InitialAge initial_age(Context &c,W start) {
+  const auto &limit=c.budget.p;
+  const auto &spent=c.budget.work;
+  if (spent.age_evaluations>limit.maximum_age_evaluations ||
+      spent.background_evaluations>limit.maximum_background_evaluations)
+    return {S::work_limit,0,0};
+  const auto available=std::min(
+      limit.maximum_age_evaluations-spent.age_evaluations,
+      limit.maximum_background_evaluations-spent.background_evaluations);
+  // The quadrature requires its three initial callbacks. An exhausted caller
+  // budget is an owned resource refusal, before the generic integrator sees an
+  // invalid zero-callback policy; no callback or counter is silently reset.
+  if (available<3) return {S::work_limit,0,0};
   AgeContext ac{c,start};
-  numerics::IntegrationPolicy p{1e-11,1e-11,
-    std::min(c.budget.p.maximum_age_evaluations-c.budget.work.age_evaluations,
-             c.budget.p.maximum_background_evaluations-c.budget.work.background_evaluations),30};
+  numerics::IntegrationPolicy p{1e-11,1e-11,available,30};
   const auto q=numerics::integrate(age_integrand,&ac,0,1,p);
   InitialAge out;
   out.status=ac.status==S::ok ? q.status : ac.status;

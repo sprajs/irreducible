@@ -363,18 +363,40 @@ void native_refusal_controls(native::IdealAcousticTransfer &owner) {
        "empty output mask refuses");
   need(owner.evaluate(duplicate_k, early_a, 512).status == S::invalid_input,
        "unknown output mask refuses");
-  auto capped = native::IdealAcousticPolicy{};
-  capped.maximum_background_evaluations = 0;
-  const auto stopped = owner.evaluate(duplicate_k, early_a, mask, capped);
-  need(stopped.evaluation_work.background_evaluations == 0,
-       "zero native background cap is preserved");
-  need(stopped.rows.size() == 4, "native refused row lineage retained");
-  for (const auto &row : stopped.rows)
-    for (unsigned f = 0; f < 9; ++f)
-      if (mask & (1u << f))
-        need(!row.outputs[f].computed && !row.outputs[f].value &&
-                 row.outputs[f].status == S::work_limit,
-             "native resource refusal withholds fields");
+  // The owner needs three initial quadrature callbacks. An exhausted age or
+  // background allowance is a resource refusal before a generic invalid
+  // integration policy; all original requested rows remain withheld.
+  for (unsigned category = 0; category < 2; ++category)
+    for (std::size_t limit = 0; limit < 3; ++limit) {
+      auto capped = native::IdealAcousticPolicy{};
+      if (category == 0)
+        capped.maximum_background_evaluations = limit;
+      else
+        capped.maximum_age_evaluations = limit;
+      const auto stopped = owner.evaluate(duplicate_k, early_a, mask, capped);
+      need(stopped.status == S::work_limit &&
+               stopped.shared_dependency_status == S::work_limit,
+           "exhausted native quadrature allowance is work_limit");
+      need(stopped.evaluation_work.background_evaluations == 0 &&
+               stopped.evaluation_work.age_evaluations == 0,
+           "subminimum native age/background caps issue no queries");
+      need(stopped.rows.size() == 4 && stopped.trajectories.size() == 2,
+           "native refused row and trajectory lineage retained");
+      for (std::size_t i = 0; i < 2; ++i)
+        for (std::size_t j = 0; j < 2; ++j) {
+          const auto &row = stopped.rows[2 * i + j];
+          need(row.original_k_index == i && row.original_a_index == j &&
+                   row.wavenumber_mpc_inverse == duplicate_k[i] &&
+                   row.requested_scale_factor == early_a[j] &&
+                   row.epoch.status == S::work_limit,
+               "native resource refusal retains the ordered unavailable epoch");
+          for (unsigned f = 0; f < 9; ++f)
+            if (mask & (1u << f))
+              need(!row.outputs[f].computed && !row.outputs[f].value &&
+                       row.outputs[f].status == S::work_limit,
+                   "native resource refusal withholds fields");
+        }
+    }
 
   for (unsigned variant = 0; variant < 4; ++variant) {
     native::IdealAcousticRequest bad{
