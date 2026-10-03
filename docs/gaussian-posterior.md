@@ -153,3 +153,8 @@ attempted stage; a refused noise preparation does not establish a completed
 factor or actual arithmetic evaluation. Its returned arithmetic contract is
 labelled as attempted, while completed source/posterior preparation is recorded
 separately. Admission-only refusals keep actual execution fields absent.
+
+The predictive CLI reuses these bounded inline training input types, source and
+proper-posterior owners. Its additional fixed future law and whole-vector density
+are described in [Gaussian prediction](gaussian-predictive.md); neither route
+reapplies a marginalized prior or changes this parameter-posterior calculation.

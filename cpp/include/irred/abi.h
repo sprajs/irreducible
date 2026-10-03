@@ -18,6 +18,7 @@ typedef struct irred_sound_horizon_result irred_sound_horizon_result;
 typedef struct irred_photometry_result irred_photometry_result;
 typedef struct irred_sampled_photometry_result irred_sampled_photometry_result;
 typedef struct irred_gaussian_posterior_result irred_gaussian_posterior_result;
+typedef struct irred_gaussian_predictive_result irred_gaussian_predictive_result;
 #define IRRED_OK 0u
 #define IRRED_ABI_MISMATCH 1u
 #define IRRED_INVALID_INPUT 2u
@@ -25,6 +26,7 @@ typedef struct irred_gaussian_posterior_result irred_gaussian_posterior_result;
 #define IRRED_ALLOCATION_FAILURE 4u
 #define IRRED_EXCEPTION 5u
 #define IRRED_GAUSSIAN_POSTERIOR_QUOTA_REFUSED 6u
+#define IRRED_GAUSSIAN_PREDICTIVE_QUOTA_REFUSED 6u
 #define IRRED_UNIT_ONE 1u
 #define IRRED_UNIT_METRE 2u
 #define IRRED_UNIT_KILOMETRE 3u
@@ -253,6 +255,9 @@ typedef struct { uint32_t struct_size; uint32_t abi_version; uint32_t arithmetic
 typedef struct { uint32_t struct_size; uint32_t abi_version; uint32_t source_semantics; uint32_t noise_independence_declared; uint64_t case_count; irred_f64_buffer noise_covariance; irred_f64_buffer design; irred_f64_buffer prior_mean; irred_f64_buffer prior_covariance; irred_f64_buffer conditioning_vectors; irred_strings noise_row_ids; irred_strings noise_event_ids; irred_strings design_row_ids; irred_strings design_parameter_ids; irred_strings design_parameter_units; irred_strings column_units; irred_strings prior_parameter_ids; irred_strings prior_parameter_units; irred_strings shared_nuisance_ids; irred_strings conditioning_row_ids; irred_strings conditioning_event_ids; irred_strings case_ids; irred_bytes residual_unit; irred_bytes noise_identity; irred_bytes calibration_identity; irred_bytes noise_dependence_identity; irred_bytes ordering_provenance; irred_bytes design_identity; irred_bytes prior_identity; irred_bytes parameter_measure; irred_bytes prior_dependence_identity; } irred_gaussian_posterior_batch;
 typedef struct { uint32_t struct_size; uint32_t abi_version; uint32_t status; uint32_t numerical_status; uint64_t case_index; irred_f64_buffer mean; irred_f64_buffer absolute_error_estimates; double backward_residual; double estimated_forward_sensitivity; } irred_gaussian_posterior_row;
 typedef struct { uint32_t struct_size; uint32_t abi_version; uint32_t status; uint32_t numerical_status; uint32_t phase; uint32_t reserved; uint32_t noise_preparation_attempted; uint32_t noise_prepared; uint32_t posterior_preparation_attempted; uint32_t posterior_prepared; uint64_t conditioning_cases_attempted; uint64_t case_count; const irred_gaussian_posterior_row* rows; irred_f64_buffer covariance; double covariance_relative_error_estimate; uint64_t minimum_result_bytes; uint64_t declared_work_units; uint64_t pooled_numeric_elements; uint64_t peak_payload_bytes; uint64_t retained_payload_bytes; irred_bytes method; irred_bytes arithmetic; } irred_gaussian_posterior_view;
+typedef struct { uint32_t struct_size; uint32_t abi_version; uint32_t requested_outputs; uint32_t reserved; uint32_t future_noise_independence_declared; uint32_t noise_conditional_on_parameters_declared; irred_gaussian_posterior_batch training; irred_f64_buffer future_noise_covariance; irred_f64_buffer future_response; irred_f64_buffer future_vectors; irred_strings future_noise_row_ids; irred_strings future_noise_event_ids; irred_strings future_response_row_ids; irred_strings future_parameter_ids; irred_strings future_parameter_units; irred_strings future_column_units; irred_strings future_vector_row_ids; irred_strings future_vector_event_ids; irred_bytes future_unit; irred_bytes future_noise_identity; irred_bytes future_calibration_identity; irred_bytes future_noise_dependence_identity; irred_bytes future_ordering_provenance; irred_bytes future_response_identity; irred_bytes future_covariance_unit; irred_bytes future_measure; irred_bytes conditioning_identity; irred_bytes prediction_dependence_identity; } irred_gaussian_predictive_batch;
+typedef struct { uint32_t struct_size; uint32_t abi_version; uint32_t status; uint32_t numerical_status; uint64_t case_index; irred_f64_buffer mean; irred_f64_buffer absolute_error_estimates; uint32_t joint_density_available; uint32_t reserved; double log_density; double quadratic; double log_determinant; double normalization; double backward_residual; double estimated_forward_sensitivity; } irred_gaussian_predictive_row;
+typedef struct { uint32_t struct_size; uint32_t abi_version; uint32_t status; uint32_t numerical_status; uint32_t phase; uint32_t requested_outputs; uint32_t training_noise_attempted; uint32_t training_noise_prepared; uint32_t posterior_attempted; uint32_t posterior_prepared; uint32_t future_noise_attempted; uint32_t future_noise_prepared; uint32_t predictive_attempted; uint32_t predictive_prepared; uint32_t batch_called; uint32_t batch_admission_completed; uint64_t case_count; const irred_gaussian_predictive_row* rows; uint64_t declared_training_noise_work; uint64_t declared_posterior_work; uint64_t declared_future_noise_work; uint64_t declared_predictive_work; uint64_t declared_batch_work; uint64_t declared_total_work; uint64_t pooled_numeric_elements; uint64_t minimum_result_bytes; uint64_t peak_payload_bytes; uint64_t retained_payload_bytes; irred_bytes method; irred_bytes arithmetic; } irred_gaussian_predictive_view;
 uint32_t irred_add(const irred_i64_buffer* a, const irred_i64_buffer* b, uint32_t fault, irred_result** out);
 uint32_t irred_result_view(const irred_result* r, const int64_t** data, uint64_t* n);
 uint32_t irred_result_destroy(irred_result* r);
@@ -308,6 +313,9 @@ uint32_t irred_sampled_photometry_result_destroy(irred_sampled_photometry_result
 uint32_t irred_gaussian_posterior_evaluate(const irred_gaussian_posterior_batch* batch, const irred_gaussian_posterior_policy* policy, irred_gaussian_posterior_result** result_out);
 uint32_t irred_gaussian_posterior_result_view(const irred_gaussian_posterior_result* result, irred_gaussian_posterior_view* view);
 uint32_t irred_gaussian_posterior_result_destroy(irred_gaussian_posterior_result* result);
+uint32_t irred_gaussian_predictive_evaluate(const irred_gaussian_predictive_batch* batch, const irred_gaussian_posterior_policy* policy, irred_gaussian_predictive_result** result);
+uint32_t irred_gaussian_predictive_result_view(const irred_gaussian_predictive_result* result, irred_gaussian_predictive_view* view);
+uint32_t irred_gaussian_predictive_result_destroy(irred_gaussian_predictive_result* result);
 static inline uint64_t irred_numerics_output_length(uint32_t operation,uint64_t input) {switch(operation) {
 case IRRED_NUMERICAL_OPERATION_COMPENSATED_SUM:return 1;
 case IRRED_NUMERICAL_OPERATION_LOG_SUM_EXP:return 1;

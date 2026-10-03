@@ -30,3 +30,20 @@ Compiled model rows retain their active expansion parameters and separate source
 Preparation source/matrix quotas and retained-source charges are separate from evaluation query, output-array and simultaneous-payload limits. Evaluation accounting includes wrapper-owned output/source descriptors, native results and required scratch; shared preexisting source/factor storage is charged once by its owning lifetime. Bounds describe requested allocation payload, excluding allocator overhead and RSS. Requested group states distinguish omitted computation, available values and failures; a failed unrelated output does not erase successful values.
 
 Native scientific fixtures cover named original SN and BAO inputs and independent algorithms. Runtime requests remain unqualified unless applicable evidence is explicitly available; named tests are not automatic all-domain qualification. Current performance has not been measured for the consolidated interface.
+
+The fixed synthetic Gaussian predictive operation owns the output IDs
+`predictive_means` and `joint_predictive_log_densities`; only requested groups
+appear as required output checks. Its resolved core request preserves both
+original vector pools and all training/future source, event, calibration, unit
+and parameter axes. Derived `requested_outputs` and `batch_meaning` fields record
+receipt semantics and are not input fields. Means-only core requests preserve
+absence of `future_vectors` when serialized. Records state one family of joint
+future conditionals, with no inferred IID or cross-case law.
+
+Predictive resource records retain all five checked work reservations and causal
+training-noise/posterior/future-noise/predictive/batch flags. Attempted algorithm,
+completed owner and output availability are distinct. Global refusal has no rows;
+per-case refusal keeps its original index and no numeric payload. Below-minimum
+native byte quota is completed with no owned payload and no executed-method claim.
+The native payload scope excludes borrowed Rust request/descriptors and JSON
+serialization; peak/RSS/time measurements have separate scope and ancestry.

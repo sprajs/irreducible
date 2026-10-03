@@ -18,6 +18,7 @@
 #include <irred/sis_thin_lens.hpp>
 #include <irred/gaussian_posterior.hpp>
 #include <irred/gaussian_predictive.hpp>
+#include "gaussian_predictive_abi_fixture.hpp"
 #include <irred/sampled_photometry.hpp>
 #include <irred/temporal_photometry.hpp>
 #include <irred/detector_selection.hpp>
@@ -370,6 +371,50 @@ bool installed_predictive_close(long double actual, long double expected,
                                  long double allocation) {
   return std::isfinite(actual) &&
          std::abs(actual - expected) <= allocation * (1 + std::abs(expected));
+}
+int installed_gaussian_predictive_abi() {
+  predictive_fixture::Fixture fixture;
+  auto request = fixture.batch();
+  const auto policy = predictive_fixture::policy();
+  for (unsigned mask = 1; mask <= 3; ++mask) {
+    request.requested_outputs = mask;
+    request.future_vectors =
+        mask == 1 ? predictive_fixture::values(std::array<double, 0>{})
+                  : predictive_fixture::values(fixture.future);
+    request.future_vector_row_ids =
+        mask == 1 ? irred_strings{}
+                  : predictive_fixture::ids(fixture.future_rows);
+    request.future_vector_event_ids =
+        mask == 1 ? irred_strings{}
+                  : predictive_fixture::ids(fixture.future_events);
+    predictive_fixture::Result result;
+    if (irred_gaussian_predictive_evaluate(&request, &policy, &result.p) !=
+        IRRED_OK)
+      return 33;
+    irred_gaussian_predictive_view view{};
+    if (irred_gaussian_predictive_result_view(result.p, &view) != IRRED_OK ||
+        view.status != IRRED_GAUSSIAN_STATUS_FINITE || view.case_count != 2 ||
+        !view.batch_admission_completed)
+      return 33;
+    for (size_t i = 0; i < 2; ++i) {
+      const auto &row = view.rows[i];
+      if (row.status != IRRED_GAUSSIAN_STATUS_FINITE ||
+          row.mean.length != ((mask & 1) ? 2 : 0) ||
+          row.joint_density_available != ((mask & 2) ? 1 : 0))
+        return 33;
+    }
+    if ((mask & 1) && (!installed_predictive_close(view.rows[0].mean.data[0],
+                                                   -258.L / 668, 2e-12L) ||
+                       !installed_predictive_close(view.rows[0].mean.data[1],
+                                                   855.L / 668, 2e-12L)))
+      return 33;
+    if ((mask & 2) &&
+        (!installed_predictive_close(view.rows[1].quadratic, 0, 2e-11L) ||
+         !installed_predictive_close(view.rows[1].log_determinant,
+                                     std::log(11036863.L / 1784896), 2e-11L)))
+      return 33;
+  }
+  return 0;
 }
 int installed_repeated_gaussian_predictive() {
   using namespace irred::statistics;
@@ -814,6 +859,7 @@ int main() {
 
  if (const auto predictive_status=installed_gaussian_predictive();predictive_status!=0) return predictive_status;
  if (const auto repeated_status=installed_repeated_gaussian_predictive();repeated_status!=0) return repeated_status;
+ if (const auto predictive_abi_status=installed_gaussian_predictive_abi();predictive_abi_status!=0) return predictive_abi_status;
  if (const auto mixture_status=installed_hydrogen_helium();mixture_status!=0) return mixture_status;
  if(const auto ladder_future_status=installed_ladder_predictive();ladder_future_status!=0) return ladder_future_status;
  if(const auto repeated_ladder_status=installed_repeated_ladder_predictive();repeated_ladder_status!=0) return repeated_ladder_status;

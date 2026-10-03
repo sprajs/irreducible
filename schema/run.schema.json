@@ -2070,6 +2070,656 @@
         "resource_policy"
       ]
     },
+    "gaussian_predictive": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "schema_version": {
+          "const": 2
+        },
+        "operation": {
+          "const": "statistics.gaussian_predictive"
+        },
+        "source_semantics": {
+          "const": "synthetic_controls"
+        },
+        "noise": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "ordered_row_ids": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 256,
+                "description": "1..256 UTF-8 bytes; native byte admission also applies"
+              },
+              "maxItems": 65536
+            },
+            "event_ids": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 256,
+                "description": "1..256 UTF-8 bytes; native byte admission also applies"
+              },
+              "maxItems": 65536
+            },
+            "residual_unit": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 256,
+              "description": "1..256 UTF-8 bytes; native byte admission also applies"
+            },
+            "covariance_row_major": {
+              "type": "array",
+              "items": {
+                "type": "number"
+              },
+              "maxItems": 1000000
+            },
+            "noise_identity": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 256,
+              "description": "1..256 UTF-8 bytes; native byte admission also applies"
+            },
+            "calibration_identity": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 256,
+              "description": "1..256 UTF-8 bytes; native byte admission also applies"
+            },
+            "dependence_identity": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 256,
+              "description": "1..256 UTF-8 bytes; native byte admission also applies"
+            },
+            "ordering_provenance": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 256,
+              "description": "1..256 UTF-8 bytes; native byte admission also applies"
+            }
+          },
+          "required": [
+            "ordered_row_ids",
+            "event_ids",
+            "residual_unit",
+            "covariance_row_major",
+            "noise_identity",
+            "calibration_identity",
+            "dependence_identity",
+            "ordering_provenance"
+          ]
+        },
+        "design": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "ordered_row_ids": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 256,
+                "description": "1..256 UTF-8 bytes; native byte admission also applies"
+              },
+              "maxItems": 65536
+            },
+            "ordered_parameter_ids": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 256,
+                "description": "1..256 UTF-8 bytes; native byte admission also applies"
+              },
+              "maxItems": 65536
+            },
+            "parameter_units": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 256,
+                "description": "1..256 UTF-8 bytes; native byte admission also applies"
+              },
+              "maxItems": 65536
+            },
+            "column_units": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 256,
+                "description": "1..256 UTF-8 bytes; native byte admission also applies"
+              },
+              "maxItems": 65536
+            },
+            "values_row_major": {
+              "type": "array",
+              "items": {
+                "type": "number"
+              },
+              "maxItems": 1000000
+            },
+            "design_identity": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 256,
+              "description": "1..256 UTF-8 bytes; native byte admission also applies"
+            }
+          },
+          "required": [
+            "ordered_row_ids",
+            "ordered_parameter_ids",
+            "parameter_units",
+            "column_units",
+            "values_row_major",
+            "design_identity"
+          ]
+        },
+        "parameter_prior": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "ordered_parameter_ids": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 256,
+                "description": "1..256 UTF-8 bytes; native byte admission also applies"
+              },
+              "maxItems": 65536
+            },
+            "parameter_units": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 256,
+                "description": "1..256 UTF-8 bytes; native byte admission also applies"
+              },
+              "maxItems": 65536
+            },
+            "shared_nuisance_ids": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 256,
+                "description": "1..256 UTF-8 bytes; native byte admission also applies"
+              },
+              "maxItems": 65536
+            },
+            "mean": {
+              "type": "array",
+              "items": {
+                "type": "number"
+              },
+              "maxItems": 1000000
+            },
+            "covariance_row_major": {
+              "type": "array",
+              "items": {
+                "type": "number"
+              },
+              "maxItems": 1000000
+            },
+            "prior_identity": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 256,
+              "description": "1..256 UTF-8 bytes; native byte admission also applies"
+            },
+            "parameter_measure": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 256,
+              "description": "1..256 UTF-8 bytes; native byte admission also applies"
+            },
+            "dependence_identity": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 256,
+              "description": "1..256 UTF-8 bytes; native byte admission also applies"
+            },
+            "noise_independence_declared": {
+              "type": "boolean"
+            }
+          },
+          "required": [
+            "ordered_parameter_ids",
+            "parameter_units",
+            "shared_nuisance_ids",
+            "mean",
+            "covariance_row_major",
+            "prior_identity",
+            "parameter_measure",
+            "dependence_identity",
+            "noise_independence_declared"
+          ]
+        },
+        "conditioning": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "ordered_row_ids": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 256,
+                "description": "1..256 UTF-8 bytes; native byte admission also applies"
+              },
+              "maxItems": 65536
+            },
+            "event_ids": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 256,
+                "description": "1..256 UTF-8 bytes; native byte admission also applies"
+              },
+              "maxItems": 65536
+            },
+            "case_ids": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 256,
+                "description": "1..256 UTF-8 bytes; native byte admission also applies"
+              },
+              "maxItems": 65536
+            },
+            "vectors": {
+              "type": "array",
+              "items": {
+                "type": "array",
+                "items": {
+                  "type": "number"
+                },
+                "maxItems": 1000000
+              },
+              "maxItems": 65536
+            }
+          },
+          "required": [
+            "ordered_row_ids",
+            "event_ids",
+            "case_ids",
+            "vectors"
+          ]
+        },
+        "future_noise": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "ordered_row_ids": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 256,
+                "description": "1..256 UTF-8 bytes; native byte admission also applies"
+              },
+              "maxItems": 65536
+            },
+            "event_ids": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 256,
+                "description": "1..256 UTF-8 bytes; native byte admission also applies"
+              },
+              "maxItems": 65536
+            },
+            "residual_unit": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 256,
+              "description": "1..256 UTF-8 bytes; native byte admission also applies"
+            },
+            "covariance_row_major": {
+              "type": "array",
+              "items": {
+                "type": "number"
+              },
+              "maxItems": 1000000
+            },
+            "noise_identity": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 256,
+              "description": "1..256 UTF-8 bytes; native byte admission also applies"
+            },
+            "calibration_identity": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 256,
+              "description": "1..256 UTF-8 bytes; native byte admission also applies"
+            },
+            "dependence_identity": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 256,
+              "description": "1..256 UTF-8 bytes; native byte admission also applies"
+            },
+            "ordering_provenance": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 256,
+              "description": "1..256 UTF-8 bytes; native byte admission also applies"
+            }
+          },
+          "required": [
+            "ordered_row_ids",
+            "event_ids",
+            "residual_unit",
+            "covariance_row_major",
+            "noise_identity",
+            "calibration_identity",
+            "dependence_identity",
+            "ordering_provenance"
+          ]
+        },
+        "future_response": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "ordered_row_ids": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 256,
+                "description": "1..256 UTF-8 bytes; native byte admission also applies"
+              },
+              "maxItems": 65536
+            },
+            "ordered_parameter_ids": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 256,
+                "description": "1..256 UTF-8 bytes; native byte admission also applies"
+              },
+              "maxItems": 65536
+            },
+            "parameter_units": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 256,
+                "description": "1..256 UTF-8 bytes; native byte admission also applies"
+              },
+              "maxItems": 65536
+            },
+            "column_units": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 256,
+                "description": "1..256 UTF-8 bytes; native byte admission also applies"
+              },
+              "maxItems": 65536
+            },
+            "values_row_major": {
+              "type": "array",
+              "items": {
+                "type": "number"
+              },
+              "maxItems": 1000000
+            },
+            "design_identity": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 256,
+              "description": "1..256 UTF-8 bytes; native byte admission also applies"
+            }
+          },
+          "required": [
+            "ordered_row_ids",
+            "ordered_parameter_ids",
+            "parameter_units",
+            "column_units",
+            "values_row_major",
+            "design_identity"
+          ]
+        },
+        "prediction": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "conditioning_identity": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 256,
+              "description": "1..256 UTF-8 bytes; native byte admission also applies"
+            },
+            "dependence_identity": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 256,
+              "description": "1..256 UTF-8 bytes; native byte admission also applies"
+            },
+            "future_covariance_unit": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 256,
+              "description": "1..256 UTF-8 bytes; native byte admission also applies"
+            },
+            "future_measure": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 256,
+              "description": "1..256 UTF-8 bytes; native byte admission also applies"
+            },
+            "future_noise_independence_declared": {
+              "type": "boolean"
+            },
+            "noise_conditional_on_parameters_declared": {
+              "type": "boolean"
+            }
+          },
+          "required": [
+            "conditioning_identity",
+            "dependence_identity",
+            "future_covariance_unit",
+            "future_measure",
+            "future_noise_independence_declared",
+            "noise_conditional_on_parameters_declared"
+          ]
+        },
+        "outputs": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "means": {
+              "type": "boolean"
+            },
+            "joint_log_densities": {
+              "type": "boolean"
+            }
+          },
+          "required": [
+            "means",
+            "joint_log_densities"
+          ]
+        },
+        "future_vectors": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "ordered_row_ids": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 256,
+                "description": "1..256 UTF-8 bytes; native byte admission also applies"
+              },
+              "maxItems": 65536
+            },
+            "event_ids": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 256,
+                "description": "1..256 UTF-8 bytes; native byte admission also applies"
+              },
+              "maxItems": 65536
+            },
+            "vectors": {
+              "type": "array",
+              "items": {
+                "type": "array",
+                "items": {
+                  "type": "number"
+                },
+                "maxItems": 1000000
+              },
+              "maxItems": 65536
+            }
+          },
+          "required": [
+            "ordered_row_ids",
+            "event_ids",
+            "vectors"
+          ]
+        },
+        "resource_policy": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "arithmetic": {
+              "enum": [
+                "binary64",
+                "wide"
+              ]
+            },
+            "maximum_elements": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 1000000
+            },
+            "maximum_cases": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 65536
+            },
+            "maximum_string_bytes": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 1048576
+            },
+            "maximum_native_bytes": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 268435456
+            },
+            "maximum_work_units": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 100000000
+            },
+            "maximum_forward_sensitivity": {
+              "type": "number",
+              "exclusiveMinimum": 0,
+              "maximum": 1e-10
+            }
+          },
+          "required": [
+            "arithmetic",
+            "maximum_elements",
+            "maximum_cases",
+            "maximum_string_bytes",
+            "maximum_native_bytes",
+            "maximum_work_units",
+            "maximum_forward_sensitivity"
+          ]
+        }
+      },
+      "required": [
+        "schema_version",
+        "operation",
+        "source_semantics",
+        "noise",
+        "design",
+        "parameter_prior",
+        "conditioning",
+        "future_noise",
+        "future_response",
+        "prediction",
+        "outputs",
+        "resource_policy"
+      ],
+      "allOf": [
+        {
+          "anyOf": [
+            {
+              "properties": {
+                "outputs": {
+                  "properties": {
+                    "means": {
+                      "const": true
+                    }
+                  }
+                }
+              }
+            },
+            {
+              "properties": {
+                "outputs": {
+                  "properties": {
+                    "joint_log_densities": {
+                      "const": true
+                    }
+                  }
+                }
+              }
+            }
+          ]
+        },
+        {
+          "if": {
+            "properties": {
+              "outputs": {
+                "properties": {
+                  "joint_log_densities": {
+                    "const": true
+                  }
+                }
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "future_vectors"
+            ]
+          },
+          "else": {
+            "not": {
+              "required": [
+                "future_vectors"
+              ]
+            }
+          }
+        }
+      ]
+    },
     "photometry": {
       "type": "object",
       "additionalProperties": false,
@@ -2669,6 +3319,9 @@
     },
     {
       "$ref": "#/$defs/gaussian_posterior"
+    },
+    {
+      "$ref": "#/$defs/gaussian_predictive"
     },
     {
       "$ref": "#/$defs/supernova"

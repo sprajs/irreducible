@@ -1,3 +1,5 @@
+mod gaussian_predictive_run;
+mod gaussian_input;
 mod gaussian_posterior_run;
 mod sound_horizon_run;
 mod bao_ingestion;

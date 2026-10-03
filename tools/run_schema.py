@@ -149,6 +149,32 @@ def build_schema(abi, fixture):
             "maximum_native_bytes": {**uint, "maximum": 268435456},
             "maximum_work_units": {**uint, "maximum": 100000000},
             "maximum_forward_sensitivity": {**number, "exclusiveMinimum": 0}})})
+    # Same bounded structural types; the predictive operation adds object/mask gates.
+    posterior = defs["gaussian_posterior"]["properties"]
+    predictive = operation("statistics.gaussian_predictive", {
+        "source_semantics": {"const": "synthetic_controls"},
+        "noise": posterior["noise"], "design": posterior["design"],
+        "parameter_prior": posterior["parameter_prior"],
+        "conditioning": posterior["conditioning"],
+        "future_noise": posterior["noise"], "future_response": posterior["design"],
+        "prediction": obj({"conditioning_identity": posterior_text,
+            "dependence_identity": posterior_text, "future_covariance_unit": posterior_text,
+            "future_measure": posterior_text,
+            "future_noise_independence_declared": {"type": "boolean"},
+            "noise_conditional_on_parameters_declared": {"type": "boolean"}}),
+        "outputs": obj({"means": {"type": "boolean"}, "joint_log_densities": {"type": "boolean"}}),
+        "future_vectors": obj({"ordered_row_ids": posterior_ids, "event_ids": posterior_ids,
+            "vectors": array(posterior_numbers, 65536)}),
+        "resource_policy": posterior["resource_policy"]}, ("future_vectors",))
+    predictive["properties"]["resource_policy"] = {**posterior["resource_policy"],
+        "properties": {**posterior["resource_policy"]["properties"],
+            "maximum_forward_sensitivity": {**number, "exclusiveMinimum": 0, "maximum": 1e-10}}}
+    predictive["allOf"] = [
+        {"anyOf": [{"properties": {"outputs": {"properties": {"means": {"const": True}}}}},
+                   {"properties": {"outputs": {"properties": {"joint_log_densities": {"const": True}}}}}]},
+        {"if": {"properties": {"outputs": {"properties": {"joint_log_densities": {"const": True}}}}},
+         "then": {"required": ["future_vectors"]}, "else": {"not": {"required": ["future_vectors"]}}}]
+    defs["gaussian_predictive"] = predictive
     photometry_fields = ("luminosity_watt_per_metre", "rest_lower_metre", "rest_upper_metre",
         "observed_lower_metre", "observed_upper_metre", "luminosity_distance_metre", "redshift",
         "collecting_area_square_metre", "optical_transmission", "observer_exposure_second")
@@ -198,5 +224,5 @@ def build_schema(abi, fixture):
     return {"$schema": "https://json-schema.org/draft/2020-12/schema",
         "$id": "cosmology.run.v2", "$defs": defs,
         "oneOf": [ref(name) for name in ("fixture", "quantity", "numerics", "observations",
-                                          "background", "statistics", "gaussian_posterior", "supernova", "bao", "sound_horizon", "photometry", "sampled_photometry")],
+                                          "background", "statistics", "gaussian_posterior", "gaussian_predictive", "supernova", "bao", "sound_horizon", "photometry", "sampled_photometry")],
         "description": "Structural compiled requests; native domains, numerical gates and scientific qualifications remain distinct."}

@@ -2,8 +2,9 @@
 
 The native C++ `irred/gaussian_predictive.hpp` consumer predicts distinct
 synthetic calibration observations after conditioning the existing
-[proper Gaussian parameter posterior](gaussian-posterior.md). There is no
-CLI/C ABI operation. A supplied proper prior, independent noise declarations,
+[proper Gaussian parameter posterior](gaussian-posterior.md). The strict inline
+`statistics.gaussian_predictive` CLI operation and coarse ABI2 consumer use the
+same native repeated-conditioning owner. A supplied proper prior, independent noise declarations,
 fixed design and exact coordinate order define this calculation; they do not
 qualify observed calibration uncertainty or a released finite-box posterior.
 
@@ -195,3 +196,87 @@ one setup Cholesky call, then zero Cholesky calls with three training whitenings
 and three density solves for a three-admitted/one-refused batch. 64-bit Linux GCC/Clang
 ELF forwarding hooks observe the original routines without replacing their
 arithmetic. Portable named mathematical checks do not depend on those hooks.
+
+## Strict inline predictive CLI
+
+```sh
+irred run tests/fixtures/gaussian-predictive.json STORE
+```
+
+Schema version 2 supplies the original fixed training noise/design/proper prior,
+complete pooled training vectors, fixed future noise/response, and explicit
+prediction declarations. `source_semantics` is exactly `synthetic_controls`.
+Every request section is an object with no unknown or duplicate members;
+positional object arrays, null sections and nonfinite JSON numbers are rejected.
+Training/future vectors remain in their original order. Cases are alternative
+conditionals under the same fixed model; their labels do not declare a joint
+law across cases or independent samples.
+
+`outputs.means` requests `predictive_means`, including absolute numerical errors.
+`outputs.joint_log_densities` requests `joint_predictive_log_densities`, one
+normalized density for each whole ordered future vector. At least one output is
+required. `future_vectors` must be present as an object exactly when density is
+requested, and absent otherwise. The conditional mean and joint covariance are
+still internal dependencies of density; the CLI exports no covariance getter.
+Each requested group has a required numerical check. Omitted groups are
+`not_requested` and carry no numerical payload or receipt check.
+
+One native call prepares C, the proper posterior, R and W once and evaluates
+both borrowed contiguous vector pools in a coarse batch. The result moves the
+native output pools and exposes borrowed views until serialization finishes.
+No per-case FFI, source covariance readback or repeated factorization is needed.
+The original prior is applied once. Training/future measurement IDs and parallel
+event IDs are unique and disjoint in their respective namespaces; all response,
+parameter, unit and vector orders match exactly. Unit labels perform no
+conversion. Supplied calibration identities state that the same beta prior is
+excluded from both conditional noise covariances.
+
+Global preparation/admission failure publishes no rows. Each admitted case
+retains its original index and typed refusal. When both groups are requested,
+a case whose joint density fails withholds its mean and density atomically;
+successful neighboring cases remain. Refusal is never zero probability and no
+case is dropped or renormalized. Phase flags record attempted and completed
+preparations separately, including an empty-batch refusal before all native
+preparations. Method and arithmetic records identify the attempted algorithm;
+unexecuted phases have no actual method/arithmetic claim.
+
+The hard request ceiling is 16 MiB, one million aggregate numeric fields
+including requested outputs, 65,536 cases, 1 MiB aggregate UTF-8 text, and
+1–256 bytes per text field. Native limits are 256 MiB payload, 100 million
+declared work units, one thread, and forward sensitivity at most 1e-10.
+`resource_policy` may request smaller limits, including zero resource ceilings;
+they remain original ceilings and produce completed resource refusals. A native
+byte ceiling smaller than the allocation-free result envelope uses the scoped
+ABI `IRRED_GAUSSIAN_PREDICTIVE_QUOTA_REFUSED` disposition with no result owner.
+Invalid wire/version/alignment/length/UTF-8 and allocation transport failures
+remain distinct execution failures.
+
+Before metadata or scientific allocations, checked whole-request reservation is
+
+    WC = 32 n^3,
+    WP = 32 (n^2 p + n p^2 + 8 p^3),
+    WR = 32 k^3,
+    WA = 32 (n^2 + n p + p^2 + k p^2 + k^2 p + 8 k^3),
+    WB = 32 B (n^2 + n p + p^2 + k p + D k^2).
+
+Here n, p, k and B are training, parameter, future and case counts; D is one
+exactly when density is requested. The sum charges every requested case,
+including refused cases. These reservations bound declared work, rather than
+reporting measured kernel calls. The stored predictive preparation policy
+retains the original work allowance minus WC/WP/WR; evaluation receives that
+allowance minus WA, preserving legal larger batches. Payload admission takes
+the maximum simultaneous conversion/preparation/evaluation lifetime, retaining
+borrowed native owners once. Records include minimum result, peak and retained
+payload and all five work components. Borrowed Rust request/wire buffers, JSON
+serialization, stack, allocator bookkeeping and RSS are outside native payload.
+
+The named rational/cofactor fixture uses the native guide's unchanged moment,
+density and normalization budgets. Independent direct-product quadrature,
+refinement, tail and arithmetic uncertainty must fit inside the same total
+comparison allocation; their reference share is at most 5%, not an added
+allowance. Native/ABI/CLI and installed-consumer parity share numerical ancestry
+and qualify transport and ownership only. Allocation-prefix and no-elision
+controls test the selected runtime's actual payload behavior. Generic synthetic
+responses do not qualify physical future designs, cross-noise calibration,
+selection, a measured population, parameter-posterior coverage or observational
+inference. The proper-prior ladder remains a separate native-only consumer.
