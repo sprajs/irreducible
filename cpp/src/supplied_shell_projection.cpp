@@ -143,7 +143,7 @@ template <class T> struct CaptureAllocator {
   template <class U> CaptureAllocator(const CaptureAllocator<U> &a) noexcept
       : capture(a.capture) {}
   T *allocate(std::size_t n) {
-    if (!capture) throw PayloadLimit{};
+    if (!capture || capture->control) throw PayloadLimit{};
     std::size_t bytes = 0, total = capture->arrays;
     if (!mul_size(n, sizeof(T), bytes) || !add_size(total, capture->control) ||
         !add_size(total, bytes) || total > capture->limit) throw PayloadLimit{};
@@ -278,8 +278,9 @@ ProjectionBatch &ProjectionBatch::operator=(ProjectionBatch &&o) noexcept {
   if (this != &o) {
     reset(); source_ = std::move(o.source_); state_ = std::move(o.state_);
     fallback_ = o.fallback_; before_ = o.before_; after_ = o.after_; delta_ = o.delta_;
-    failure_ = o.failure_; charge_ = std::exchange(o.charge_, 0); peak_ = o.peak_;
-    o.fallback_ = S::invalid_input; o.before_ = {}; o.after_ = {}; o.delta_ = {}; o.failure_ = {}; o.peak_ = 0;
+    failure_ = o.failure_; terminal_work_status_ = o.terminal_work_status_;
+    charge_ = std::exchange(o.charge_, 0); peak_ = o.peak_;
+    o.fallback_ = S::invalid_input; o.before_ = {}; o.after_ = {}; o.delta_ = {}; o.failure_ = {}; o.terminal_work_status_.reset(); o.peak_ = 0;
   }
   return *this;
 }
@@ -291,24 +292,28 @@ const ProjectionWork &ProjectionBatch::work_before() const noexcept { return bef
 const ProjectionWork &ProjectionBatch::work_after() const noexcept { return after_; }
 const ProjectionWork &ProjectionBatch::work_delta() const noexcept { return delta_; }
 Failure ProjectionBatch::failure() const noexcept { return failure_; }
+std::optional<S> ProjectionBatch::terminal_work_status() const noexcept { return terminal_work_status_; }
 std::size_t ProjectionBatch::retained_payload_bytes() const noexcept { return charge_; }
 std::size_t ProjectionBatch::peak_payload_bytes() const noexcept { return peak_; }
 
 PreparedProjection acquire_supplied_shell_projection(SuppliedShellView v, ProjectionResources p) {
   PreparedProjection out;
-  Ledger ledger{out.fallback_work_, p};
+  ProjectionResources bootstrap;
+  bootstrap.maximum_total_work = std::min(p.maximum_total_work, std::size_t{8000000});
+  Ledger ledger{out.fallback_work_, bootstrap};
   auto fail = [&](S s, Refusal r, std::size_t k = static_cast<std::size_t>(-1), std::size_t sh = static_cast<std::size_t>(-1)) {
     out.fallback_ = ledger.status == S::ok ? s : ledger.status;
     out.failure_ = {r, k, sh, static_cast<std::size_t>(-1)};
   };
-  if (!p.maximum_total_work || p.maximum_total_work > 8000000 ||
-      !p.maximum_series_terms || p.maximum_series_terms > 6000000 ||
-      !p.maximum_source_bytes || p.maximum_source_bytes > 65536 ||
-      p.maximum_live_bytes < sizeof(detail::PreparedState) || p.maximum_live_bytes > 4 * 1024 * 1024) {
-    fail(S::invalid_input, Refusal::resource_policy); return out;
-  }
-  for (unsigned field = 0; field < 4; ++field)
+  for (unsigned field = 0; field < 4; ++field) {
     if (!ledger.charge(&ProjectionWork::source_tag_inspections)) { fail(S::work_limit, Refusal::resource_policy); return out; }
+    const bool valid = field == 0 ? p.maximum_total_work && p.maximum_total_work <= 8000000 :
+        field == 1 ? p.maximum_series_terms && p.maximum_series_terms <= 6000000 :
+        field == 2 ? p.maximum_source_bytes && p.maximum_source_bytes <= 65536 :
+        p.maximum_live_bytes >= sizeof(detail::PreparedState) && p.maximum_live_bytes <= 4 * 1024 * 1024;
+    if (!valid) { fail(S::invalid_input, Refusal::resource_policy); return out; }
+  }
+  bootstrap = p; // All fields now admitted; preserve the same charged prefix.
   if (!ledger.charge(&ProjectionWork::source_tag_inspections)) { fail(S::work_limit, Refusal::source_shape); return out; }
   const auto K = v.k_mpc_inverse.size(), N = v.chi_mpc.size();
   std::size_t KS = 0;
@@ -519,18 +524,24 @@ bool exact_power_two(double value) noexcept {
 }
 struct Accumulator {
   S status = S::ok;
+  Refusal refusal = Refusal::none;
   W sum = 0, absolute_products = 0;
   W argument = 0, tail = 0, arithmetic = 0, products = 0;
   unsigned additions = 0;
 };
 struct EvaluationScratch { std::array<Accumulator, 9> accumulators; };
+Refusal arithmetic_refusal(S status) noexcept {
+  return status == S::work_limit ? Refusal::work_limit : Refusal::nonnormal_arithmetic;
+}
 void finish_row(ProjectionRow &row, Accumulator &a, unsigned q, Ledger &ledger) noexcept {
   row.status = a.status; row.check = ProjectionCheck::refused;
+  row.refusal = a.refusal;
   if (a.status != S::ok) return;
+  auto refuse = [&](S status, Refusal reason) { row.status = status; row.refusal = reason; };
   Bounds b{ledger};
-  if (!ledger.charge(&ProjectionWork::output_casts)) { row.status = ledger.status; return; }
+  if (!ledger.charge(&ProjectionWork::output_casts)) { refuse(ledger.status, Refusal::work_limit); return; }
   const double value = static_cast<double>(a.sum);
-  if (!std::isfinite(value) || (a.sum != 0 && !std::isnormal(value))) { row.status = S::overflow; return; }
+  if (!std::isfinite(value) || (a.sum != 0 && !std::isnormal(value))) { refuse(S::overflow, Refusal::nonnormal_arithmetic); return; }
   const W readback = static_cast<W>(value);
   W cast_loss = 0;
   if (a.sum != readback) {
@@ -538,7 +549,7 @@ void finish_row(ProjectionRow &row, Accumulator &a, unsigned q, Ledger &ledger) 
     const W low = std::min(std::abs(a.sum), std::abs(readback));
     if (low && high <= 2 * low) cast_loss = high - low; // Sterbenz, same sign.
     else cast_loss = b.sub(high, low);
-    if (!normal_or_zero(cast_loss)) { row.status = S::overflow; return; }
+    if (!normal_or_zero(cast_loss)) { refuse(S::overflow, Refusal::nonnormal_arithmetic); return; }
   }
   const W signed_error = b.mul(b.gamma(a.additions), a.absolute_products);
   const std::array<W, 6> components{a.argument, a.tail, a.arithmetic, a.products, signed_error, cast_loss};
@@ -556,8 +567,8 @@ void finish_row(ProjectionRow &row, Accumulator &a, unsigned q, Ledger &ledger) 
   W allocation = b.div(1, 10000000000.L, false);
   allocation = b.mul(allocation, b.add(1, std::abs(readback), false), false);
   allocation = b.div(allocation, scale, false);
-  if (b.status != S::ok) { row.status = b.status; return; }
-  if (radius_readback > allocation) { row.status = S::conditioning_budget_exceeded; return; }
+  if (b.status != S::ok) { refuse(b.status, arithmetic_refusal(b.status)); return; }
+  if (radius_readback > allocation) { refuse(S::conditioning_budget_exceeded, Refusal::numerical_allocation); return; }
   row.signed_value = value; row.absolute_numerical_radius = radius;
   row.diagnostics = ProjectionDiagnostics{stored[0], stored[1], stored[2], stored[3], stored[4], stored[5], padding};
   row.status = S::ok; row.check = ProjectionCheck::numerical_radius_within_allocation;
@@ -568,24 +579,27 @@ ProjectionBatch PreparedProjection::evaluate(ProjectionRequest request) {
   ProjectionBatch out;
   out.source_ = source_;
   out.before_ = cumulative_work(); out.after_ = out.before_;
-  auto finish = [&] {
+  auto finish = [&](S terminal = S::ok) {
     out.after_ = cumulative_work(); out.delta_ = difference(out.after_, out.before_);
     out.peak_ = source_ ? source_->peak_payload_bytes() : fallback_peak_;
+    if (terminal != S::ok) out.terminal_work_status_ = terminal;
   };
   if (fallback_ != S::ok || !state_ || !source_) {
     out.fallback_ = fallback_; out.failure_ = failure_; finish(); return out;
   }
   auto &work = state_->work;
   Ledger ledger{work, state_->resources};
-  auto fail = [&](S s, Refusal r) { out.fallback_ = ledger.status == S::ok ? s : ledger.status; out.failure_.reason = r; finish(); };
+  auto fail = [&](S s, Refusal r) { out.fallback_ = ledger.status == S::ok ? s : ledger.status; out.failure_.reason = r; finish(ledger.status); };
   if (!ledger.charge(&ProjectionWork::source_tag_inspections)) { fail(S::work_limit, Refusal::request); return out; }
   if (request.outputs != supplied_shell_signed_projection || request.ell.empty() || request.ell.size() > 9) { fail(S::invalid_input, Refusal::request); return out; }
   if (!ledger.charge(&ProjectionWork::source_tag_inspections)) { fail(S::work_limit, Refusal::request); return out; }
   if (request.accuracy_reduction_power > 32) { fail(S::outside_domain, Refusal::request); return out; }
-  for (auto ell : request.ell) {
+  for (std::size_t j = 0; j < request.ell.size(); ++j) {
+    out.failure_.ell_index = j;
     if (!ledger.charge(&ProjectionWork::source_tag_inspections)) { fail(S::work_limit, Refusal::request); return out; }
-    if (ell > 8) { fail(S::outside_domain, Refusal::request); return out; }
+    if (request.ell[j] > 8) { fail(S::outside_domain, Refusal::request); return out; }
   }
+  out.failure_.ell_index = static_cast<std::size_t>(-1);
   if (!supplied_shell_arithmetic_profile()) { fail(S::outside_domain, Refusal::arithmetic_profile); return out; }
   const auto K = source_->k_mpc_inverse().size(), N = source_->chi_mpc().size(), L = request.ell.size();
   std::size_t count = 0, row_bytes = 0, result_bytes = sizeof(detail::ResultState), reservation = 0;
@@ -611,54 +625,62 @@ ProjectionBatch PreparedProjection::evaluate(ProjectionRequest request) {
     for (std::size_t i = 0; i < K; ++i) {
       scratch->accumulators = {};
       S phase_status = S::ok;
+      Failure phase_failure;
       for (std::size_t sh = 0; sh < N; ++sh) {
-        if (!ledger.charge(&ProjectionWork::shell_visits) || !ledger.charge(&ProjectionWork::phase_products)) { phase_status = ledger.status; break; }
+        auto latch_phase = [&](S status, Refusal reason) {
+          if (phase_status == S::ok && status != S::ok) {
+            phase_status = status;
+            phase_failure = {reason, i, sh, static_cast<std::size_t>(-1)};
+          }
+        };
+        if (!ledger.charge(&ProjectionWork::shell_visits) || !ledger.charge(&ProjectionWork::phase_products)) { latch_phase(ledger.status, Refusal::work_limit); break; }
         const double k = source_->k_mpc_inverse()[i], chi = source_->chi_mpc()[sh];
         const W x = static_cast<W>(k) * static_cast<W>(chi);
         W argument_radius = 0;
         Bounds b{ledger};
-        if (x != 0 && !std::isnormal(x)) phase_status = S::overflow;
+        if (x != 0 && !std::isnormal(x)) latch_phase(S::overflow, Refusal::phase);
         else if (k == 0 || chi == 0) { /* Exact source zero witness. */ }
         else if (exact_power_two(k) || exact_power_two(chi)) {
-          if (x < 0x1p-32L || x > 8) phase_status = S::outside_domain;
+          if (x < 0x1p-32L || x > 8) latch_phase(S::outside_domain, Refusal::phase);
         } else {
           argument_radius = b.mul(b.div(unit_roundoff, b.sub(1, unit_roundoff, false)), x);
           const W lo = b.sub(x, argument_radius, false), hi = b.add(x, argument_radius);
-          if (b.status != S::ok) phase_status = b.status;
-          else if (lo < 0x1p-32L || hi > 8) phase_status = S::outside_domain;
+          if (b.status != S::ok) latch_phase(b.status, b.status == S::work_limit ? Refusal::work_limit : Refusal::phase);
+          else if (lo < 0x1p-32L || hi > 8) latch_phase(S::outside_domain, Refusal::phase);
         }
-        if (phase_status != S::ok) { if (out.failure_.reason == Refusal::none) out.failure_ = {Refusal::phase, i, sh, static_cast<std::size_t>(-1)}; continue; }
+        if (phase_status != S::ok) continue;
         const W amplitude = static_cast<W>(source_->amplitudes()[i * N + sh]);
         if (amplitude == 0) continue;
         for (std::size_t j = 0; j < L; ++j) {
           auto &a = scratch->accumulators[j];
           if (a.status != S::ok) continue;
           const Kernel kernel = bessel(x, request.ell[j], ledger);
-          if (kernel.status != S::ok) { a.status = kernel.status; continue; }
+          if (kernel.status != S::ok) { a.status = kernel.status; a.refusal = kernel.status == S::conditioning_budget_exceeded ? Refusal::series_tail : arithmetic_refusal(kernel.status); continue; }
           Bounds coefficient{ledger};
           const W weight = std::abs(amplitude);
           a.argument = coefficient.add(a.argument, coefficient.mul(weight, coefficient.div(argument_radius, 2)));
           a.tail = coefficient.add(a.tail, coefficient.mul(weight, kernel.tail));
           a.arithmetic = coefficient.add(a.arithmetic, coefficient.mul(weight, kernel.arithmetic));
-          if (!ledger.charge(&ProjectionWork::shell_products)) { a.status = ledger.status; continue; }
+          if (!ledger.charge(&ProjectionWork::shell_products)) { a.status = ledger.status; a.refusal = Refusal::work_limit; continue; }
           const W product = amplitude * kernel.value;
-          if ((kernel.value != 0 && !std::isnormal(product)) || !normal_or_zero(product)) { a.status = S::overflow; continue; }
+          if ((kernel.value != 0 && !std::isnormal(product)) || !normal_or_zero(product)) { a.status = S::overflow; a.refusal = Refusal::nonnormal_arithmetic; continue; }
           a.products = coefficient.add(a.products, coefficient.mul(coefficient.eta(1), std::abs(product)));
           a.absolute_products = coefficient.add(a.absolute_products, std::abs(product));
-          if (!ledger.charge(&ProjectionWork::signed_additions)) { a.status = ledger.status; continue; }
+          if (!ledger.charge(&ProjectionWork::signed_additions)) { a.status = ledger.status; a.refusal = Refusal::work_limit; continue; }
           a.sum = a.sum + product; ++a.additions;
           if (!normal_or_zero(a.sum)) a.status = S::overflow;
           else a.status = coefficient.status;
+          if (a.status != S::ok) a.refusal = arithmetic_refusal(a.status);
         }
       }
       for (std::size_t j = 0; j < L; ++j) {
         auto &row = out.state_->rows[i * L + j];
         auto &a = scratch->accumulators[j];
-        if (phase_status != S::ok) a.status = phase_status;
+        if (phase_status != S::ok) { a.status = phase_status; a.refusal = phase_failure.reason; }
         finish_row(row, a, request.accuracy_reduction_power, ledger);
         if (row.status != S::ok && out.fallback_ == S::ok) {
           out.fallback_ = row.status;
-          if (out.failure_.reason == Refusal::none) out.failure_ = {row.status == S::conditioning_budget_exceeded ? Refusal::numerical_allocation : Refusal::nonnormal_arithmetic, i, static_cast<std::size_t>(-1), j};
+          out.failure_ = phase_status != S::ok ? phase_failure : Failure{row.refusal, i, static_cast<std::size_t>(-1), j};
         }
       }
     }
@@ -669,7 +691,7 @@ ProjectionBatch PreparedProjection::evaluate(ProjectionRequest request) {
   }
   scratch.reset();
   if (scratch_reserved) detail::SourceAccess::release(*source_, sizeof(EvaluationScratch));
-  finish();
+  finish(ledger.status);
   return out;
 }
 } // namespace irred::projection

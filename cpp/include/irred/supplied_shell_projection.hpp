@@ -23,7 +23,7 @@ enum class ProjectionCheck { unavailable, numerical_radius_within_allocation,
                              refused };
 enum class Refusal {
   none, source_shape, source_tags, source_strings, source_number,
-  resource_policy, allocation, arithmetic_profile, request, phase,
+  resource_policy, allocation, arithmetic_profile, request, phase, work_limit,
   nonnormal_arithmetic, series_tail, numerical_allocation
 };
 struct Failure {
@@ -76,6 +76,7 @@ struct ProjectionRow {
   std::size_t k_index = 0, ell_index = 0;
   unsigned ell = 0;
   numerics::Status status = numerics::Status::invalid_input;
+  Refusal refusal = Refusal::none;
   ProjectionCheck check = ProjectionCheck::unavailable;
   std::optional<double> signed_value, absolute_numerical_radius;
   std::optional<ProjectionDiagnostics> diagnostics;
@@ -149,6 +150,7 @@ public:
   const ProjectionWork &work_after() const noexcept;
   const ProjectionWork &work_delta() const noexcept;
   Failure failure() const noexcept;
+  std::optional<numerics::Status> terminal_work_status() const noexcept;
   std::size_t retained_payload_bytes() const noexcept;
   std::size_t peak_payload_bytes() const noexcept;
 
@@ -159,6 +161,7 @@ private:
   numerics::Status fallback_ = numerics::Status::invalid_input;
   ProjectionWork before_{}, after_{}, delta_{};
   Failure failure_{};
+  std::optional<numerics::Status> terminal_work_status_;
   std::size_t charge_ = 0, peak_ = 0;
   friend class PreparedProjection;
 };
