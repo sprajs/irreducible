@@ -540,6 +540,9 @@ include(cmake/linear_transfer.cmake)
 # Continuous scalar temperature and polarization transfer geometry.
 include(cmake/continuous_cmb_projection.cmake)
 
+# Synthetic two-deflector extended-source pixel means.
+include(cmake/two_deflector_forward.cmake)
+
 # Distinct bounded singlet H/He history with one shared electron density.
 include(cmake/hydrogen_helium_history.cmake)
 
