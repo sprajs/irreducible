@@ -36,6 +36,18 @@ temperatures fail; zero physical densities remain valid controls. The mapping
 identity is `thermal_physical_mapping_id`. This is a declared conversion and
 source convention, not full Planck base LCDM.
 
+A successful complete `ThermalPhysicalMapping` also returns
+`scalar_witnesses` in photon, baryon, CDM and other-massless order. Each
+witness retains the actual wide mapped value, its operation estimate, the
+measured absolute binary64 cast loss and the emitted value. The operation
+estimate is `128*epsilon(long double)*abs(wide_value)` for photons and
+`32*epsilon(long double)*abs(wide_value)` for the other three scalars. A failed
+map publishes neither a mapped model nor partial witnesses. These are
+deterministic arithmetic metadata; they do not supply physical-input
+uncertainty or a continuous error certificate. Their propagation belongs to
+each consumer. Returning the metadata does not automatically add it to the
+existing distance, ruler or kinetic-history diagnostics.
+
 A `ThermalObservableRequest` retains this physical source, finite z_drag>=0,
 nonempty `drag_origin` and nonempty `source_origin`. Origins are caller-supplied
 provenance labels and do not certify their contents. Structural and payload
@@ -87,6 +99,28 @@ scaled radiation endpoint enters this integral directly. The supplied drag
 redshift is not inferred by the engine. z_drag=0 is a mathematical control of
 this prescribed approximation; it does not claim late baryon/photon tight
 coupling. The ratios D_M/r_s, D_H/r_s and D_V/r_s use this same source identity.
+
+One private compiled loading/ruler helper owns this equation and the loading
+used by the pure-H history. Its present loading is
+`R0=3*Omega_b/(4*Omega_gamma)`, with estimate
+`E_R=32*epsilon(long double)*abs(R0)+abs(R0-double(R0))`. The pure-H route
+preserves its original grouped `3*Omega_b/(4*Omega_gamma*(1+z))` center.
+The helper admits only `0<=a<=1`; an unresolved positive loading, sound speed
+or diagnostic is refused rather than emitted as zero.
+
+The ruler retains the outer quadrature estimate `E_q` in Mpc, the largest
+sampled inverse-background-square-root relative estimate `rho`, and the
+largest measured integrand reporting-cast fraction `eta`. With `eta<1`, its
+response scale is `(abs(I)+E_q)/(1-eta)`, where `I` is the wide integral
+scaled to Mpc. Background and cast contributions use that scale, including
+the quadrature transfer. The remaining arithmetic estimate includes the
+binary64 operation allowance and scaled half-ULP reporting term. If their
+sum with `E_q` is `E0`, the total is `E0+(abs(I)+E0)*xi`, where
+`xi=E_R*a_drag/[sqrt(B)*(sqrt(A)+sqrt(B))]`,
+`A=1+R0*a_drag` and `B=1+(R0-E_R)*a_drag`, with the helper's operation
+allowance. This rationalized loading correction retains tiny positive
+contributions. These remain empirical numerical diagnostics; they do not
+certify system square roots or an unsampled continuous background.
 
 The nine `EarlyLateOutput` coordinates and masks retain their existing units
 and meanings. `thermal_ruler_mask` requests the single optional batch ruler
