@@ -71,28 +71,71 @@ int main() {
         c = irred::speed_of_light_m_per_s,
         sigma = 6.6524587051e-29L;
     const auto batch = history.evaluate(z, 7);
+    // Analytic constant-bath flow contracts toward qeq; emitted boundary cast
+    // and expected scalar arithmetic are explicit, not claimed exact zeros.
+    const W analytic_error = 512 * std::numeric_limits<W>::epsilon() * std::abs(exact),
+        qref = boundary_error + analytic_error,
+        neref = 3e9L * f * qref + 1024 * std::numeric_limits<W>::epsilon() * exact_ne,
+        Aq = 1e-8L + 2e-6L * exact,
+        Ane = 3e9L * f * 1e-8L + 2e-6L * exact_ne;
+    struct OpacityReference { W value, error, allocation; };
+    auto opacity_reference = [&](double redshift) {
+      const W expected_op = c * sigma * exact_ne /
+          (W(rows[0].hubble_per_second) * (1 + W(redshift))),
+          opref = c * sigma * neref /
+          (W(rows[0].hubble_per_second) * (1 + W(redshift))) +
+          1024 * std::numeric_limits<W>::epsilon() * expected_op;
+      return OpacityReference{expected_op, opref, 2e-9L + 3e-6L * expected_op};
+    };
+    auto record = [&](std::size_t index, const char *group,
+                      const HeliumEscapeHistoryValue *v, W reference,
+                      W reference_error, W allocation) {
+      std::cout << "stationary row=" << index << " requested_z=" << z[index]
+                << " emitted_z=";
+      if (index < batch.rows.size()) std::cout << batch.rows[index].redshift;
+      else std::cout << "absent";
+      std::cout << " group=" << group << " status=";
+      if (v) std::cout << int(v->status);
+      else std::cout << "absent";
+      std::cout << " value=";
+      if (v && v->value) std::cout << *v->value;
+      else std::cout << "absent";
+      std::cout << " native_error=";
+      if (v) std::cout << v->absolute_error_estimate;
+      else std::cout << "absent";
+      std::cout << " reference=" << reference << " total_Eref=" << reference_error
+                << " allocation=" << allocation << '\n';
+    };
+    std::cout << "stationary batch_status=" << int(batch.status)
+              << " requested_rows=6 actual_rows=" << batch.rows.size()
+              << " query_driver_work=" << batch.driver_evaluations << '\n';
+    // Emit every original requested group, including missing rows/payloads,
+    // before any batch/value/error predicate can throw.
+    for (std::size_t i = 0; i < 6; ++i) {
+      const auto *row = i < batch.rows.size() ? &batch.rows[i] : nullptr;
+      const auto op = opacity_reference(z[i]);
+      record(i, "q-per-He", row ? &row->helium_singly_ionized_fraction : nullptr,
+             exact, qref, Aq);
+      record(i, "ne-per-m3", row ? &row->electron_number_density_per_cubic_metre : nullptr,
+             exact_ne, neref, Ane);
+      record(i, "qT-per-redshift", row ? &row->thomson_opacity_per_redshift : nullptr,
+             op.value, op.error, op.allocation);
+    }
+    std::cout.flush();
     need(batch.status == S::ok && batch.rows.size() == 6, "ordered coarse query batch");
     for (const auto &row : batch.rows) {
       const W q = value(row.helium_singly_ionized_fraction),
           ne = value(row.electron_number_density_per_cubic_metre),
-          op = value(row.thomson_opacity_per_redshift),
-          expected_op = c * sigma * exact_ne / (W(rows[0].hubble_per_second) * (1 + W(row.redshift)));
-      // Analytic constant-bath flow contracts toward qeq; emitted boundary cast
-      // and expected scalar arithmetic are explicit, not claimed exact zeros.
-      const W analytic_error = 512 * std::numeric_limits<W>::epsilon() * std::abs(exact),
-          qref = boundary_error + analytic_error,
-          neref = 3e9L * f * qref + 1024 * std::numeric_limits<W>::epsilon() * exact_ne,
-          opref = c * sigma * neref / (W(rows[0].hubble_per_second) * (1 + W(row.redshift))) +
-              1024 * std::numeric_limits<W>::epsilon() * expected_op;
-      need(qref <= .05L * (1e-8L + 2e-6L * exact) &&
-          neref <= .05L * (3e9L * f * 1e-8L + 2e-6L * exact_ne) &&
-          opref <= .05L * (2e-9L + 3e-6L * expected_op), "complete analytic reference allowance <=5% EACH group");
+          op = value(row.thomson_opacity_per_redshift);
+      const auto expected = opacity_reference(row.redshift);
+      need(qref <= .05L * Aq && neref <= .05L * Ane &&
+          expected.error <= .05L * expected.allocation, "complete analytic reference allowance <=5% EACH group");
       need(std::abs(q - exact) <= row.helium_singly_ionized_fraction.absolute_error_estimate +
           qref, "analytic stationary HISTORY control");
       need(std::abs(ne - exact_ne) <= row.electron_number_density_per_cubic_metre.absolute_error_estimate +
           neref, "analytic shared electron history");
-      need(std::abs(op - expected_op) <= row.thomson_opacity_per_redshift.absolute_error_estimate +
-          opref, "analytic opacity history");
+      need(std::abs(op - expected.value) <= row.thomson_opacity_per_redshift.absolute_error_estimate +
+          expected.error, "analytic opacity history");
       need(q > 0 && q < 1 && ne > 0 && op > 0, "positive perHe/charge/opacity outputs");
     }
     for (unsigned mask = 1; mask <= 7; ++mask) {
@@ -183,8 +226,17 @@ int main() {
     const auto r = detail::helium_escape_rate(1e-13L, 3e9L, 6000, 1e-5L, .08L, q),
         up = detail::helium_escape_rate(1e-13L, 3e9L, 6000, 1e-5L, .08L, q + d),
         down = detail::helium_escape_rate(1e-13L, 3e9L, 6000, 1e-5L, .08L, q - d);
-    need(std::abs((up.value - down.value) / (2 * d) - r.fraction_derivative) <=
-        2e-8L * std::max(std::abs(r.fraction_derivative), r.absolute_rate_scale), "analytic q derivative");
+    const W finite_difference = (up.value - down.value) / (2 * d),
+        derivative_error = std::abs(finite_difference - r.fraction_derivative),
+        derivative_scale = std::max(std::abs(r.fraction_derivative), r.absolute_rate_scale),
+        derivative_allocation = 2e-8L * derivative_scale;
+    std::cout << "derivative q=" << q << " step=" << d << " center_rate=" << r.value
+              << " upper_rate=" << up.value << " lower_rate=" << down.value
+              << " analytic=" << r.fraction_derivative << " finite_difference=" << finite_difference
+              << " absolute_difference=" << derivative_error << " absolute_scale=" << derivative_scale
+              << " allocation=" << derivative_allocation << '\n';
+    std::cout.flush();
+    need(derivative_error <= derivative_allocation, "analytic q derivative");
     std::cout << "helium_escape_history checks=" << checks << " failures=0\n";
   } catch (const std::exception &e) {
     std::fesetround(FE_TONEAREST); std::cerr << "FAILED " << e.what() << '\n'; return 1;

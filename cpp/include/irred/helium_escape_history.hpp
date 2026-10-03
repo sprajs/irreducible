@@ -93,6 +93,8 @@ public:
   HeliumEscapeHistory(HeliumEscapeHistory &&) noexcept;
   HeliumEscapeHistory &operator=(HeliumEscapeHistory &&) noexcept;
   numerics::Status status() const noexcept { return status_; }
+  // Acquisition refusal may leave only lawful partial metadata, or no source.
+  // Only source_capture_complete asserts retention of the complete input.
   const HeliumEscapeDriver *source() const noexcept {
     return source_ ? &*source_ : nullptr;
   }
@@ -116,6 +118,7 @@ private:
   HeliumEscapeHistoryWork work_;
   HeliumEscapeHistoryWitness witness_;
   std::vector<Node> nodes_;
+  void discard_failed_payload() noexcept;
   friend HeliumEscapeHistory prepare_helium_escape_history(
       const HeliumEscapeHistoryRequest &, HeliumEscapeHistoryPolicy);
   friend std::optional<std::size_t> helium_escape_history_payload_bound(

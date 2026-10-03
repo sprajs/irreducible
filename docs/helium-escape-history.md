@@ -2,8 +2,9 @@
 
 This source candidate evolves a supplied HeII/He population history with HeI
 584 Å resonance escape, hydrogen continuum absorption and 591 Å intercombination.
-It has not yet been compiled or numerically accepted. Common build integration,
-installed tests, independent trajectory and same-run CLASS comparison are pending.
+It has not yet been compiled or numerically accepted. Build consumers are
+registered in source; installed execution, independent trajectory and same-run
+CLASS comparison are pending.
 It is a distinct supplied-driver approximation; the existing
 [singlet H/He history](hydrogen-helium-history.md) and its defaults keep their identity.
 
@@ -28,7 +29,7 @@ Evaluate an ordered coarse redshift span, choosing `helium_escape_fraction` (1),
 Each requested output has its own status, optional value and absolute numerical
 diagnostic. Invalid query rows retain valid neighbours. A refused or unrequested
 value is absent, never a zero or a dropped row. A failed preparation supplies no
-trajectory but retains the acquired source, work and partial witnesses.
+trajectory but retains lawful acquired source metadata, work and partial witnesses.
 
 The source pointer is const. Copies acquire independent storage with simultaneous
 owner payload checks; copy resource refusal throws `length_error`, allocation
@@ -154,7 +155,13 @@ failed attempts; no fresh background or ODE evaluation occurs at queries.
 Remaining work is checked after source import before numerical setup. Requested payload is preflighted;
 actual string/vector capacities and simultaneous preparation/output/replacement
 owners are checked. This excludes allocator overhead/RSS; complete allocation-
-fault and measured peak validation is still pending. Nearest strict FP,
+fault and measured peak validation is still pending. Rejected trajectory/output
+storage is released, including its capacity. A captured source survives a later
+refusal when its retained capacity fits the original cap. If acquisition itself
+exceeds that cap, rejected source reservations are released; lawful metadata,
+work and attempted witnesses remain, while source_capture_complete is false.
+This refusal owner is not a whole-process proof for an arbitrarily tiny cap.
+Nearest strict FP,
 binary64 inputs and binary long double with at least 64 bits of precision and
 maximum exponent at least16384 are required; unsupported arithmetic is a refusal
 at preparation and evaluation.

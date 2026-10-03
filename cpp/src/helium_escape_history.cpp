@@ -197,6 +197,23 @@ std::optional<std::size_t> HeliumEscapeHistory::retained_payload_bound() const n
   if (source_) { p.vector(source_->knots); p.string(source_->producer_identity); }
   return p.result();
 }
+void HeliumEscapeHistory::discard_failed_payload() noexcept {
+  // A refused trajectory is unavailable: release its capacity, not just size.
+  std::vector<Node>{}.swap(nodes_);
+  const auto exceeds = [&]() {
+    const auto retained = retained_payload_bound();
+    return !retained || *retained > byte_cap(policy_);
+  };
+  if (!source_ || !exceeds()) return;
+  // Complete lawful captures fit at acquisition and survive later refusals.
+  // An oversized acquisition must not retain its rejected reservation or claim
+  // that discarded input is complete. Work and attempted witnesses stay intact.
+  std::vector<HeliumEscapeDriverKnot>{}.swap(source_->knots);
+  witness_.source_capture_complete = false;
+  if (!exceeds()) return;
+  std::string{}.swap(source_->producer_identity);
+  if (exceeds()) source_.reset();
+}
 HeliumEscapeHistory::HeliumEscapeHistory(const HeliumEscapeHistory &o) {
   clone_preflight(o, 0);
   const auto old = o.retained_payload_bound();
@@ -232,7 +249,7 @@ HeliumEscapeHistory &HeliumEscapeHistory::operator=(HeliumEscapeHistory &&o) noe
   if (this != &o) {
     status_ = o.status_; source_ = std::move(o.source_); policy_ = o.policy_;
     work_ = o.work_; witness_ = o.witness_; nodes_ = std::move(o.nodes_);
-    o.source_.reset(); o.nodes_.clear(); o.status_ = S::invalid_input;
+    o.source_.reset(); std::vector<Node>{}.swap(o.nodes_); o.status_ = S::invalid_input;
     o.work_ = {}; o.witness_ = {};
   }
   return *this;
@@ -262,7 +279,9 @@ HeliumEscapeHistory prepare_helium_escape_history(
     source.role = request.role; source.producer_identity = request.producer_identity;
     source.knots.reserve(request.knots.size());
     auto acquired = out.retained_payload_bound();
-    if (!acquired || *acquired > cap) { out.status_ = S::work_limit; return out; }
+    if (!acquired || *acquired > cap) {
+      out.status_ = S::work_limit; out.discard_failed_payload(); return out;
+    }
     for (const auto &row : request.knots) {
       if (!charge(out.work_.imported_rows, out.work_, policy.maximum_total_work)) {
         out.status_ = S::work_limit; return out;
@@ -378,7 +397,7 @@ HeliumEscapeHistory prepare_helium_escape_history(
       return t * (1 - t) * width * width * second / 2;
     };
     out.nodes_.resize(N + 1);
-    if (!payload()) { out.status_ = S::work_limit; out.nodes_.clear(); return out; }
+    if (!payload()) { out.status_ = S::work_limit; out.discard_failed_payload(); return out; }
     W max_activity = -INFINITY;
     for (std::size_t i = 0; i <= N; ++i) {
       const auto mid = interpolate(middle, 2, i), old = interpolate(coarse, 4, i);
@@ -387,17 +406,17 @@ HeliumEscapeHistory prepare_helium_escape_history(
               2 * interpolation_error(middle, 2, i) + interpolation_error(coarse, 4, i) / 3 +
               2 * (fine[i].root_error + mid.root_error + old.root_error) + floor64 * q;
       if (!physical_fraction(q) || !(error >= 0) || !std::isfinite(error)) {
-        out.status_ = S::conditioning_budget_exceeded; out.nodes_.clear(); return out;
+        out.status_ = S::conditioning_budget_exceeded; out.discard_failed_payload(); return out;
       }
       const auto r = evolution.rate(coefficients[i], q);
-      if (evolution.status != S::ok) { out.status_ = evolution.status; out.nodes_.clear(); return out; }
+      if (evolution.status != S::ok) { out.status_ = evolution.status; out.discard_failed_payload(); return out; }
       const W activity = detail::helium_escape_heiii_log_activity(coefficients[i].T,
                                                                  r.electron_density);
-      if (!std::isfinite(activity)) { out.status_ = S::conditioning_budget_exceeded; out.nodes_.clear(); return out; }
+      if (!std::isfinite(activity)) { out.status_ = S::conditioning_budget_exceeded; out.discard_failed_payload(); return out; }
       max_activity = std::max(max_activity, activity);
       out.witness_.maximum_log_retained_heiii_activity =
           std::nextafter(static_cast<double>(max_activity), INFINITY);
-      if (max_activity > std::log(1e-12L)) { out.status_ = S::outside_domain; out.nodes_.clear(); return out; }
+      if (max_activity > std::log(1e-12L)) { out.status_ = S::outside_domain; out.discard_failed_payload(); return out; }
       out.nodes_[i] = {coefficients[i].ell, coefficients[i].z, q, error, 0};
     }
     for (std::size_t i = 0; i < N; ++i) {
@@ -415,8 +434,8 @@ HeliumEscapeHistory prepare_helium_escape_history(
       out.nodes_[i].curvature = second;
     }
     out.status_ = S::ok;
-  } catch (const std::bad_alloc &) { out.status_ = S::work_limit; out.nodes_.clear(); }
-  catch (const std::length_error &) { out.status_ = S::work_limit; out.nodes_.clear(); }
+  } catch (const std::bad_alloc &) { out.status_ = S::work_limit; out.discard_failed_payload(); }
+  catch (const std::length_error &) { out.status_ = S::work_limit; out.discard_failed_payload(); }
   return out;
 }
 HeliumEscapeHistoryBatch HeliumEscapeHistory::evaluate(
@@ -442,7 +461,7 @@ HeliumEscapeHistoryBatch HeliumEscapeHistory::evaluate(
     irred::detail::PayloadAccounting actual(sizeof(out));
     actual.add(1, *retained); actual.vector(out.rows);
     if (!actual.result() || *actual.result() > cap) {
-      out.status = S::work_limit; out.rows.clear(); return out;
+      out.status = S::work_limit; std::vector<HeliumEscapeHistoryRow>{}.swap(out.rows); return out;
     }
     for (std::size_t i = 0; i < redshifts.size(); ++i) {
       auto &row = out.rows[i]; const double z = redshifts[i]; row.redshift = z;
@@ -491,8 +510,8 @@ HeliumEscapeHistoryBatch HeliumEscapeHistory::evaluate(
                             policy_.relative_opacity_tolerance);
     }
     out.status = S::ok;
-  } catch (const std::bad_alloc &) { out.status = S::work_limit; out.rows.clear(); }
-  catch (const std::length_error &) { out.status = S::work_limit; out.rows.clear(); }
+  } catch (const std::bad_alloc &) { out.status = S::work_limit; std::vector<HeliumEscapeHistoryRow>{}.swap(out.rows); }
+  catch (const std::length_error &) { out.status = S::work_limit; std::vector<HeliumEscapeHistoryRow>{}.swap(out.rows); }
   return out;
 }
 } // namespace irred::cosmology
