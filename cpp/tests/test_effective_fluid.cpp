@@ -69,6 +69,24 @@ int main() {
   const auto baseline = zero.evaluate(factors, thermal_e | effective_fluid_ruler, p);
   require(baseline.ruler && baseline.ruler->value && *b.ruler->value < *baseline.ruler->value,
           "matched finite endpoint ruler decreases for positive fluid");
+  // The dyadic endpoint is the EXACT same wide value in the existing z route.
+  // This checks literal helper parity; a rounded general z->a is not identical.
+  const ThermalPhysicalModel physical{70, .02, .1, 2.7255, 1.7e-5, {}};
+  const auto mapping = map_thermal_physical_model(physical, p.thermal);
+  require(mapping.status == S::ok && mapping.model, "literal parity source map");
+  const auto previous = prepare_thermal_observables(
+      {physical, 1, "exact-z-one-half-scale", "literal-public-parity-source"}, p);
+  const auto matched = prepare_effective_fluid(
+      {*mapping.model, 0, .5, .5, "literal-public-parity-source", "exact-z-one-half-scale"}, p);
+  const auto old_ruler = previous.evaluate({}, thermal_ruler_mask, p);
+  const auto exact_ruler = matched.evaluate({}, effective_fluid_ruler, p);
+  require(previous.status() == S::ok && matched.status() == S::ok && old_ruler.ruler &&
+          exact_ruler.ruler && old_ruler.ruler->status == S::ok && exact_ruler.ruler->status == S::ok &&
+          old_ruler.ruler->value == exact_ruler.ruler->value &&
+          old_ruler.ruler->error_estimate == exact_ruler.ruler->error_estimate &&
+          old_ruler.callbacks == exact_ruler.callbacks && old_ruler.outer_callbacks == exact_ruler.outer_callbacks &&
+          old_ruler.momentum_callbacks == exact_ruler.momentum_callbacks,
+          "zero fluid literal previous ruler value/diagnostic/work parity");
   for (unsigned i = 0; i < 4; ++i)
     require(b.rows[i].e.value && baseline.rows[i].e.value &&
             *b.rows[i].e.value >= *baseline.rows[i].e.value, "matched E cannot decrease");
