@@ -159,6 +159,12 @@ It must withhold the joint density if any required mean fails. A product of
 scalar marginal densities loses supplied covariance. Gaussian noise here is a
 separate declared synthetic assumption; ERR, seed/address independence,
 selection conditioning and a posterior are not supplied by this forward law.
+The installed caller's independent rank-one inverse/determinant control checks
+the Gaussian stage at the same supplied native-rounded residual vector. It
+does not propagate independent forward-mean or residual-subtraction uncertainty
+into a complete scene-to-log-density interval; that gate remains open. Its
+receipts retain both scene preparations and all base, refused and exact-zero
+forward batches, including structural work with zero field samples.
 
 All source and numerical controls are original; no third-party code or image
 assets are copied. Measured B1608 Paper I/SPLE, calibrated pixels, operator

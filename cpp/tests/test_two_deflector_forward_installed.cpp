@@ -102,6 +102,9 @@ int main() {
   need(gaussian.status()==irred::statistics::DensityStatus::finite,"one retained ordered Gaussian factor");
   const auto score=gaussian.evaluate(residual,ids,1e-12);
   need(score.density.status==irred::statistics::DensityStatus::finite,"complete joint normalized density");
+  // Independent Gaussian-stage algebra at these SAME native-rounded supplied
+  // residuals. This does not propagate independent forward-mean intervals or
+  // data-minus-mean subtraction error into an end-to-end scene/log interval.
   W sum=0,squares=0;
   for(double r:residual) { sum+=r; squares+=W(r)*r; }
   const W quadratic=squares/2-sum*sum/48;
@@ -123,7 +126,9 @@ int main() {
 
   auto zero=scene(); zero.source.peak_electrons_per_second_per_radian_squared=0;
   zero.uniform_sky_electrons_per_second_per_radian_squared=0;
-  const auto exact=prepare_two_deflector_forward(std::move(zero),cutout,psf).means(original,cap);
+  auto zero_lens=prepare_two_deflector_forward(std::move(zero),cutout,psf);
+  need(zero_lens.status()==S::ok,"structural-zero retained preparation");
+  const auto exact=zero_lens.means(original,cap);
   need(complete(exact,16)&&exact.work.field_samples_started==0,"structural-zero mean law");
   for(std::size_t i=0;i<16;++i) { need(*exact.rows()[i].electrons==0,"exact zero retained"); residual[i]=data[i]; }
   const auto joint=gaussian.evaluate(residual,ids,1e-12);
@@ -149,6 +154,10 @@ int main() {
       <<"\"measure\":\"ordered electron product measure\","
       <<"\"selection\":\"all fixed parent pixels retained\","
       <<"\"status\":\"finite\",\"qualification\":\"synthetic directed control only\","
+      <<"\"joint_reference_scope\":\"Gaussian-stage algebra at supplied native-rounded residuals\","
+      <<"\"end_to_end_mean_residual_log_interval_gate\":\"open\","
+      <<"\"joint_reference_empirical_error\":"<<double(reference_error)
+      <<",\"joint_reference_fixed_total\":"<<double(total)<<','
       <<"\"joint_log_density\":"<<score.density.log_value
       <<",\"joint_quadratic\":"<<score.quadratic
       <<",\"joint_log_determinant\":"<<score.log_determinant
@@ -161,7 +170,9 @@ int main() {
       <<",\"preparation_work\":";
   print_work(lens.preparation_work()); std::cout<<",\"batch_work\":";
   print_work(means.work); std::cout<<",\"refused_batch_work\":";
-  print_work(unavailable.work); std::cout<<",\"rows\":[";
+  print_work(unavailable.work); std::cout<<",\"zero_scene_preparation_work\":";
+  print_work(zero_lens.preparation_work()); std::cout<<",\"zero_batch_work\":";
+  print_work(exact.work); std::cout<<",\"rows\":[";
   for(std::size_t i=0;i<16;++i) {
     if(i) std::cout<<',';
     const auto &r=means.rows()[i]; const auto &e=*r.errors;
