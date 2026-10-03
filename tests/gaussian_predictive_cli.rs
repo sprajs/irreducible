@@ -385,6 +385,41 @@ fn strict_objects_presence_duplicates_and_hard_request_bounds() {
     input = fixture();
     input["conditioning"]["vectors"] = json!([[1.25], [0.5, 0.25]]);
     failed_request(&input);
+    for field in [
+        "noise",
+        "design",
+        "parameter_prior",
+        "conditioning",
+        "future_noise",
+        "future_response",
+        "prediction",
+        "outputs",
+        "future_vectors",
+        "resource_policy",
+    ] {
+        let input = fixture();
+        let object = &input[field];
+        let (key, value) = object.as_object().unwrap().iter().next().unwrap();
+        let original_object = serde_json::to_string(object).unwrap();
+        let duplicate = format!(
+            "{{\"{key}\":{},{}",
+            serde_json::to_string(value).unwrap(),
+            &original_object[1..]
+        );
+        let raw = serde_json::to_string(&input)
+            .unwrap()
+            .replacen(&original_object, &duplicate, 1);
+        let (v, code, spec) = run_raw(raw.as_bytes());
+        assert_ne!(code, 0);
+        assert_eq!(v["receipt"]["execution"], "failed");
+        assert!(spec.is_none());
+    }
+    input = fixture();
+    input["future_noise"]["covariance_row_major"] = json!(vec![0.; 1000000]);
+    failed_request(&input);
+    input = fixture();
+    input["conditioning"]["case_ids"] = json!(vec!["case"; 65537]);
+    failed_request(&input);
     let raw = serde_json::to_string(&fixture()).unwrap().replace(
         "\"future_noise_independence_declared\":true",
         "\"future_noise_independence_declared\":false,\"future_noise_independence_declared\":true",

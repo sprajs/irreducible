@@ -314,7 +314,7 @@ int main() {
                !x.training_noise_attempted,
            "lineage/domain admission before native equations");
     }
-    for (unsigned variant = 0; variant < 6; ++variant) {
+    for (unsigned variant = 0; variant < 14; ++variant) {
       auto changed = b;
       if (variant == 0)
         changed.reserved = 1;
@@ -326,6 +326,25 @@ int main() {
         changed.future_response.data = nullptr;
       if (variant == 4)
         changed.future_response.reserved = 1;
+      if (variant == 6)
+        changed.abi_version = IRRED_ABI_VERSION + 1;
+      if (variant == 7)
+        changed.struct_size = sizeof(changed) - 1;
+      if (variant == 8)
+        changed.future_response.data = reinterpret_cast<const double *>(
+            reinterpret_cast<const uint8_t *>(f.A.data()) + 1);
+      if (variant == 9)
+        changed.future_response.element_type = 1;
+      if (variant == 10)
+        changed.future_noise_row_ids.data =
+            reinterpret_cast<const irred_bytes *>(
+                reinterpret_cast<const uint8_t *>(f.future_rows.data()) + 1);
+      if (variant == 11)
+        changed.future_noise_row_ids.byte_length -= 1;
+      if (variant == 12)
+        changed.training.abi_version = IRRED_ABI_VERSION + 1;
+      if (variant == 13)
+        changed.future_noise_row_ids.data = nullptr;
       const std::array<uint8_t, 2> invalid{0xc0, 0x80};
       if (variant == 5)
         changed.future_noise_identity = {invalid.data(), invalid.size()};
@@ -334,6 +353,57 @@ int main() {
                    IRRED_INVALID_ARGUMENT &&
                !r.p,
            "invalid ABI wire never executed");
+    }
+    {
+      Result r;
+      const auto *unaligned_batch =
+          reinterpret_cast<const irred_gaussian_predictive_batch *>(
+              reinterpret_cast<const uint8_t *>(&b) + 1);
+      const auto *unaligned_policy =
+          reinterpret_cast<const irred_gaussian_posterior_policy *>(
+              reinterpret_cast<const uint8_t *>(&q) + 1);
+      need(irred_gaussian_predictive_evaluate(unaligned_batch, &q, &r.p) ==
+                   IRRED_INVALID_ARGUMENT &&
+               !r.p,
+           "misaligned batch header");
+      need(irred_gaussian_predictive_evaluate(&b, unaligned_policy, &r.p) ==
+                   IRRED_INVALID_ARGUMENT &&
+               !r.p,
+           "misaligned policy header");
+      auto bad_policy = q;
+      bad_policy.abi_version = IRRED_ABI_VERSION + 1;
+      need(irred_gaussian_predictive_evaluate(&b, &bad_policy, &r.p) ==
+                   IRRED_INVALID_ARGUMENT &&
+               !r.p,
+           "bad policy version");
+      alignas(void *)
+          std::array<uint8_t, sizeof(irred_gaussian_predictive_result *) + 1>
+              output{};
+      auto **unaligned_output =
+          reinterpret_cast<irred_gaussian_predictive_result **>(output.data() +
+                                                                1);
+      need(irred_gaussian_predictive_evaluate(&b, &q, unaligned_output) ==
+               IRRED_INVALID_ARGUMENT,
+           "misaligned result pointer descriptor");
+      alignas(irred_gaussian_predictive_view)
+          std::array<uint8_t, sizeof(irred_gaussian_predictive_view) + 1>
+              returned{};
+      auto *unaligned_view = reinterpret_cast<irred_gaussian_predictive_view *>(
+          returned.data() + 1);
+      need(irred_gaussian_predictive_result_view(original.p, unaligned_view) ==
+               IRRED_INVALID_ARGUMENT,
+           "misaligned result view descriptor");
+    }
+    {
+      auto changed = b;
+      const std::array<irred_bytes, 2> duplicate{f.future_events[0],
+                                                 f.future_events[0]};
+      changed.future_noise_event_ids = changed.future_vector_event_ids =
+          ids(duplicate);
+      Result r;
+      run(changed, q, r);
+      need(view(r).status == IRRED_GAUSSIAN_STATUS_INCOMPATIBLE_METADATA,
+           "ordered duplicate event refused");
     }
     {
       auto changed = b;
