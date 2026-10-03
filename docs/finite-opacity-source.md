@@ -119,6 +119,20 @@ controls; the dense small hierarchy is not the independent angular reference.
 The installed public-header/archive consumer also produces one bounded positive
 finite source and checks its unadmitted discriminator and surviving boundary.
 
+At frozen commit `04332db2239122ea2a2685e2375ebb15e98686ea`, the first bounded
+trial passed both native contract binaries and the fresh installed consumer.
+Its seven serial configure/build/run/install steps all passed in 67.410 seconds,
+including fresh setup and compilation. Actual strict C++20 flags, installed
+archive/header identity and all 89 unchanged source/runtime input pins were
+checked; an independent receipt readback also passed. This passage covers the
+named narrow trial. Full repository and integrated-main CI checks are separate.
+The compiled controls checked the work/payload caps and the one-begun,
+one-denied between-node refusal. Full-run internal ledger values were not
+printed, so this passage supplies no measured internal work-count claim.
+Numerical admission, the independent angular/precision reference and physical
+qualification remain unearned; complete raw output retains the unadmitted
+discriminator above.
+
 The equations were independently authored from retained MB, CLASS and
 line-of-sight source readings. No CLASS code/assets or paper bodies are copied
 into production. [The source pin manifest](finite-opacity-source-provenance.json)

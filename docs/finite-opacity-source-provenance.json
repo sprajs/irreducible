@@ -214,7 +214,7 @@
   ],
   "preserved_cap_finding": "pre-code-findings.json; original 4096-time lower bound294840 exceeded100000; final1024/4096 scope preserves100000",
   "unearned_gates": [
-    "compiled/runtime/masks/refusal/resource/fault passage",
+    "broader runtime/fault/regression qualification beyond the recorded narrow native and installed trial",
     "independent same-model angular reference and complete EACH <=5% errors",
     "integrated correlated common-background/clock/age-a0 response",
     "arithmetic/linear forward response",
@@ -238,7 +238,16 @@
       "F06 explicit finite full-stage residual arithmetic before maximum aggregation",
       "C07 bounded positive installed computed/unadmitted source and same-boundary owner"
     ],
-    "successor_independent_readback": "pending",
+    "successor_independent_readback": {
+      "source_head": "04332db2239122ea2a2685e2375ebb15e98686ea",
+      "source_review_sha256": "6ae114c753e4cfee97677028d775431a0383fd32426ec3536098b18bc6d1273c",
+      "actual_trial_sha256": "de8c664554d44c8804a6de61b6b80a6d2bcd8e987e1687dbbb7b3bb7d44f771a",
+      "actual_readback_sha256": "7cbba3c7d8cb7a5437e59360fba6477c3ad2e15644923e71aedb6f751c93b9c0",
+      "scope": "Two native contracts and one fresh installed consumer; seven serial steps, 67.410359 seconds including setup/build; all 89 source/runtime pins unchanged.",
+      "full_suite_or_current_integrated_CI_earned": false,
+      "source_numerical_admission": false,
+      "measured_internal_work_totals": null
+    },
     "jobs": 0
   }
 }
