@@ -107,14 +107,25 @@ S rhs_at(Context &c, W a, const Epoch &e, const State &y, State &dy) {
   for (W value:dy) if (!std::isfinite(value)) return S::overflow;
   return S::ok;
 }
-W residual(const State &y,const Epoch &e) {
+struct Residual {
+  W absolute=0, normalized=0, relative_reduced=0, direct=0, assembly_discrepancy=0;
+};
+Residual residual(const State &y,const Epoch &e) {
   const W B=e.fb+4*e.fg/3;
   const std::array<W,4> terms{e.x2*y[4],1.5L*e.enthalpy_fraction*y[0],
                              -1.5L*B*y[1],4.5L*B*y[2]};
-  W sum=0,scale=0;
-  for (W t:terms) { sum+=t; scale+=std::abs(t); }
-  return scale==0 ? (sum==0 ? 0 : std::numeric_limits<W>::infinity())
-                  : std::abs(sum)/scale;
+  W sum=0,reduced_scale=0;
+  for (W t:terms) { sum+=t; reduced_scale+=std::abs(t); }
+  const W z=-y[4]+1.5L*e.enthalpy_fraction*y[3]+1.5L*B*y[2];
+  const W dc=y[0]-3*y[3],db=dc-y[1],dg=4*(y[0]-3*y[3]-y[1])/3;
+  const W direct=e.x2*y[4]+3*(z+y[4])+1.5L*(e.fc*dc+e.fb*db+e.fg*dg);
+  const W scale=std::abs(e.x2*y[4])+3*std::abs(z+y[4])+
+                1.5L*(e.fc*std::abs(dc)+e.fb*std::abs(db)+e.fg*std::abs(dg));
+  auto ratio=[&](W denominator) {
+    return denominator==0 ? (sum==0 ? 0 : std::numeric_limits<W>::infinity())
+                          : std::abs(sum)/denominator;
+  };
+  return {std::abs(sum),ratio(scale),ratio(reduced_scale),direct,std::abs(direct-sum)};
 }
 struct AgeContext {
   Context &c;
@@ -200,7 +211,8 @@ Run evolve(Context &c,W start,std::span<const double> targets,W step,
   out.attempt.projected_initial_state=std::array<W,5>{y[0],y[1],y[2],y[3],y[4]};
   out.attempt.initial_delta_projection=y[0]-old_delta;
   W n=std::log(start),a=start;
-  out.samples.reserve(targets.size());
+  try { out.samples.reserve(targets.size()); }
+  catch (const std::bad_alloc &) { finish(S::work_limit); return out; }
   for (double target:targets) {
     const W end=std::log(W(target));
     while (n<end) {
@@ -233,14 +245,22 @@ Run evolve(Context &c,W start,std::span<const double> targets,W step,
       n=next; a=next_a; current=std::move(last);
       for (W value:y) if (!std::isfinite(value)) { finish(S::overflow); return out; }
       if (!c.budget.diagnostic()) { finish(S::work_limit); return out; }
-      const W constraint=residual(y,current);
+      const auto constraint=residual(y,current);
       out.attempt.maximum_normalized_hamiltonian_residual=std::max(
-          out.attempt.maximum_normalized_hamiltonian_residual,constraint);
+          out.attempt.maximum_normalized_hamiltonian_residual,constraint.normalized);
+      out.attempt.maximum_absolute_hamiltonian_residual=std::max(
+          out.attempt.maximum_absolute_hamiltonian_residual,constraint.absolute);
+      out.attempt.maximum_relative_reduced_constraint=std::max(
+          out.attempt.maximum_relative_reduced_constraint,constraint.relative_reduced);
+      out.attempt.maximum_direct_hamiltonian_residual=std::max(
+          out.attempt.maximum_direct_hamiltonian_residual,std::abs(constraint.direct));
+      out.attempt.maximum_hamiltonian_assembly_discrepancy=std::max(
+          out.attempt.maximum_hamiltonian_assembly_discrepancy,constraint.assembly_discrepancy);
       out.attempt.maximum_absolute_closure_defect=std::max(
           out.attempt.maximum_absolute_closure_defect,std::abs(current.closure_defect));
       out.attempt.maximum_absolute_acceleration_defect=std::max(
           out.attempt.maximum_absolute_acceleration_defect,std::abs(current.acceleration_defect));
-      if (!std::isfinite(constraint) || constraint>c.budget.p.maximum_constraint_residual) {
+      if (!std::isfinite(constraint.normalized) || constraint.normalized>c.budget.p.maximum_constraint_residual) {
         finish(S::conditioning_budget_exceeded); return out;
       }
       if (!(y[5]>=0) || c.k*(y[5]+age.estimate)>20) {

@@ -62,6 +62,10 @@ struct IdealAcousticAttempt {
   std::optional<std::array<long double, 5>> projected_initial_state;
   std::optional<long double> initial_delta_projection;
   long double maximum_normalized_hamiltonian_residual = 0;
+  long double maximum_absolute_hamiltonian_residual = 0;
+  long double maximum_relative_reduced_constraint = 0;
+  long double maximum_direct_hamiltonian_residual = 0;
+  long double maximum_hamiltonian_assembly_discrepancy = 0;
   long double maximum_absolute_closure_defect = 0;
   long double maximum_absolute_acceleration_defect = 0;
   IdealAcousticWork work;

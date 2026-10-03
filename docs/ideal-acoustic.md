@@ -72,6 +72,8 @@ orders and smaller-start comparisons remain separate evidence.
 Each requested dimensionless coordinate uses epsilon=1e-8+3e-5*abs(X).
 Time, initial, shared source/background/age and arithmetic/constraint effects
 each receive epsilon/5; their conservative sum must be <=4epsilon/5.
+The raw Einstein Hamiltonian term scale normalizes the constraint, while its
+absolute value and reduced-comoving relative residual remain separate witnesses.
 The independent oscillator/Einstein-trace peer has epsilon/5 total. Refinement
 uses eight times the maximum of the last two differences and is explicitly an
 empirical diagnostic. A small constraint residual alone cannot admit an output.

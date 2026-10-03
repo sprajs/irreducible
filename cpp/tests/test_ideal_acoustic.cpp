@@ -13,7 +13,8 @@ void need(bool value,const char *message) {
   if (!value) { std::cerr<<"FAIL "<<message<<'\n'; std::exit(1); }
 }
 void close(W actual,W expected,W error,const char *message) {
-  if (std::abs(actual-expected)>error) {
+  if (!std::isfinite(actual) || !std::isfinite(expected) ||
+      !std::isfinite(error) || error<0 || std::abs(actual-expected)>error) {
     std::cerr<<static_cast<double>(actual)<<" vs "<<static_cast<double>(expected)<<'\n';
     need(false,message);
   }
