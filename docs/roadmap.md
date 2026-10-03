@@ -37,6 +37,51 @@ accept both joint log-likelihood error and resulting parameter shifts.
 
 ## Next bounded choices
 
+### Current execution order: a runnable reference experiment
+
+The 2026-10-03 priority is an executable path toward the common-theory fit.
+Use a pinned external full-LambdaCDM solver and official likelihoods while native
+physics develops. Reference capability and native capability have separate
+identities; neither a source review nor a conditional native approximation
+qualifies the complete observational model.
+
+1. In Reproducible, inspect the existing pinned CLASS solver and freeze one
+   complete physical parameter/species, helium, reionization and primordial
+   state. Run a small fixed-point campaign that retains original TT/TE/EE
+   spectra, matter power, background/distances and thermal outputs from that
+   same state. Pin source, runtime, configuration, outputs and resource limits.
+2. Acquire and run an official Planck primary-CMB likelihood at those points,
+   with explicit multipole selection, units, lensing treatment and nuisance/
+   prior conditioning. An official marginalized/lite product retains its
+   source-defined scope; posterior-summary Gaussians cannot replace it.
+3. Expose one minimal agent-runnable command for predictions, per-probe
+   likelihoods and a bounded parameter scan. Add compatible BAO and SN adapters
+   using existing compiled covariance/score owners where possible. Report
+   separate scores until dependence, calibration and prior contracts permit
+   a joint target. A scan is not a qualified posterior.
+4. Advance native photon/baryon perturbations and continuous observable
+   projection against this reference. Implement useful physical closure with
+   analytic and independent checks at the consumer's required accuracy;
+   defer optional precision, codec and allocation refinements.
+5. Extend the runnable subset to windowed clustering and a named lens system,
+   then a source-supported alternative theory. Preserve unsupported closures,
+   overlap and model-dependent reductions rather than substituting a background
+   curve or a fitted summary.
+
+The next demonstration is actual full-state spectra/power/distances followed by
+an official-likelihood fixed point and bounded scan, with inspectable failures.
+Prospector owns the exact product/model contracts and practical acquisition;
+Reproducible owns the executable reference and adapters; Irreducible owns native
+physics and the smallest necessary library/CLI boundaries. Keep one integration
+owner per repository and four total local compute jobs.
+
+All nineteen scopes remain visible below. Noncritical released-box/ladder
+held-out work, predictive transport, finite abundance cohorts, private
+supervisor/allocator/elementary refinements, and repeated Site/documentation
+cycles are checkpointed and deferred. Preserve their unfinished source, inputs
+and failed gates. Resume one only when a precise missing output blocks this
+experiment; do not relax its original scientific acceptance.
+
 The nineteen scopes below retain the identities from the 2026-10-02 remaining-scope
 audit. This table is their active queue. Inspect current source, built discovery
 and accepted experiment findings before changing a status. Completed prerequisites
