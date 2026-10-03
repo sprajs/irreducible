@@ -70,14 +70,26 @@ all failed evaluation attempts count. The standalone thermal default stays
 batches. Payload accounting includes source copies, retained normalization,
 rows, labels and fixed scratch, while excluding borrowed inputs, allocator
 metadata, stack and RSS. No table, server or runtime equation framework is used.
+The payload bound applies to preparation/evaluation and move-return of this
+retained owner with its operation temporaries. Additional caller-owned copies
+and copy assignment's arbitrary old-target/replacement coexistence are outside
+that policy envelope; callers own those lifetimes. Copy semantics carry no
+resource-policy parameter.
 
 The permanent source controls cover exact zero/today/transition/conservation,
 ordered duplication, domains, closure, resource refusal, masks and lifetime.
 The peer uses an independently written log-density and direct-a fixed Simpson
 integration of an exactly dyadic empty-species polynomial reference, with each
-4096/8192 refinement at most 5% of its frozen ruler allocation. The public SDK
+4096/8192 refinement, positive dependency propagation, sum/scale arithmetic and
+measured reference reporting cast loss together occupy at most 5% of each frozen
+ruler allocation. It also requires the discrepancy to fit the actual native
+reported diagnostic plus that complete empirical reference estimate, retaining
+the original whole-allocation comparison. The log/exp/sqrt operation estimates
+are conditional empirical allowances; continuous libm qualification stays open.
+The public SDK
 consumer maps one explicit synthetic positive-mass relic source and checks a
-matched zero/positive-amplitude background and finite ruler. Shared thermal/FD
+matched zero/positive-amplitude background and finite ruler, and preserves the
+earned positive-FD normalization work on a later negative-closure refusal. Shared thermal/FD
 ancestry is not an independent massive-relic certificate. These new controls
 are written but have not yet been compiled or executed; runtime qualification
 requires the frozen source review and a separately allocated compute job.

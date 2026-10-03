@@ -51,8 +51,10 @@ private:
 };
 EffectiveFluidBackground prepare_effective_fluid(const EffectiveFluidRequest &,
                                                 ThermalObservablePolicy = {});
-// Includes retained and temporary source/owner/row payload; excludes borrowed
-// inputs, stack, allocator metadata and RSS. No table/cache is retained.
+// PREP/EVAL/move-return scope: this retained owner and operation temporaries/
+// rows. Excludes borrowed inputs, extra caller-owned copies, arbitrary copy
+// assignment's old-target/replacement coexistence, stack, allocator/RSS.
+// Copy operations have no policy parameter; callers own their whole lifetime.
 std::optional<std::size_t> effective_fluid_payload_bound(
     std::size_t points, std::size_t species, std::size_t origin_bytes) noexcept;
 inline constexpr std::string_view effective_fluid_model_id =
