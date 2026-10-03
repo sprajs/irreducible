@@ -479,7 +479,7 @@ fn actual_case(
     // before any expected result, lifetime, phase or census assertion.
     std::fs::write(path.join("profile.json"),serde_json::to_vec_pretty(&serde_json::json!({"case":name,"result_error":captured_result.as_ref().err(),"expected_error":expected,
         "snapshot":s,"before_return_drop":before_return_drop,"requested_payload_metric":"original Layout bytes; separate conservative realloc envelope","tracker_overhead_excluded":true,
-        "native_payload_measured_separately":true,"inventory":entries})).unwrap()).unwrap();
+        "native_payload_not_measured_by_rust_tracker":true,"inventory":entries})).unwrap()).unwrap();
     println!("THERMAL_PROFILE_RESULT {name} {s:?} {captured_result:?}");
     assert_eq!(captured_result.as_ref().err().map(String::as_str), expected);
     released(s);
