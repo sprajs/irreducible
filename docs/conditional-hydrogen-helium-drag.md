@@ -40,7 +40,8 @@ P=a⁴E², loading R0=3 Omega_b/(4 Omega_gamma), R=R0/u and sound speed
 c/sqrt[3(1+R)]. H is in s⁻¹ for optical depth, ne in m⁻³, sigma_T in m² and c
 in m/s. The adopted native sigma_T is 6.6524587051e-29 m² (CODATA2022); fixed
 G is 6.67430e-11 SI (CODATA2018). They have distinct source provenance and are
-not random numerical errors or newly measured atomic masses.
+not random numerical errors or newly measured atomic masses. The supplied
+H0 is in km/s/Mpc; H0_SI = 1000 H0/megaparsec_in_metres is in s⁻¹.
 
 The physical definition uses depth from today:
 
@@ -49,7 +50,8 @@ wD(z) = qT(z)/R(z) = c sigma_T ne/[H u R]
 D = tau_D(z_L),  K(z) = integral[z_L,z] wD dz,  tau_D(z)=D+K(z)
 t = 1-D
 [z_min,z_max] = [K^-1(1-D_upper), K^-1(1-D_lower)]
-rs(z) = c/(H0 sqrt3) integral[0,1/(1+z)] da/sqrt[P(a)(1+R0 a)]  [Mpc]
+rs(z) = c/(H0_SI * megaparsec_in_metres * sqrt3)
+        * integral[0,1/(1+z)] da/sqrt[P(a)(1+R0 a)]  [Mpc]
 drs/dz [Mpc] = -cs/(H * megaparsec_in_metres)
 ```
 
