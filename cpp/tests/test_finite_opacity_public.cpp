@@ -1,5 +1,6 @@
 #include "irred/finite_opacity_source.hpp"
 #include "irred/quantities.hpp"
+#include <algorithm>
 #include <array>
 #include <cfenv>
 #include <cmath>
@@ -51,6 +52,7 @@ void public_owner() {
   auto moved=std::move(producer);need(producer.status()==S::invalid_input && !producer.identity(),"producer move invalidates getters");
   moved=std::move(moved);need(moved.identity()==identity,"self move preserves owner");
   auto short_work=trial;short_work.maximum_attempted_steps=1;
+  short_work.maximum_eta_step_mpc=std::min(4.0,(original[1]-original[0])/8);
   const auto refused=moved.produce(short_work);
   need(refused.status==S::work_limit && !refused.source && !refused.source_numerically_admitted &&
        refused.boundary()==boundary && refused.identity.get()==identity &&
@@ -60,9 +62,18 @@ void public_owner() {
        refused.attempts[0].attempted_steps==1 && refused.attempts[0].denied_step_requests==1,
        "original begun-step aggregate and separately denied request");
   const auto &prefix=refused.attempts[0];
-  need(prefix.final_core.size()==2 && prefix.final_eta_mpc[0]>=identity->original.opacity.eta_mpc.front() &&
-       prefix.final_scale_factor[0]>=identity->original.initial_scale_factor && prefix.reached_wavenumbers==1,
-       "refusal retains complete reached core/time/scale and both hierarchy tails");
+  need(prefix.nodes.size()==1 && prefix.completed_steps==1 && prefix.final_core.size()==2 &&
+       prefix.final_eta_mpc.size()==2 && prefix.final_scale_factor.size()==2 &&
+       prefix.final_eta_mpc[0]>prefix.nodes[0].eta_mpc &&
+       prefix.final_eta_mpc[0]<W(original[0])+(W(original[1])-original[0])/4 &&
+       prefix.final_scale_factor[0]>prefix.nodes[0].scale_factor && prefix.reached_wavenumbers==1 &&
+       prefix.final_core[0]!=prefix.nodes[0].core &&
+       prefix.final_temperature_tail.size()==2*(prefix.hierarchy-2) &&
+       prefix.final_polarization_tail.size()==2*(prefix.hierarchy-2),
+       "between-node refusal retains newer complete core/time/scale and both hierarchy tails");
+  for(W value:prefix.final_core[0])need(std::isfinite(value),"finite refused prefix core");
+  for(W value:prefix.final_temperature_tail)need(std::isfinite(value),"finite refused temperature tails");
+  for(W value:prefix.final_polarization_tail)need(std::isfinite(value),"finite refused polarization tails");
   auto result=moved.produce(trial);
   need(result.status==S::conditioning_budget_exceeded && result.source && !result.source_numerically_admitted,
        "complete raw computed source with admission withheld");

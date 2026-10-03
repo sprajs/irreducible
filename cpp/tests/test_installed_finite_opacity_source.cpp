@@ -1,6 +1,7 @@
 // Fresh public-header/static-archive consumer. No private equation includes.
 #include "irred/finite_opacity_source.hpp"
 #include "irred/quantities.hpp"
+#include <algorithm>
 #include <cmath>
 #include <cstdlib>
 #include <iostream>
@@ -74,11 +75,24 @@ int main() {
        result.work.background_clock_calls<=policy.maximum_background_clock_calls &&
        result.work.destination_writes<=policy.maximum_destination_writes,"installed work/payload receipt");
   auto short_policy=policy;short_policy.maximum_attempted_steps=1;
+  short_policy.maximum_eta_step_mpc=std::min(4.0,(original_axis[1]-original_axis[0])/8);
   const auto stopped=moved.produce(short_policy);
   need(stopped.status==S::work_limit && !stopped.source && stopped.boundary()==boundary &&
        stopped.work.attempted_steps==1 && stopped.work.denied_step_requests==1 &&
        stopped.attempts[0].attempted_steps==1 && stopped.attempts[0].denied_step_requests==1,
        "installed capped refusal retains original identity and causal counters");
+  const auto &prefix=stopped.attempts[0];
+  need(prefix.nodes.size()==1 && prefix.completed_steps==1 && prefix.reached_wavenumbers==1 &&
+       prefix.final_core.size()==1 && prefix.final_eta_mpc.size()==1 && prefix.final_scale_factor.size()==1 &&
+       prefix.final_eta_mpc[0]>prefix.nodes[0].eta_mpc &&
+       prefix.final_eta_mpc[0]<W(original_axis[0])+(W(original_axis[1])-original_axis[0])/4 &&
+       prefix.final_scale_factor[0]>prefix.nodes[0].scale_factor && prefix.final_core[0]!=prefix.nodes[0].core &&
+       prefix.final_temperature_tail.size()==prefix.hierarchy-2 &&
+       prefix.final_polarization_tail.size()==prefix.hierarchy-2,
+       "installed between-node refusal retains matching newer core/time/scale and full tails");
+  for(W value:prefix.final_core[0])need(std::isfinite(value),"finite installed refused core");
+  for(W value:prefix.final_temperature_tail)need(std::isfinite(value),"finite installed refused temperature tails");
+  for(W value:prefix.final_polarization_tail)need(std::isfinite(value),"finite installed refused polarization tails");
   const auto *buffer=result.source->t0.data();
   auto projection=irred::projection::prepare_continuous_cmb_projection(std::move(*result.source));
   need(projection.status()==S::ok && projection.source()->t0.data()==buffer,"one moved raw source buffer");
