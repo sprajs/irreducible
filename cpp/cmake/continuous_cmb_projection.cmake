@@ -5,3 +5,10 @@ target_compile_options(test_continuous_cmb_projection PRIVATE
   -Wall -Wextra -Wpedantic -fno-fast-math -ffp-contract=off)
 add_test(NAME continuous_cmb_projection_contract COMMAND test_continuous_cmb_projection)
 set_tests_properties(continuous_cmb_projection_contract PROPERTIES TIMEOUT 240)
+
+add_executable(test_continuous_cmb_class_pl tests/test_continuous_cmb_class_pl.cpp)
+target_link_libraries(test_continuous_cmb_class_pl PRIVATE irred_core)
+target_compile_options(test_continuous_cmb_class_pl PRIVATE
+  -Wall -Wextra -Wpedantic -fno-fast-math -ffp-contract=off)
+add_test(NAME continuous_cmb_class_pl_contract COMMAND test_continuous_cmb_class_pl)
+set_tests_properties(continuous_cmb_class_pl_contract PROPERTIES TIMEOUT 240)
