@@ -904,7 +904,7 @@ template <class T> T node_translation_allowance(T scale) {
   return bound > 0 ? std::nextafter(bound, std::numeric_limits<T>::infinity())
                    : bound;
 }
-inline constexpr std::size_t node_witness_scalar_updates = 25;
+inline constexpr std::size_t node_witness_scalar_updates = 27;
 // Every node is checked and retained in bounded blocks. Maxima alone cannot
 // substitute for the original per-node preservation witness. Both raw D
 // subtraction and the small-coordinate translation identity are recorded.
@@ -921,7 +921,7 @@ bool record_gram_nodes(Ledger &ledger, Budget &budget, const Controls &control,
            << " eta=" << eta << " first=" << first;
     const auto last = std::min(nodes, first + 24);
     for (std::size_t j = first; j < last; ++j) {
-      // The callbacks below form 25 active real scalar destinations including
+      // The callbacks below form 27 active real scalar destinations including
       // their low-basis/remainder reconstructions, returned tuple, subtraction,
       // scale and maxima. Immutable input reads and text encoding add no state
       // updates; encoded bytes have their own independent cap.
@@ -1366,14 +1366,18 @@ Result run(const Background &background, long double radiation,
             const C<T> new_D = initial.angular.A +
                                C<T>(0, T(k) * u) * initial.angular.B +
                                T(k * k) * initial.angular.Q[j];
+            const T before_scale = std::abs(old_A) +
+                                   std::abs(T(k) * u * old_B) +
+                                   std::abs(T(k * k) * old_Q);
+            const T after_scale = std::abs(initial.angular.A) +
+                                  std::abs(T(k) * u * initial.angular.B) +
+                                  std::abs(T(k * k) * initial.angular.Q[j]);
             return NodeTranslationWitness<T>{
                 old_D, new_D,
                 (initial.angular.A - old_A) +
                     C<T>(0, T(k) * u) * (initial.angular.B - old_B) +
                     T(k * k) * (initial.angular.Q[j] - old_Q),
-                std::abs(old_A) + std::abs(T(k) * u * old_B) +
-                    std::abs(T(k * k) * old_Q),
-                initial.angular.Q[j] - old_Q};
+                before_scale + after_scale, initial.angular.Q[j] - old_Q};
           }))
     return finish(budget.status);
   const auto initial_readout = readout(y, rule, epoch, &budget);
@@ -1714,14 +1718,19 @@ Result run(const Background &background, long double radiation,
                 const C<T> new_D = corrected.delta_r + 4 * corrected.psi +
                                    C<T>(0, x * u) * corrected.b +
                                    T(current.x2) * new_U;
+                const T before_scale = std::abs(before.delta_r) +
+                                       4 * std::abs(before.psi) +
+                                       std::abs(x * u * before.b) +
+                                       std::abs(T(current.x2) * old_U);
+                const T after_scale = std::abs(corrected.delta_r) +
+                                      4 * std::abs(corrected.psi) +
+                                      std::abs(x * u * corrected.b) +
+                                      std::abs(T(current.x2) * new_U);
                 return NodeTranslationWitness<T>{
                     old_D, new_D,
                     delta_Cr + 4 * delta_psi + C<T>(0, x * u) * delta_b +
                         T(current.x2) * (y.R[j] - trial.R[j]),
-                    std::abs(before.delta_r + 4 * before.psi) +
-                        std::abs(x * u * before.b) +
-                        std::abs(T(current.x2) * old_U),
-                    y.R[j] - trial.R[j]};
+                    before_scale + after_scale, y.R[j] - trial.R[j]};
               }))
         return finish(budget.status);
       if (!record_stage(ledger, budget, control, eta, y, current, corrected, 0,

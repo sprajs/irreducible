@@ -579,7 +579,7 @@ void gram_admission_controls(const std::filesystem::path &directory) {
                               ? S::nonfinite_input
                               : S::conditioning_budget_exceeded;
     need(!accepted && budget.status == expected && visited == 2 &&
-             budget.scalar_updates == 50 && budget.rhs == 2 &&
+             budget.scalar_updates == 54 && budget.rhs == 2 &&
              budget.attempted_stages == 3 && budget.ledger_bytes > 0,
          "real per-node Gram gate refuses before a later node or accepted "
          "summary");
@@ -605,7 +605,7 @@ void gram_admission_controls(const std::filesystem::path &directory) {
                return peer::NodeTranslationWitness<W>{
                    C(1), C(1), j ? C(allowance) : C(0), W(j ? 1 : 0), C(0)};
              }) &&
-             budget.status == S::ok && budget.scalar_updates == 50,
+             budget.status == S::ok && budget.scalar_updates == 54,
          "zero-scale zero change and exact arithmetic bound admit inclusively");
     const auto retained = bounded_retained_text(path);
     need(retained.view().find("Gram-node-summary") != std::string_view::npos &&
@@ -614,7 +614,7 @@ void gram_admission_controls(const std::filesystem::path &directory) {
   }
   {
     peer::Budget budget;
-    budget.maximum_scalar_updates = 49;
+    budget.maximum_scalar_updates = 53;
     const auto path = directory / "gram-node-scalar-cap.txt";
     peer::Ledger ledger(path.string());
     std::size_t visited = 0;
@@ -625,7 +625,7 @@ void gram_admission_controls(const std::filesystem::path &directory) {
                                        return peer::NodeTranslationWitness<W>{
                                            C(1), C(1), C(0), 1, C(0)};
                                      }) &&
-             budget.status == S::work_limit && budget.scalar_updates == 25 &&
+             budget.status == S::work_limit && budget.scalar_updates == 27 &&
              visited == 1,
          "actual Gram callback is not invoked beyond its original scalar cap");
     const auto retained = bounded_retained_text(path);
@@ -639,6 +639,75 @@ void gram_admission_controls(const std::filesystem::path &directory) {
              retained.view().find("Gram-node-summary") ==
                  std::string_view::npos,
          "scalar refusal retains its already checked Gram-node prefix");
+  }
+  {
+    // A physical-parity Gram translation preserves exact nodal D but loses
+    // the tiny old dipole when the new b coordinate is rounded. Binary powers
+    // make all other products exact: the new cancelling terms assemble zero.
+    // The old-only scale cannot cover this real assignment/assembly rounding.
+    constexpr W x = .5L, mu = .5L, x2 = x * x;
+    const W tiny =
+        std::numeric_limits<W>::epsilon() * std::numeric_limits<W>::epsilon();
+    const W large = std::ldexp(1.L, 30);
+    const C alpha{large, 0}, beta{0, large};
+    const W old_b = tiny;
+    const W new_density = x2 * alpha.real();
+    const W new_b = old_b - (imaginary * x * beta).real();
+    const C new_remainder = -alpha - beta * mu;
+    const C before_D = imaginary * x * mu * old_b;
+    const C after_D =
+        new_density + imaginary * x * mu * new_b + x2 * new_remainder;
+    const C stable_difference =
+        new_density + imaginary * x * mu * (new_b - old_b) + x2 * new_remainder;
+    const W before_scale = std::abs(before_D);
+    const W after_scale = std::abs(new_density) +
+                          std::abs(imaginary * x * mu * new_b) +
+                          std::abs(x2 * new_remainder);
+    const W total_scale = before_scale + after_scale;
+    need(before_D != C(0) && after_D == C(0) && stable_difference == C(0) &&
+             new_b == x * large && after_scale > 1 &&
+             std::abs(after_D - before_D) >
+                 peer::node_translation_allowance(before_scale) &&
+             std::abs(after_D - before_D) <=
+                 peer::node_translation_allowance(total_scale),
+         "huge cancelling new basis causes nonzero rounding beyond old-only "
+         "scale");
+    const auto old_path = directory / "gram-old-only-scale-refusal.txt";
+    peer::Budget old_budget;
+    peer::Ledger old_ledger(old_path.string());
+    need(!peer::record_gram_nodes<W>(old_ledger, old_budget, controls, 0.L, 1,
+                                     "preserved-old-only-scale",
+                                     [&](std::size_t) {
+                                       return peer::NodeTranslationWitness<W>{
+                                           before_D, after_D, stable_difference,
+                                           before_scale, new_remainder};
+                                     }) &&
+             old_budget.status == S::conditioning_budget_exceeded &&
+             old_budget.scalar_updates == 27,
+         "historical old-only node scale refuses actual cancellation rounding");
+    const auto refused = bounded_retained_text(old_path);
+    need(refused.view().find("refused_node=0") != std::string_view::npos &&
+             refused.view().find("diagnostics_valid=0 checked_prefix=0") !=
+                 std::string_view::npos &&
+             refused.view().find("Gram-node-summary") == std::string_view::npos,
+         "old-only refusal is retained before testing corrected scale");
+    const auto new_path = directory / "gram-old-plus-new-scale-admission.txt";
+    peer::Budget new_budget;
+    peer::Ledger new_ledger(new_path.string());
+    need(peer::record_gram_nodes<W>(new_ledger, new_budget, controls, 0.L, 1,
+                                    "old-plus-new-scale",
+                                    [&](std::size_t) {
+                                      return peer::NodeTranslationWitness<W>{
+                                          before_D, after_D, stable_difference,
+                                          total_scale, new_remainder};
+                                    }) &&
+             new_budget.status == S::ok && new_budget.scalar_updates == 27,
+         "same rounded nodes admit with justified old-plus-new arithmetic "
+         "scale");
+    const auto accepted = bounded_retained_text(new_path);
+    need(accepted.view().find("Gram-node-summary") != std::string_view::npos &&
+             accepted.view().find("checked=1") != std::string_view::npos,
+         "corrected scale retains the same node and its checked summary");
   }
 }
 
