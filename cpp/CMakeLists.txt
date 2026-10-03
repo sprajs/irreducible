@@ -544,6 +544,9 @@ include(cmake/windowed_linear_power.cmake)
 include(cmake/continuous_cmb_projection.cmake)
 include(cmake/effective_fluid.cmake)
 
+# Synthetic two-deflector extended-source pixel means.
+include(cmake/two_deflector_forward.cmake)
+
 # Conditional finite-opacity photon/baryon source and surviving boundary.
 include(cmake/finite_opacity_source.cmake)
 

@@ -220,6 +220,14 @@ assumptions remain explicit. This SDK adds no CLI/C ABI route, measured-system
 mass or kinematics qualification, lens-mass inference, posterior, arbitrary
 multi-plane propagation or CMB lensing prediction.
 
+The distinct [two-deflector forward law](two-deflector-forward.md) computes
+ordered synthetic electron means for two softened elliptical potentials, an
+extended Gaussian source, affine pixels and a supplied finite shift PSF.
+Independent analytic/refinement controls and a 16-pixel installed consumer
+with retained joint covariance pass their named budgets. Pixel diagnostics
+are empirical; complete scene-to-density intervals, the author SPLE model,
+ACS response/noise and measured B1608 qualification remain open.
+
 The native [temporal photometry](temporal-photometry.md) owner retains finite bilinear rest-time/wavelength luminosity grids and fixed optical passbands. Coarse observer exposures return full-interval mean flux, collected energy and expected photons with explicit source epoch and time-coverage status. Analytic and independent time/frequency integration controls test the declared model. It adds no template reader, source/calibration uncertainty, noise, selection, inference or CLI/ABI operation.
 
 The native [detector and censoring](detector-selection.md) operator separately composes expected photons with declared Poisson arrivals, fixed quantum efficiency/background/dark current and Gaussian read noise. Caller-owned seed/stream/sample addresses support exact integer replay and bounded simulation. The same measurement law scores discrete or continuous detections and threshold-only nondetections, with an explicit selected-only measure. Analytic, characteristic-function/refinement and synthetic censored-recovery controls test this bounded model. Source/calibration uncertainty, measured-instrument qualification, saturation/digitization, population recovery and CLI/ABI ingestion remain open.
