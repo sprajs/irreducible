@@ -122,6 +122,19 @@ sigma8, measured RSD compatibility and primary CMB remain open. This amplitude
 cannot be composed with the existing radiation-free GR f without a compatible
 new consumer.
 
+The standalone C++ [continuous scalar CMB projector](continuous-cmb-projection.md)
+integrates explicitly supplied split temperature and E-polarization sources over
+their finite conformal-time support. It retains one immutable source object and
+returns only requested transfers in caller multipole order and original k order.
+The first domain is temperature ell=0..64, E ell=2..64 and phase<=512. Analytic
+finite-endpoint limits, independent angular integration, source-grid refinement
+and refusal/lifetime controls pass locally. Time-quadrature and assembly estimates
+do not bound producer-grid, omitted-support or standard radial-function error;
+those missing estimates stay absent. The C++ library supplies this geometry
+without a CLI/C ABI route, thermal source evolution, primordial integration,
+C_l, lensing or observational qualification. A same-mode, same-k CLASS transfer
+comparison is still pending.
+
 The native [ground-state hydrogen equilibrium](hydrogen-equilibrium.md) operator
 solves the supplied-temperature/physical-density Saha model with separately
 represented positive ionized and neutral fractions. Exact SI definitions and
