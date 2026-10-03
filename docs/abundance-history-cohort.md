@@ -131,7 +131,9 @@ work/byte ceiling; requested and served values are separately owned.
 Evaluation logical counts are two dispatches, six requested row attempts, twelve required
 scalar collections, six bounded raw-input witnesses, six mean coordinates,
 six difference coordinates, twenty-one upper-triangle products and twenty-seven
-result projections. Failed operations still count. These are bounded logical
+result projections. The installed caller additionally charges each serialized
+field, each canonical wide significand nibble and each wide binary decomposition
+to its final evaluation and combined scope. Failed operations still count. These are bounded logical
 categories, not CPU instruction counts. Row attempts are charged before the
 pooled native dispatch even if allocation refusal leaves no native rows. Every
 actual native preparation counter imports independently; checked overflow
@@ -150,6 +152,8 @@ headers/strings, a history request header/origin, map/emitted snapshots,
 prior, local-return and new destination receipt headers, both receipts' native
 row capacities,
 fixed six-axis/full-36-cell moments and diagnostics, and wide reduction scratch.
+The output bridge reserves its complete 65,536-byte fixed buffer, writer header
+and a separate 512-byte fixed prefix/trailer-array scratch envelope.
 All fixed arrays are charged at their full sizeof storage; their stack location
 does not exempt them. Shared source is charged once. Checked products/additions
 and supported copied-string `max(32,length+1)` envelopes precede allocation;
@@ -187,6 +191,37 @@ execution stage, including failures. `--require-library-no-elision` requires
 all recorded core compile commands to request no elision; exact compiled-object
 and runtime evidence is still needed. No source/profile metadata earns runtime
 acceptance. This worker has executed none of these gates.
+
+The installed caller's fixed output bridge accepts no input overrides. It emits
+original offered support bits before source acquisition, then actual preparation
+statuses/work, requested/served caps, emitted nuclei/fractions, once-map witnesses
+and final native ordered rows/moments/errors. Every double is its exact 16-digit
+hexadecimal binary64 bit pattern; integer fields also have 16 hexadecimal digits.
+Strings are length-prefixed raw bytes encoded in hexadecimal. Wide map witnesses
+use a distinct binary radix2/64-significand-bit wire profile: sign, finite/class
+tag, exponent sign/magnitude, and 16 exact significand hex digits. For finite
+values, the significand integer divided by 2^64 and multiplied by 2^exponent
+reconstructs the exact stored W value, with no x87 padding or decimal roundtrip.
+The repeated mean/covariance keys are ordered records with explicit axis/cell
+indices; consumers must preserve every occurrence. Five fixed trailer fields
+report actual fields, wide nibble/decomposition work, bytes and serialization
+status. A failed body retains a complete bounded prefix and trailer, rather
+than publishing a partial field. The buffer/512-field/output-work ceilings
+refuse; all accepted serialization work fits the original 1024 final-evaluation
+and 8,002,054 combined limits. Output bytes are separately capped/recorded, not
+misrepresented as physical or CPU-instruction work. Getters and serialization
+do not qualify those numerical values. Failed process/stage status and missing
+records cannot be interpreted as a qualified complete comparison.
+The complete successful source graph freezes 470 fields, 384 wide nibble
+steps and 24 wide decompositions: 878 serialization units, added to the final
+86 query/moment units. The resulting final evaluation has 964 logical units.
+These are source-derived gates, not measured runtime results.
+
+The runner acquires a fresh output-receipt path with exclusive creation before
+subprocess execution and writes through that owned handle. A reused historical
+path refuses without replacing its bytes. The raw emitted stdout remains in
+the stage receipt, together with source/header/library/binary hashes and failure
+stderr. Source/refusal evidence remains distinct from reference qualification.
 
 An independent complete trajectory/moment comparison must use exact emitted
 working inputs and restore original row order and duplicates. All affecting

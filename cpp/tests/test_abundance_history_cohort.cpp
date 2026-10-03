@@ -1,4 +1,4 @@
-#include "abundance_history_cohort.hpp"
+#include "abundance_history_cohort_wire.hpp"
 #include "hydrogen_helium_history_reference.hpp"
 #include <cstdlib>
 #include <cstdint>
@@ -81,6 +81,31 @@ void algebra() {
   h::EvaluationWork reverse_work; std::optional<h::Moments> reversed;
   need(h::reduce(reverse, e, constant, .01, reverse_work, 1024, reversed) == S::ok, "support reversal");
   need(reversed->mean == m->mean && reversed->covariance == m->covariance, "support reversal preserves the same law");
+  const W dyadic_error = std::ldexp(W(1), -20);
+  auto noisy = e; for (auto &state : noisy) state.fill(dyadic_error);
+  h::EvaluationWork noisy_work; std::optional<h::Moments> noisy_moments;
+  need(h::reduce(f, noisy, constant, .01, noisy_work, 1024, noisy_moments) == S::ok,
+       "nonconstant exact-dyadic inherited diagnostics");
+  const W inherited_covariance = 4 * dyadic_error + dyadic_error * dyadic_error;
+  for (double x : noisy_moments->mean_error) need(W(x) >= dyadic_error, "half-law inherited mean error retained");
+  for (double x : noisy_moments->covariance_error) need(W(x) >= inherited_covariance,
+       "signed delta-four law independently requires four-epsilon plus epsilon-squared");
+  auto mean_cast = f;
+  mean_cast[0].fill(1); mean_cast[1].fill(1 + std::ldexp(W(1), -52));
+  h::EvaluationWork mean_cast_work; std::optional<h::Moments> cast_moments;
+  need(h::reduce(mean_cast, e, constant, .01, mean_cast_work, 1024, cast_moments) == S::ok &&
+       cast_moments->mean[0] == 1 && W(cast_moments->mean_cast_and_round[0]) >= std::ldexp(W(1), -53),
+       "independent midpoint mean output cast loss two-to-minus53");
+  auto covariance_cast = f;
+  covariance_cast[0].fill(2); covariance_cast[1].fill(1 + std::ldexp(W(1), -30));
+  h::EvaluationWork covariance_cast_work;
+  need(h::reduce(covariance_cast, e, constant, .01, covariance_cast_work, 1024, cast_moments) == S::ok &&
+       W(cast_moments->covariance_cast_and_round[0]) >= std::ldexp(W(1), -62),
+       "independent squared-dyadic covariance output cast loss two-to-minus62");
+  auto unresolved = f; unresolved[0].fill(2); unresolved[1].fill(2 + std::ldexp(W(1), -40));
+  h::EvaluationWork unresolved_work;
+  need(h::reduce(unresolved, noisy, constant, .01, unresolved_work, 1024, cast_moments) == S::conditioning_budget_exceeded &&
+       !cast_moments, "nonconstant positive spread unresolved by inherited errors refuses");
   h::EvaluationWork exact_work; std::optional<h::Moments> exact;
   const auto measured = *work.checked_total();
   need(h::reduce(f, e, constant, .01, exact_work, measured, exact) == S::ok, "exact reduction work threshold");
@@ -183,6 +208,28 @@ void emitted_constructor_controls() {
        restored.rows[2].z == 300 && restored.rows[0].opacity == 10 && restored.rows[2].opacity == 10 &&
        restored.stats.steps == 17, "reference restores original duplicate order and unchanged counters");
 }
+void wire_controls() {
+  h::Wire w;
+  const auto baseline = allocation_observation::live;
+  allocation_observation::arm();
+  w.scalar("", "bits", h::tcmb_a); w.wide("", "wide", W(1.5)); w.finish();
+  const auto calls = allocation_observation::calls;
+  allocation_observation::disarm();
+  const std::string_view serialized{w.bytes.data(), w.used};
+  need(!w.failed && calls == 0 && allocation_observation::live == baseline &&
+       serialized.find("bits=400599999999999a\n") != std::string_view::npos &&
+       serialized.find("wide=0:f:00000000000000001:c000000000000000\n") != std::string_view::npos &&
+       w.fields == 7 && w.wide_nibbles == 16 && w.wide_decompositions == 1,
+       "fixed zero-allocation exact double bits and canonical wide significand");
+  h::Wire limited; limited.limit_work(5); limited.scalar("", "unadmitted", h::tcmb_a); limited.finish();
+  need(limited.failed && limited.fields == 5 && limited.used < h::maximum_wire_bytes &&
+       std::string_view(limited.bytes.data(), limited.used).find("unadmitted=") == std::string_view::npos,
+       "serialization quota preserves a complete capped failure trailer without partial field");
+  auto in = h::original_input();
+  h::Wire original; h::wire_input(original, in, {}); original.finish();
+  need(!original.failed && original.fields < h::maximum_wire_fields && original.work() <= h::evaluation_work_cap,
+       "original offered support fits fixed wire field/work bounds");
+}
 void allocation_sweep(bool histories) {
   auto in = h::original_input();
   if (!histories) for (auto &s : in.support) s.helium_fraction = 0;
@@ -267,7 +314,19 @@ void history_controls() {
   need(first.work.dispatches == 2 && first.work.queried_rows == 6 && first.work.collections == 12 &&
        first.work.witnesses == 6 && first.work.means == 6 && first.work.differences == 6 &&
        first.work.products == 21 && first.work.projections == 27, "complete admitted logical evaluation graph");
-  need(owner.evaluate().status == S::work_limit, "two-evaluation scope cannot grow into cache framework");
+  h::Wire wire; h::wire_input(wire, in, {}); h::wire_owner(wire, owner);
+  wire.limit_work(owner.serialization_budget(second)); h::wire_evaluations(wire, first, second); wire.finish();
+  need(!wire.failed && wire.fields == h::successful_wire_fields && wire.work() == h::successful_wire_work &&
+       owner.record_serialization(second, wire.fields, wire.wide_nibbles, wire.wide_decompositions) == S::ok &&
+       second.work.checked_total() == 964 &&
+       owner.record_serialization(second, wire.fields, wire.wide_nibbles, wire.wide_decompositions) == S::work_limit,
+       "complete frozen wire graph charges once to original final-evaluation cap");
+  auto third = owner.evaluate();
+  need(third.status == S::work_limit && !third.moments && third.attempts[0].rows.empty() &&
+       third.state_status[0] == S::ok && third.state_status[1] == S::ok &&
+       third.snapshots[0].nuclei && third.snapshots[1].thermal_witnesses &&
+       third.snapshots[0].native_history_source_present,
+       "third-call quota retains earned preparation metadata without query rows");
   const auto held = second.source;
   auto moved = std::move(owner);
   need(!owner.source() && owner.status() == S::invalid_input, "move clears original owner");
@@ -295,6 +354,14 @@ void history_controls() {
        !causal_rows.moments && causal_rows.state_status[1] == S::outside_domain &&
        causal_rows.attempts[0].rows.size() == 3 && causal_rows.attempts[1].rows.empty(),
        "state-A query cause precedes state-B preparation cause without erasing either");
+  auto rounding_owner = h::prepare(in);
+  const int rounding = std::fegetround(); std::fesetround(FE_DOWNWARD);
+  auto rejected_profile = rounding_owner.evaluate(); std::fesetround(rounding);
+  need(rejected_profile.status == S::invalid_input && !rejected_profile.moments &&
+       rejected_profile.attempts[0].rows.empty() && rejected_profile.state_status[0] == S::ok &&
+       rejected_profile.state_status[1] == S::ok && rejected_profile.snapshots[0].nuclei &&
+       rejected_profile.snapshots[1].emitted_thermal && rejected_profile.snapshots[0].thermal_witnesses,
+       "unsupported evaluation profile preserves all earned preparation metadata");
 }
 }
 int main(int argc, char **argv) {
@@ -308,7 +375,7 @@ int main(int argc, char **argv) {
          "unsafe caller reaches no native physical work");
 #else
     const std::string_view mode = argc == 1 ? "source" : argc == 2 ? std::string_view(argv[1]) : "invalid";
-    if (mode == "source") { algebra(); source_controls(); emitted_constructor_controls(); allocation_sweep(false); }
+    if (mode == "source") { algebra(); source_controls(); emitted_constructor_controls(); wire_controls(); allocation_sweep(false); }
     else if (mode == "--history") history_controls();
     else if (mode == "--fault-history") { allocation_sweep(true); evaluation_allocation_sweep(); }
     else throw std::runtime_error("unrecognized proof-control mode");

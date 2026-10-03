@@ -38,7 +38,11 @@ inline constexpr std::size_t preparation_work_cap = 8000006,
     child_work_cap = 4000000, child_payload_cap = 32 * 1024 * 1024,
     default_base_intervals = 8192, maximum_fine_intervals = 65536,
     states = 2, rows = 3, axes = 6, covariance_cells = 36,
-    maximum_origin_bytes = 4096;
+    maximum_origin_bytes = 4096,
+    maximum_wire_bytes = 65536, maximum_wire_fields = 512,
+    maximum_wire_scratch_bytes = 512,
+    successful_wire_fields = 470, successful_wire_nibbles = 384,
+    successful_wire_decompositions = 24, successful_wire_work = 878;
 constexpr std::uint64_t bits(double x) { return std::bit_cast<std::uint64_t>(x); }
 static_assert(bits(h0_a) == 0x404f800000000000ULL);
 static_assert(bits(h0_b) == 0x4053400000000000ULL);
@@ -58,4 +62,5 @@ static_assert(bits(interior_redshift) == 0x4094500000000000ULL);
 static_assert(bits(late_redshift) == 0x4072c00000000000ULL);
 static_assert(bits(covariance_resolution) == 0x3f847ae147ae147bULL);
 static_assert(two_evaluation_work_cap == preparation_work_cap + 2 * evaluation_work_cap);
+static_assert(successful_wire_work == successful_wire_fields + successful_wire_nibbles + successful_wire_decompositions);
 } // namespace abundance_history_cohort

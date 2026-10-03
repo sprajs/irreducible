@@ -53,6 +53,7 @@ if args.require_library_no_elision and not library_no_elision:
 
 members = [root / "cpp/tests/test_installed_abundance_history_cohort.cpp",
            root / "cpp/tests/abundance_history_cohort.hpp",
+           root / "cpp/tests/abundance_history_cohort_wire.hpp",
            root / "cpp/tests/abundance_history_cohort_source.hpp"]
 receipt = {
     "role": "fixed_synthetic_two_half_exact_emitted_working_input",
@@ -68,6 +69,15 @@ receipt = {
     "run_status": "not_run",
     "stages": [],
 }
+receipt_file = None
+if args.output_receipt:
+    args.output_receipt.parent.mkdir(parents=True, exist_ok=True)
+    try:
+        # Atomic exclusive creation before any subprocess; never replace an
+        # existing historical receipt, including symlink aliases or races.
+        receipt_file = args.output_receipt.open("x")
+    except FileExistsError as error:
+        raise SystemExit("Receipt path already exists; original evidence preserved") from error
 
 
 def run_stage(name, command):
@@ -110,7 +120,10 @@ except (OSError, ValueError, RuntimeError, subprocess.CalledProcessError) as err
     receipt["failure"] = str(error)
     raise SystemExit(str(error)) from error
 finally:
-    if args.output_receipt:
-        args.output_receipt.parent.mkdir(parents=True, exist_ok=True)
-        args.output_receipt.write_text(json.dumps(receipt, indent=2) + "\n")
+    if receipt_file:
+        try:
+            receipt_file.write(json.dumps(receipt, indent=2) + "\n")
+            receipt_file.flush()
+        finally:
+            receipt_file.close()
 print("Fresh installed cohort caller passed; complete reference and physical law remain withheld")

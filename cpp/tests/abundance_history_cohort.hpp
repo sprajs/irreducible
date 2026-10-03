@@ -153,11 +153,14 @@ struct PreparationWork {
 };
 struct EvaluationWork {
   std::size_t dispatches = 0, queried_rows = 0, collections = 0, witnesses = 0,
-      means = 0, differences = 0, products = 0, projections = 0;
+      means = 0, differences = 0, products = 0, projections = 0,
+      serialization_fields = 0, serialization_wide_nibbles = 0,
+      serialization_wide_decompositions = 0;
   std::optional<std::size_t> checked_total() const noexcept {
     std::size_t n = 0;
     for (auto v : {dispatches, queried_rows, collections, witnesses, means,
-                  differences, products, projections}) if (!add(n, v)) return {};
+                  differences, products, projections, serialization_fields,
+                  serialization_wide_nibbles, serialization_wide_decompositions}) if (!add(n, v)) return {};
     return n;
   }
 };
@@ -343,8 +346,10 @@ public:
       slots_ = std::move(other.slots_); work_ = other.work_; policy_ = other.policy_;
       preparation_bound_ = other.preparation_bound_; known_payload_ = other.known_payload_;
       spent_ = other.spent_; evaluation_count_ = other.evaluation_count_;
+      serialization_recorded_ = other.serialization_recorded_;
       other.status_ = S::invalid_input; other.work_ = {}; other.preparation_bound_ = 0;
       other.known_payload_ = 0; other.spent_ = 0; other.evaluation_count_ = 0;
+      other.serialization_recorded_ = false;
       for (auto &slot : other.slots_) { slot.status = S::invalid_input; slot.snapshot = {}; slot.budget = {}; }
     }
     return *this;
@@ -357,6 +362,9 @@ public:
   std::size_t known_retained_payload_bytes() const noexcept { return known_payload_; }
   std::size_t evaluation_count() const noexcept { return evaluation_count_; }
   Evaluation evaluate();
+  std::size_t serialization_budget(const Evaluation &) const noexcept;
+  S record_serialization(Evaluation &, std::size_t fields, std::size_t nibbles,
+                         std::size_t decompositions) noexcept;
   static std::optional<std::size_t> whole_live_bound(const Input &, const Policy &) noexcept;
 private:
   S status_ = S::invalid_input;
@@ -365,6 +373,7 @@ private:
   PreparationWork work_;
   Policy policy_;
   std::size_t preparation_bound_ = 0, known_payload_ = 0, spent_ = 0, evaluation_count_ = 0;
+  bool serialization_recorded_ = false;
   bool charge(std::size_t &category, std::size_t n = 1) noexcept {
     const auto total = work_.checked_total();
     if (!total || *total > policy_.maximum_preparation_work ||
@@ -385,6 +394,8 @@ inline std::optional<std::size_t> Cohort::whole_live_bound(const Input &in, cons
   b.count(1, sizeof(std::array<double, rows>));
   b.count(1, sizeof(std::array<bool, axes>));
   b.count(2, sizeof(Moments)); // unelided reducer result/optional transfer
+  b.count(maximum_wire_bytes + 128); // fixed output buffer and writer counters
+  b.count(maximum_wire_scratch_bytes); // fixed prefix/trailer/index arrays
   b.count(1, sizeof(c::BaryonAbundanceSource));
   b.count(2, sizeof(c::BaryonAbundance)); // unelided native prepare/return headers
   b.count(2, sizeof(c::BaryonAbundanceBatch));
@@ -571,6 +582,10 @@ inline Cohort prepare(const Input &in, Policy p = {}) {
 }
 inline Evaluation Cohort::evaluate() {
   Evaluation out; out.source = source_; out.conservative_whole_live_bytes = preparation_bound_;
+  for (std::size_t s = 0; s < states; ++s) {
+    out.snapshots[s] = slots_[s].snapshot;
+    out.state_status[s] = slots_[s].status;
+  }
   if (!source_) { out.status = status_; return out; }
   if (!profile()) return out;
   if (evaluation_count_ >= 2) { out.status = S::work_limit; return out; }
@@ -589,7 +604,6 @@ inline Evaluation Cohort::evaluate() {
   std::array<bool, axes> constant{};
   for (std::size_t r = 0; r < rows; ++r) z[r] = source_->input.queries[r].redshift;
   for (std::size_t s = 0; s < states; ++s) {
-    out.snapshots[s] = slots_[s].snapshot; out.state_status[s] = slots_[s].status;
     if (!charge(out.work.dispatches)) { preserve(S::work_limit); continue; }
     if (slots_[s].status != S::ok) { preserve(slots_[s].status); continue; }
     // Charge the requested row attempts before the pooled native dispatch.
@@ -647,5 +661,26 @@ inline Evaluation Cohort::evaluate() {
   if (failure == S::ok && status_ != S::ok) { out.moments.reset(); failure = status_; }
   out.status = failure;
   return out;
+}
+inline std::size_t Cohort::serialization_budget(const Evaluation &receipt) const noexcept {
+  const auto work = receipt.work.checked_total();
+  if (serialization_recorded_ || !work || *work > policy_.maximum_evaluation_work ||
+      spent_ > policy_.maximum_two_evaluation_work) return 0;
+  return std::min(policy_.maximum_evaluation_work - *work,
+                  policy_.maximum_two_evaluation_work - spent_);
+}
+inline S Cohort::record_serialization(Evaluation &receipt, std::size_t fields,
+                                      std::size_t nibbles, std::size_t decompositions) noexcept {
+  std::size_t n = fields;
+  const auto budget = serialization_budget(receipt);
+  if (receipt.source != source_ || serialization_recorded_ ||
+      !add(n, nibbles) || !add(n, decompositions) || n > budget)
+    return S::work_limit;
+  serialization_recorded_ = true;
+  receipt.work.serialization_fields = fields;
+  receipt.work.serialization_wide_nibbles = nibbles;
+  receipt.work.serialization_wide_decompositions = decompositions;
+  if (!add(spent_, n)) return S::work_limit;
+  return S::ok;
 }
 } // namespace abundance_history_cohort

@@ -15,6 +15,8 @@ target_link_libraries(test_installed_abundance_history_cohort PRIVATE irred_core
 target_compile_options(test_installed_abundance_history_cohort PRIVATE
   -Wall -Wextra -Wpedantic -fno-fast-math -ffp-contract=off -fno-elide-constructors)
 add_test(NAME abundance_history_cohort_sdk_composition_contract COMMAND test_installed_abundance_history_cohort)
+add_test(NAME abundance_history_cohort_wire_argument_refusal COMMAND test_installed_abundance_history_cohort --unexpected)
+set_tests_properties(abundance_history_cohort_wire_argument_refusal PROPERTIES WILL_FAIL TRUE)
 set_tests_properties(abundance_history_cohort_sdk_composition_contract
   PROPERTIES LABELS "scientific;abundance-history-cohort")
 
