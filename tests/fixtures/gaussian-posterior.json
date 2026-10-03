@@ -1,0 +1,111 @@
+{
+  "schema_version": 2,
+  "operation": "statistics.gaussian_posterior",
+  "source_semantics": "synthetic_controls",
+  "noise": {
+    "ordered_row_ids": [
+      "r0",
+      "r1"
+    ],
+    "event_ids": [
+      "synthetic-event-0",
+      "synthetic-event-1"
+    ],
+    "residual_unit": "mag",
+    "covariance_row_major": [
+      2,
+      0.25,
+      0.25,
+      1.5
+    ],
+    "noise_identity": "synthetic-fixed-correlated-noise/v1",
+    "calibration_identity": "synthetic fixed calibration",
+    "dependence_identity": "declared full two-row covariance; no batch independence",
+    "ordering_provenance": "explicit r0,r1 order and parallel event order"
+  },
+  "design": {
+    "ordered_row_ids": [
+      "r0",
+      "r1"
+    ],
+    "ordered_parameter_ids": [
+      "zero",
+      "colour"
+    ],
+    "parameter_units": [
+      "mag",
+      "mag"
+    ],
+    "column_units": [
+      "mag/mag",
+      "mag/mag"
+    ],
+    "values_row_major": [
+      1,
+      0.5,
+      -0.25,
+      1
+    ],
+    "design_identity": "synthetic-two-parameter-fixed-response/v1"
+  },
+  "parameter_prior": {
+    "ordered_parameter_ids": [
+      "zero",
+      "colour"
+    ],
+    "parameter_units": [
+      "mag",
+      "mag"
+    ],
+    "shared_nuisance_ids": [
+      "zero"
+    ],
+    "mean": [
+      0.5,
+      -0.25
+    ],
+    "covariance_row_major": [
+      1,
+      0.375,
+      0.375,
+      0.5
+    ],
+    "prior_identity": "synthetic-independent-proper-parameter-prior/v1",
+    "parameter_measure": "d(zero) d(colour)",
+    "dependence_identity": "synthetic original parameter prior explicitly independent of observation noise",
+    "noise_independence_declared": true
+  },
+  "conditioning": {
+    "ordered_row_ids": [
+      "r0",
+      "r1"
+    ],
+    "event_ids": [
+      "synthetic-event-0",
+      "synthetic-event-1"
+    ],
+    "case_ids": [
+      "original-cofactor-case",
+      "prior-mean-response"
+    ],
+    "vectors": [
+      [
+        1.25,
+        -0.5
+      ],
+      [
+        0.375,
+        -0.375
+      ]
+    ]
+  },
+  "resource_policy": {
+    "arithmetic": "wide",
+    "maximum_elements": 1000000,
+    "maximum_cases": 65536,
+    "maximum_string_bytes": 1048576,
+    "maximum_native_bytes": 268435456,
+    "maximum_work_units": 100000000,
+    "maximum_forward_sensitivity": 1e-10
+  }
+}
