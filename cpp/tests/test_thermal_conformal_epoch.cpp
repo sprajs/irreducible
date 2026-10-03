@@ -70,6 +70,14 @@ void dyadic_source() {
            wrapped.x2 == epoch.x2 && wrapped.acceleration_defect ==
                                             epoch.acceleration_defect,
        "one-query wrapper and borrowed import share the conversion");
+  // Structural invalid-numerator adversary only: retain the REAL same-owner P,
+  // but pass a finite unsupported radiation numerator whose quotient overflows.
+  // This is no physical comparison and supplies no source/forward certificate.
+  const auto overflow = detail::thermal_conformal_epoch_from_scaled(
+      background, query, .5L, .001L, std::numeric_limits<W>::max());
+  need(overflow.status == S::overflow,
+       "nonfinite derived radiation cannot publish algebraic success");
+  raw_matches(overflow, query);
   need(prepare_perfect_fluid_transfer(background, 1e-9).status() ==
            S::outside_domain,
        "old public fluid still refuses cold baryons");
@@ -123,6 +131,12 @@ void actual_failed_query() {
             << " p_error=" << failed.error_estimate << '\n';
 }
 void retained_coefficient_capture() {
+  need(!detail::ThermalRetainedCoefficientAccess::capture(ThermalBackground{}),
+       "default background has no retained coefficient witness");
+  const auto failed = prepare_thermal_background({70, 0, 0, 0, 2, {}});
+  need(failed.status() == S::outside_domain &&
+           !detail::ThermalRetainedCoefficientAccess::capture(failed),
+       "failed physical closure has no retained coefficient witness");
   // Binary64 .3 is below 3/10. The exact retained 1-Omega_c rounds down to
   // emitted binary64 .7, with the exact positive private-minus-getter loss2^-54.
   const auto background = prepare_thermal_background({70, 0, 0, 0, .3, {}});
