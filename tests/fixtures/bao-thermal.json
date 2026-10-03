@@ -1,0 +1,136 @@
+{
+  "schema_version": 2,
+  "operation": "bao.thermal_density",
+  "source_semantics": "synthetic_controls",
+  "observation": {
+    "ordered_row_ids": [
+      "synthetic-DM-z1",
+      "synthetic-DH-z1",
+      "synthetic-DV-z1"
+    ],
+    "queries": [
+      {
+        "redshift": 1,
+        "observable": "DM_over_rs"
+      },
+      {
+        "redshift": 1,
+        "observable": "DH_over_rs"
+      },
+      {
+        "redshift": 1,
+        "observable": "DV_over_rs"
+      }
+    ],
+    "observed_ratios": [
+      24,
+      17,
+      22
+    ],
+    "covariance_axis_ids": [
+      "synthetic-DM-z1",
+      "synthetic-DH-z1",
+      "synthetic-DV-z1"
+    ],
+    "covariance_row_major": [
+      64,
+      16,
+      0,
+      16,
+      80,
+      16,
+      0,
+      16,
+      96
+    ],
+    "ratio_unit": "one",
+    "covariance_unit": "ratio_squared",
+    "table_identity": "synthetic-three-ratio-fixed-observation/v1",
+    "covariance_identity": "16-times-integer-SPD3/v1",
+    "ordering_provenance": "DM,DH,DV at exact source z=1; full covariance in that same order",
+    "calibration_provenance": "explicit synthetic ratios; no measured calibration qualification",
+    "dependence_provenance": "one full supplied three-row covariance; no cross-probe or cross-model independence asserted",
+    "redshift_convention": "synthetic shared FLRW model redshift; no observed frame conversion"
+  },
+  "models": [
+    {
+      "id": "synthetic-H0-70-fixed-physical-inputs",
+      "physical_model": {
+        "h0_km_s_mpc": 70,
+        "physical_baryon_density": 0.0245,
+        "physical_cdm_density": 0.1225,
+        "tcmb_kelvin": 2.7255,
+        "physical_massless_nonphoton_density": 1e-05,
+        "species": [
+          {
+            "mass_ev": 0,
+            "temperature_today_kelvin": 1.95,
+            "statistical_weight": 2
+          }
+        ]
+      },
+      "z_drag": 1059.95,
+      "drag_origin": "explicit synthetic supplied drag; no physical endpoint prediction",
+      "source_origin": "same explicit omega_b/omega_cdm/other density, Tcmb and mass0 FD Kelvin state; H0 varies"
+    },
+    {
+      "id": "synthetic-H0-72-fixed-physical-inputs",
+      "physical_model": {
+        "h0_km_s_mpc": 72,
+        "physical_baryon_density": 0.0245,
+        "physical_cdm_density": 0.1225,
+        "tcmb_kelvin": 2.7255,
+        "physical_massless_nonphoton_density": 1e-05,
+        "species": [
+          {
+            "mass_ev": 0,
+            "temperature_today_kelvin": 1.95,
+            "statistical_weight": 2
+          }
+        ]
+      },
+      "z_drag": 1059.95,
+      "drag_origin": "explicit synthetic supplied drag; no physical endpoint prediction",
+      "source_origin": "same explicit omega_b/omega_cdm/other density, Tcmb and mass0 FD Kelvin state; H0 varies"
+    }
+  ],
+  "requested_outputs": [
+    "normalized_density",
+    "predictions",
+    "residuals"
+  ],
+  "resource_policy": {
+    "arithmetic": "wide",
+    "maximum_rows": 64,
+    "maximum_matrix_elements": 4096,
+    "maximum_models": 16,
+    "maximum_species_per_model": 16,
+    "maximum_string_bytes": 65536,
+    "maximum_output_array_elements": 2048,
+    "maximum_native_bytes": 16777216,
+    "maximum_preparation_native_bytes": 8388608,
+    "maximum_evaluation_native_bytes": 8388608,
+    "maximum_total_callbacks": 200000000,
+    "maximum_forward_sensitivity": 1e-08,
+    "maximum_projection_log_density_error": 1e-08,
+    "predictions": {
+      "absolute_tolerance_mpc": 1e-08,
+      "relative_tolerance": 2e-10,
+      "absolute_tolerance_ratio": 1e-10,
+      "relative_tolerance_ratio": 5e-10,
+      "maximum_callbacks_per_point": 20000000,
+      "maximum_total_callbacks": 100000000,
+      "maximum_depth": 30,
+      "maximum_native_bytes": 16777216,
+      "thermal": {
+        "absolute_tolerance": 1e-12,
+        "relative_tolerance": 2e-12,
+        "maximum_callbacks_per_evaluation": 200000,
+        "maximum_total_callbacks": 100000000,
+        "maximum_depth": 30,
+        "maximum_native_bytes": 16777216,
+        "momentum_method": "direct_adaptive"
+      }
+    }
+  }
+}
