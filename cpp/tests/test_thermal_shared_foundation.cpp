@@ -39,6 +39,13 @@ void foundation_controls() {
   need(sound.status==S::ok && sound.sound_speed_over_c>0 && sound.sound_speed_squared_over_c_squared>0 &&
        sound.sound_speed_estimate_over_c>0 && sound.sound_speed_squared_estimate_over_c_squared>0,
        "positive sound outputs and diagnostics in admitted domain");
+  const auto fraction_loading=detail::thermal_baryon_loading(prepare_thermal_background({70,.25,0,.0625,.5,{}}));
+  need(fraction_loading.status==S::ok &&
+       detail::thermal_baryon_sound(fraction_loading,std::numeric_limits<W>::denorm_min()).status!=S::ok,
+       "positive loading and its exposed estimate cannot underflow to zero");
+  const auto origin_sound=detail::thermal_baryon_sound(fraction_loading,0);
+  need(origin_sound.status==S::ok && origin_sound.loading==0 && origin_sound.loading_estimate==0,
+       "exact zero scale loading witness is preserved");
   auto tiny = r; tiny.arithmetic_estimate = std::ldexp(1.L,-100);
   const W a = std::ldexp(1.L,-10);
   const auto xi = detail::thermal_ruler_internal::loading_xi(tiny,a);

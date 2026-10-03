@@ -68,6 +68,11 @@ inline ThermalBaryonSound thermal_baryon_sound(const ThermalBaryonLoading &r, Th
   if (!(a >= 0) || a > 1) { out.status = S::outside_domain; return out; }
   out.loading = r.ratio_today * a;
   out.loading_estimate = r.arithmetic_estimate * a + thermal_loading_floor * out.loading;
+  const bool exact_zero_loading = a == 0 || (r.ratio_today == 0 && r.numerator == 0);
+  if (!exact_zero_loading && (!(out.loading > 0) || !std::isnormal(out.loading) ||
+      !(out.loading_estimate > 0) || !std::isnormal(out.loading_estimate))) {
+    out.status = S::conditioning_budget_exceeded; return out;
+  }
   out.denominator = 1 + out.loading;
   const ThermalWide e = out.loading_estimate + thermal_loading_floor * out.denominator;
   if (!(out.denominator > e) || !std::isfinite(out.denominator)) { out.status = S::conditioning_budget_exceeded; return out; }
