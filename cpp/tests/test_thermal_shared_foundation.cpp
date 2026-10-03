@@ -78,6 +78,12 @@ void retained_controls(){
  need(!ledger.charge_outer() && spent==4,"exhaustion does not wrap or erase costs");
  const auto bg=prepare_thermal_background({70,3./16,5./16,.25,.25,{}});
  const auto load=detail::thermal_baryon_loading(bg);
+ spent=outer=momentum=0;detail::ThermalRulerWorkBudget zero_budget(spent,200000,outer,momentum,200000,200000);
+ detail::ThermalRulerAllowance zero_allowance;zero_allowance.absolute_tolerance_mpc=1e-8;
+ need(detail::integrate_thermal_ruler(bg,load,.5L,zero_allowance,zero_budget).status==S::work_limit && spent==0,
+  "named zero outer allowance refuses before callback");
+ // Exact positive-interval response shape, separate from small rounding eta.
+ need((1.L+.25L)/(1-.25L)>1.L+.25L,"cast/background response retains mixed denominator");
  for(W a:{.5L,.8L}){
   spent=outer=momentum=0;detail::ThermalRulerWorkBudget b(spent,200000,outer,momentum,200000,200000);
   detail::ThermalRulerAllowance allowance;allowance.absolute_tolerance_mpc=1e-8;allowance.relative_tolerance=2e-10;allowance.maximum_outer_callbacks=200000;

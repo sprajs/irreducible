@@ -139,13 +139,17 @@ struct Context {
   const ThermalRulerAllowance &allowance;
   ThermalRulerWorkBudget &work;
   ThermalWide endpoint, background_relative = 0, kernel_cast_relative = 0;
+  std::size_t outer_attempts = 0;
   numerics::Status status = numerics::Status::ok;
 };
 inline double integrand(double t, const void *ptr) {
   auto &c = *const_cast<Context *>(static_cast<const Context *>(ptr));
   const auto nan = std::numeric_limits<double>::quiet_NaN();
   if (c.status != numerics::Status::ok) return nan;
-  if (!c.work.charge_outer()) { c.status = numerics::Status::work_limit; return nan; }
+  if (c.outer_attempts >= c.allowance.maximum_outer_callbacks || !c.work.charge_outer()) {
+    c.status = numerics::Status::work_limit; return nan;
+  }
+  ++c.outer_attempts;
   auto p = c.allowance.thermal;
   p.maximum_total_callbacks = std::min(p.maximum_total_callbacks, c.work.momentum_remaining());
   const ThermalWide a = c.endpoint * t;
@@ -196,17 +200,21 @@ inline ThermalRulerIntegral integrate_thermal_ruler(
   const ThermalWide scale = prepare_flat_scale(background.source().h0_km_s_mpc).distance_mpc * endpoint / std::sqrt(3.L);
   const double absolute = static_cast<double>(std::min(ThermalWide(p.absolute_tolerance_mpc) / (8 * scale), ThermalWide(std::numeric_limits<double>::max())));
   if (!(absolute > 0 || p.relative_tolerance > 0)) { out.status = S::conditioning_budget_exceeded; return out; }
-  if (work.remaining() < 3) { out.status = S::work_limit; return out; }
+  const auto available = std::min(work.remaining(), p.maximum_outer_callbacks);
+  if (available < 3) { out.status = S::work_limit; return out; }
   thermal_ruler_internal::Context c{background, loading, p, work, endpoint};
   const auto q = numerics::integrate(thermal_ruler_internal::integrand, &c, 0, 1,
-      {absolute, p.relative_tolerance / 8, work.remaining(), p.maximum_depth});
+      {absolute, p.relative_tolerance / 8, available, p.maximum_depth});
   out.status = c.status == S::ok ? q.status : c.status;
   if (out.status != S::ok) return out;
   out.value_mpc = scale * q.value;
   out.outer_quadrature_estimate_mpc = scale * q.error_estimate;
-  out.background_estimate_mpc = out.value_mpc * c.background_relative;
-  out.arithmetic_estimate_mpc = out.value_mpc *
-      (c.kernel_cast_relative + 64 * std::numeric_limits<double>::epsilon()) +
+  if (!(c.kernel_cast_relative < 1)) { out.status = S::conditioning_budget_exceeded; return out; }
+  const ThermalWide response_scale = (std::abs(out.value_mpc) + out.outer_quadrature_estimate_mpc) /
+      (1 - c.kernel_cast_relative);
+  out.background_estimate_mpc = response_scale * c.background_relative;
+  out.arithmetic_estimate_mpc = response_scale * c.kernel_cast_relative +
+      out.value_mpc * (64 * std::numeric_limits<double>::epsilon()) +
       scale * std::abs(ThermalWide(std::nextafter(q.value, INFINITY)) - q.value) / 2;
   const ThermalWide E0 = out.outer_quadrature_estimate_mpc + out.background_estimate_mpc + out.arithmetic_estimate_mpc;
   out.loading_estimate_mpc = (std::abs(out.value_mpc) + E0) * *xi;
