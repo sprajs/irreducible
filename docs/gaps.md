@@ -90,8 +90,15 @@ consumer. The native [finite joint abundance law](baryon-abundance-law.md)
 propagates supplied correlated density/mass/temperature states into full
 population moments, with separate numerical diagnostics and truthful required
 state refusals. The law itself needs source qualification; G and atomic-asset
-uncertainty remain excluded. Abundance prediction, helium kinetic rates and history remain open;
-LTE cannot replace the missing helium kinetics. The
+uncertainty remain excluded. Abundance prediction and a qualified physical
+input law remain open. The distinct [bounded H/He history](hydrogen-helium-history.md)
+now advances supplied-density singlet kinetics with shared charge and coupled
+temperature. Its artificial start, omitted HeIII, low-temperature fit
+extrapolation and literal-paper/code differences remain explicit; original
+atomic-source serialization and physical atomic/rate uncertainty are separate
+qualification gaps. It does not establish full cosmic recombination or the
+positive late-opacity tail required for a physical drag epoch. LTE supplies
+only the declared initialization. The
 [conditional history](recombination-drag.md) advances a bounded effective
 three-level model with the shared thermal background and explicit choice of
 prescribed Tm=Tr or coupled Compton/adiabatic matter temperature. The coupled
@@ -103,7 +110,7 @@ cosmological drag epoch. Bounded positive-mass relics now feed the same retained
 H source, with direct momentum costs charged. An explicit nested CC momentum route
 now has the same consumer allocations and independent comparisons; direct
 remains the default, and matched workload evidence governs promotion. No hierarchy/Neff mapping or helium
-kinetics is added. Helium, multilevel rates, atomic/model uncertainty,
+kinetics is added by that pure-H relic route. Full helium dynamics, multilevel rates, atomic/model uncertainty,
 qualified full optical-depth endpoints and reionization remain prerequisites
 before physical-ruler or CMB coupling. Finite-endpoint visibility does not
 predict the present-day last-scattering distribution or CMB spectra.
