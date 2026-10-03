@@ -542,6 +542,7 @@ include(cmake/windowed_linear_power.cmake)
 
 # Continuous scalar temperature and polarization transfer geometry.
 include(cmake/continuous_cmb_projection.cmake)
+include(cmake/effective_fluid.cmake)
 
 # Distinct bounded singlet H/He history with one shared electron density.
 include(cmake/hydrogen_helium_history.cmake)

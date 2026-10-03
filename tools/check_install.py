@@ -12,7 +12,7 @@ with tempfile.TemporaryDirectory(prefix='irred-install-check-') as scratch:
  subprocess.run([cmake,'--install',str(native),'--prefix',str(prefix)],check=True)
  if (prefix/'include/cosmology').exists() or not (prefix/'include/irred/numerics.hpp').exists():
   raise SystemExit('incorrect installed public include root')
- for source in [root/'cpp/tests/test_installed_consumer.cpp', root/'cpp/tests/test_installed_continuous_cmb_projection.cpp', root/'cpp/examples/windowed_linear_power.cpp']:
+ for source in [root/'cpp/tests/test_installed_consumer.cpp', root/'cpp/tests/test_installed_continuous_cmb_projection.cpp', root/'cpp/examples/windowed_linear_power.cpp', root/'cpp/tests/test_effective_fluid_installed.cpp']:
   output=pathlib.Path(scratch)/source.stem
   subprocess.run([shutil.which('c++'),'-std=c++20','-Wall','-Wextra','-Wpedantic','-fno-fast-math','-ffp-contract=off',str(source),'-I',str(prefix/'include'),str(prefix/'lib/libirred_core.a'),'-o',str(output)],check=True)
   subprocess.run([str(output)],check=True)
