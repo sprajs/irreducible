@@ -1,6 +1,7 @@
 #include "irred/thermal_observables.hpp"
 #include "flat_geometry.hpp"
 #include "payload_accounting.hpp"
+#include "thermal_ruler.hpp"
 #include <algorithm>
 #include <cfenv>
 #include <cmath>
@@ -59,8 +60,7 @@ struct Context {
   const ThermalObservablePolicy &policy;
   CallbackWork &work;
   std::size_t start;
-  long double xmax = 0, a_drag = 0, loading = 0, dependency_relative = 0;
-  bool sound = false;
+  long double xmax = 0, dependency_relative = 0;
   S status = S::ok;
   ThermalScaledExpansion expansion(long double a) {
     ThermalScaledExpansion out;
@@ -105,13 +105,11 @@ double integrand(double t, const void *ptr) {
     return std::numeric_limits<double>::quiet_NaN();
   }
   ++c.work.outer;
-  const long double a = c.sound ? c.a_drag * t : std::exp(-c.xmax * t);
+  const long double a = std::exp(-c.xmax * t);
   const auto q = c.expansion(a);
   if (q.status != S::ok)
     return std::numeric_limits<double>::quiet_NaN();
-  const long double value = c.sound
-                                ? 1 / std::sqrt(q.a4_e2 * (1 + c.loading * a))
-                                : a / std::sqrt(q.a4_e2);
+  const long double value = a / std::sqrt(q.a4_e2);
   const double rounded = static_cast<double>(value);
   if (!detail::physical_representable(value) || !(rounded > 0)) {
     c.status = S::outside_domain;
@@ -273,16 +271,19 @@ ThermalObservables::evaluate(std::span<const double> zs, unsigned mask,
   CallbackWork work;
   if ((mask & thermal_ruler_mask) || ((mask & ratios) && !zs.empty())) {
     out.ruler = EarlyLateValue{};
-    Context c{background_, p, work, work.total()};
-    c.sound = true;
-    c.a_drag = 1 / (1 + static_cast<long double>(source_.z_drag));
-    const auto &mapped = background_.source();
-    c.loading = 3 * static_cast<long double>(mapped.omega_b) /
-                (4 * static_cast<long double>(mapped.omega_gamma));
-    const auto integral = integrate(c, scale * c.a_drag / std::sqrt(3.L), 1);
+    const auto loading = detail::thermal_baryon_loading(background_);
+    std::size_t spent = work.total();
+    detail::ThermalRulerWorkBudget budget(spent, p.maximum_total_callbacks,
+        work.outer, work.momentum, p.maximum_callbacks_per_point,
+        p.thermal.maximum_total_callbacks);
+    const detail::ThermalRulerAllowance allowance{p.thermal,
+        p.absolute_tolerance_mpc, p.relative_tolerance,
+        p.maximum_callbacks_per_point, p.maximum_depth};
+    const auto integral = detail::integrate_thermal_ruler(background_, loading,
+        1 / (1 + static_cast<long double>(source_.z_drag)), allowance, budget);
     out.ruler->status = integral.status;
     if (integral.status == S::ok)
-      admit(*out.ruler, integral.value, integral.error,
+      admit(*out.ruler, integral.value_mpc, integral.error_estimate_mpc,
             p.absolute_tolerance_mpc, p.relative_tolerance);
   }
   for (double z : zs) {
