@@ -12,7 +12,8 @@ with tempfile.TemporaryDirectory(prefix='irred-install-check-') as scratch:
  subprocess.run([cmake,'--install',str(native),'--prefix',str(prefix)],check=True)
  if (prefix/'include/cosmology').exists() or not (prefix/'include/irred/numerics.hpp').exists():
   raise SystemExit('incorrect installed public include root')
- output=pathlib.Path(scratch)/'consumer'
- subprocess.run([shutil.which('c++'),'-std=c++20','-Wall','-Wextra','-Wpedantic',str(root/'cpp/tests/test_installed_consumer.cpp'),'-I',str(prefix/'include'),str(prefix/'lib/libirred_core.a'),'-o',str(output)],check=True)
- subprocess.run([str(output)],check=True)
+ for source in ['test_installed_consumer.cpp','test_installed_massless_fd.cpp']:
+  output=pathlib.Path(scratch)/source.removesuffix('.cpp')
+  subprocess.run([shutil.which('c++'),'-std=c++20','-O3' if profile=='release' else '-O0','-Wall','-Wextra','-Wpedantic','-fno-fast-math','-ffp-contract=off',str(root/'cpp/tests'/source),'-I',str(prefix/'include'),str(prefix/'lib/libirred_core.a'),'-o',str(output)],check=True)
+  subprocess.run([str(output)],check=True,timeout=300)
  print('Fresh irred install and standalone consumer passed')
