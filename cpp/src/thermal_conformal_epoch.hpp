@@ -84,6 +84,12 @@ struct ThermalConformalShadowDerivativeDiagnostic {
   long double actual_p_minus_shadow = 0;
   long double actual_p_shadow_arithmetic_estimate = 0;
   long double actual_p_source_radius = 0;
+  // Actual H/x2 versus the nominal retained polynomial, with the measured
+  // P-shadow arithmetic envelope only. Mapped-source directions and legacy
+  // P.error stay in the total forward bundle above; a correlated consumer
+  // propagates those source directions once separately from these leaves.
+  long double actual_hcal_arithmetic_estimate = 0;
+  long double actual_x2_arithmetic_estimate = 0;
   std::string_view source_law_id; // Must have static lifetime.
 };
 // Shared conversion of the actual retained thermal P(a) to conformal length
@@ -312,20 +318,36 @@ inline numerics::Status thermal_conformal_no_species_diagnostics(
   const W actual_h2 = epoch.hcal * epoch.hcal;
   const W target_h2 = coefficient * epoch.p;
   const W source_h2_radius = coefficient * shadow.actual_p_source_radius;
+  const W arithmetic_h2_radius =
+      coefficient * shadow.actual_p_shadow_arithmetic_estimate;
+  shadow.actual_hcal_arithmetic_estimate =
+      (std::abs(actual_h2 - target_h2) + arithmetic_h2_radius +
+       256 * e * (std::abs(actual_h2) + std::abs(target_h2) + arithmetic_h2_radius)) /
+      epoch.hcal;
   forward.hcal_absolute_estimate =
       (std::abs(actual_h2 - target_h2) + source_h2_radius +
        256 * e * (std::abs(actual_h2) + std::abs(target_h2) + source_h2_radius)) /
       epoch.hcal;
+  const W arithmetic_h_lower = epoch.hcal - shadow.actual_hcal_arithmetic_estimate;
   if (!(epoch.hcal > forward.hcal_absolute_estimate) ||
       !normal(coefficient) || !normal(actual_h2) || !normal(target_h2) ||
-      !normal(source_h2_radius))
+      !normal(source_h2_radius) || !normal(arithmetic_h2_radius) ||
+      !(shadow.actual_hcal_arithmetic_estimate > 0) ||
+      !(arithmetic_h_lower > 0) || !normal(arithmetic_h_lower))
     return S::conditioning_budget_exceeded;
   const W relative_h = forward.hcal_absolute_estimate /
                        (epoch.hcal - forward.hcal_absolute_estimate);
   forward.x2_absolute_estimate = std::abs(epoch.x2) *
       (2 * relative_h + relative_h * relative_h) +
       16 * e * std::abs(epoch.x2) * (1 + relative_h) * (1 + relative_h);
-  if (!(forward.x2_absolute_estimate > 0))
+  const W arithmetic_relative_h = shadow.actual_hcal_arithmetic_estimate /
+      arithmetic_h_lower;
+  shadow.actual_x2_arithmetic_estimate = std::abs(epoch.x2) *
+      (2 * arithmetic_relative_h + arithmetic_relative_h * arithmetic_relative_h) +
+      16 * e * std::abs(epoch.x2) *
+      (1 + arithmetic_relative_h) * (1 + arithmetic_relative_h);
+  if (!(forward.x2_absolute_estimate > 0) ||
+      !(shadow.actual_x2_arithmetic_estimate > 0))
     return S::conditioning_budget_exceeded;
   shadow.dp = shadow.q - 2 * (epoch.g + 1);
   shadow.dp_radius = shadow.q_radius + 2 * forward.g_absolute_estimate +
@@ -334,6 +356,7 @@ inline numerics::Status thermal_conformal_no_species_diagnostics(
   for (W v : {lambda_radius, p_arithmetic, pn_radius, shadow.p_shadow,
               shadow.p_shadow_n, shadow.p_shadow_radius,
               shadow.actual_p_shadow_arithmetic_estimate, shadow.actual_p_source_radius,
+              shadow.actual_hcal_arithmetic_estimate, shadow.actual_x2_arithmetic_estimate,
               shadow.q_radius, shadow.ell_radius, shadow.dp_radius,
               forward.hcal_absolute_estimate, forward.x2_absolute_estimate,
               forward.fb_absolute_estimate, forward.fc_absolute_estimate,

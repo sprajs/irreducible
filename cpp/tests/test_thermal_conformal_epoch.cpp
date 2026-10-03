@@ -198,10 +198,28 @@ void no_species_shadow_diagnostic() {
          s.dp == s.q - 2 * (g + 1) && s.q_radius > 0 && s.dp_radius > 0 &&
          std::abs(g - s.ell) <= f.g_absolute_estimate &&
          f.hcal_absolute_estimate > 0 && f.hcal_absolute_estimate < h &&
+         s.actual_hcal_arithmetic_estimate > 0 &&
+         s.actual_hcal_arithmetic_estimate <= f.hcal_absolute_estimate &&
+         s.actual_x2_arithmetic_estimate > 0 &&
+         s.actual_x2_arithmetic_estimate <= f.x2_absolute_estimate &&
          f.fr_absolute_estimate == f.fg_absolute_estimate,
          "literal shadow derivative and actual coefficient discrepancy retained");
     if (a == 1) need(epoch.p == 1 && epoch.p_error == 0,
                      "original P1 normalized shortcut remains literal");
+    // Controlled diagnostic separation: a deliberately broader legacy-error
+    // view affects the total envelope, not the arithmetic-only leaves. This
+    // is not a new physical query; its copied raw/error pair remains coherent.
+    auto broader = epoch;
+    broader.p_error += 1e-10L * broader.p;
+    broader.raw_scaled_query->error_estimate = broader.p_error;
+    need(detail::thermal_conformal_no_species_diagnostics(background, *captured,
+             *mapping.scalar_witnesses, a, broader) == S::ok &&
+         broader.forward->hcal_absolute_estimate > f.hcal_absolute_estimate &&
+         broader.shadow->actual_hcal_arithmetic_estimate == s.actual_hcal_arithmetic_estimate &&
+         broader.shadow->actual_x2_arithmetic_estimate == s.actual_x2_arithmetic_estimate &&
+         broader.p == p && broader.hcal == h && broader.g == g &&
+         broader.raw_scaled_query->callbacks == raw->callbacks,
+         "controlled broader callback error separates total source and actual arithmetic leaves");
     auto mismatch = *mapping.scalar_witnesses;
     mismatch[1].emitted_value = .5;
     need(detail::thermal_conformal_no_species_diagnostics(background, *captured,
