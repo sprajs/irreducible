@@ -28,8 +28,12 @@ D = Q_e*exp(-chi_HeII/(kB*T)).
 ```
 
 Ground electronic degeneracies H/H+/HeI/HeII/HeIII/e are `2/1/1/2/1/2`.
-The helium states are `1s^2 1S_0`, `1s 2S_(1/2)` and a bare nucleus. Nuclear
-spin factors cancel in adjacent ion/atom ratios; helium assets refer to 4He.
+The helium states are `1s^2 1S_0`, `1s 2S_(1/2)` and a bare nucleus. The
+neutral and singly ionized electronic counts follow `g=2J+1` from the selected
+ASD ground states. Free-electron and bare-ion counts are supplied conventions;
+common nuclear factors are omitted consistently in adjacent ratios. This
+reader-derived count algebra does not audit nuclear-spin values or qualify
+LTE/partition applicability. The selected helium level notes state 4He ancestry.
 With shared free-electron density `e>0`, the hydrogen probabilities are
 `h0=e/(e+A)`, `h1=A/(e+A)`. Helium probabilities `f0,f1,f2` normalize the
 weights `1,B/e,B*D/e^2`. Charge neutrality closes the mixture:
@@ -56,25 +60,52 @@ ground-state partition truncation or translational-mass approximations.
 
 ## Fixed atomic assets and provenance
 
-The model reuses the existing exact SI h/kB/eV definitions and CODATA2022
-electron mass/hydrogen energy. It adds these fixed central helium facts from
-[NIST ASD 5.12](https://physics.nist.gov/cgi-bin/ASD/ie.pl?at_num_out=on&biblio=on&e_out=0&el_name_out=on&level_out=on&seq_out=on&shells_out=on&spectra=He&unc_out=on&units=1):
+The model reuses the existing SI h/kB/eV definitions, CODATA2022 electron mass
+and ASD hydrogen ionization energy described in [hydrogen equilibrium](hydrogen-equilibrium.md).
+It adds these fixed central helium facts from the ASD 5.12 query:
 
 - He I ionization: `24.587389011 eV`, quoted uncertainty `2.5e-8 eV`.
 - He II ionization: `54.4177655282 eV`, quoted uncertainty `1e-9 eV`;
-  ASD identifies this parenthesized entry as theoretical.
+  ASD encloses this energy in parentheses, as it also does the hydrogen energy.
 
-The [He I levels](https://physics.nist.gov/cgi-bin/ASD/energy1.pl?biblio=1&conf_out=1&j_out=1&lande_out=1&level_out=1&perc_out=1&spectrum=He+I&term_out=1)
-and [He II levels](https://physics.nist.gov/cgi-bin/ASD/energy1.pl?biblio=1&conf_out=1&j_out=1&lande_out=1&level_out=1&perc_out=1&spectrum=He+II&term_out=1)
-identify ground angular momentum and 4He ancestry. Older rounded handbook
-energies are not substituted for these ASD central values. Asset identity is
+The accepted binding is the [seven-scalar Prospector serialization at commit
+669093656632a7600fa2a4d883455ccd9a9c3da8](https://github.com/sprajs/prospector/blob/669093656632a7600fa2a4d883455ccd9a9c3da8/register/source-data/hhe-atomic-central-asd512-codata2022-v1.json),
+SHA256 `d5c189e4623b5eadc2f44f5035dc959e95ff85df69fc199cf8fc0f57ca9c1839`,
+with its [bounded source review](https://github.com/sprajs/prospector/blob/669093656632a7600fa2a4d883455ccd9a9c3da8/register/reviews/2026-10-03-atomic-source-claims.json).
+Original snapshot hashes and selected locators preserve the H/He
+query markup, official parenthesis legend, ground-state notes and SI/CODATA
+facts. All seven central decimal values and four nonzero uncertainty decimal
+values match the current `long double` declarations across the two equilibrium
+headers and `quantities.hpp`. Decimal agreement does not qualify platform bits,
+binary64 conversion or finite representation. SI definitional exactness remains
+distinct from finite binary storage and from nonexact atomic central values.
+
+ASD's energy parentheses identify ab-initio values or values otherwise not
+derived from evaluated experimental data. He I has no such marker; its absence
+does not certify an independently measured likelihood. The checked ASD help
+does not specify standard uncertainty, a sigma multiplier, coverage probability
+or a probability law for the displayed ionization uncertainties. CODATA
+explicitly labels the electron-mass uncertainty as standard; its `(28)` notation
+has a different meaning. No joint scalar covariance is established, and repeated
+query rows/page/PDF representations are not independent evidence. The displayed
+ASD eV uncertainties retain the provider's conversion contribution without
+adding a second conversion uncertainty.
+
+The selected He I/He II level notes identify ground angular momentum and 4He
+ancestry. The query cites ASD 5.12, while the level datasets were prepared for
+5.11 and 5.10 respectively; the He II note mentions CODATA2018. This is not
+evidence that all seven scalars share a fresh CODATA2022 adjustment. Underlying
+atomic papers and excited-level/partition data were not reviewed in this bounded
+audit. Older rounded handbook energies are not substituted. Asset identity is
 `SI2019-CODATA2022-me-NIST-ASD5.12-H1-He4-fixed`. The header exposes the new
 central energies and uncertainties for native consumers.
 
 Atomic uncertainty is excluded from numerical diagnostics. LTE, partition
 truncation, ideal-gas and translational-mass assumptions are also separate;
-they are not independent noise terms to add to arithmetic error. Only scalar
-facts and an original compiled derivation are retained. No external solver,
+they are not independent noise terms to add to arithmetic error. The compiled
+model retains the original algebra; the new source audit supports selected
+scalar facts and conditional ground electronic counts. It does not reconstruct
+full source-derived Saha/LTE, partition or kinetic closure. No external solver,
 partition table or database asset is bundled. NIST distinguishes SRD compilation
 copyright from other government works; see its [licensing statement](https://www.nist.gov/open/license).
 
