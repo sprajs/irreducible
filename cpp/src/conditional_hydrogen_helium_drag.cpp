@@ -424,8 +424,10 @@ ConditionalDragEndpoint detail::ConditionalDragAccess::endpoint(Evaluation &e, d
       const auto bound = bounds(e, a, b);
       if (bound.status != S::ok) return fail(bound.status);
       const W rho = outward((bound.EK + ET) / bound.m);
-      if (!trial()) return fail(e.status); const auto ka = depth(e, a);
-      if (!trial()) return fail(e.status); const auto kb = depth(e, b);
+      if (!trial()) return fail(e.status);
+      const auto ka = depth(e, a);
+      if (!trial()) return fail(e.status);
+      const auto kb = depth(e, b);
       if (ka.status != S::ok || kb.status != S::ok) return fail(ka.status == S::ok ? kb.status : ka.status);
       if (low - rho >= a && high + rho <= b && rounded_z >= a && rounded_z <= b &&
           ka.value + bound.EK <= target - ET && kb.value - bound.EK >= target + ET) {
