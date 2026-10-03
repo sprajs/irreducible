@@ -2,6 +2,7 @@
 #include "irred/thermal_neutrino.hpp"
 #include <string>
 namespace irred::cosmology {
+namespace detail { struct HydrogenHeliumCellAccess; }
 // A distinct bounded singlet-only approximation: source-code-convention He
 // detailed balance/escape, shared NIST central ionization energies, F_H=1,
 // T_photo=T_m, and Compton/adiabatic temperature. Not literal SSS1999/RECFAST.
@@ -74,6 +75,11 @@ public:
     return source_ ? &background_ : nullptr;
   }
   HydrogenHeliumHistoryWork work() const noexcept { return work_; }
+  // Original map metadata is retained once, including on later preparation
+  // refusal. No remapping of the supplied physical source is performed.
+  const std::array<ThermalScalarMapWitness, 4> *thermal_mapping_witnesses() const noexcept {
+    return mapping_witnesses_ ? &*mapping_witnesses_ : nullptr;
+  }
   // Positive omitted-stage activity Qe exp(-chiHeII/kT)/ne at initialization.
   // A physical scope witness, excluded from numerical diagnostics. <=1e-12.
   std::optional<double> excluded_initial_heiii_activity() const noexcept {
@@ -99,9 +105,11 @@ private:
   ThermalBackground background_;
   HydrogenHeliumHistoryPolicy policy_;
   HydrogenHeliumHistoryWork work_;
+  std::optional<std::array<ThermalScalarMapWitness, 4>> mapping_witnesses_;
   std::optional<double> excluded_heiii_activity_;
   std::optional<double> maximum_log_heiii_activity_;
   std::vector<Node> nodes_;
+  friend struct detail::HydrogenHeliumCellAccess;
   friend HydrogenHeliumHistory prepare_hydrogen_helium_history(
       const HydrogenHeliumHistoryRequest &, HydrogenHeliumHistoryPolicy);
   friend std::optional<std::size_t> hydrogen_helium_history_payload_bound(

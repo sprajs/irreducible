@@ -1,5 +1,6 @@
 #include "irred/hydrogen_helium_history.hpp"
 #include "hydrogen_helium_rates.hpp"
+#include "hydrogen_helium_cell.hpp"
 #include "payload_accounting.hpp"
 #include "thermal_constants.hpp"
 #include <algorithm>
@@ -175,10 +176,12 @@ HydrogenHeliumHistory &HydrogenHeliumHistory::operator=(HydrogenHeliumHistory &&
   if (this != &o) {
     status_ = o.status_; source_ = std::move(o.source_);
     background_ = std::move(o.background_); policy_ = o.policy_; work_ = o.work_;
+    mapping_witnesses_ = std::move(o.mapping_witnesses_);
     excluded_heiii_activity_ = o.excluded_heiii_activity_;
     maximum_log_heiii_activity_ = o.maximum_log_heiii_activity_;
     nodes_ = std::move(o.nodes_);
     o.source_.reset(); o.status_ = S::invalid_input; o.work_ = {};
+    o.mapping_witnesses_.reset();
     o.excluded_heiii_activity_.reset(); o.maximum_log_heiii_activity_.reset();
     o.nodes_.clear();
   }
@@ -232,6 +235,7 @@ HydrogenHeliumHistory prepare_hydrogen_helium_history(
     t.maximum_total_callbacks = std::min(t.maximum_total_callbacks, p.maximum_total_work);
     const auto mapped = map_thermal_physical_model(s.model, t);
     if (!mapped.model) { out.status_ = mapped.status; return out; }
+    out.mapping_witnesses_ = mapped.scalar_witnesses;
     out.background_ = prepare_thermal_background(*mapped.model, t);
     out.work_.momentum_callbacks = out.background_.preparation_callbacks();
     if (out.background_.status() != S::ok) { out.status_ = out.background_.status(); return out; }
@@ -379,33 +383,13 @@ HydrogenHeliumHistoryBatch HydrogenHeliumHistory::evaluate(
       std::size_t j = lower - nodes_.begin();
       if (j == 0) j = 1;
       if (j == nodes_.size()) j = nodes_.size() - 1;
-      const auto &hi = nodes_[j - 1], &lo = nodes_[j];
-      const W f = (hi.z - z) / (hi.z - lo.z), dz = hi.z - lo.z;
-      auto blend = [&](W a, W b) { return (1 - f) * a + f * b; };
-      auto curvature = [&](auto member) {
-        const W slope = (hi.*member - lo.*member) / dz;
-        W second = 0;
-        if (j > 1) {
-          const auto &p = nodes_[j - 2];
-          second = std::max(second, std::abs((p.*member - hi.*member) / (p.z - hi.z) - slope) / ((p.z - lo.z) / 2));
-        }
-        if (j + 1 < nodes_.size()) {
-          const auto &n = nodes_[j + 1];
-          second = std::max(second, std::abs(slope - (lo.*member - n.*member) / (lo.z - n.z)) / ((hi.z - n.z) / 2));
-        }
-        return f * (1 - f) * dz * dz * second / 2;
-      };
-      const W p = blend(hi.hydrogen, lo.hydrogen), q = blend(hi.helium, lo.helium),
-          ep = blend(hi.hydrogen_error, lo.hydrogen_error) + curvature(&Node::hydrogen),
-          eq = blend(hi.helium_error, lo.helium_error) + curvature(&Node::helium),
-          T = blend(hi.temperature, lo.temperature),
-          eT = blend(hi.temperature_error, lo.temperature_error) + curvature(&Node::temperature),
-          u = 1 + W(z), nH = source_->hydrogen_nuclei_today_per_cubic_metre * u * u * u,
-          nHe = source_->helium_nuclei_today_per_cubic_metre * u * u * u,
-          ne = nH * p + nHe * q, ene = nH * ep + nHe * eq + arithmetic_floor * ne,
-          op = blend(hi.opacity_coefficient, lo.opacity_coefficient),
-          eop = blend(hi.opacity_coefficient_error, lo.opacity_coefficient_error) + curvature(&Node::opacity_coefficient),
-          opacity = op * ne, eopacity = op * ene + (ne + ene) * eop;
+      const auto cell = detail::HydrogenHeliumCellAccess::cell(*this, j - 1);
+      const auto vcell = cell.evaluate(W(z), source_->hydrogen_nuclei_today_per_cubic_metre,
+                                      source_->helium_nuclei_today_per_cubic_metre);
+      const W p = vcell.hydrogen, q = vcell.helium, ep = vcell.hydrogen_error,
+          eq = vcell.helium_error, T = vcell.temperature, eT = vcell.temperature_error,
+          nH = vcell.nH, nHe = vcell.nHe, ne = vcell.ne, ene = vcell.ne_error,
+          opacity = vcell.opacity, eopacity = vcell.opacity_error;
       if (mask & 1) project(*v[0], p, ep, policy_.absolute_fraction_tolerance, policy_.relative_fraction_tolerance);
       if (mask & 2) project(*v[1], q, eq, policy_.absolute_fraction_tolerance, policy_.relative_fraction_tolerance);
       if (mask & 4) project(*v[2], ne, ene, nH * policy_.absolute_fraction_tolerance + nHe * policy_.absolute_fraction_tolerance,

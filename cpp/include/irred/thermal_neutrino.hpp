@@ -1,5 +1,6 @@
 #pragma once
 #include "irred/numerics.hpp"
+#include <array>
 #include <cstddef>
 #include <optional>
 #include <span>
@@ -57,9 +58,18 @@ struct ThermalPhysicalModel {
   double tcmb_kelvin, physical_massless_nonphoton_density;
   std::vector<ThermalPhysicalSpecies> species;
 };
+// Once-captured deterministic arithmetic witnesses of the original map.
+// Scalar order is photon, baryon, CDM, other massless density. These are not
+// physical-input uncertainties; each consuming model owns propagation.
+struct ThermalScalarMapWitness {
+  long double wide_value = 0, wide_operation_estimate = 0;
+  long double measured_absolute_cast_loss = 0;
+  double emitted_value = 0;
+};
 struct ThermalPhysicalMapping {
   numerics::Status status = numerics::Status::invalid_input;
   std::optional<ThermalFlatModel> model;
+  std::optional<std::array<ThermalScalarMapWitness, 4>> scalar_witnesses;
 };
 ThermalPhysicalMapping map_thermal_physical_model(const ThermalPhysicalModel &,
                                                   ThermalPolicy = {});
