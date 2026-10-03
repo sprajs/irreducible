@@ -26,6 +26,8 @@ impl Drop for Remove {
 fn build(root: &Path) -> String {
     let out = Command::new("python3")
         .arg("tools/build.py")
+        // The exclusive mutation check reserves one compiler slot.
+        .args(["--jobs", "1"])
         .current_dir(root)
         .output()
         .unwrap();
@@ -44,12 +46,30 @@ fn build(root: &Path) -> String {
 fn source_receipt_flags_and_cache_identity() {
     let root = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
     let base = build(&root);
+    let unchanged_paths = [
+        "cpp/include/irred/abi.h",
+        "cpp/include/irred/quantity_enum_checks.inc",
+        "cpp/include/irred/observation_enum_checks.inc",
+        "src/abi_generated.rs",
+        "schema/run.schema.json",
+        "build/build-manifest.json",
+        "build/native/libirred_core.a",
+        "target/debug/irred",
+    ];
+    let modified =
+        || unchanged_paths.map(|path| fs::metadata(root.join(path)).unwrap().modified().unwrap());
+    let before = modified();
     let probe = Remove(root.join("build/verifier-native-mutable-probe.txt"));
     fs::write(&probe.0, b"mutable receipt\n").unwrap();
     assert_eq!(
         build(&root),
         base,
         "mutable receipt affected scientific identity"
+    );
+    assert_eq!(
+        modified(),
+        before,
+        "unchanged build rewrote an input or artifact"
     );
     drop(probe);
     for path in ["src/main.rs", "cpp/src/abi.cpp"] {
