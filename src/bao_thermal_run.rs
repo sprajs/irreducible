@@ -241,7 +241,7 @@ impl Request {
         }
         Ok(mask)
     }
-    fn validate(&self) -> Result<usize, String> {
+    pub(crate) fn validate(&self) -> Result<usize, String> {
         let a = &self.observation;
         let n = a.queries.len();
         if self.schema_version != 2
@@ -368,6 +368,20 @@ pub(crate) struct Envelope {
     pub completion: usize,
     pub recorder: usize,
     pub peak: usize,
+    #[cfg(test)]
+    pub(crate) atoms: usize,
+    #[cfg(test)]
+    pub(crate) entries: usize,
+    #[cfg(test)]
+    pub(crate) maps: usize,
+    #[cfg(test)]
+    pub(crate) arrays: usize,
+    #[cfg(test)]
+    pub(crate) text: usize,
+    #[cfg(test)]
+    pub(crate) dom: usize,
+    #[cfg(test)]
+    pub(crate) serialized: usize,
 }
 fn sum(terms: &[(usize, usize)]) -> Option<usize> {
     terms
@@ -413,6 +427,20 @@ pub(crate) fn envelope(
         completion,
         recorder,
         peak: decoder.max(bridge).max(completion).max(recorder),
+        #[cfg(test)]
+        atoms: k,
+        #[cfg(test)]
+        entries: e,
+        #[cfg(test)]
+        maps,
+        #[cfg(test)]
+        arrays: l,
+        #[cfg(test)]
+        text: t,
+        #[cfg(test)]
+        dom: a,
+        #[cfg(test)]
+        serialized: j,
     })
 }
 fn refusal(
@@ -438,6 +466,8 @@ fn refusal(
     )
 }
 pub(crate) fn execute(raw: &[u8]) -> Result<Outcome, String> {
+    #[cfg(test)]
+    crate::bao_thermal_allocation_test::decoder_if_admitted();
     if raw.len() > INPUT_MAX {
         return Err("THERMAL_BAO_INPUT_LIMIT".into());
     }
@@ -483,7 +513,11 @@ pub(crate) fn execute(raw: &[u8]) -> Result<Outcome, String> {
         drop(r);
         return Ok(refusal(raw, "rust_resource_limit", env.as_ref(), requested));
     }
-    if !ALLOCATION_PROFILE_ACCEPTED {
+    let profile_admitted = ALLOCATION_PROFILE_ACCEPTED;
+    #[cfg(test)]
+    let profile_admitted =
+        profile_admitted || crate::bao_thermal_allocation_test::native_admitted();
+    if !profile_admitted {
         drop(r);
         return Ok(refusal(
             raw,

@@ -194,6 +194,8 @@ fn source_check(v: &BaoThermalView, r: &Request, owner: &Owned) -> Result<(), St
     Ok(())
 }
 pub(crate) fn evaluate(r: Box<Request>, env: Envelope) -> Result<Outcome, String> {
+    #[cfg(test)]
+    crate::bao_thermal_allocation_test::phase_if_active(1);
     let mask = r.mask()?;
     let a = &r.observation;
     let q = &r.resource_policy;
@@ -328,6 +330,8 @@ pub(crate) fn evaluate(r: Box<Request>, env: Envelope) -> Result<Outcome, String
         }
         let arithmetic = json!({"requested":&*q.arithmetic,"actual":null});
         drop(w);
+        #[cfg(test)]
+        crate::bao_thermal_allocation_test::phase_if_active(2);
         let spec = serde_json::to_value(&*r).map_err(|_| "THERMAL_BAO_SPEC")?;
         drop(r);
         return Ok(Outcome::scientific(
@@ -548,6 +552,8 @@ pub(crate) fn evaluate(r: Box<Request>, env: Envelope) -> Result<Outcome, String
         "callbacks":v.callbacks,"preparation_callbacks":v.preparation_callbacks,"outer_callbacks":v.outer_callbacks,"momentum_callbacks":v.momentum_callbacks,
         "common_framework_allocator_stack_rss_excluded":true});
     drop(w);
+    #[cfg(test)]
+    crate::bao_thermal_allocation_test::phase_if_active(2);
     let specification = serde_json::to_value(&*r).map_err(|_| "THERMAL_BAO_SPEC")?;
     drop(r);
     drop(owned);

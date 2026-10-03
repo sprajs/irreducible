@@ -1,4 +1,6 @@
 mod bao_thermal_run;
+#[cfg(test)]
+mod bao_thermal_allocation_test;
 mod gaussian_predictive_run;
 mod gaussian_input;
 mod gaussian_posterior_run;

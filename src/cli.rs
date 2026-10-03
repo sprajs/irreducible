@@ -40,6 +40,11 @@ struct OperationHeader {
 }
 pub(crate) fn execute() -> Result<(), String> {
     let args: Vec<_> = std::env::args().collect();
+    execute_args(&args)
+}
+// A private actual-path entry point permits the test-only allocation control
+// to exercise these exact recorder scopes; released argv behavior is unchanged.
+pub(crate) fn execute_args(args: &[String]) -> Result<(), String> {
     let manifest: Value = serde_json::from_str(include_str!(env!("IRRED_BUILD_MANIFEST")))
         .map_err(|e| e.to_string())?;
     match args.get(1).map(String::as_str) {
@@ -180,6 +185,8 @@ pub(crate) fn execute() -> Result<(), String> {
                 },
             )).unwrap_or_else(|_| Err("RUST_PANIC".into()));
             let success=result.as_ref().is_ok_and(|outcome|outcome.numerical_passed());
+            #[cfg(test)]
+            crate::bao_thermal_allocation_test::phase_if_active(3);
             let qualified=result.as_ref().is_ok_and(|outcome|outcome.qualification_passed());
             let assurance_satisfied=success && (assurance=="numerical_contract" || qualified);
             let output=match &result {Ok(o)=>o.output.clone(),Err(error)=>json!({"kind":"failure","error_id":error,"failure_class":if error=="RUST_PANIC" {"internal"}else{"request_or_transport"}})};
