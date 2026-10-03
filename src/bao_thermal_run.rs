@@ -415,7 +415,12 @@ pub(crate) fn envelope(
         peak: decoder.max(bridge).max(completion).max(recorder),
     })
 }
-fn refusal(raw: &[u8], cause: &'static str, env: Option<&Envelope>) -> Outcome {
+fn refusal(
+    raw: &[u8],
+    cause: &'static str,
+    env: Option<&Envelope>,
+    requested: Option<(&'static str, u32)>,
+) -> Outcome {
     let digest = format!("{:x}", Sha256::digest(raw));
     let resources = json!({"rust_operation_payload_cap":RUST_CAP,"short_refusal_conditional_bound":Q,
         "allocation_profile":"unqualified","bounds_measured":false,"outer_cli_logical_limit":16<<20,
@@ -426,8 +431,8 @@ fn refusal(raw: &[u8], cause: &'static str, env: Option<&Envelope>) -> Outcome {
         json!({"kind":"failure","error_id":"NUMERICAL_QUALIFICATION_REQUIRED","cause":cause,
             "native_payload_absent":true,"source_prepare_call_attempted":false,"thermal_batch_call_attempted":false}),
         "thermal_bao_requested_outputs",
-        json!({"requested":"retained thermal BAO normalized ratio density","actual":null}),
-        json!({"requested":"source request","actual":null}),
+        json!({"requested":"retained thermal BAO normalized ratio density","requested_output_mask":requested.map(|x|x.1),"actual":null}),
+        json!({"requested":requested.map(|x|x.0),"requested_unresolved_before_decode":requested.is_none(),"actual":null}),
         resources,
         "source-only resource/profile refusal; no native equation executed; fallback bound remains conditional",
     )
@@ -442,18 +447,26 @@ pub(crate) fn execute(raw: &[u8]) -> Result<Outcome, String> {
         || size_of::<String>() > 32
         || size_of::<serde_json::Map<String, Value>>() > 64
     {
-        return Ok(refusal(raw, "unsupported_public_layout", None));
+        return Ok(refusal(raw, "unsupported_public_layout", None, None));
     }
     let decoder = sum(&[(size_of::<Request>(), 2), (raw.len(), 6), (1, Q)])
         .ok_or("THERMAL_BAO_RESOURCE_OVERFLOW")?;
     if decoder > RUST_CAP {
-        return Ok(refusal(raw, "decoder_resource_limit", None));
+        return Ok(refusal(raw, "decoder_resource_limit", None, None));
     }
     // Typed visitors own one final inline object; no Value request tree or
     // scientific array flattening. Derive's object field masks reject duplicates.
     let r: Box<Request> =
         Box::new(serde_json::from_slice(raw).map_err(|_| "THERMAL_BAO_REQUEST".to_string())?);
     let chars = r.validate()?;
+    let requested = Some((
+        if &*r.resource_policy.arithmetic == "wide" {
+            "wide"
+        } else {
+            "binary64"
+        },
+        r.mask()?,
+    ));
     let species = r
         .models
         .iter()
@@ -468,11 +481,16 @@ pub(crate) fn execute(raw: &[u8]) -> Result<Outcome, String> {
     );
     if env.as_ref().is_none_or(|x| x.peak > RUST_CAP) {
         drop(r);
-        return Ok(refusal(raw, "rust_resource_limit", env.as_ref()));
+        return Ok(refusal(raw, "rust_resource_limit", env.as_ref(), requested));
     }
     if !ALLOCATION_PROFILE_ACCEPTED {
         drop(r);
-        return Ok(refusal(raw, "unsupported_allocation_profile", env.as_ref()));
+        return Ok(refusal(
+            raw,
+            "unsupported_allocation_profile",
+            env.as_ref(),
+            requested,
+        ));
     }
     bao_thermal::evaluate(r, env.unwrap())
 }

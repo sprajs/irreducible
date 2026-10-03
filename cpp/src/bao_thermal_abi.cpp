@@ -91,6 +91,9 @@ struct irred_bao_thermal_result {
   std::vector<char> redshift_pool, model_id_pool;
   size_t redshift_length = 0;
   std::array<Slice, models_cap> model_ids{};
+  // Historical completed arithmetic survives releasing the numerical owners.
+  // This fixed storage is part of the charged allocation-free minimum header.
+  std::array<char, 64> completed_arithmetic{};
   std::vector<c::ThermalObservableRequest> models;
   // Destroy descriptor tables before their borrow targets (reverse order).
   std::vector<irred_bytes> ids;
@@ -164,8 +167,13 @@ void source_views(irred_bao_thermal_result &r) {
       reinterpret_cast<const uint8_t *>(r.redshift_pool.data()),
       r.redshift_length};
   const auto &meta = r.observation->metadata();
-  if (v.source_factor_completed)
-    v.actual_source_arithmetic_id = bytes(meta.arithmetic_id);
+  if (v.source_factor_completed &&
+      meta.arithmetic_id.size() < r.completed_arithmetic.size()) {
+    std::copy(meta.arithmetic_id.begin(), meta.arithmetic_id.end(),
+              r.completed_arithmetic.begin());
+    v.actual_source_arithmetic_id = bytes(std::string_view(
+        r.completed_arithmetic.data(), meta.arithmetic_id.size()));
+  }
   v.source_measure = bytes(meta.measure);
   v.source_semantics = bytes(meta.source_semantics);
 }
@@ -396,7 +404,6 @@ extern "C" uint32_t irred_bao_thermal_evaluate(
         v.source_available = 0;
         v.rows = nullptr;
         v.model_count = v.row_byte_length = 0;
-        v.actual_source_arithmetic_id = {};
         v.source_measure = {};
         v.source_semantics = {};
         v.density_status =
@@ -499,6 +506,9 @@ extern "C" uint32_t irred_bao_thermal_evaluate(
     if (!v.source_factor_completed)
       return finish(r->observation->status(),
                     r->observation->numerical_status());
+    if (!v.actual_source_arithmetic_id.length)
+      return finish(s::DensityStatus::incompatible_metadata,
+                    n::Status::outside_domain);
     v.phase = 2;
     const auto prefix = retained(*r), model_bound = input_models.result();
     auto native = b::thermal_density_payload_bound(

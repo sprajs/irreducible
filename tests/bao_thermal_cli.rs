@@ -157,6 +157,8 @@ fn unsupported_profile_preserves_original_bytes_and_completed_refusal() {
     assert_eq!(v["result"]["native_payload_absent"], true);
     assert_eq!(v["result"]["source_prepare_call_attempted"], false);
     assert_eq!(v["result"]["thermal_batch_call_attempted"], false);
+    assert_eq!(v["receipt"]["precision"]["requested"], "wide");
+    assert_eq!(v["receipt"]["method"]["requested_output_mask"], 7);
     assert_eq!(
         spec.unwrap()["raw_input_sha256"],
         format!("{:x}", Sha256::digest(raw))

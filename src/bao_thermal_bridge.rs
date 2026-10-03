@@ -51,7 +51,7 @@ fn strings(x: &[Bytes]) -> Strings {
         byte_length: std::mem::size_of_val(x) as u64,
     }
 }
-fn view_text<'a>(x: Bytes, _owner: &'a Owned) -> Result<&'a str, String> {
+fn view_text<'a>(x: &Bytes, _owner: &'a Owned) -> Result<&'a str, String> {
     if x.length == 0 {
         return Ok("");
     }
@@ -64,7 +64,7 @@ fn view_text<'a>(x: Bytes, _owner: &'a Owned) -> Result<&'a str, String> {
 fn eq(x: f64, y: f64) -> bool {
     x.to_bits() == y.to_bits()
 }
-fn state(x: OutputState) -> Result<Value, String> {
+fn state(x: &OutputState) -> Result<Value, String> {
     if x.reserved != 0 || x.availability > 3 || x.status > 5 || x.numerical_status > 8 {
         return Err("THERMAL_BAO_STATE_VIEW".into());
     }
@@ -72,7 +72,7 @@ fn state(x: OutputState) -> Result<Value, String> {
         json!({"availability":x.availability,"status":x.status,"numerical_status":x.numerical_status}),
     )
 }
-fn numeric(x: F64Buffer, n: usize, available: bool) -> Result<Value, String> {
+fn numeric(x: &F64Buffer, n: usize, available: bool) -> Result<Value, String> {
     if x.struct_size != size_of::<F64Buffer>() as u32
         || x.abi_version != ABI_VERSION
         || x.element_type != 2
@@ -93,6 +93,13 @@ fn numeric(x: F64Buffer, n: usize, available: bool) -> Result<Value, String> {
     }
     // Exactly one copy into final Value storage; no intermediate Vec<f64>.
     Ok(Value::Array(a.iter().map(|x| Value::from(*x)).collect()))
+}
+// Completion flags describe earned history; source_available describes the
+// current retained payload. Releasing owners cannot erase completed arithmetic.
+fn history_consistent(v: &BaoThermalView) -> bool {
+    (v.source_factor_completed == 0 || v.source_prepare_call_attempted != 0)
+        && (v.thermal_batch_call_attempted == 0 || v.source_factor_completed != 0)
+        && ((v.source_factor_completed == 0) == (v.actual_source_arithmetic_id.length == 0))
 }
 fn source_check(v: &BaoThermalView, r: &Request, owner: &Owned) -> Result<(), String> {
     let text = |x| view_text(x, owner);
@@ -128,8 +135,8 @@ fn source_check(v: &BaoThermalView, r: &Request, owner: &Owned) -> Result<(), St
         }
     }
     for (actual, expected) in [
-        (a.ordered_ids, &*o.ordered_row_ids),
-        (a.covariance_axis_ids, &*o.covariance_axis_ids),
+        (&a.ordered_ids, &*o.ordered_row_ids),
+        (&a.covariance_axis_ids, &*o.covariance_axis_ids),
     ] {
         if actual.length != n as u64
             || actual.byte_length != (n * size_of::<Bytes>()) as u64
@@ -142,7 +149,7 @@ fn source_check(v: &BaoThermalView, r: &Request, owner: &Owned) -> Result<(), St
             .iter()
             .zip(expected)
         {
-            if text(*x)? != &**y {
+            if text(x)? != &**y {
                 return Err("THERMAL_BAO_SOURCE_ORDER".into());
             }
         }
@@ -150,8 +157,8 @@ fn source_check(v: &BaoThermalView, r: &Request, owner: &Owned) -> Result<(), St
     // Verify raw native ownership against original input directly. No readback
     // array, clone or substitution into the scientific specification.
     for (actual, expected) in [
-        (a.observed, &*o.observed_ratios),
-        (a.covariance, &*o.covariance_row_major),
+        (&a.observed, &*o.observed_ratios),
+        (&a.covariance, &*o.covariance_row_major),
     ] {
         if actual.struct_size != size_of::<F64Buffer>() as u32
             || actual.abi_version != ABI_VERSION
@@ -173,12 +180,12 @@ fn source_check(v: &BaoThermalView, r: &Request, owner: &Owned) -> Result<(), St
         }
     }
     for (x, y) in [
-        (a.table_identity, &*o.table_identity),
-        (a.covariance_identity, &*o.covariance_identity),
-        (a.ordering_provenance, &*o.ordering_provenance),
-        (a.calibration_provenance, &*o.calibration_provenance),
-        (a.dependence_provenance, &*o.dependence_provenance),
-        (a.redshift_convention, &*o.redshift_convention),
+        (&a.table_identity, &*o.table_identity),
+        (&a.covariance_identity, &*o.covariance_identity),
+        (&a.ordering_provenance, &*o.ordering_provenance),
+        (&a.calibration_provenance, &*o.calibration_provenance),
+        (&a.dependence_provenance, &*o.dependence_provenance),
+        (&a.redshift_convention, &*o.redshift_convention),
     ] {
         if text(x)? != y {
             return Err("THERMAL_BAO_PROVENANCE_VIEW".into());
@@ -319,6 +326,7 @@ pub(crate) fn evaluate(r: Box<Request>, env: Envelope) -> Result<Outcome, String
             let _owned = Owned(raw);
             return Err("THERMAL_BAO_QUOTA_OWNER".into());
         }
+        let arithmetic = json!({"requested":&*q.arithmetic,"actual":null});
         drop(w);
         let spec = serde_json::to_value(&*r).map_err(|_| "THERMAL_BAO_SPEC")?;
         drop(r);
@@ -327,8 +335,8 @@ pub(crate) fn evaluate(r: Box<Request>, env: Envelope) -> Result<Outcome, String
             json!({"kind":"failure","error_id":"NUMERICAL_QUALIFICATION_REQUIRED",
             "transport_status":transport,"native_payload_absent":true,"source_prepare_call_attempted":false,"thermal_batch_call_attempted":false}),
             "thermal_bao_requested_outputs",
-            json!({"requested":"retained thermal BAO density","actual":null}),
-            json!({"actual":null}),
+            json!({"requested":"retained thermal BAO density","requested_output_mask":mask,"actual":null}),
+            arithmetic,
             json!({"rust_conditional_peak":env.peak}),
             "global cap below minimal owner; no native execution",
         ));
@@ -368,19 +376,11 @@ pub(crate) fn evaluate(r: Box<Request>, env: Envelope) -> Result<Outcome, String
     {
         return Err("THERMAL_BAO_RESULT_VIEW".into());
     }
-    if v.source_factor_completed != 0
-        && (v.source_prepare_call_attempted == 0 || v.source_available == 0)
-    {
+    if !history_consistent(&v) {
         return Err("THERMAL_BAO_PHASE_VIEW".into());
     }
-    if v.thermal_batch_call_attempted != 0 && v.source_factor_completed == 0 {
-        return Err("THERMAL_BAO_PHASE_VIEW".into());
-    }
-    if v.source_factor_completed == 0 && v.actual_source_arithmetic_id.length != 0 {
-        return Err("THERMAL_BAO_ARITHMETIC_VIEW".into());
-    }
     if v.source_factor_completed != 0
-        && text(v.actual_source_arithmetic_id)?
+        && text(&v.actual_source_arithmetic_id)?
             != if policy.arithmetic == 1 {
                 "F02/longdouble-cpu/v1"
             } else {
@@ -410,7 +410,7 @@ pub(crate) fn evaluate(r: Box<Request>, env: Envelope) -> Result<Outcome, String
     for (i, x) in rows.iter().enumerate() {
         let original = &r.models[i];
         let m = &original.physical_model;
-        let src = x.source;
+        let src = &x.source;
         if x.struct_size != size_of::<BaoThermalRow>() as u32
             || x.abi_version != ABI_VERSION
             || x.model_index != i as u64
@@ -418,9 +418,9 @@ pub(crate) fn evaluate(r: Box<Request>, env: Envelope) -> Result<Outcome, String
             || src.abi_version != ABI_VERSION
             || src.reserved0 != 0
             || src.reserved1 != 0
-            || text(src.id)? != &*original.id
-            || text(src.drag_origin)? != &*original.drag_origin
-            || text(src.source_origin)? != &*original.source_origin
+            || text(&src.id)? != &*original.id
+            || text(&src.drag_origin)? != &*original.drag_origin
+            || text(&src.source_origin)? != &*original.source_origin
             || !eq(src.h0_km_s_mpc, m.h0_km_s_mpc)
             || !eq(src.physical_baryon_density, m.physical_baryon_density)
             || !eq(src.physical_cdm_density, m.physical_cdm_density)
@@ -468,7 +468,7 @@ pub(crate) fn evaluate(r: Box<Request>, env: Envelope) -> Result<Outcome, String
         {
             return Err("THERMAL_BAO_DIAGNOSTIC_VIEW".into());
         }
-        let states = [x.density.state, x.prediction_state, x.residual_state];
+        let states = [&x.density.state, &x.prediction_state, &x.residual_state];
         for (j, bit) in [1, 2, 4].iter().enumerate() {
             state(states[j])?;
             if (mask & bit == 0) != (states[j].availability == 0) {
@@ -478,28 +478,28 @@ pub(crate) fn evaluate(r: Box<Request>, env: Envelope) -> Result<Outcome, String
                 passed[j] &= states[j].availability == 1;
             }
         }
-        let mut row = json!({"model_index":i,"model_id":text(src.id)?,"preparation_status":x.preparation_status,"numerical_status":x.numerical_status,
-            "density_state":state(x.density.state)?,"prediction_state":state(x.prediction_state)?,"residual_state":state(x.residual_state)?,
+        let mut row = json!({"model_index":i,"model_id":text(&src.id)?,"preparation_status":x.preparation_status,"numerical_status":x.numerical_status,
+            "density_state":state(&x.density.state)?,"prediction_state":state(&x.prediction_state)?,"residual_state":state(&x.residual_state)?,
             "callbacks":x.callbacks,"preparation_callbacks":x.preparation_callbacks,"outer_callbacks":x.outer_callbacks,"momentum_callbacks":x.momentum_callbacks});
         if mask & 2 != 0 {
             row["predictions"] = numeric(
-                x.predictions,
+                &x.predictions,
                 a.queries.len(),
                 x.prediction_state.availability == 1,
             )?;
         } else {
-            numeric(x.predictions, a.queries.len(), false)?;
+            numeric(&x.predictions, a.queries.len(), false)?;
         }
         if mask & 4 != 0 {
             row["residuals"] = numeric(
-                x.residuals,
+                &x.residuals,
                 a.queries.len(),
                 x.residual_state.availability == 1,
             )?;
         } else {
-            numeric(x.residuals, a.queries.len(), false)?;
+            numeric(&x.residuals, a.queries.len(), false)?;
         }
-        let d = x.density;
+        let d = &x.density;
         if d.has_projection_estimate != 0 {
             if !d.projection_log_density_error_estimate.is_finite()
                 || d.projection_log_density_error_estimate < 0.
@@ -529,14 +529,18 @@ pub(crate) fn evaluate(r: Box<Request>, env: Envelope) -> Result<Outcome, String
         outputs.push(row);
     }
     let complete = passed.iter().all(|x| *x) && v.thermal_batch_call_attempted != 0;
-    let output = json!({"kind":if complete{"finite"}else{"failure"},"phase":v.phase,"numerical_status":v.numerical_status,"density_status":v.density_status,
+    let mut output = json!({"kind":if complete{"finite"}else{"failure"},"phase":v.phase,"numerical_status":v.numerical_status,"density_status":v.density_status,
         "source_available":v.source_available!=0,"source_prepare_call_attempted":v.source_prepare_call_attempted!=0,
-        "source_factor_completed":v.source_factor_completed!=0,"thermal_batch_call_attempted":v.thermal_batch_call_attempted!=0,"native_payload_absent":false,"models":outputs});
-    let method = json!({"requested":text(v.thermal_density_id)?,"source_preparation_attempted":v.source_prepare_call_attempted!=0,
+        "source_factor_completed":v.source_factor_completed!=0,"thermal_batch_call_attempted":v.thermal_batch_call_attempted!=0,"native_payload_absent":false});
+    output
+        .as_object_mut()
+        .unwrap()
+        .insert("models".into(), Value::Array(outputs));
+    let method = json!({"requested":text(&v.thermal_density_id)?,"source_preparation_attempted":v.source_prepare_call_attempted!=0,
         "source_factor_completed":v.source_factor_completed!=0,"thermal_evaluation_attempted":v.thermal_batch_call_attempted!=0,
-        "actual_thermal_equation":if v.thermal_batch_call_attempted!=0{Some(text(v.thermal_equation_id)?)}else{None},
-        "physical_mapping":if v.thermal_batch_call_attempted!=0{Some(text(v.physical_mapping_id)?)}else{None}});
-    let arithmetic = json!({"requested":&*q.arithmetic,"actual_source_factor":if v.source_factor_completed!=0{Some(text(v.actual_source_arithmetic_id)?)}else{None}});
+        "actual_thermal_equation":if v.thermal_batch_call_attempted!=0{Some(text(&v.thermal_equation_id)?)}else{None},
+        "physical_mapping":if v.thermal_batch_call_attempted!=0{Some(text(&v.physical_mapping_id)?)}else{None}});
+    let arithmetic = json!({"requested":&*q.arithmetic,"actual_source_factor":if v.source_factor_completed!=0{Some(text(&v.actual_source_arithmetic_id)?)}else{None}});
     let resources = json!({"requested":q,"rust_operation_payload_cap":crate::bao_thermal_run::RUST_CAP,"conditional_decoder_peak":env.decoder,
         "conditional_bridge_peak":env.bridge,"conditional_completion_peak":env.completion,"conditional_recorder_peak":env.recorder,
         "native_retained_payload":v.retained_payload_bytes,"native_preparation_peak_bound":v.preparation_peak_bound_bytes,
@@ -574,4 +578,27 @@ pub(crate) fn evaluate(r: Box<Request>, env: Envelope) -> Result<Outcome, String
         }
     }
     Ok(outcome)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    #[test]
+    fn completed_history_survives_released_source_payload() {
+        let mut v: BaoThermalView = unsafe { zeroed() };
+        v.phase = 3;
+        v.source_prepare_call_attempted = 1;
+        v.source_factor_completed = 1;
+        v.thermal_batch_call_attempted = 1;
+        v.source_available = 0;
+        v.actual_source_arithmetic_id = bytes("F02/longdouble-cpu/v1");
+        assert!(history_consistent(&v));
+        v.source_factor_completed = 0;
+        assert!(!history_consistent(&v));
+        v.actual_source_arithmetic_id = bytes("");
+        v.thermal_batch_call_attempted = 0;
+        assert!(history_consistent(&v));
+        v.source_factor_completed = 1;
+        assert!(!history_consistent(&v));
+    }
 }
