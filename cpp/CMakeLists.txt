@@ -540,6 +540,9 @@ include(cmake/linear_transfer.cmake)
 # Continuous scalar temperature and polarization transfer geometry.
 include(cmake/continuous_cmb_projection.cmake)
 
+# Conditional finite-opacity photon/baryon source and surviving boundary.
+include(cmake/finite_opacity_source.cmake)
+
 # Distinct bounded singlet H/He history with one shared electron density.
 include(cmake/hydrogen_helium_history.cmake)
 
