@@ -45,6 +45,8 @@ struct Ledger {
   std::size_t byte_owners=0,peak_bytes=0,serializations=0;
   std::size_t encoded_copy_bytes=0,completed_steps=0;
   std::size_t maximum_step_primitives=0,maximum_step_endpoints=0;
+  std::size_t nonstep_primitives=0,nonstep_endpoints=0;
+  bool step_active=false;
   std::size_t primitive_limit=100000000,endpoint_limit=800000000;
   unsigned precision=192;
   void charge(std::size_t p,std::size_t e) {
@@ -52,7 +54,10 @@ struct Ledger {
        e>endpoint_limit || endpoints>endpoint_limit-e) {
       ++denied;throw Refusal("reference work prefix limit");
     }
+    if(!step_active && (p>1000000||nonstep_primitives>1000000-p)){
+      ++denied;throw Refusal("one-time/setup/output/control prefix allowance");}
     primitives+=p;endpoints+=e;
+    if(!step_active){nonstep_primitives+=p;nonstep_endpoints+=e;}
   }
   void guard(std::size_t e=0){charge(1,e);++guards;}
   void status_call(){charge(1,0);++status_calls;}
@@ -87,14 +92,16 @@ struct StepReservation {
   StepReservation():previous(work().primitive_limit) {
     // Reserve before beginning. A denied reservation computes no next step.
     work().guard();
-    if(work().primitives>previous || previous-work().primitives<65536){++work().denied;throw Refusal("step reservation denied");}
+    if(work().step_active||work().nonstep_primitives>980000||work().primitives>previous || previous-work().primitives<65536){
+      ++work().denied;throw Refusal("step reservation/failure-publication headroom denied");}
     work().primitive_limit=work().primitives+65536;
     start_primitives=work().primitives;start_endpoints=work().endpoints;
-    try{work().step();}catch(...){work().primitive_limit=previous;throw;}
+    work().step_active=true;
+    try{work().step();}catch(...){work().primitive_limit=previous;work().step_active=false;throw;}
   }
   ~StepReservation(){work().maximum_step_primitives=std::max(work().maximum_step_primitives,work().primitives-start_primitives);
     work().maximum_step_endpoints=std::max(work().maximum_step_endpoints,work().endpoints-start_endpoints);
-    work().primitive_limit=previous;}
+    work().primitive_limit=previous;work().step_active=false;}
 };
 // Caller-owned mantissas: no mpfr_clear/set_prec/reallocation on these values.
 // MPFR/GMP internal temporary allocations are not these requested owners;
@@ -654,9 +661,12 @@ void profile() {
   require(std::strcmp(version,"4.2.2")==0 && std::strcmp(gmp_version,"6.3.0")==0,"pinned backend version");
   work().status_call();const auto emin=mpfr_get_emin();work().status_call();const auto emax=mpfr_get_emax();
   require(emin<=-16384 && emax>=16384,"pinned exponent support");
+  require(sizeof(Interval)==128&&sizeof(WireRecord)==272&&sizeof(Stepper)==872960,"declared custom/frame layout");
   work().status_call();mpfr_clear_flags();
   std::cout<<"PROFILE MPFR="<<version<<" GMP="<<gmp_version<<" Wdigits="<<std::numeric_limits<W>::digits
            <<" directed-basic/fma/sqrt/exp/custom-storage=conditional assumptions;controls are not compiler proof\n";
+  std::cout<<"LAYOUT interval="<<sizeof(Interval)<<" record="<<sizeof(WireRecord)<<" stepper="<<sizeof(Stepper)
+           <<" interval_live_source_upper=7240 no-elide-owned-copies=true;provider-internal scratch excluded\n";
 }
 void append(ClosedRun &run,unsigned kind,unsigned ki,unsigned ti,unsigned coordinate,
             const Interval &value,Arithmetic &a,Interval &roundtrip) {
@@ -1006,6 +1016,7 @@ void ledger_report(const Ledger &w) {
   std::cout<<"ACTUAL_REFERENCE_LEDGER primitives="<<w.primitives<<" endpoints="<<w.endpoints<<" guards="<<w.guards
     <<" copies="<<w.copies<<" status_calls="<<w.status_calls<<" begun_steps="<<w.steps<<" completed_steps="<<w.completed_steps
     <<" maximum_step_primitives="<<w.maximum_step_primitives<<" maximum_step_endpoints="<<w.maximum_step_endpoints
+    <<" nonstep_primitives="<<w.nonstep_primitives<<" nonstep_endpoints="<<w.nonstep_endpoints
     <<" tube_checks="<<w.tube_checks<<" denied="<<w.denied<<" peak_intervals="<<w.peak_intervals
     <<" peak_requested_bytes="<<w.peak_bytes<<" live_intervals="<<w.live_intervals<<" requested_bytes="<<w.byte_owners
     <<" serializations="<<w.serializations<<" encoded_copy_bytes="<<w.encoded_copy_bytes<<'\n';
