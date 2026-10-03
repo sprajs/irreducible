@@ -109,5 +109,11 @@ test guard is not a production-wide interval or libm certificate.
 The original independent run passed all four combined geometry gates and the
 signed finite-endpoint/regular1/5 controls in31.978s including compilation.
 It charged459344269 explicit MPFR calls,771936 vector-cell visits and6453 native
-nodes. The new permanent regression and adapted optional reproducer have not
-been executed at the source checkpoint; their own build/validation is separate.
+nodes. The new permanent regression subsequently passed its own fresh strict
+GCC 16.2.1 C++20 Release build and native CTest contract at
+`93a14f559affeac0a9d0a68ace7f29b662e2de45`. Its 0.010663 s test checked the retained
+four-output brackets and sign/endpoint/ownership/refusal controls without an
+MPFR dependency; the existing continuous-projection contract also passed.
+The adapted optional reproducer remains separately uncompiled and unexecuted.
+The original MPFR reference run, this native regression and integrated CI
+retain distinct execution identities and qualification scopes.

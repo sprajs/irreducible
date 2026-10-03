@@ -31,9 +31,17 @@ same compiled inputs. It requires explicit MPFR/GMP linking and execution. Its
 original work limits are600M explicit MPFR calls,1M attempted vector cells,
 three1024-node synthetic calls and one default2M-node native call; its historical
 preparation ceiling20000 is an explicit override of default16384, with604 rows
-inside both. It is not a default CI workload. Common CMake target registration
-and validation are integration-owner work; at this source checkpoint the new
-native test and adapted optional reference have not been built or run.
+inside both. It is not a default CI workload. The adapted optional reference
+has not been built or run; the original independently executed method supplies
+the retained reference ancestry.
+
+The registered `continuous_cmb_class_pl_contract` and existing
+`continuous_cmb_projection_contract` both passed a fresh GCC 16.2.1 C++20 Release
+build at `93a14f559affeac0a9d0a68ace7f29b662e2de45`, with `-fno-fast-math` and
+`-ffp-contract=off`. The new retained-source contract took 0.010663 s; both CTest
+cases took 0.35 s, and the serial configuration/build/test transaction took 63.592 s.
+This is scoped local validation of the unchanged numerical policy and supplied
+PL geometry. Current integrated CI and publication remain separate gates.
 
 The original independent same-PL control passed its complete four-output budget
 and sign/endpoint controls. Original CLASS comparisons remain separately
