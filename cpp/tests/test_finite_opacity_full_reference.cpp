@@ -602,7 +602,10 @@ void decode_endpoint(mpfr_ptr out,const EncodedEndpoint &wire) {
   long exponent=0;const auto parsed=std::from_chars(digits.data()+position+1,digits.data()+(end-digits.begin()),exponent);
   work().guard();if(parsed.ec!=std::errc{}||parsed.ptr!=digits.data()+(end-digits.begin())||exponent< -16384||exponent>16384)
     throw Refusal("endpoint exponent/profile refusal");
-  work().charge(1,1);if(mpfr_set_str(out,digits.data(),16,MPFR_RNDN)!=0)throw Refusal("inexact endpoint integer decode");
+  char *number_end=nullptr;work().charge(1,1);
+  const int rounded=mpfr_strtofr(out,digits.data(),&number_end,16,MPFR_RNDN);
+  work().guard();if(rounded||number_end!=digits.data()+position)
+    throw Refusal("inexact/malformed endpoint integer decode");
   work().charge(0,1);if(mpfr_mul_2si(out,out,exponent,MPFR_RNDN)!=0)throw Refusal("inexact endpoint exponent decode");
 }
 void encode(WireBox &out,const Interval &value,Arithmetic &a,Interval &roundtrip) {
@@ -780,7 +783,10 @@ void arithmetic_and_operator_controls() {
   const auto live=work().live_intervals;{Interval copy=x[1];Interval moved=std::move(copy);a.check(moved);}
   require(work().live_intervals==live,"complete no-elide value lifetime");
   {Bytes local(sizeof(WireBox));WireBox wire;encode(wire,x[1],a,x[22]);decode(x[23],wire,a);require(overlaps(x[1],x[23]),"exact endpoint wire roundtrip");
-    wire.low.bytes[0]='?';refusal_control([&]{decode(x[23],wire,a);},"malformed wire causal refusal");}
+    wire.low.bytes[0]='?';refusal_control([&]{decode(x[23],wire,a);},"malformed wire causal refusal");
+    work().copy(0);work().encoded_copy_bytes+=67;
+    std::strcpy(wire.low.bytes.data(),"ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff@0");
+    refusal_control([&]{decode(x[23],wire,a);},"valid overprecision integer wire must refuse");}
   const auto old_limit=work().primitive_limit;work().primitive_limit=work().primitives;
   bool denied=false;try{a.integer(x[12],0);}catch(const Refusal &){denied=true;}
   work().primitive_limit=old_limit;require(denied,"work prefix denies before assignment");
