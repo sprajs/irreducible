@@ -147,8 +147,8 @@ each supplied linear time cell analytically and projects in angle, rather than
 sharing the native Bessel/time integrator. Signed Doppler and observer-endpoint
 controls also pass. This earns the finite supplied-PL geometry comparison;
 production radial and source-grid error fields remain absent, and the direct-q
-CLASS differences remain unresolved. Minimal licensed numeric facts and their
-earned reference enclosures are being moved into permanent native regressions.
+CLASS differences remain unresolved. Minimal licensed numeric facts and their earned reference enclosures now
+form a permanent native regression that passes both scoped contracts.
 
 Useful native source implementations are progressing concurrently for the
 conditional linear Kaiser/geometric-AP/window mean, a supplied-driver helium
