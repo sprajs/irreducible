@@ -429,7 +429,7 @@ IdealAcousticBatch IdealAcousticTransfer::evaluate(std::span<const double> ks,
         }
         std::array<std::array<W,9>,5> values;
         if (!budget.writes(45)) {
-          cause=S::work_limit; all_ok=false; row.epoch.status=cause;
+          cause=S::work_limit; aggregate=cause; all_ok=false; row.epoch.status=cause;
           for (unsigned f=0;f<9;++f) if (outputs&(1u<<f)) row.outputs[f].status=cause;
           continue;
         }

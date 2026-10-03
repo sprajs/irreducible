@@ -159,6 +159,16 @@ int main() {
   for (unsigned f=0;f<acoustic_output_count;++f)
     if (f!=2) need(!masked.rows[0].outputs[f].computed && !masked.rows[0].outputs[f].value,
                   "unrequested coordinate remains absent");
+  IdealAcousticPolicy publication_limited;
+  publication_limited.maximum_state_element_writes=
+      masked.trajectories[0].work.state_element_writes;
+  const auto publication_refusal=owner.evaluate(one_k,one_a,
+      acoustic_intrinsic_temperature,publication_limited);
+  need(publication_refusal.status==S::work_limit && publication_refusal.rows.size()==1 &&
+       publication_refusal.rows[0].outputs[2].status==S::work_limit &&
+       !publication_refusal.rows[0].outputs[2].computed &&
+       !publication_refusal.rows[0].outputs[2].value,
+       "publication cap refusal agrees with batch status after retained solves");
   const std::array<double,2> repeated_a{.001,.001};
   need(owner.evaluate(one_k,repeated_a,1).status==S::outside_domain,"repeated time axis refusal");
   const std::array<double,1> invalid_k{0};
