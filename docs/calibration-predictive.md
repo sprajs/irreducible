@@ -59,7 +59,11 @@ future conditional-noise owner, future model and metadata. Borrowed owners remai
 usable on success/failure. Future covariance is assembled and factored once.
 The resulting owner retains model/design/offset/lineage, mean/W, numerical errors
 and the parent metadata, without cloning the posterior or source factors.
-Changing training values, future response or covariance requires preparation.
+The one-conditioned-law owner requires preparation when training values change.
+For unchanged design/prior/response/noise, `LadderPredictiveConditioning` owns
+the ladder posterior and prepares its fixed future covariance once; coarse
+`evaluate` batches accept many original training/future vectors. A changed
+response or covariance still requires preparation.
 Evaluation performs whole-vector solves without copying/refactoring covariance.
 Views borrow their owner and are invalidated by moves/destruction; old owners
 are invalid after moves, and self move preserves the owner.
@@ -152,5 +156,27 @@ two-coordinate quadrature integrates prior × training × future noise directly;
 A noiseless fixed-truth response checks posterior bias and the resulting eta/H0
 credible-interval coverage formula. Numerical integration of the conditional
 two-row joint ellipsoid agrees with the chi-square2 mass 1-exp(-radius²/2),
-with separate refinement. These are analytic synthetic law checks; no empirical
-coverage campaign or observational held-out claim is made.
+with separate refinement. These analytic synthetic law checks are supplemented
+by the named [addressed recovery campaigns](gaussian-simulation.md); neither
+supplies observational held-out qualification.
+
+## Retained repeated ladder conditioning
+
+`LadderPredictiveConditioning::prepare` consumes its `LadderPosterior` only after
+all invariant checks and allocations succeed. It retains the same compiled
+models/designs/offsets, tagged row/event lineage and one predictive covariance
+factor. The borrowed future-noise owner may then be destroyed. Its `posterior()`
+getter requires finite status. Moves invalidate old owners; self move preserves
+them. No physical or statistical identity changes from the one-conditioned law.
+
+Row-major coarse pools preserve original input order. The shared exact offset
+translation and derived mean-offset arithmetic serve both one-shot and repeated
+consumers. Any requested-output failure withholds that row's numeric outputs;
+no row is snapped, clipped, dropped or regenerated. Mean-only masks charge
+training and mean translations, while density masks additionally charge future
+translation and whole-vector solves. Global cumulative payload/work admission
+precedes candidate allocation. The [generic repeated contract](gaussian-predictive.md)
+defines the shared equations, masks and arithmetic allocations. Permanent scalar
+conjugate checks and exact complete-preparation comparisons cover missing-rung
+training, correlated future covariance, rounded future-offset refusal, exact
+byte/work boundaries, moves, invalid policies and every measured batch allocation.

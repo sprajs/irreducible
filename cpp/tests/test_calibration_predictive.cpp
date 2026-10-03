@@ -346,10 +346,191 @@ void run() {
          "future allocation preserves owners");
   }
 }
+void repeated_conditioning() {
+  auto m = model(), f = model(true);
+  auto g = noise(m);
+  auto p = LadderPosterior::prepare(std::move(g), m, prior(m));
+  auto ng = noise(f);
+  auto md = metadata(p, f);
+  auto moved_f = f;
+  auto moved_md = md;
+  const auto bound = LadderPredictiveConditioning::preparation_payload_bound(
+      p, ng, moved_f, moved_md);
+  PredictivePolicy limit;
+  limit.maximum_payload_bytes = *bound - 1;
+  calls = 0;
+  fail_on = SIZE_MAX;
+  armed = true;
+  auto refused = LadderPredictiveConditioning::prepare(
+      std::move(p), ng, std::move(moved_f), std::move(moved_md), limit);
+  armed = false;
+  need(refused.status() != DensityStatus::finite && calls == 0 &&
+           p.status() == DensityStatus::finite,
+       "repeated ladder peak pre-admission preserves source and allocates "
+       "nothing");
+  auto retained =
+      LadderPredictiveConditioning::prepare(std::move(p), ng, f, md);
+  need(retained.status() == DensityStatus::finite &&
+           p.status() != DensityStatus::finite,
+       "repeated ladder consumes posterior once");
+  ng = Gaussian{};
+  const auto rows = retained.posterior().linearization().ordered_row_ids;
+  const auto future_rows = retained.linearization().ordered_row_ids;
+  const std::vector<double> y{32, 30, 31},
+      fy{24, 22, 26, 24, 24, std::nextafter(16., 0.)};
+  auto batch = retained.evaluate(y, rows, fy, future_rows, 3);
+  need(batch.status == DensityStatus::finite &&
+           batch.rows[0].status == DensityStatus::finite &&
+           batch.rows[1].status == DensityStatus::finite &&
+           batch.rows[2].status == DensityStatus::numerical_failure &&
+           batch.rows[2].numerical_status == N::conditioning_budget_exceeded,
+       "original future rounded offset refusal retained without clipping");
+  // Independent scalar update: V_A=(1/2+1)^-1=2/3, mu_A=95/3.
+  // log10(P/day)=1 equals the source pivot, so the b response is zero.
+  // Future HF mean is 40 + M_SN - eta + delta = 40-19-1/2+1/8.
+  near(batch.means[0], 643.L / 24);
+  near(batch.means[1], 165.L / 8);
+  near(batch.means[2], 611.L / 24);
+  near(retained.covariance()[0], 17.L / 3);
+  near(retained.covariance()[1], 2.25L);
+  near(retained.covariance()[3], 7.L);
+  auto original_ng = noise(f);
+  for (size_t i = 0; i < 3; ++i) {
+    auto complete = LadderPredictive::prepare(retained.posterior(),
+                                              std::span(y).subspan(i, 1), rows,
+                                              original_ng, f, md);
+    auto d = complete.log_density(std::span(fy).subspan(i * 2, 2), future_rows);
+    need(batch.rows[i].status == d.density.status &&
+             batch.rows[i].numerical_status == d.density.numerical_status,
+         "complete/retained ladder original refusal equality");
+    if (batch.rows[i].status == DensityStatus::finite) {
+      for (size_t j = 0; j < 2; ++j)
+        need(batch.means[i * 2 + j] == complete.mean()[j] &&
+                 batch.mean_absolute_error_estimates[i * 2 + j] ==
+                     complete.mean_absolute_error_estimates()[j],
+             "exact shared offset-mean arithmetic");
+      need(batch.densities[i].density.log_value == d.density.log_value &&
+               batch.densities[i].estimated_forward_sensitivity ==
+                   d.estimated_forward_sensitivity,
+           "exact same normalized ladder density and diagnostic");
+    }
+  }
+  auto means = retained.evaluate(y, rows, {}, {}, 3, {true, false});
+  const size_t means_work = 3 * (32 * (1 + 8 + 64 + 16) + 1 + 2);
+  need(means.work_units == means_work &&
+           batch.work_units == means_work + 3 * (32 * 4 + 2) &&
+           means.rows[2].status == DensityStatus::finite &&
+           means.densities.empty(),
+       "means-only charges training and mean translations; densities charge "
+       "future translation separately");
+  limit = {};
+  limit.maximum_work_units = means_work - 1;
+  need(retained.evaluate(y, rows, {}, {}, 3, {true, false}, limit).rows.empty(),
+       "means translation work cannot bypass cumulative quota");
+  limit.maximum_work_units = means_work;
+  need(retained.evaluate(y, rows, {}, {}, 3, {true, false}, limit).status ==
+           DensityStatus::finite,
+       "exact means-only cumulative work boundary");
+  limit = {};
+  limit.maximum_forward_sensitivity = std::numeric_limits<double>::infinity();
+  need(retained.evaluate(y, rows, fy, future_rows, 3, {}, limit).rows.empty(),
+       "infinite requested policy refused before restriction");
+  const auto peak = retained.batch_payload_bound(3);
+  limit = {};
+  limit.maximum_payload_bytes = *peak - 1;
+  armed = true;
+  calls = 0;
+  fail_on = SIZE_MAX;
+  auto quota = retained.evaluate(y, rows, fy, future_rows, 3, {}, limit);
+  armed = false;
+  need(quota.rows.empty() && quota.numerical_status == N::work_limit &&
+           calls == 0,
+       "ladder batch payload pre-admission");
+  limit.maximum_payload_bytes = *peak;
+  need(retained.evaluate(y, rows, fy, future_rows, 3, {}, limit).status ==
+           DensityStatus::finite,
+       "exact ladder batch byte boundary");
+  auto moved = std::move(retained);
+  need(retained.status() != DensityStatus::finite,
+       "moved repeated ladder owner invalid");
+  moved = std::move(moved);
+  need(moved.evaluate(y, rows, fy, future_rows, 3).rows[0].status ==
+           DensityStatus::finite,
+       "self move retains ladder owner after original noise destruction");
+  armed = true;
+  calls = 0;
+  fail_on = SIZE_MAX;
+  auto measured = moved.evaluate(std::span(y).first(2), rows,
+                                 std::span(fy).first(4), future_rows, 2);
+  armed = false;
+  const auto sites = calls.load();
+  for (size_t point = 1; point <= sites; ++point) {
+    const auto before = live.load();
+    {
+      armed = true;
+      calls = 0;
+      fail_on = point;
+      auto rejected = moved.evaluate(std::span(y).first(2), rows,
+                                     std::span(fy).first(4), future_rows, 2);
+      armed = false;
+      bool failed = rejected.status != DensityStatus::finite;
+      for (auto &row : rejected.rows)
+        failed |= row.status != DensityStatus::finite &&
+                  row.numerical_status == N::work_limit;
+      need(failed, "every measured ladder batch allocation failure explicit");
+    }
+    need(live.load() == before, "failed ladder batches leak no storage");
+  }
+  auto setup_g = noise(m);
+  auto setup_p = LadderPosterior::prepare(std::move(setup_g), m, prior(m));
+  auto setup_noise = noise(f);
+  auto setup_model = f;
+  auto setup_md = metadata(setup_p, f);
+  calls = 0;
+  fail_on = SIZE_MAX;
+  armed = true;
+  auto setup_measure = LadderPredictiveConditioning::prepare(
+      std::move(setup_p), setup_noise, std::move(setup_model),
+      std::move(setup_md));
+  armed = false;
+  const auto setup_sites = calls.load();
+  need(setup_measure.status() == DensityStatus::finite && setup_sites > 0,
+       "measure fixed ladder preparation allocation sites");
+  for (size_t point = 1; point <= setup_sites; ++point) {
+    auto candidate_g = noise(m);
+    auto candidate =
+        LadderPosterior::prepare(std::move(candidate_g), m, prior(m));
+    auto candidate_noise = noise(f);
+    const auto before = live.load();
+    {
+      auto candidate_model = f;
+      auto candidate_md = metadata(candidate, f);
+      calls = 0;
+      fail_on = point;
+      armed = true;
+      auto rejected = LadderPredictiveConditioning::prepare(
+          std::move(candidate), candidate_noise, std::move(candidate_model),
+          std::move(candidate_md));
+      armed = false;
+      need(
+          rejected.status() != DensityStatus::finite &&
+              rejected.numerical_status() == N::work_limit &&
+              candidate.status() == DensityStatus::finite &&
+              candidate_noise.status() == DensityStatus::finite,
+          "every fixed ladder preparation allocation failure preserves inputs");
+    }
+    need(candidate.condition(std::span(y).first(1), rows).status ==
+             DensityStatus::finite,
+         "failed fixed ladder preparation preserves usable posterior");
+    need(live.load() == before,
+         "fixed ladder preparation failure leaks no payload");
+  }
+}
 } // namespace
 int main() {
   try {
     run();
+    repeated_conditioning();
     std::cout << "calibration predictive owner: " << checks << " checks\n";
     return 0;
   } catch (const std::exception &e) {

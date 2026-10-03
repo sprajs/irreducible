@@ -9,6 +9,49 @@
 #include <new>
 #include <numbers>
 #include <stdexcept>
+#ifdef IRRED_PREDICTIVE_WORK_OBSERVATION
+namespace observed {
+inline bool active = false;
+inline size_t factors = 0, whitenings = 0, solves = 0;
+} // namespace observed
+extern "C" irred::numerics::Factorization
+__real__ZN5irred8numerics8choleskyESt4spanIKdLm18446744073709551615EEmmNS0_10ArithmeticE(
+    std::span<const double>, size_t, size_t, irred::numerics::Arithmetic);
+extern "C" irred::numerics::Factorization
+__wrap__ZN5irred8numerics8choleskyESt4spanIKdLm18446744073709551615EEmmNS0_10ArithmeticE(
+    std::span<const double> a, size_t n, size_t cap,
+    irred::numerics::Arithmetic arithmetic) {
+  if (observed::active)
+    ++observed::factors;
+  return __real__ZN5irred8numerics8choleskyESt4spanIKdLm18446744073709551615EEmmNS0_10ArithmeticE(
+      a, n, cap, arithmetic);
+}
+extern "C" irred::numerics::WhiteningResult
+__real__ZN5irred8numerics6whitenERKNS0_13FactorizationESt4spanIKeLm18446744073709551615EEmmd(
+    const irred::numerics::Factorization &, std::span<const long double>,
+    size_t, size_t, double);
+extern "C" irred::numerics::WhiteningResult
+__wrap__ZN5irred8numerics6whitenERKNS0_13FactorizationESt4spanIKeLm18446744073709551615EEmmd(
+    const irred::numerics::Factorization &f, std::span<const long double> x,
+    size_t elements, size_t bytes, double sensitivity) {
+  if (observed::active)
+    ++observed::whitenings;
+  return __real__ZN5irred8numerics6whitenERKNS0_13FactorizationESt4spanIKeLm18446744073709551615EEmmd(
+      f, x, elements, bytes, sensitivity);
+}
+extern "C" irred::numerics::SolveResult
+__real__ZN5irred8numerics5solveERKNS0_13FactorizationESt4spanIKdLm18446744073709551615EEd(
+    const irred::numerics::Factorization &, std::span<const double>, double);
+extern "C" irred::numerics::SolveResult
+__wrap__ZN5irred8numerics5solveERKNS0_13FactorizationESt4spanIKdLm18446744073709551615EEd(
+    const irred::numerics::Factorization &f, std::span<const double> x,
+    double sensitivity) {
+  if (observed::active)
+    ++observed::solves;
+  return __real__ZN5irred8numerics5solveERKNS0_13FactorizationESt4spanIKdLm18446744073709551615EEd(
+      f, x, sensitivity);
+}
+#endif
 namespace {
 std::atomic<bool> armed = false;
 std::atomic<size_t> calls = 0, fail_on = 0;
@@ -394,6 +437,200 @@ void mathematical_limits() {
   near(invariant.log_density(y, future).density.log_value,
        baseline.density.log_value, 2e-11L);
 }
+void repeated_conditioning() {
+  auto p = posterior();
+  auto r = noise();
+  auto md = metadata();
+  const auto bound =
+      GaussianPredictiveConditioning::preparation_payload_bound(p, r, md);
+  need(bound.has_value(), "repeated preparation bound");
+  PredictivePolicy limited;
+  limited.maximum_payload_bytes = *bound - 1;
+  armed = true;
+  calls = 0;
+  fail_on = SIZE_MAX;
+  auto refused = GaussianPredictiveConditioning::prepare(std::move(p), r,
+                                                         response, md, limited);
+  armed = false;
+  need(refused.status() != DensityStatus::finite && calls == 0 &&
+           p.status() == DensityStatus::finite,
+       "repeated preparation admission preserves source before allocation");
+#ifdef IRRED_PREDICTIVE_WORK_OBSERVATION
+  observed::factors = observed::whitenings = observed::solves = 0;
+  observed::active = true;
+#endif
+  auto retained =
+      GaussianPredictiveConditioning::prepare(std::move(p), r, response, md);
+#ifdef IRRED_PREDICTIVE_WORK_OBSERVATION
+  observed::active = false;
+  need(observed::factors == 1 && observed::whitenings == 0,
+       "exactly one invariant W factor and no training condition at setup");
+#endif
+  need(retained.status() == DensityStatus::finite &&
+           p.status() != DensityStatus::finite,
+       "repeated owner consumes posterior exactly once");
+  r = Gaussian{};
+  const std::vector<double> input{
+      1.25, -.5, 0, 0, 2, -1, std::numeric_limits<double>::quiet_NaN(), 0};
+  const std::vector<double> y{.25, -.5, 0, 0, 2, -1, 0, 0};
+  const auto *address = retained.covariance().data();
+#ifdef IRRED_PREDICTIVE_WORK_OBSERVATION
+  observed::factors = observed::whitenings = observed::solves = 0;
+  observed::active = true;
+#endif
+  auto batch = retained.evaluate(input, rows, y, future, 4);
+#ifdef IRRED_PREDICTIVE_WORK_OBSERVATION
+  observed::active = false;
+  need(observed::factors == 0 && observed::whitenings == 3 &&
+           observed::solves == 3,
+       "batch retains W: actual three training whitenings and three density "
+       "solves, zero factors");
+  std::cout << "repeated setup factors=1; batch factors=" << observed::factors
+            << " training_whitenings=" << observed::whitenings
+            << " density_solves=" << observed::solves << '\n';
+#endif
+  need(batch.status == DensityStatus::finite && batch.rows.size() == 4 &&
+           batch.means.size() == 8 && batch.densities.size() == 4 &&
+           batch.rows[3].status == DensityStatus::invalid_input &&
+           batch.rows[3].numerical_status == S::nonfinite_input &&
+           retained.covariance().data() == address,
+       "coarse ordered status/output pools and typed refusal");
+  const W rational_mean[]{-258.L / 668, 855.L / 668};
+  for (size_t j = 0; j < 2; ++j)
+    near(batch.means[j], rational_mean[j]);
+  auto original_noise = noise();
+  for (size_t i = 0; i < 4; ++i) {
+    auto whole = GaussianPredictive::prepare(
+        retained.posterior(), std::span(input).subspan(i * 2, 2), rows,
+        original_noise, response, md);
+    auto density = whole.log_density(std::span(y).subspan(i * 2, 2), future);
+    need(batch.rows[i].status == density.density.status &&
+             batch.rows[i].numerical_status == density.density.numerical_status,
+         "complete preparation per-row status matches retained");
+    if (batch.rows[i].status == DensityStatus::finite) {
+      for (size_t j = 0; j < 2; ++j) {
+        need(batch.means[i * 2 + j] == whole.mean()[j] &&
+                 batch.mean_absolute_error_estimates[i * 2 + j] ==
+                     whole.mean_absolute_error_estimates()[j],
+             "same operation mean and numerical diagnostics");
+      }
+      need(batch.densities[i].density.log_value == density.density.log_value &&
+               batch.densities[i].quadratic == density.quadratic &&
+               batch.densities[i].estimated_forward_sensitivity ==
+                   density.estimated_forward_sensitivity,
+           "identical joint density and forward sensitivity");
+    }
+  }
+  auto means = retained.evaluate(input, rows, {}, {}, 4, {true, false});
+  auto density_only =
+      retained.evaluate(input, rows, y, future, 4, {false, true});
+  need(means.densities.empty() && density_only.means.empty() &&
+           density_only.mean_absolute_error_estimates.empty() &&
+           means.means[0] == batch.means[0] &&
+           density_only.densities[0].quadratic == batch.densities[0].quadratic,
+       "requested masks do not retain unrequested outputs");
+  const auto peak = retained.batch_payload_bound(4);
+  limited = {};
+  limited.maximum_payload_bytes = *peak - 1;
+  armed = true;
+  calls = 0;
+  fail_on = SIZE_MAX;
+  auto quota = retained.evaluate(input, rows, y, future, 4, {}, limited);
+  armed = false;
+  need(quota.rows.empty() && quota.numerical_status == S::work_limit &&
+           calls == 0,
+       "whole-batch payload admission precedes allocations");
+  limited = {};
+  limited.maximum_payload_bytes = *peak;
+  need(retained.evaluate(input, rows, y, future, 4, {}, limited).status ==
+           DensityStatus::finite,
+       "whole-batch exact payload boundary");
+  limited = {};
+  limited.maximum_work_units = batch.work_units - 1;
+  need(retained.evaluate(input, rows, y, future, 4, {}, limited).rows.empty(),
+       "all requested rows consume cumulative work including refusal");
+  auto moved = std::move(retained);
+  need(retained.status() != DensityStatus::finite &&
+           retained.evaluate(input, rows, y, future, 4).rows.empty(),
+       "moved owner invalidated");
+  moved = std::move(moved);
+  need(moved.evaluate(input, rows, y, future, 4).status ==
+           DensityStatus::finite,
+       "self move preserves repeated owner");
+  auto rank = posterior({1, 1, 2, 2});
+  auto rn = noise();
+  auto rank_owner = GaussianPredictiveConditioning::prepare(std::move(rank), rn,
+                                                            response, md);
+  need(rank_owner
+               .evaluate(std::span(input).first(2), rows, std::span(y).first(2),
+                         future, 1)
+               .rows[0]
+               .status == DensityStatus::finite,
+       "proper prior retained rank-deficient design remains lawful");
+  // Inject every measured allocation for a finite two-row batch; a failed row
+  // has no usable numeric result, and the owner remains usable afterwards.
+  armed = true;
+  calls = 0;
+  fail_on = SIZE_MAX;
+  auto measured = moved.evaluate(std::span(input).first(4), rows,
+                                 std::span(y).first(4), future, 2);
+  armed = false;
+  const auto sites = calls.load();
+  for (size_t point = 1; point <= sites; ++point) {
+    const auto before = live.load();
+    {
+      armed = true;
+      calls = 0;
+      fail_on = point;
+      auto rejected = moved.evaluate(std::span(input).first(4), rows,
+                                     std::span(y).first(4), future, 2);
+      armed = false;
+      bool failed = rejected.status != DensityStatus::finite;
+      for (auto &row : rejected.rows)
+        failed |= row.status != DensityStatus::finite &&
+                  row.numerical_status == S::work_limit;
+      need(failed, "every batch allocation failure is explicit");
+    }
+    need(live.load() == before, "failed coarse batch does not leak");
+  }
+  need(moved.evaluate(std::span(input).first(4), rows, std::span(y).first(4),
+                      future, 2)
+               .rows[0]
+               .status == DensityStatus::finite,
+       "retained owner usable after all allocation failures");
+  auto setup_p = posterior();
+  auto setup_noise = noise();
+  calls = 0;
+  fail_on = SIZE_MAX;
+  armed = true;
+  auto setup_measure = GaussianPredictiveConditioning::prepare(
+      std::move(setup_p), setup_noise, response, md);
+  armed = false;
+  const auto setup_sites = calls.load();
+  need(setup_measure.status() == DensityStatus::finite && setup_sites > 0,
+       "measure fixed-owner preparation allocation sites");
+  for (size_t point = 1; point <= setup_sites; ++point) {
+    auto candidate = posterior();
+    auto candidate_noise = noise();
+    const auto before = live.load();
+    {
+      calls = 0;
+      fail_on = point;
+      armed = true;
+      auto rejected = GaussianPredictiveConditioning::prepare(
+          std::move(candidate), candidate_noise, response, md);
+      armed = false;
+      need(rejected.status() != DensityStatus::finite &&
+               rejected.numerical_status() == S::work_limit &&
+               candidate.status() == DensityStatus::finite &&
+               candidate_noise.status() == DensityStatus::finite,
+           "every fixed-owner preparation allocation failure preserves inputs");
+    }
+    need(live.load() == before && candidate.condition(training, rows).status ==
+                                      DensityStatus::finite,
+         "failed fixed preparation leaks no payload and source remains usable");
+  }
+}
 void allocations() {
   auto p = posterior();
   auto r = noise();
@@ -471,6 +708,7 @@ int main() {
     limits_and_roles();
     mathematical_limits();
     allocations();
+    repeated_conditioning();
     std::cout << "PASS " << checks
               << " proper Gaussian predictive owner controls\n";
   } catch (const std::exception &e) {
