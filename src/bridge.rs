@@ -252,3 +252,6 @@ pub(crate) mod photometry;
 
 #[path = "sampled_photometry_bridge.rs"]
 pub(crate) mod sampled_photometry;
+
+#[path = "gaussian_posterior_bridge.rs"]
+pub(crate) mod gaussian_posterior;

@@ -6,6 +6,7 @@ pub const INVALID_INPUT: u32 = 2;
 pub const OVERFLOW: u32 = 3;
 pub const ALLOCATION_FAILURE: u32 = 4;
 pub const EXCEPTION: u32 = 5;
+pub const GAUSSIAN_POSTERIOR_QUOTA_REFUSED: u32 = 6;
 pub const MAX_BATCH_ELEMENTS: u64 = 1000000;
 pub const OBSERVATION_PROFILE_PANTHEON_PLUS_RELEASED_V1: u32 = 0;
 pub const OBSERVATION_PROFILE_GAUSSIAN_FIXTURE_V1: u32 = 1;
@@ -1053,6 +1054,94 @@ pub struct SampledPhotometryView {
     pub arithmetic_id: Bytes,
     pub propagation_id: Bytes,
 }
+#[allow(non_snake_case)]
+#[repr(C)]
+pub struct GaussianPosteriorPolicy {
+    pub struct_size: u32,
+    pub abi_version: u32,
+    pub arithmetic: u32,
+    pub reserved: u32,
+    pub maximum_elements: u64,
+    pub maximum_cases: u64,
+    pub maximum_string_bytes: u64,
+    pub maximum_native_bytes: u64,
+    pub maximum_work_units: u64,
+    pub maximum_forward_sensitivity: f64,
+}
+#[allow(non_snake_case)]
+#[repr(C)]
+pub struct GaussianPosteriorBatch {
+    pub struct_size: u32,
+    pub abi_version: u32,
+    pub source_semantics: u32,
+    pub noise_independence_declared: u32,
+    pub case_count: u64,
+    pub noise_covariance: F64Buffer,
+    pub design: F64Buffer,
+    pub prior_mean: F64Buffer,
+    pub prior_covariance: F64Buffer,
+    pub conditioning_vectors: F64Buffer,
+    pub noise_row_ids: Strings,
+    pub noise_event_ids: Strings,
+    pub design_row_ids: Strings,
+    pub design_parameter_ids: Strings,
+    pub design_parameter_units: Strings,
+    pub column_units: Strings,
+    pub prior_parameter_ids: Strings,
+    pub prior_parameter_units: Strings,
+    pub shared_nuisance_ids: Strings,
+    pub conditioning_row_ids: Strings,
+    pub conditioning_event_ids: Strings,
+    pub case_ids: Strings,
+    pub residual_unit: Bytes,
+    pub noise_identity: Bytes,
+    pub calibration_identity: Bytes,
+    pub noise_dependence_identity: Bytes,
+    pub ordering_provenance: Bytes,
+    pub design_identity: Bytes,
+    pub prior_identity: Bytes,
+    pub parameter_measure: Bytes,
+    pub prior_dependence_identity: Bytes,
+}
+#[allow(non_snake_case)]
+#[repr(C)]
+pub struct GaussianPosteriorRow {
+    pub struct_size: u32,
+    pub abi_version: u32,
+    pub status: u32,
+    pub numerical_status: u32,
+    pub case_index: u64,
+    pub mean: F64Buffer,
+    pub absolute_error_estimates: F64Buffer,
+    pub backward_residual: f64,
+    pub estimated_forward_sensitivity: f64,
+}
+#[allow(non_snake_case)]
+#[repr(C)]
+pub struct GaussianPosteriorView {
+    pub struct_size: u32,
+    pub abi_version: u32,
+    pub status: u32,
+    pub numerical_status: u32,
+    pub phase: u32,
+    pub reserved: u32,
+    pub noise_preparation_attempted: u32,
+    pub noise_prepared: u32,
+    pub posterior_preparation_attempted: u32,
+    pub posterior_prepared: u32,
+    pub conditioning_cases_attempted: u64,
+    pub case_count: u64,
+    pub rows: *const GaussianPosteriorRow,
+    pub covariance: F64Buffer,
+    pub covariance_relative_error_estimate: f64,
+    pub minimum_result_bytes: u64,
+    pub declared_work_units: u64,
+    pub pooled_numeric_elements: u64,
+    pub peak_payload_bytes: u64,
+    pub retained_payload_bytes: u64,
+    pub method: Bytes,
+    pub arithmetic: Bytes,
+}
 unsafe extern "C" {
     pub fn irred_add(
         a: *const Buffer,
@@ -1285,6 +1374,16 @@ unsafe extern "C" {
         output: *mut SampledPhotometryView,
     ) -> u32;
     pub fn irred_sampled_photometry_result_destroy(result: *mut std::ffi::c_void) -> u32;
+    pub fn irred_gaussian_posterior_evaluate(
+        batch: *const GaussianPosteriorBatch,
+        policy: *const GaussianPosteriorPolicy,
+        result_out: *mut *mut std::ffi::c_void,
+    ) -> u32;
+    pub fn irred_gaussian_posterior_result_view(
+        result: *const std::ffi::c_void,
+        view: *mut GaussianPosteriorView,
+    ) -> u32;
+    pub fn irred_gaussian_posterior_result_destroy(result: *mut std::ffi::c_void) -> u32;
 }
 #[derive(Clone, serde::Deserialize, serde::Serialize)]
 #[serde(deny_unknown_fields)]
