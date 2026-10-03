@@ -234,3 +234,14 @@ The same policy now admits an explicitly requested allowance up to 2M per k
 and 4M per batch for the augmented source solve. The named installed fixture
 sets those larger limits; every other limit and the four error shares remain
 unchanged. A permanent control retains the original default refusal.
+
+The owned payload preflight separately counts the simultaneous evolution
+frames, epochs, central and response buffers, diagonal enclosures and initial
+bounds using their actual C++ layouts. It also counts the caller's three age
+results, two retained contexts, budget, loading, coefficient witness and source
+uncertainty. Retained rows, trajectories and run/sample storage remain counted.
+An additional 16 KiB reserve covers synchronous helper scratch, scalar clocks,
+optional diagnostics, readout temporaries and caller metadata; it does not
+replace those named owners or establish a process RSS/allocator bound. The
+16 MiB ceiling is unchanged. A permanent zero-age control checks the owner
+subtotal and exact payload admission boundary without a physical query.

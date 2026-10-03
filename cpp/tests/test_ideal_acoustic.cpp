@@ -50,6 +50,53 @@ void print_failure(const IdealAcousticAttempt &trial) {
   std::cout<<",finite:"<<r.completed_finite<<",normal_or_zero:"<<r.completed_normal_or_zero
            <<",nonnegative:"<<r.completed_nonnegative;
 }
+void payload_limits(const IdealAcousticTransfer &owner) {
+  const std::array<double,1> k{1e-4},a{.01};
+  IdealAcousticPolicy p;
+  p.maximum_age_evaluations=0;
+  const auto admitted=owner.evaluate(k,a,1,p);
+  need(admitted.peak_owned_payload_bound && owner.retained_payload_bound(),
+       "payload preflight retained before independent zero-age refusal");
+  using Frame=irred::cosmology::detail::IdealAcousticTransportFrame;
+  using Epoch=irred::cosmology::detail::ThermalConformalEpoch;
+  using Response=irred::cosmology::detail::IdealAcousticResponseState;
+  using Radius=irred::cosmology::detail::IdealAcousticRadiusVector;
+  using Diagonal=irred::cosmology::detail::IdealAcousticRadiusDiagonal;
+  // Source-derived lower witness for simultaneous principal owners, not the
+  // implementation's peak formula: omit caller/status/clock/Run additions but
+  // retain the old helper reserve and mandatory retained sample fields. This
+  // detects replacing the new evolution subtotal by the old flat reserve.
+  const std::size_t floor=*owner.retained_payload_bound()+sizeof(IdealAcousticBatch)+
+      sizeof(IdealAcousticRow)+sizeof(IdealAcousticTrajectory)+16384+
+      4*sizeof(Frame)+3*sizeof(Epoch)+15*sizeof(std::array<W,6>)+2*sizeof(Response)+
+      6*sizeof(std::array<W,24>)+14*sizeof(Radius)+2*sizeof(Diagonal)+
+      sizeof(irred::cosmology::detail::IdealAcousticTransportInitialBounds)+
+      7*(sizeof(Epoch)+sizeof(std::array<W,6>)+sizeof(Response));
+  std::cout<<"raw_payload_preflight bound="<<*admitted.peak_owned_payload_bound
+           <<" simultaneous_owner_floor="<<floor<<'\n';
+  need(*admitted.peak_owned_payload_bound>=floor,
+       "payload bound includes simultaneous evolution owners plus helper reserve");
+  p.maximum_native_bytes=*admitted.peak_owned_payload_bound-1;
+  const auto refused=owner.evaluate(k,a,1,p);
+  const auto &w=refused.evaluation_work;
+  need(refused.status==S::work_limit && !refused.peak_owned_payload_bound &&
+       refused.rows.empty() && refused.trajectories.empty() &&
+       w.physical_mappings==0 && w.background_preparations==0 && w.attempts==0 &&
+       w.rhs_evaluations==0 && w.background_evaluations==0 && w.age_evaluations==0 &&
+       w.state_element_writes==0 && w.endpoint_evaluations==0 &&
+       w.diagnostic_evaluations==0 && w.output_evaluations==0,
+       "one byte below payload bound refuses before allocations and physical work");
+  p.maximum_native_bytes=*admitted.peak_owned_payload_bound;
+  const auto boundary=owner.evaluate(k,a,1,p);
+  need(boundary.peak_owned_payload_bound==admitted.peak_owned_payload_bound &&
+       boundary.status==S::work_limit && boundary.trajectories.size()==1 &&
+       boundary.trajectories[0].attempts_started==1 &&
+       boundary.trajectories[0].attempts[0].failure &&
+       boundary.trajectories[0].attempts[0].failure->stage==IdealAcousticFailureStage::initial_age &&
+       boundary.evaluation_work.background_evaluations==0 &&
+       boundary.evaluation_work.rhs_evaluations==0,
+       "exact payload boundary admits preflight then preserves zero-age refusal");
+}
 void failure_witness_limits(const IdealAcousticTransfer &owner) {
   const std::array<double,1> k{1e-4},a{.01};
   IdealAcousticPolicy age;
@@ -177,6 +224,7 @@ int main() {
        !prepared.background(),"moved-source invalidation");
   owner=std::move(owner);
   need(owner.status()==S::ok && owner.source(),"self-move preserves owner");
+  payload_limits(owner);
   failure_witness_limits(owner);
   const std::array<double,2> k{.01,1e-4};
   const std::array<double,2> a{1e-3,.01};

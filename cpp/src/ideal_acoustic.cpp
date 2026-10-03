@@ -618,8 +618,31 @@ std::optional<std::size_t> retained_payload(const IdealAcousticRequest &s) noexc
 }
 std::optional<std::size_t> peak_payload(const IdealAcousticRequest &s,
                                       std::size_t nk,std::size_t na) noexcept {
+  // Lexically simultaneous evolution owners, independent of compiler storage
+  // reuse: initial plus three stage frames; current plus two stage epochs;
+  // y plus fourteen stage/pulse states; persistent and endpoint responses;
+  // six signed stages, fourteen local/PC radii and both diagonal enclosures.
+  constexpr std::size_t evolution_owned_payload_bytes =
+      4*sizeof(Frame)+3*sizeof(Epoch)+15*sizeof(State)+2*sizeof(Response)+
+      6*sizeof(Signed)+14*sizeof(Radius)+2*sizeof(Diagonal)+
+      sizeof(detail::IdealAcousticTransportInitialBounds);
+  // evaluate retains these while evolve runs. The initial context remains
+  // live alongside the per-k context; the three age results are not borrowed
+  // from a discarded quadrature frame.
+  constexpr std::size_t caller_owned_payload_bytes =
+      3*sizeof(InitialAge)+2*sizeof(Context)+sizeof(Budget)+
+      sizeof(detail::ThermalBaryonLoading)+
+      sizeof(detail::ThermalRetainedCoefficientWitness)+
+      sizeof(detail::IdealAcousticSourceUncertainty);
+  // Separate unchanged reserve for synchronous helper scratch, clocks,
+  // scalar/optional diagnostics, readout temporaries and caller metadata. It
+  // does not replace either named subtotal, nor assert a stack/RSS bound.
+  constexpr std::size_t helper_metadata_reserve_bytes = 16384;
   irred::detail::PayloadAccounting bytes(sizeof(IdealAcousticTransfer)+
-                                        sizeof(IdealAcousticBatch)+16384);
+                                        sizeof(IdealAcousticBatch));
+  bytes.add(1,evolution_owned_payload_bytes);
+  bytes.add(1,caller_owned_payload_bytes);
+  bytes.add(1,helper_metadata_reserve_bytes);
   bytes.vector(s.model.species); bytes.string(s.source_origin);
   if (nk && na>std::numeric_limits<std::size_t>::max()/nk) return {};
   bytes.add(nk*na,sizeof(IdealAcousticRow));
