@@ -62,7 +62,10 @@ inline ThermalBaryonSound thermal_baryon_sound(const ThermalBaryonLoading &r, Th
   using S = numerics::Status;
   ThermalBaryonSound out;
   if (r.status != S::ok) { out.status = r.status; return out; }
-  if (!(a >= 0) || !std::isfinite(a)) return out;
+  // Shared early/late consumers own only 0<=a<=1. Future scales need a
+  // separately reviewed domain, rather than overflow-shaped zero sound speed.
+  if (!std::isfinite(a)) { out.status = S::nonfinite_input; return out; }
+  if (!(a >= 0) || a > 1) { out.status = S::outside_domain; return out; }
   out.loading = r.ratio_today * a;
   out.loading_estimate = r.arithmetic_estimate * a + thermal_loading_floor * out.loading;
   out.denominator = 1 + out.loading;
@@ -78,6 +81,12 @@ inline ThermalBaryonSound thermal_baryon_sound(const ThermalBaryonLoading &r, Th
   out.sound_speed_estimate_over_c = out.sound_speed_over_c *
       e / (std::sqrt(lo) * (std::sqrt(out.denominator) + std::sqrt(lo))) +
       thermal_loading_floor * out.sound_speed_over_c;
+  if (!std::isnormal(out.sound_speed_over_c) || !(out.sound_speed_over_c > 0) ||
+      !std::isnormal(out.sound_speed_squared_over_c_squared) || !(out.sound_speed_squared_over_c_squared > 0) ||
+      !std::isnormal(out.sound_speed_estimate_over_c) || !(out.sound_speed_estimate_over_c > 0) ||
+      !std::isnormal(out.sound_speed_squared_estimate_over_c_squared) || !(out.sound_speed_squared_estimate_over_c_squared > 0)) {
+    out.status = S::conditioning_budget_exceeded; return out;
+  }
   out.status = S::ok; return out;
 }
 
