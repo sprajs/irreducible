@@ -93,25 +93,25 @@ impl<'de> Deserialize<'de> for VectorPool {
     fn deserialize<D: Deserializer<'de>>(d: D) -> Result<Self, D::Error> {
         struct Pool;
         struct Row<'a>(&'a mut Vec<f64>);
+        impl<'de> Visitor<'de> for Row<'_> {
+            type Value = usize;
+            fn expecting(&self, f: &mut fmt::Formatter) -> fmt::Result {
+                f.write_str("bounded numerical vector")
+            }
+            fn visit_seq<A: SeqAccess<'de>>(self, mut a: A) -> Result<usize, A::Error> {
+                let start = self.0.len();
+                while let Some(x) = a.next_element::<f64>()? {
+                    if self.0.len() == 1000000 {
+                        return Err(de::Error::custom("POSTERIOR_POOL_LIMIT"));
+                    }
+                    self.0.push(x);
+                }
+                Ok(self.0.len() - start)
+            }
+        }
         impl<'de> DeserializeSeed<'de> for Row<'_> {
             type Value = usize;
             fn deserialize<D: Deserializer<'de>>(self, d: D) -> Result<usize, D::Error> {
-                impl<'de> Visitor<'de> for Row<'_> {
-                    type Value = usize;
-                    fn expecting(&self, f: &mut fmt::Formatter) -> fmt::Result {
-                        f.write_str("bounded numerical vector")
-                    }
-                    fn visit_seq<A: SeqAccess<'de>>(self, mut a: A) -> Result<usize, A::Error> {
-                        let start = self.0.len();
-                        while let Some(x) = a.next_element::<f64>()? {
-                            if self.0.len() == 1000000 {
-                                return Err(de::Error::custom("POSTERIOR_POOL_LIMIT"));
-                            }
-                            self.0.push(x);
-                        }
-                        Ok(self.0.len() - start)
-                    }
-                }
                 d.deserialize_seq(self)
             }
         }
