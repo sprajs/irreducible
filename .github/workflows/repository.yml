@@ -121,7 +121,9 @@ jobs:
           .build-tools/bin/python -m pip install cmake==4.1.3
           cargo fetch --locked
       - name: Check identity helper contracts
-        run: python3 tools/test_ci_identity.py
+        run: |
+          python3 tools/test_ci_identity.py
+          python3 tools/test_build_files.py
       - name: Regenerate and reject drift
         run: |
           python3 tools/generate_abi.py
