@@ -95,9 +95,43 @@ the same fresh installed archive with conservative floating-point flags. The
 four native tests and two installed consumers remain separate execution records;
 all six passed before publication.
 
-Actual same-k CLASS source/transfer matching and support/truncation/precision
-controls remain pending. Complete native photon/species/metric/opacity and
-polarization source closure also remains open. This operator does not compute
+The actual CLASS 3.3.0 comparison uses one exported source k
+`0x1.4709f9265abbap-8` / Mpc, all 604 original conformal-time samples and actual
+stored multipoles 2 and 19. The requested 20 selects stored 19; no multipole
+interpolation occurs. CLASS curvature_ini=1, split-source signs and the observer
+conformal time are retained, without temperature or primordial rescaling.
+Native default and four-times-tighter time tolerances retain nearly unchanged
+amplitudes, but no radial or source-grid error bound is supplied.
+
+The first reference values came from CLASS's final-q-table linear interpolator,
+giving 13.56%/19.89% temperature and 5.27%/54.71% E-mode differences at multipoles
+2/19. A separate diagnostic CLASS copy inserts the exact existing source k as
+one interior production q node before k mapping, transfer allocation and the
+original LOS loop. All 2025 old q/k coordinates remain exact ordered
+subsequences; the exported times, source k grid, three source columns, physical
+state, precision and primordial arrays are unchanged. Eight direct stored
+components equal their ordinary accessor values bitwise. Original neighboring
+values and the other two exported raw columns remain unchanged. Unexported
+transfer rows are not claimed to have been compared. This modified solver has
+its own source/object/binary identity and supplies no new spectrum or likelihood.
+
+Using those direct stored values with the unchanged native run gives:
+
+| Multipole | Component | Native amplitude | Direct CLASS amplitude | (native−CLASS)/abs(CLASS) |
+| --- | --- | --- | --- | --- |
+| 2 | T | -0.01737134491383274 | -0.01739344973234843 | +0.127087% |
+| 19 | T | -0.003652044108016414 | -0.003644999622672764 | -0.193264% |
+| 2 | E | 9.15559890513312e-9 | 9.432521497534053e-9 | -2.935828% |
+| 19 | E | -5.438365079334287e-6 | -5.462341177522480e-6 | +0.438934% |
+
+This control demonstrates a material final-q interpolation contribution to the
+earlier differences. The remaining differences have no accepted error budget.
+Native piecewise-linear source integration and CLASS source/time, trapezoidal,
+Bessel and support approximations retain distinct numerical meanings. No
+tolerance was tuned and the native calculation was not rerun for this control.
+Source/time/radial/support refinement and match qualification remain open.
+Complete native photon/species/metric/opacity and polarization source closure
+also remains open. This operator does not compute
 \(C_\ell\), primordial k integration, lensing, a full CMB prediction or an
 observational likelihood. See the broader
 [primary CMB prerequisites](primary-cmb-projection.md).

@@ -69,7 +69,7 @@ qualifies the complete observational model.
    curve or a fitted summary.
 
 The first reference demonstration is implemented in Reproducible's
-[full-state experiment](https://github.com/sprajs/reproducible/blob/8b770b1eba142626f3cfb0a70a78aadf8131deec/experiments/lcdm-reference/README.md).
+[full-state experiment](https://github.com/sprajs/reproducible/blob/f373efae2329c9f4fe3e6bfe2ef66f8e75b47bc0/experiments/lcdm-reference/README.md).
 Four ordered CLASS 3.3.0 cases (anchor, changed precision and two spectral-tilt
 variants) produced lensed TT/EE/TE through ell=2508, separate linear/Halofit matter
 power, distances and thermal tables in 26.76 seconds. The printed predicted drag
@@ -91,13 +91,39 @@ calibration penalty of zero; paper-coordinate equivalence and component-internal
 prior terms remain unexamined. Raw component scores and omitted normalization
 are retained. These conditional points do not establish a fit or posterior.
 
-The native ideal photon/baryon/CDM acoustic kernel has passed its first raw native
-contract; complete mapped-source/trajectory admission remains open. The supplied
-continuous finite-support temperature/E-mode projector passed four native
-analytic/angular/shared-state contracts and two fresh installed SDK consumers.
-The actual CLASS source export is available for same-mode, same-k transfer
-comparison; that comparison and support/truncation/precision qualification remain
-pending. Neither development checkpoint supplies native primary-CMB closure.
+The separate DESI DR2 adapter now prepares the original ordered 13-row covariance
+once and evaluates four full CLASS mean vectors through the retained native
+Gaussian SDK. All four background/thermal tables are byte-identical, so the
+quadratic 31.433594404478523 and conditional log density -9.15910744477944 are
+identical. An independent 80/120-digit pivoted-elimination calculation agrees
+with the native quadratic, determinant and normalized score within a predeclared
+1e-8 engineering criterion; actual differences are below 3e-15. This checks
+fixed-input arithmetic, not the printed ruler, background interpolation,
+released-compression validity or cross-probe independence. The calibrator-inclusive
+Pantheon+SH0ES adapter is being prepared as an explicitly new common-M relative
+profile with the full covariance; its full-dimension numerical and source gates
+remain open. No joint target is admitted.
+
+The native ideal photon/baryon/CDM acoustic kernel passed shared-state, raw-native
+and portable-peer contracts. Its original 100-million-write MPFR campaign
+exhausted its allowance after the first wavenumber; that failure is preserved.
+A separately labelled 400-million-write diagnostic completed all twenty runs
+and eighteen field comparisons at the same accuracy checks, using 258,259,637
+counted writes. Complete mapped-source/trajectory and endpoint-error admission
+remain open; the larger diagnostic does not pass the original resource gate.
+
+The supplied continuous finite-support temperature/E-mode projector passed four
+native analytic/angular/shared-state contracts and two fresh installed SDK
+consumers. An actual same-mode/source-k comparison first showed large differences
+against CLASS's interpolated final-q table. A separately identified CLASS copy
+then inserted that exact source k as one production q node, preserving all
+original q nodes and exported source/time/model arrays. Comparing its direct
+stored transfers with the unchanged native results reduces temperature
+differences to 0.13–0.19%, while polarization differs by 0.44–2.94%. These are
+unqualified diagnostic differences: source/time interpolation, radial/Bessel,
+support and truncation errors remain unassessed. The [projection guide](continuous-cmb-projection.md)
+retains both comparisons. Neither development checkpoint supplies native
+primary-CMB closure.
 Prospector owns the exact product/model contracts and practical acquisition;
 Reproducible owns the executable reference and adapters; Irreducible owns native
 physics and the smallest necessary library/CLI boundaries. Keep one integration
@@ -146,7 +172,7 @@ checks do not close them.
 | NEXT-16: source-defined physical drag endpoint | Shared loading/ruler, once-captured thermal map witnesses and the original cell law pass 32 affected regressions and fresh installation on a frozen build. The separate move-only synthetic supplied-tail interval/root/ruler candidate now passes 33 selected native contracts, installed callers and a whole-core optional-elision-disabled profile at unchanged caps. A test-only outward-interval/counter and exact-constant foundation is now committed on its work branch; it does not yet implement the complete endpoint certificate. Its complete independent endpoint arithmetic/refinement gate remains withheld; no physical weighted-tail interval is admitted. Resolve the source-defined full endpoint/tail before predicting a physical ruler. CLASS predicts its own full-state drag ruler and retains same-run thermal outputs; this reference does not qualify or replace the conditional native endpoint. | Depends on NEXT-15 plus qualified density/history/tail inputs. Internal native TOTAL admission and scoped requested-heap inequalities do not establish complete reference error or whole-process memory. Preserve the original unqualified reference and every refusal; require the independent combined error <=5e-5 Mpc at EACH endpoint, checked all-attempt work/storage, lifetime controls and actual SDK identity. Never substitute a late-truncated unit-depth root for physical drag. |
 | NEXT-17: one selected source population | Per-source optical/time/detector operators exist. Source/algebra review accepts a bounded synthetic two-subject law with one global optical state, eight latent states, all 256 catalogs and 225 selected catalogs. Next close the Reproducible experiment protocol and pass its numerical/consumer gates before accepting finite expected-mass recovery. | Measured NEXT-17 still requires a pinned population/generating law, propagation, instrument and selection likelihood through NEXT-07–NEXT-10. Preserve nondetections, all states/catalogs and shared calibration/training dependence; finite normalization/selection/recovery controls remain unexecuted, and measured injection/extraction needs its own gates. No RNG draw or measured-population acceptance follows from the finite algebra. |
 | NEXT-18: one named strong-lens observable likelihood | Synthetic SIS/mass-sheet images, delays and PSF pixels exist. The [calibrated B1608 asset contract](https://github.com/sprajs/prospector/blob/8ecd8e97c7a1201442927718ce1f8586ddb79090/register/contracts/b1608-go10158-calibrated-asset-source-contract-v1.json) pins one current GO10158 ACS/WFC F606W FLT, SCI/ERR/DQ roles, exposure, calibration/reference cards, headerlets and processing warnings. The additional [author conditioning contract](https://github.com/sprajs/prospector/blob/97c6e8e8a34d58332e145bb633a30cb254ce68bd/register/contracts/b1608-author-observation-conditioning-source-contract-v1.json) distinguishes non-Gaussian delay reconstructions, fitted aperture kinematics, regularized imaging and selected environment priors. Pixels remain unanalysed. Acquire the remaining original products and qualify their joint instrument/noise/dependence likelihood. | Current processing, WCS labels and ERR formulas do not prove alignment, a measured noise law or equivalence to the author reduction. RAW zero ERR/DQ placeholders are not zero uncertainty; a named FLC headerlet is not the FLC image. Preserve all warnings and source clocks/calibration branches. Independent propagation/potential/measurement and full-likelihood controls must retain mass-sheet/H0 degeneracy; fitted summaries and SIS velocity are not extra measurements or observed stellar kinematics. |
-| NEXT-19: one primary CMB observable | The primary projection contract still requires common qualified thermal/visibility, photon/species/metric hierarchy and primordial modes. The external reference now emits lensed TT/EE/TE and scores four retained cases with the original official primary-likelihood products and released self-checks. Its conditional scan and empirical precision shift are separate from a fit or posterior. Native continuous scalar temperature/E transfer geometry is implemented for explicitly supplied piecewise-linear split sources, ell<=64 and phase<=512, with four native contracts and two installed SDK consumers passing. It retains finite support and missing radial/source error qualifications. Same-mode, same-k CLASS source/transfer comparison remains pending. The older finite isotropic shell-coefficient source and its unexecuted reference are preserved and deferred. | Depends on NEXT-14 and NEXT-15; NEXT-16 supplies a history/endpoint prerequisite, while drag is not last-scattering visibility. Freeze Fourier/angular/unit conventions, signed-shell order, finite boundary meaning, complete projection error/work/storage and independent angular controls before implementation. Continuous transport, full source terms, primordial spectrum, likelihood refinement, reionization and unsupported sectors remain open. |
+| NEXT-19: one primary CMB observable | The primary projection contract still requires common qualified thermal/visibility, photon/species/metric hierarchy and primordial modes. The external reference now emits lensed TT/EE/TE and scores four retained cases with the original official primary-likelihood products and released self-checks. Its conditional scan and empirical precision shift are separate from a fit or posterior. Native continuous scalar temperature/E transfer geometry is implemented for explicitly supplied piecewise-linear split sources, ell<=64 and phase<=512, with four native contracts and two installed SDK consumers passing. It retains finite support and missing radial/source error qualifications. An actual same-mode/source-k comparison and a distinct direct-q CLASS control retain unresolved temperature/polarization differences; no match qualification is admitted. The older finite isotropic shell-coefficient source and its unexecuted reference are preserved and deferred. | Depends on NEXT-14 and NEXT-15; NEXT-16 supplies a history/endpoint prerequisite, while drag is not last-scattering visibility. Freeze Fourier/angular/unit conventions, signed-shell order, finite boundary meaning, complete projection error/work/storage and independent angular controls before implementation. Continuous transport, full source terms, primordial spectrum, likelihood refinement, reionization and unsupported sectors remain open. |
 
 Existing sampled ABI2/CLI ingestion, proper-Gaussian posterior and addressed
 recovery campaigns are qualified prerequisites for their named controls, not
