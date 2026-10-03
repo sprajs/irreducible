@@ -132,8 +132,12 @@ and refusal/lifetime controls pass locally. Time-quadrature and assembly estimat
 do not bound producer-grid, omitted-support or standard radial-function error;
 those missing estimates stay absent. The C++ library supplies this geometry
 without a CLI/C ABI route, thermal source evolution, primordial integration,
-C_l, lensing or observational qualification. A same-mode, same-k CLASS transfer
-comparison is still pending.
+C_l, lensing or observational qualification. Same-mode/source-k CLASS comparisons
+retain unresolved temperature/E differences, including a distinct direct-q control.
+The [permanent supplied-source regression](continuous-cmb-projection-regression.md)
+now passes all four original 604-row PL geometry checks against independent
+angular references, with signed Doppler, endpoint, ownership and refusal controls.
+This does not bound the producer's smooth source, radial or omitted-support error.
 
 The native [ground-state hydrogen equilibrium](hydrogen-equilibrium.md) operator
 solves the supplied-temperature/physical-density Saha model with separately
@@ -197,6 +201,14 @@ mass-sheet/H0 degeneracies. The tangent-plane, thin-lens and fixed source/PSF
 assumptions remain explicit. This SDK adds no CLI/C ABI route, measured-system
 mass or kinematics qualification, lens-mass inference, posterior, arbitrary
 multi-plane propagation or CMB lensing prediction.
+
+The distinct [two-deflector forward law](two-deflector-forward.md) computes
+ordered synthetic electron means for two softened elliptical potentials, an
+extended Gaussian source, affine pixels and a supplied finite shift PSF.
+Independent analytic/refinement controls and a 16-pixel installed consumer
+with retained joint covariance pass their named budgets. Pixel diagnostics
+are empirical; complete scene-to-density intervals, the author SPLE model,
+ACS response/noise and measured B1608 qualification remain open.
 
 The native [temporal photometry](temporal-photometry.md) owner retains finite bilinear rest-time/wavelength luminosity grids and fixed optical passbands. Coarse observer exposures return full-interval mean flux, collected energy and expected photons with explicit source epoch and time-coverage status. Analytic and independent time/frequency integration controls test the declared model. It adds no template reader, source/calibration uncertainty, noise, selection, inference or CLI/ABI operation.
 

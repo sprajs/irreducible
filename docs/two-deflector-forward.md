@@ -3,8 +3,11 @@
 The native source in `irred/two_deflector_forward.hpp` implements a bounded
 synthetic question: what ordered electron means follow from two smooth
 deflectors on one lens plane, an extended steady source, an affine detector
-cutout and a supplied finite shift PSF? This source addition awaits its fresh
-compiled and independent numerical gates. It does not qualify B1608+656,
+cutout and a supplied finite shift PSF? Fresh ordinary native controls and an
+installed SDK joint Gaussian-stage control have passed for the fixed synthetic
+cases. The pixel diagnostics remain empirical; the separate directed interval
+and complete scene-to-log-density gates remain open. It does not qualify
+B1608+656,
 ACS FLT pixels, an elliptical-density SPLE, an observed velocity dispersion,
 exactly four images, a noise law or parameter inference.
 
@@ -142,7 +145,7 @@ process RSS are excluded and must be recorded separately in process controls.
 No covariance/factor or source/pixel arrays are copied to cross an ABI; this
 consumer has no CLI or C ABI registration.
 
-Independent controls must retain a no-deflection Gaussian/CDF limit, a genuine
+The permanent controls retain a no-deflection Gaussian/CDF limit, a genuine
 two-offset-component reference, source/exposure linearity, PSF linearity,
 component-label exchange, reflection and mass-sheet invariance. The MST scales
 source center and both widths by Lambda while keeping peak, geometry, PSF and
@@ -151,6 +154,14 @@ Lambda^2. All actual source widths still satisfy the domain. No H0 constraint
 follows. A later requested time-delay route must use compatible retained
 distance diagnostics and the same potential; it is absent from this mean-only
 owner.
+
+The ordinary native run passed the independent principal-coordinate positive
+GL8 reference with 8/16-panel refinement, charging its empirical refinement and
+arithmetic allowance inside the same total error budget and 5% reservation.
+It also passed the analytic limits, invariances and adversarial domain, work,
+payload and numerical-refusal controls. Private source regressions share the
+implementation's ancestry. This passage does not supply a high-precision
+enclosure or a universal quadrature or standard-library error certificate.
 
 A synthetic observation caller can prepare `statistics::Gaussian` once with
 fixed SPD electron covariance, ordered pixel IDs and explicit electron product
@@ -162,9 +173,12 @@ selection conditioning and a posterior are not supplied by this forward law.
 The installed caller's independent rank-one inverse/determinant control checks
 the Gaussian stage at the same supplied native-rounded residual vector. It
 does not propagate independent forward-mean or residual-subtraction uncertainty
-into a complete scene-to-log-density interval; that gate remains open. Its
-receipts retain both scene preparations and all base, refused and exact-zero
-forward batches, including structural work with zero field samples.
+into a complete scene-to-log-density interval; that gate remains open.
+The installed control retained all16 ordered means and passed the joint
+Gaussian inverse/determinant and exact-zero correlation witnesses with one
+retained covariance factor. Its receipts retain both scene preparations and all
+base, refused and exact-zero forward batches, including structural work with
+zero field samples.
 
 All source and numerical controls are original; no third-party code or image
 assets are copied. Measured B1608 Paper I/SPLE, calibrated pixels, operator
