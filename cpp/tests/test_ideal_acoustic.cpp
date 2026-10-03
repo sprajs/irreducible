@@ -2,6 +2,7 @@
 #include "../src/ideal_acoustic_equations.hpp"
 #include "../src/ideal_acoustic_response.hpp"
 #include "../src/ideal_acoustic_transport.hpp"
+#include "ideal_acoustic_transport_controls.hpp"
 #include <array>
 #include <cmath>
 #include <cstdlib>
@@ -95,6 +96,7 @@ void source_direction_limits() {
 int main() {
   equation_limits();
   source_direction_limits();
+  ideal_acoustic_transport_test::controls();
   auto input=fixture();
   auto prepared=prepare_ideal_acoustic(std::move(input));
   need(prepared.status()==S::ok,"actual positive photon/baryon preparation");
@@ -108,7 +110,12 @@ int main() {
   need(owner.status()==S::ok && owner.source(),"self-move preserves owner");
   const std::array<double,2> k{.01,1e-4};
   const std::array<double,2> a{1e-3,.01};
-  const auto batch=owner.evaluate(k,a,acoustic_all_outputs);
+  IdealAcousticPolicy augmented;
+  augmented.maximum_rhs_per_wavenumber=2000000;
+  augmented.maximum_rhs_batch=4000000;
+  const auto batch=owner.evaluate(k,a,acoustic_all_outputs,augmented);
+  need(batch.status==S::ok && batch.shared_dependency_status==S::ok,
+       "explicit augmented source-inclusive native consumer");
   need(batch.rows.size()==4 && batch.trajectories.size()==2,"coarse grid shape");
   need(batch.evaluation_work.physical_mappings==0 && batch.evaluation_work.background_preparations==0,
        "evaluation reuses physical source");
@@ -145,7 +152,12 @@ int main() {
       need(row.epoch.status==S::ok && row.epoch.hcal_mpc_inverse>0 &&
            row.epoch.conformal_age_mpc>0,"matching computed epoch");
       for (const auto &value:row.outputs)
-        need(value.computed && std::isfinite(*value.computed),"actual finite signed perturbation witness");
+        need(value.computed && std::isfinite(*value.computed) && value.status==S::ok &&
+             value.value && value.error.common_source_background_age &&
+             value.error.arithmetic_storage_constraint &&
+             value.error.absolute_error_estimate,"complete conditional signed prediction");
+      need(row.epoch.age_error_mpc && row.epoch.derivative_consistency_estimate,
+           "complete shared eta/derivative witnesses");
       std::cout<<"raw_fields k_index="<<i<<" a_index="<<j
                <<" state_a="<<row.epoch.state_scale_factor
                <<" Hcal="<<row.epoch.hcal_mpc_inverse
@@ -162,6 +174,18 @@ int main() {
     }
   }
   const std::array<double,1> one_a{.01},one_k{1e-4};
+  const std::array<double,1> large_k{.01};
+  const auto default_refusal=owner.evaluate(large_k,one_a,acoustic_all_outputs);
+  need(default_refusal.status==S::work_limit &&
+       default_refusal.trajectories[0].attempts_started>0 &&
+       default_refusal.trajectories[0].attempts_started<5 &&
+       default_refusal.evaluation_work.rhs_evaluations<=1000000 &&
+       default_refusal.evaluation_work.rhs_evaluations+14>1000000 &&
+       !default_refusal.rows[0].outputs[0].value,
+       "original default RHS cap refuses augmented solve without owner refund");
+  auto excessive=augmented; excessive.maximum_rhs_batch=4000001;
+  need(owner.evaluate(one_k,one_a,1,excessive).status==S::invalid_input,
+       "explicit augmented ceiling remains bounded");
   const auto masked=owner.evaluate(one_k,one_a,acoustic_intrinsic_temperature);
   need(masked.rows.size()==1 && masked.rows[0].outputs[2].computed,"requested intrinsic field");
   for (unsigned f=0;f<acoustic_output_count;++f)

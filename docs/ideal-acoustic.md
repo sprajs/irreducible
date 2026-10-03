@@ -22,6 +22,12 @@ uses 400M writes for the same twenty attempts and quality checks to diagnose the
 remaining raw fields; its source selection does not qualify the original cap,
 complete source errors or external MPFR payload.
 
+The c6c606f diagnostic completed both k values and all twenty attempts with
+258,259,637 literal writes, 1,009,596 RHS calls and 70,722 retained mesh nodes.
+All eighteen raw field comparisons passed their original known refinement
+checks. The original 100M protocol, full peer source errors and external MPFR
+payload admission remain unearned.
+
 The declared infinite momentum-coupling limit first sums the photon and baryon
 enthalpy-weighted momentum equations. Their exchange cancels before their common
 velocity is imposed. Cold baryon pressure and zero photon shear are additional
@@ -98,11 +104,25 @@ empirical diagnostic. A small constraint residual alone cannot admit an output.
 source/error gate refuses. Only `status==ok` with `value` and complete component
 admission denotes an admitted prediction. Missing common forward/derivative
 ownership stays absent and withholds value/error; it is never assigned zero.
-The native evaluator has not yet consumed the reviewed opt-in same-source
-diagnostic. Its correlated full-state response remains an explicit pending
-dependency. The private response header is included in the native contract
-source but is not used to admit the current raw fields. This successor has
-not yet been built.
+The source successor consumes the reviewed opt-in diagnostic with the retained
+capture and original mapper witnesses. It advances four signed six-state
+source sensitivities, a finite source remainder and arithmetic radii alongside
+the physical state. The mapper shifts remain correlated through Lambda.
+Same-a source derivatives and whole-family clock changes have separate owners;
+no second H, remap or source reclosure is introduced. All copies, stages and
+fourteen derivative owners consume the original work categories.
+
+Its arithmetic identity explicitly assumes the selected normal Wide log/exp
+profile with 64-epsilon bounds. Every initial, stage and N-update ambiguity is
+propagated through the complete state and eta. Source and arithmetic estimates
+include their own mesh/start refinement; publication rounds all contributors
+outward and sums their stored values. Fixed-a admission includes the target-log
+allowance and accumulated integration-clock ambiguity. A finite whole-family
+flow bound translates all five physical coordinates and eta to that epoch,
+including a stored exp/log roundtrip that happens to equal the requested a.
+An unresolved or singular endpoint allowance refuses. These are
+conditional numerical estimates; no universal libm or inference qualification
+is asserted. This source successor has not yet been compiled or executed.
 
 An optional MPFR reference target advances a separate conformal-time photon
 oscillator and spatial Einstein trace. It uses the same emitted source and
@@ -120,4 +140,9 @@ queries, 1M age queries, 30M state-element writes and 16 MiB owned payload.
 The physical vector and eta clock are separately charged derivative owners;
 age queries also consume the background ceiling. Original peer ten-attempt
 caps and source/constraint histories remain required. No scientific or
-performance passage is inferred from these source ceilings.
+performance passage is inferred from these source ceilings. The default
+per-k RHS allowance remains 1M and the default batch allowance remains 2M.
+The same policy now admits an explicitly requested allowance up to 2M per k
+and 4M per batch for the augmented source solve. The named installed fixture
+sets those larger limits; every other limit and the four error shares remain
+unchanged. A permanent control retains the original default refusal.

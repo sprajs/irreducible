@@ -1,6 +1,8 @@
 #include "irred/ideal_acoustic.hpp"
 #include "payload_accounting.hpp"
 #include "ideal_acoustic_equations.hpp"
+#include "ideal_acoustic_bridge.hpp"
+#include "ideal_acoustic_initial_bounds.hpp"
 #include "thermal_conformal_epoch.hpp"
 #include "thermal_ruler.hpp"
 #include <algorithm>
@@ -15,6 +17,9 @@ namespace {
 using S = numerics::Status;
 using W = long double;
 using State = std::array<W, 6>; // Delta,S,dV,Vc,phi,eta(Mpc).
+using Response = detail::IdealAcousticResponseState;
+using Frame = detail::IdealAcousticTransportFrame;
+using RadiusArithmetic = detail::ideal_acoustic_transport_internal::Arithmetic;
 using Epoch = detail::ThermalConformalEpoch;
 bool arithmetic() noexcept {
   return std::fegetround() == FE_TONEAREST &&
@@ -30,8 +35,8 @@ bool policy(const IdealAcousticPolicy &p) noexcept {
          p.maximum_constraint_residual > 0 && p.maximum_constraint_residual <= 1e-6 &&
          p.maximum_wavenumbers > 0 && p.maximum_wavenumbers <= 2 &&
          p.maximum_samples > 0 && p.maximum_samples <= 4096 &&
-         p.maximum_rhs_per_wavenumber <= 1000000 &&
-         p.maximum_rhs_batch <= 2000000 &&
+         p.maximum_rhs_per_wavenumber <= 2000000 &&
+         p.maximum_rhs_batch <= 4000000 &&
          p.maximum_background_evaluations <= 3000000 &&
          p.maximum_age_evaluations <= 1000000 &&
          p.maximum_state_element_writes <= 30000000 &&
@@ -61,12 +66,13 @@ struct Budget {
   bool writes(std::size_t n) noexcept {
     return add(work.state_element_writes,n,p.maximum_state_element_writes);
   }
-  bool rhs() noexcept {
-    // The physical vector and eta clock are two distinct derivative owners.
+  bool rhs(std::size_t owners=14) noexcept {
+    // Nominal physical/eta plus the physical/eta owners of four signed source
+    // responses, one finite-source remainder and one arithmetic radius.
     if (work.rhs_evaluations-k_rhs_start > p.maximum_rhs_per_wavenumber ||
-        p.maximum_rhs_per_wavenumber-(work.rhs_evaluations-k_rhs_start) < 2)
+        p.maximum_rhs_per_wavenumber-(work.rhs_evaluations-k_rhs_start) < owners)
       return false;
-    return add(work.rhs_evaluations,2,p.maximum_rhs_batch);
+    return add(work.rhs_evaluations,owners,p.maximum_rhs_batch);
   }
   bool background(bool age=false) noexcept {
     if (age && work.age_evaluations >= p.maximum_age_evaluations) return false;
@@ -83,29 +89,68 @@ struct Context {
   const detail::ThermalBaryonLoading &loading;
   Budget &budget;
   W k;
+  const detail::ThermalRetainedCoefficientWitness &retained;
+  const std::array<ThermalScalarMapWitness,4> &mapping;
+  const detail::IdealAcousticSourceUncertainty &uncertainty;
 };
 Epoch epoch(Context &c, W a) {
   if (!c.budget.background()) { Epoch e; e.status=S::work_limit; return e; }
   ThermalPolicy p;
   p.momentum_method=c.background.momentum_method();
-  return detail::thermal_conformal_epoch(c.background,a,c.k,
+  auto e=detail::thermal_conformal_epoch(c.background,a,c.k,
           W(c.background.source().omega_gamma),p);
+  if (e.status==S::ok) {
+    if (!c.budget.diagnostic()) e.status=S::work_limit;
+    else e.status=detail::thermal_conformal_no_species_diagnostics(
+        c.background,c.retained,c.mapping,a,e);
+  }
+  return e;
+}
+detail::IdealAcousticTransportAccounting accounting(Budget &b) noexcept {
+  return {&b,
+      [](void *p,std::size_t n) noexcept {
+        return static_cast<Budget*>(p)->writes(n);
+      },
+      [](void *p) noexcept { return static_cast<Budget*>(p)->diagnostic(); }};
+}
+detail::IdealAcousticCoefficients coefficients(const Epoch &e,
+       const detail::ThermalBaryonSound &sound) noexcept {
+  return {e.x2,e.g,e.enthalpy_fraction,e.fb+4*e.fg/3,
+          sound.loading/sound.denominator,
+          sound.sound_speed_squared_over_c_squared,e.acceleration_defect};
+}
+S frame(Context &c,W a,const Epoch &e,
+        const detail::ThermalBaryonSound &sound,W n,W n_radius,Frame &out) {
+  if (!e.shadow) return S::conditioning_budget_exceeded;
+  const auto actual=coefficients(e,sound);
+  const auto &m=c.background.source();
+  const detail::IdealAcousticSourceCenter center{
+      a,W(m.omega_gamma),W(m.omega_b),W(m.omega_cdm),
+      e.shadow->p_shadow,e.shadow->p_shadow_n,actual.x2,actual.F,actual.B,
+      actual.L,actual.loading_over_one_plus_loading,actual.sound_speed_squared};
+  const auto directions=detail::ideal_acoustic_source_directions(center);
+  const detail::IdealAcousticBridgeClock clock{S::ok,n,n_radius,true};
+  return detail::ideal_acoustic_transport_frame(e,c.loading,sound,actual,center,
+      directions,c.retained.lambda_retained,c.uncertainty,clock,out,
+      accounting(c.budget));
 }
 // Original MB64/67/70 ideal exchange cancellation, transformed into the
 // cancellation-safe comoving variables. The actual supplied-L defect remains.
-S rhs_at(Context &c, W a, const Epoch &e, const State &y, State &dy) {
+S rhs_at(Context &c, W a, const Epoch &e, W n,W n_radius,
+         const State &y,const Response &r, State &dy,Response &dr) {
   const auto sound=detail::thermal_baryon_sound(c.loading,a);
   if (sound.status!=S::ok) return sound.status;
   if (!c.budget.rhs() || !c.budget.writes(dy.size())) return S::work_limit;
-  const detail::IdealAcousticCoefficients coefficients{
-      e.x2,e.g,e.enthalpy_fraction,e.fb+4*e.fg/3,
-      sound.loading/sound.denominator,sound.sound_speed_squared_over_c_squared,
-      e.acceleration_defect};
-  detail::ideal_acoustic_derivative(std::span<const W,5>(y.data(),5),coefficients,
+  const auto actual=coefficients(e,sound);
+  detail::ideal_acoustic_derivative(std::span<const W,5>(y.data(),5),actual,
                                    std::span<W,5>(dy.data(),5));
   dy[5]=1/e.hcal;
   for (W value:dy) if (!std::isfinite(value)) return S::overflow;
-  return S::ok;
+  Frame f;
+  auto status=frame(c,a,e,sound,n,n_radius,f);
+  if (status!=S::ok) return status;
+  return detail::ideal_acoustic_transport_rhs(y,r,f,c.uncertainty,dr,
+                                             accounting(c.budget));
 }
 struct Residual {
   W absolute=0, normalized=0, relative_reduced=0, direct=0, assembly_discrepancy=0;
@@ -146,7 +191,10 @@ double age_integrand(double u,const void *opaque) {
                                      scaled.error_estimate/scaled.a4_e2);
   return static_cast<double>(1/std::sqrt(scaled.a4_e2));
 }
-struct InitialAge { S status=S::invalid_input; W value=0, estimate=0; };
+struct InitialAge {
+  S status=S::invalid_input;
+  W value=0, estimate=0, source_estimate=0;
+};
 InitialAge initial_age(Context &c,W start) {
   const auto &limit=c.budget.p;
   const auto &spent=c.budget.work;
@@ -171,6 +219,24 @@ InitialAge initial_age(Context &c,W start) {
   out.value=scale*W(q.value);
   out.estimate=scale*W(q.error_estimate)+out.value*
                (ac.maximum_p_relative_error+64*std::numeric_limits<double>::epsilon());
+  RadiusArithmetic radius;
+  std::array<W,4> amplitude;
+  for (unsigned j=0;j<4;++j)
+    amplitude[j]=radius.plus(radius.magnitude(c.uncertainty.signed_shift[j]),
+                             c.uncertainty.operation_radius[j]);
+  const W a2=radius.mul(start,start),a4=radius.mul(a2,a2);
+  const W vacuum=radius.plus(radius.plus(amplitude[0],amplitude[1]),
+                             radius.plus(amplitude[2],amplitude[3]));
+  const W dp=radius.plus(amplitude[0],radius.plus(
+      radius.times(start,radius.plus(amplitude[1],amplitude[2])),
+      radius.times(a4,vacuum)));
+  // For every u in[0,1], nominal P>=Gamma and |deltaP|<=dp. The full
+  // positive-family inverse-sqrt change is <=t/(1-t), without another H.
+  const W photon=W(c.background.source().omega_gamma);
+  const W lower=radius.lower(photon,dp);
+  out.source_estimate=radius.times(radius.plus(out.value,out.estimate),
+                                    radius.over(dp,lower));
+  if (radius.status!=S::ok) { out.status=radius.status; return out; }
   if (!(out.value>0) || !(out.estimate>=0) || !std::isfinite(out.value) ||
       !std::isfinite(out.estimate)) out.status=S::outside_domain;
   return out;
@@ -178,6 +244,8 @@ InitialAge initial_age(Context &c,W start) {
 struct Snapshot {
   S status=S::invalid_input;
   State state{};
+  Response response{};
+  W n=0,n_radius=0;
   W a=0;
   Epoch epoch;
 };
@@ -186,6 +254,89 @@ struct Run {
   IdealAcousticAttempt attempt;
   std::vector<Snapshot> samples;
 };
+// Conditional normal-Wide RK assembly. The stored positive comparison vectors
+// are rounded upward; the nominal and four signed response assembly losses
+// enter ARITHMETIC once. The mesh estimator remains a separate empirical gate.
+S combine(Context &c,const State &base,const Response &base_r,
+          const std::array<const State*,4> &slopes,
+          const std::array<const Response*,4> &response_slopes,
+          const std::array<W,4> &weights,State &out,Response &out_r) {
+  if (!c.budget.writes(42) || !c.budget.diagnostic()) return S::work_limit;
+  RadiusArithmetic a;
+  for (unsigned i=0;i<6;++i) {
+    W value=base[i],scale=std::abs(base[i]);
+    for (unsigned s=0;s<4;++s) if (weights[s]!=0) {
+      const W term=a.mul(weights[s],(*slopes[s])[i]);
+      value=a.add(value,term); scale=a.plus(scale,a.magnitude(term));
+    }
+    out[i]=value;
+    W assembly=a.loss(scale);
+    for (unsigned j=0;j<4;++j) {
+      const unsigned n=6*j+i;
+      W z=base_r[n],zs=a.magnitude(z);
+      for (unsigned s=0;s<4;++s) if (weights[s]!=0) {
+        const W term=a.mul(weights[s],(*response_slopes[s])[n]);
+        z=a.add(z,term); zs=a.plus(zs,a.magnitude(term));
+      }
+      out_r[n]=z;
+      const W amplitude=a.plus(a.magnitude(c.uncertainty.signed_shift[j]),
+                                c.uncertainty.operation_radius[j]);
+      assembly=a.plus(assembly,a.times(amplitude,a.loss(zs)));
+    }
+    for (unsigned offset:{24u,30u}) {
+      W radius=base_r[offset+i],rs=a.magnitude(radius);
+      for (unsigned s=0;s<4;++s) if (weights[s]!=0) {
+        const W term=a.mul(weights[s],(*response_slopes[s])[offset+i]);
+        radius=a.add(radius,term); rs=a.plus(rs,a.magnitude(term));
+      }
+      radius=a.signed_upper(a.add(radius,a.loss(rs)));
+      if (offset==30) radius=a.plus(radius,assembly);
+      if (!(radius>=0) || !detail::ideal_acoustic_transport_internal::radius(radius))
+        return S::conditioning_budget_exceeded;
+      out_r[offset+i]=radius;
+    }
+  }
+  return a.status;
+}
+detail::IdealAcousticSourceUncertainty source_uncertainty(
+    const ThermalBackground &background,
+    const std::array<ThermalScalarMapWitness,4> &map,
+    const detail::ThermalRetainedCoefficientWitness &retained) {
+  detail::IdealAcousticSourceUncertainty out;
+  const auto &model=background.source();
+  const std::array<double,4> emitted{model.omega_gamma,model.omega_b,
+                                    model.omega_cdm,model.omega_massless_nonphoton};
+  for (unsigned j=0;j<4;++j) {
+    const auto &w=map[j];
+    if (!std::isfinite(w.wide_value) || !std::isfinite(w.wide_operation_estimate) ||
+        !std::isfinite(w.measured_absolute_cast_loss) ||
+        w.emitted_value!=emitted[j] ||
+        w.measured_absolute_cast_loss!=std::abs(w.wide_value-W(w.emitted_value)) ||
+        w.wide_operation_estimate<0 ||
+        (j<3 && (!(w.wide_value>0) || !(w.wide_operation_estimate>0))))
+      return out;
+    if (j<3) {
+      out.signed_shift[j]=w.wide_value-W(w.emitted_value);
+      out.operation_radius[j]=w.wide_operation_estimate;
+    }
+  }
+  out.original_other_shift=map[3].wide_value-W(map[3].emitted_value);
+  out.original_other_radius=map[3].wide_operation_estimate;
+  out.original_other_zero_witness=map[3].wide_value==0 &&
+      map[3].emitted_value==0 && map[3].wide_operation_estimate==0 &&
+      map[3].measured_absolute_cast_loss==0;
+  if (!out.original_other_zero_witness || retained.status!=S::ok ||
+      retained.omega_species_today!=0 || retained.species_normalization_error!=0)
+    return out;
+  const W photon=W(model.omega_gamma),baryon=W(model.omega_b),cdm=W(model.omega_cdm);
+  out.signed_shift[3]=(1-photon-baryon-cdm)-retained.lambda_retained;
+  out.operation_radius[3]=32*std::numeric_limits<W>::epsilon()*
+      (1+photon+baryon+cdm+std::abs(retained.lambda_retained));
+  if (!std::isfinite(out.signed_shift[3]) ||
+      !(out.operation_radius[3]>0) || !std::isfinite(out.operation_radius[3]))
+    return out;
+  out.status=S::ok; return out;
+}
 Run evolve(Context &c,W start,std::span<const double> targets,W step,
            const InitialAge &age) {
   Run out;
@@ -221,6 +372,24 @@ Run evolve(Context &c,W start,std::span<const double> targets,W step,
   out.attempt.projected_initial_state=std::array<W,5>{y[0],y[1],y[2],y[3],y[4]};
   out.attempt.initial_delta_projection=y[0]-old_delta;
   W n=std::log(start),a=start;
+  RadiusArithmetic clock_arithmetic;
+  // The selected log law is relative to the true log. Outward128eps covers
+  // its implicit stored-versus-true denominator under64eps<1/2.
+  W n_radius=clock_arithmetic.times(2,
+      clock_arithmetic.loss(clock_arithmetic.plus(1,std::abs(n))));
+  if (!c.budget.writes(36)) { finish(S::work_limit); return out; }
+  Response response{};
+  Frame initial_frame;
+  auto initial_status=frame(c,a,current,sound,n,n_radius,initial_frame);
+  detail::IdealAcousticTransportInitialBounds initial_bounds;
+  if (initial_status==S::ok)
+    initial_status=detail::ideal_acoustic_initial_bounds(y,initial_frame,
+        c.uncertainty,c.retained.lambda_retained,age.source_estimate,age.estimate,
+        initial_bounds,accounting(c.budget));
+  if (initial_status==S::ok)
+    initial_status=detail::ideal_acoustic_transport_initial(y,initial_frame,
+        c.uncertainty,initial_bounds,response,accounting(c.budget));
+  if (initial_status!=S::ok) { finish(initial_status); return out; }
   try { out.samples.reserve(targets.size()); }
   catch (const std::bad_alloc &) { finish(S::work_limit); return out; }
   for (double target:targets) {
@@ -228,31 +397,47 @@ Run evolve(Context &c,W start,std::span<const double> targets,W step,
     while (n<end) {
       const W h=std::min(end-n,step/(1+std::sqrt(current.x2)));
       if (!(h>0) || n+h==n) { finish(S::conditioning_budget_exceeded); return out; }
-      const W next=std::min(end,n+h),mid_a=std::exp(n+h/2),next_a=std::exp(next);
+      const W mid_n=n+h/2,next=std::min(end,n+h);
+      const W mid_a=std::exp(mid_n),next_a=std::exp(next);
+      const W mid_radius=clock_arithmetic.plus(n_radius,
+          clock_arithmetic.loss(clock_arithmetic.plus(std::abs(n),h/2)));
+      const W next_radius=std::max(clock_arithmetic.plus(n_radius,
+          clock_arithmetic.loss(clock_arithmetic.plus(std::abs(n),h))),
+          clock_arithmetic.loss(clock_arithmetic.plus(1,std::abs(next))));
+      if (clock_arithmetic.status!=S::ok) {
+        finish(clock_arithmetic.status); return out;
+      }
       auto middle=epoch(c,mid_a),last=epoch(c,next_a);
       if (middle.status!=S::ok || last.status!=S::ok) {
         finish(middle.status!=S::ok ? middle.status : last.status); return out;
       }
-      if (!c.budget.writes(30)) { finish(S::work_limit); return out; }
+      if (!c.budget.writes(210)) { finish(S::work_limit); return out; }
       State k1{},k2{},k3{},k4{},tmp{};
-      S cause=rhs_at(c,a,current,y,k1);
+      Response r1{},r2{},r3{},r4{},tmp_r{};
+      S cause=rhs_at(c,a,current,n,n_radius,y,response,k1,r1);
       if (cause!=S::ok) { finish(cause); return out; }
-      if (!c.budget.writes(6)) { finish(S::work_limit); return out; }
-      for (unsigned j=0;j<6;++j) tmp[j]=y[j]+h*k1[j]/2;
-      cause=rhs_at(c,mid_a,middle,tmp,k2);
+      cause=combine(c,y,response,{&k1,&k1,&k1,&k1},{&r1,&r1,&r1,&r1},
+                    {h/2,0,0,0},tmp,tmp_r);
       if (cause!=S::ok) { finish(cause); return out; }
-      if (!c.budget.writes(6)) { finish(S::work_limit); return out; }
-      for (unsigned j=0;j<6;++j) tmp[j]=y[j]+h*k2[j]/2;
-      cause=rhs_at(c,mid_a,middle,tmp,k3);
+      cause=rhs_at(c,mid_a,middle,mid_n,mid_radius,tmp,tmp_r,k2,r2);
       if (cause!=S::ok) { finish(cause); return out; }
-      if (!c.budget.writes(6)) { finish(S::work_limit); return out; }
-      for (unsigned j=0;j<6;++j) tmp[j]=y[j]+h*k3[j];
-      cause=rhs_at(c,next_a,last,tmp,k4);
+      cause=combine(c,y,response,{&k2,&k2,&k2,&k2},{&r2,&r2,&r2,&r2},
+                    {h/2,0,0,0},tmp,tmp_r);
       if (cause!=S::ok) { finish(cause); return out; }
-      if (!c.budget.writes(6)) { finish(S::work_limit); return out; }
-      for (unsigned j=0;j<6;++j) y[j]+=h*(k1[j]+2*k2[j]+2*k3[j]+k4[j])/6;
+      cause=rhs_at(c,mid_a,middle,mid_n,mid_radius,tmp,tmp_r,k3,r3);
+      if (cause!=S::ok) { finish(cause); return out; }
+      cause=combine(c,y,response,{&k3,&k3,&k3,&k3},{&r3,&r3,&r3,&r3},
+                    {h,0,0,0},tmp,tmp_r);
+      if (cause!=S::ok) { finish(cause); return out; }
+      cause=rhs_at(c,next_a,last,next,next_radius,tmp,tmp_r,k4,r4);
+      if (cause!=S::ok) { finish(cause); return out; }
+      if (!c.budget.writes(42)) { finish(S::work_limit); return out; }
+      const auto old_y=y; const auto old_response=response;
+      cause=combine(c,old_y,old_response,{&k1,&k2,&k3,&k4},{&r1,&r2,&r3,&r4},
+                    {h/6,h/3,h/3,h/6},y,response);
+      if (cause!=S::ok) { finish(cause); return out; }
       // Commit the epoch with the new state before any subsequent admission.
-      n=next; a=next_a; current=std::move(last);
+      n=next; n_radius=next_radius; a=next_a; current=std::move(last);
       for (W value:y) if (!std::isfinite(value)) { finish(S::overflow); return out; }
       if (!c.budget.diagnostic()) { finish(S::work_limit); return out; }
       const auto constraint=residual(y,current);
@@ -273,23 +458,76 @@ Run evolve(Context &c,W start,std::span<const double> targets,W step,
       if (!std::isfinite(constraint.normalized) || constraint.normalized>c.budget.p.maximum_constraint_residual) {
         finish(S::conditioning_budget_exceeded); return out;
       }
-      if (!(y[5]>=0) || c.k*(y[5]+age.estimate)>20) {
+      if (!c.budget.diagnostic()) { finish(S::work_limit); return out; }
+      RadiusArithmetic phase_arithmetic;
+      std::array<W,6> phase_linear{},phase_total{};
+      const auto phase_status=detail::ideal_acoustic_transport_internal::response_sizes(
+          response,c.uncertainty,phase_linear,phase_total,phase_arithmetic);
+      if (phase_status!=S::ok) { finish(phase_status); return out; }
+      // Stage source/arithmetic support includes the initial age. The complete
+      // mesh/start phase allowance is additionally enforced at every output.
+      if (!(y[5]>=0) || c.k*phase_arithmetic.plus(y[5],phase_total[5])>20) {
         finish(S::outside_domain); return out;
       }
     }
     ++c.budget.work.endpoint_evaluations;
-    if (!c.budget.writes(12)) { finish(S::work_limit); return out; }
-    out.samples.push_back({S::ok,y,a,current});
+    if (!c.budget.writes(84)) { finish(S::work_limit); return out; }
+    out.samples.push_back({S::ok,y,response,n,n_radius,a,current});
   }
   finish(S::ok); return out;
 }
-std::array<W,9> readout(const Snapshot &s) {
+struct Readout {
+  S status=S::invalid_input;
+  std::array<W,9> value{};
+  std::array<W,10> source{},arithmetic{};
+  W derivative_consistency=0;
+};
+Readout readout(Context &c,const Snapshot &s,double target) {
+  Readout out;
   const auto &y=s.state; const W x=std::sqrt(s.epoch.x2);
   const W theta0=(y[0]-y[1])/3-y[3];
   const W phi_n=-y[4]+1.5L*s.epoch.enthalpy_fraction*y[3]+
                 1.5L*(s.epoch.fb+4*s.epoch.fg/3)*y[2];
-  return {y[0],y[0]-y[1]+3*y[2],theta0,y[4],y[0]-3*y[3],
-          y[0]-3*y[3]-y[1],x*(y[3]+y[2]),x*y[3],phi_n};
+  out.value={y[0],y[0]-y[1]+3*y[2],theta0,y[4],y[0]-3*y[3],
+             y[0]-3*y[3]-y[1],x*(y[3]+y[2]),x*y[3],phi_n};
+  // The accumulated path may differ from true log(target) even when the
+  // stored exp/log roundtrip equals target. Every run lands on its stored
+  // target log; own target-log error plus all accumulated path ambiguity.
+  RadiusArithmetic endpoint_arithmetic;
+  const W target_log_radius=endpoint_arithmetic.times(2,
+      endpoint_arithmetic.loss(endpoint_arithmetic.plus(1,std::abs(s.n))));
+  const W log_distance=endpoint_arithmetic.plus(s.n_radius,target_log_radius);
+  if (endpoint_arithmetic.status!=S::ok) {
+    out.status=endpoint_arithmetic.status; return out;
+  }
+  (void)target; // Original requested-a and actual-a discrepancy stay in row.
+  const auto sound=detail::thermal_baryon_sound(c.loading,s.a);
+  if (sound.status!=S::ok) { out.status=sound.status; return out; }
+  Frame f;
+  out.status=frame(c,s.a,s.epoch,sound,s.n,log_distance,f);
+  if (out.status!=S::ok) return out;
+  f.x=x;
+  if (!c.budget.writes(36)) { out.status=S::work_limit; return out; }
+  Response fixed_a=s.response;
+  out.status=detail::ideal_acoustic_transport_fixed_a(y,fixed_a,f,c.uncertainty,
+      log_distance,accounting(c.budget));
+  if (out.status!=S::ok) return out;
+  out.status=detail::ideal_acoustic_transport_readout(y,fixed_a,f,c.uncertainty,
+      out.source,out.arithmetic,accounting(c.budget));
+  if (out.status==S::ok && s.epoch.shadow)
+    out.derivative_consistency=f.arithmetic.coefficient_radius[3];
+  return out;
+}
+W refinement(const std::array<W,5> &v,bool initial) noexcept {
+  return 8*std::max(initial ? std::abs(v[2]-v[3]) : std::abs(v[2]-v[1]),
+                    initial ? std::abs(v[3]-v[4]) : std::abs(v[1]-v[0]));
+}
+std::optional<double> outward(W x) noexcept {
+  if (!(x>=0) || !std::isfinite(x)) return {};
+  double d=static_cast<double>(x);
+  if (!std::isfinite(d)) return {};
+  if (W(d)<x) d=std::nextafter(d,std::numeric_limits<double>::infinity());
+  return std::isfinite(d) ? std::optional<double>(d) : std::nullopt;
 }
 std::optional<std::size_t> retained_payload(const IdealAcousticRequest &s) noexcept {
   irred::detail::PayloadAccounting bytes(sizeof(IdealAcousticTransfer));
@@ -393,16 +631,26 @@ IdealAcousticBatch IdealAcousticTransfer::evaluate(std::span<const double> ks,
     Budget budget{p,out.evaluation_work};
     const detail::ThermalBaryonLoading loading{S::ok,loading_ratio_,loading_error_,
                                              loading_numerator_,loading_denominator_};
-    Context initial_context{*background_,loading,budget,0};
+    const detail::ThermalRetainedCoefficientWitness retained{
+        S::ok,retained_critical_density_,retained_species_today_,retained_lambda_,
+        retained_species_normalization_error_,retained_lambda_emitted_,
+        lambda_getter_signed_loss_,retained_momentum_method_};
+    if (!mapping_ || !mapping_->scalar_witnesses) {
+      out.status=S::conditioning_budget_exceeded; return out;
+    }
+    const auto &map=*mapping_->scalar_witnesses;
+    const auto uncertainty=source_uncertainty(*background_,map,retained);
+    if (uncertainty.status!=S::ok) {
+      out.status=uncertainty.status; out.shared_dependency_status=uncertainty.status;
+      return out;
+    }
+    Context initial_context{*background_,loading,budget,0,retained,map,uncertainty};
     const W ai=source_->initial_scale_factor;
     const std::array<InitialAge,3> ages{initial_age(initial_context,ai),
                                      initial_age(initial_context,ai/2),
                                      initial_age(initial_context,ai/4)};
     bool all_ok=true;
-    // The algebraic helper deliberately has no complete source/derivative
-    // bundle. Preserve computed runs; refuse admission until its owner supplies
-    // the narrowly qualified same-source bridge and response propagation.
-    out.shared_dependency_status=S::conditioning_budget_exceeded;
+    out.shared_dependency_status=S::ok;
     for (const auto &age:ages) if (age.status!=S::ok) {
       out.shared_dependency_status=age.status; break;
     }
@@ -415,7 +663,7 @@ IdealAcousticBatch IdealAcousticTransfer::evaluate(std::span<const double> ks,
       S cause=S::ok;
       if (!std::isfinite(ks[i])) cause=S::nonfinite_input;
       else if (ks[i]<1e-7 || ks[i]>.01) cause=S::outside_domain;
-      Context c{*background_,loading,budget,W(ks[i])};
+      Context c{*background_,loading,budget,W(ks[i]),retained,map,uncertainty};
       std::array<Run,5> runs;
       constexpr std::array<unsigned,5> age_index{0,0,0,1,2};
       const std::array<W,5> starts{ai,ai,ai,ai/2,ai/4};
@@ -437,30 +685,96 @@ IdealAcousticBatch IdealAcousticTransfer::evaluate(std::span<const double> ks,
           for (unsigned f=0;f<9;++f) if (outputs&(1u<<f)) row.outputs[f].status=cause;
           row.epoch.status=cause; all_ok=false; continue;
         }
-        std::array<std::array<W,9>,5> values;
+        std::array<Readout,5> values;
         if (!budget.writes(45)) {
           cause=S::work_limit; aggregate=cause; all_ok=false; row.epoch.status=cause;
           for (unsigned f=0;f<9;++f) if (outputs&(1u<<f)) row.outputs[f].status=cause;
           continue;
         }
-        for (unsigned r=0;r<5;++r) values[r]=readout(runs[r].samples[j]);
+        for (unsigned r=0;r<5;++r) values[r]=readout(c,runs[r].samples[j],targets[j]);
         out.evaluation_work.output_evaluations+=5;
         const auto &sample=runs[2].samples[j];
         row.epoch.status=S::ok; row.epoch.state_scale_factor=sample.a;
         row.epoch.hcal_mpc_inverse=sample.epoch.hcal;
         row.epoch.conformal_age_mpc=sample.state[5];
         row.epoch.endpoint_scale_factor_error=std::abs(sample.a-W(targets[j]));
+        S response_status=S::ok;
+        for (const auto &v:values) if (v.status!=S::ok) {
+          response_status=v.status; break;
+        }
+        if (response_status==S::ok) {
+          std::array<W,5> eta{},source_age{},arithmetic_age{};
+          for (unsigned r=0;r<5;++r) {
+            eta[r]=runs[r].samples[j].state[5];
+            source_age[r]=values[r].source[9];
+            arithmetic_age[r]=values[r].arithmetic[9];
+          }
+          RadiusArithmetic radius;
+          const W source=radius.plus(source_age[2],radius.plus(
+              refinement(source_age,false),refinement(source_age,true)));
+          const W arithmetic=radius.plus(arithmetic_age[2],radius.plus(
+              refinement(arithmetic_age,false),refinement(arithmetic_age,true)));
+          const W complete_age=radius.plus(radius.plus(source,arithmetic),
+              radius.plus(refinement(eta,false),refinement(eta,true)));
+          if (radius.status!=S::ok) response_status=radius.status;
+          else if (!(sample.state[5]>=0) || c.k*radius.plus(sample.state[5],complete_age)>20)
+            response_status=S::outside_domain;
+          else {
+            row.epoch.age_error_mpc=complete_age;
+            row.epoch.derivative_consistency_estimate=values[2].derivative_consistency;
+          }
+        }
+        if (response_status!=S::ok) {
+          row.epoch.status=response_status; aggregate=response_status; all_ok=false;
+        }
         for (unsigned f=0;f<9;++f) if (outputs&(1u<<f)) {
           auto &value=row.outputs[f];
-          if (!std::isfinite(values[2][f])) { value.status=S::overflow; all_ok=false; continue; }
-          value.computed=values[2][f];
-          value.error.time_refinement=static_cast<double>(8*std::max(
-              std::abs(values[2][f]-values[1][f]),std::abs(values[1][f]-values[0][f])));
-          value.error.initial_refinement=static_cast<double>(8*std::max(
-              std::abs(values[2][f]-values[3][f]),std::abs(values[3][f]-values[4][f])));
-          value.status=S::conditioning_budget_exceeded;
+          if (!std::isfinite(values[2].value[f])) {
+            value.status=S::overflow; aggregate=value.status; all_ok=false; continue;
+          }
+          value.computed=values[2].value[f];
+          std::array<W,5> central{},source{},arithmetic{};
+          for (unsigned r=0;r<5;++r) {
+            central[r]=values[r].value[f]; source[r]=values[r].source[f];
+            arithmetic[r]=values[r].arithmetic[f];
+          }
+          const auto time=outward(refinement(central,false));
+          const auto initial=outward(refinement(central,true));
+          if (time) value.error.time_refinement=*time;
+          if (initial) value.error.initial_refinement=*initial;
+          if (response_status!=S::ok || !time || !initial) {
+            value.status=response_status==S::ok ? S::overflow : response_status;
+            aggregate=value.status; all_ok=false; continue;
+          }
+          RadiusArithmetic radius;
+          const W source_error=radius.plus(source[2],radius.plus(
+              refinement(source,false),refinement(source,true)));
+          const double stored=static_cast<double>(central[2]);
+          const W cast=std::abs(central[2]-W(stored));
+          const W arithmetic_error=radius.plus(cast,radius.plus(arithmetic[2],
+              radius.plus(refinement(arithmetic,false),refinement(arithmetic,true))));
+          const auto source_stored=outward(source_error);
+          const auto arithmetic_stored=outward(arithmetic_error);
+          if (!source_stored || !arithmetic_stored || !std::isfinite(stored) ||
+              radius.status!=S::ok) {
+            value.status=S::overflow; aggregate=value.status; all_ok=false; continue;
+          }
+          value.error.common_source_background_age=*source_stored;
+          value.error.arithmetic_storage_constraint=*arithmetic_stored;
+          // Conservative total is assembled from the STORED outward leaves.
+          const W total=radius.plus(radius.plus(W(*time),W(*initial)),
+              radius.plus(W(*source_stored),W(*arithmetic_stored)));
+          value.error.absolute_error_estimate=outward(total);
+          const W epsilon=W(p.absolute_tolerance)+W(p.relative_tolerance)*std::abs(central[2]);
+          if (!value.error.absolute_error_estimate || *time>epsilon/5 ||
+              *initial>epsilon/5 || *source_stored>epsilon/5 ||
+              *arithmetic_stored>epsilon/5 ||
+              W(*value.error.absolute_error_estimate)>4*epsilon/5) {
+            value.status=S::conditioning_budget_exceeded;
+            aggregate=value.status; all_ok=false; continue;
+          }
+          value.value=stored; value.status=S::ok;
         }
-        all_ok=false;
       }
     }
     out.status=all_ok ? S::ok : aggregate;

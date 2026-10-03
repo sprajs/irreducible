@@ -36,6 +36,9 @@ struct IdealAcousticTransportArithmetic {
   // all literal center/gradient assembly loss already included by its owner.
   // Order x2,F,B,L,T,cs2. Getter loss belongs here, never another source shift.
   std::array<long double, 6> coefficient_radius{};
+  // Same-actual-a arithmetic only. SOURCE quotient/readout derivatives use
+  // this band; the full family clock change above is owned by ARITHMETIC.
+  std::array<long double, 6> coefficient_at_actual_a_radius{};
   long double hcal_radius = 0, shadow_p_radius = 0, shadow_p_n_radius = 0;
   long double sound_denominator_radius = 0;
   std::array<std::array<long double, 6>, 4> gradient_radius{};
@@ -217,6 +220,12 @@ inline bool valid(const IdealAcousticTransportFrame &f,
   for (W v : f.arithmetic.coefficient_radius)
     if (!(v > 0) || !radius(v))
       return false;
+  for (std::size_t i=0;i<6;++i)
+    if (!(f.arithmetic.coefficient_at_actual_a_radius[i]>0) ||
+        !radius(f.arithmetic.coefficient_at_actual_a_radius[i]) ||
+        f.arithmetic.coefficient_at_actual_a_radius[i]>
+            f.arithmetic.coefficient_radius[i])
+      return false;
   for (W v :
        {f.arithmetic.hcal_radius, f.arithmetic.shadow_p_radius,
         f.arithmetic.shadow_p_n_radius, f.arithmetic.sound_denominator_radius})
@@ -300,7 +309,7 @@ inline S bands(const IdealAcousticTransportFrame &f,
                                  f.actual.sound_speed_squared};
   for (std::size_t j = 0; j < 6; ++j) {
     const W fhi =
-        a.plus(a.magnitude(centers[j]), f.arithmetic.coefficient_radius[j]);
+        a.plus(a.magnitude(centers[j]), f.arithmetic.coefficient_at_actual_a_radius[j]);
     const W numerator = a.plus(numerators[j], a.times(fhi, changes[j]));
     const W lower = j < 4 ? p_family_lo : d_family_lo;
     o.change[j] = a.over(numerator, lower);
@@ -585,6 +594,67 @@ inline numerics::Status ideal_acoustic_transport_initial(
   return a.status;
 }
 
+// Final fixed-a translation of the exact accumulated RK path. The caller's
+// log-distance includes its initial/stage N-update lineage and target-log
+// allowance; the borrowed frame covers that entire positive-family clock
+// neighborhood. Stored exp/log equality alone does not establish zero distance.
+// A finite integral inequality gives |deltaY|_inf <= d*K*|Y|_inf/(1-d*K).
+// Eta has its separate inhomogeneous inverse-H bound and units. This owns no
+// new H/query/log/exp and changes only the caller-owned ARITHMETIC radii.
+inline numerics::Status ideal_acoustic_transport_fixed_a(
+    std::span<const long double, 6> y,
+    std::span<long double, 36> r,
+    const IdealAcousticTransportFrame &f,
+    const IdealAcousticSourceUncertainty &u, long double log_distance,
+    const IdealAcousticTransportAccounting &work) noexcept {
+  using namespace ideal_acoustic_transport_internal;
+  if (!valid(f,u) || !(log_distance>0) || !radius(log_distance))
+    return S::conditioning_budget_exceeded;
+  const S charged=account(work);
+  if (charged!=S::ok) return charged;
+  Arithmetic a;
+  Bands b;
+  S status=bands(f,u,b,a);
+  if (status!=S::ok) return status;
+  std::array<W,6> linear,total,upper;
+  status=response_sizes(r,u,linear,total,a);
+  if (status!=S::ok) return status;
+  for (unsigned i=0;i<6;++i) {
+    if (!normal_or_zero(y[i])) return S::outside_domain;
+    upper[i]=a.plus(a.magnitude(y[i]),total[i]);
+  }
+  std::array<W,6> coefficient;
+  const std::array<W,6> center{f.actual.x2,f.actual.F,f.actual.B,
+      a.magnitude(f.actual.L),f.actual.loading_over_one_plus_loading,
+      f.actual.sound_speed_squared};
+  for (unsigned i=0;i<6;++i)
+    coefficient[i]=a.plus(center[i],a.plus(b.change[i],f.arithmetic.coefficient_radius[i]));
+  const auto [q,F,B,L,T,cs]=coefficient;
+  const std::array<W,5> row_sum{
+      a.plus(q,a.plus(a.times(4.5L,B),a.times(3,a.magnitude(f.actual.acceleration_defect)))),
+      q,a.plus(a.plus(L,T),a.times(2,cs)),a.plus(L,2),
+      a.plus(1,a.times(1.5L,a.plus(F,B)))};
+  const W K=*std::max_element(row_sum.begin(),row_sum.end());
+  const W magnitude=*std::max_element(upper.begin(),upper.begin()+5);
+  const W growth=a.times(log_distance,K);
+  const W physical=a.over(a.times(growth,magnitude),a.lower(1,growth));
+  const W a2=a.times(f.center.a,f.center.a),a4=a.times(a2,a2);
+  const W vacuum=a.plus(a.plus(b.amplitude[0],b.amplitude[1]),
+                          a.plus(b.amplitude[2],b.amplitude[3]));
+  const W dp=a.plus(b.amplitude[0],a.plus(
+      a.times(f.center.a,a.plus(b.amplitude[1],b.amplitude[2])),a.times(a4,vacuum)));
+  const W phi=a.plus(f.center.shadow_p,f.arithmetic.shadow_p_radius);
+  const W plo=a.lower(f.center.shadow_p,f.arithmetic.shadow_p_radius);
+  const W inverse_h_family=a.times(a.plus(b.inverse_h,b.inverse_h_arithmetic),
+                                  a.over(phi,a.lower(plo,dp)));
+  const W eta=a.over(a.times(log_distance,inverse_h_family),a.lower(1,log_distance));
+  if (a.status!=S::ok) return a.status;
+  if (!work.state_writes(work.context,6)) return S::work_limit;
+  for (unsigned i=0;i<5;++i) r[30+i]=a.plus(r[30+i],physical);
+  r[35]=a.plus(r[35],eta);
+  return a.status;
+}
+
 inline numerics::Status ideal_acoustic_transport_readout(
     std::span<const long double, 6> y, std::span<const long double, 36> r,
     const IdealAcousticTransportFrame &f,
@@ -625,7 +695,10 @@ inline numerics::Status ideal_acoustic_transport_readout(
                                 a.loss(a.plus(x_squared, f.actual.x2)));
   const W x2_arithmetic =
       a.plus(f.arithmetic.coefficient_radius[0], squared_loss);
-  const W x2lo = a.lower(f.actual.x2, x2_arithmetic);
+  const W x2_actual_a_arithmetic =
+      a.plus(f.arithmetic.coefficient_at_actual_a_radius[0], squared_loss);
+  const W x2lo = a.lower(f.actual.x2, x2_actual_a_arithmetic);
+  const W x2_full_lo = a.lower(f.actual.x2,x2_arithmetic);
   const W x2familylo = a.lower(x2lo, b.change[0]);
   if (a.status != S::ok)
     return a.status;
@@ -633,14 +706,21 @@ inline numerics::Status ideal_acoustic_transport_readout(
   // Outward rational evaluation supplies lower bounds without another sqrt.
   const W xlo = a.ratio_lower(a.product_lower(2, x2lo),
                               a.plus(f.x, a.over(x2lo, f.x))),
+          x_full_lo = a.ratio_lower(a.product_lower(2,x2_full_lo),
+                                    a.plus(f.x,a.over(x2_full_lo,f.x))),
           xfamilylo = a.ratio_lower(a.product_lower(2, x2familylo),
                                     a.plus(f.x, a.over(x2familylo, f.x)));
-  if (!(xlo > 0 && xfamilylo > 0) || !normal_or_zero(xlo) ||
+  if (!(xlo > 0 && x_full_lo>0 && xfamilylo > 0) || !normal_or_zero(xlo) ||
+      !normal_or_zero(x_full_lo) ||
       !normal_or_zero(xfamilylo))
     return S::conditioning_budget_exceeded;
   const W x_arithmetic = a.plus(
-      a.over(x2_arithmetic, a.lower(a.add(f.x, xlo), a.loss(a.add(f.x, xlo)))),
+      a.over(x2_arithmetic,
+             a.lower(a.add(f.x, x_full_lo), a.loss(a.add(f.x, x_full_lo)))),
       a.loss(f.x));
+  const W x_actual_a_arithmetic = a.plus(
+      a.over(x2_actual_a_arithmetic,
+             a.lower(a.add(f.x,xlo),a.loss(a.add(f.x,xlo)))),a.loss(f.x));
   const W x_change = a.over(b.change[0], a.product_lower(2, xfamilylo));
   const W x_remainder = a.plus(
       a.over(b.remainder[0], a.product_lower(2, xfamilylo)),
@@ -703,7 +783,7 @@ inline numerics::Status ideal_acoustic_transport_readout(
                                     a.times(a.magnitude(g.B), absolute_y[2]))));
     const W xj_error = a.plus(
         a.over(f.arithmetic.gradient_radius[j][0], a.product_lower(2, xlo)),
-        a.plus(a.over(a.times(a.magnitude(g.x2), x_arithmetic),
+        a.plus(a.over(a.times(a.magnitude(g.x2), x_actual_a_arithmetic),
                       a.product_lower(2, a.product_lower(f.x, xlo))),
                a.loss(a.magnitude(xj))));
     for (std::size_t i = 0; i < 10; ++i) {

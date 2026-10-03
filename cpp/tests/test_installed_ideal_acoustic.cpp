@@ -25,10 +25,16 @@ int main() {
       !owner.physical_mapping() || !owner.physical_mapping()->scalar_witnesses) return 1;
   auto retained=std::move(owner);
   if (owner.status()==S::ok || owner.source() || owner.background() || owner.physical_mapping()) return 2;
-  const auto result=retained.evaluate(k,a,acoustic_all_outputs);
+  IdealAcousticPolicy policy;
+  policy.maximum_rhs_per_wavenumber=2000000;
+  policy.maximum_rhs_batch=4000000;
+  const auto result=retained.evaluate(k,a,acoustic_all_outputs,policy);
   const auto &work=result.evaluation_work;
   std::cout<<"{\"batch_status\":"<<static_cast<int>(result.status)
            <<",\"shared_dependency_status\":"<<static_cast<int>(result.shared_dependency_status)
+           <<",\"protocol\":\"explicit-augmented-correlated-source/v1\""
+           <<",\"maximum_rhs_per_k\":"<<policy.maximum_rhs_per_wavenumber
+           <<",\"maximum_rhs_batch\":"<<policy.maximum_rhs_batch
            <<",\"mask\":"<<result.requested_outputs<<",\"rhs\":"<<work.rhs_evaluations
            <<",\"P_queries\":"<<work.background_evaluations<<",\"age_queries\":"<<work.age_evaluations
            <<",\"state_writes\":"<<work.state_element_writes

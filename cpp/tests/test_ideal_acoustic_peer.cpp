@@ -316,8 +316,8 @@ void native_refusal_controls(native::IdealAcousticTransfer &owner) {
       owner.evaluate(duplicate_k, early_a, native::acoustic_all_outputs);
   need(grid.rows.size() == 4 && grid.trajectories.size() == 2,
        "ordered early grid retains repeated k");
-  need(grid.shared_dependency_status == S::conditioning_budget_exceeded,
-       "missing complete source dependency refuses admission");
+  need(grid.shared_dependency_status == S::ok,
+       "retained source bridge is available for the early ordered grid");
   for (std::size_t i = 0; i < 2; ++i) {
     need(grid.trajectories[i].attempts_started == 5,
          "five native attempts retained");
@@ -330,12 +330,12 @@ void native_refusal_controls(native::IdealAcousticTransfer &owner) {
       need(row.epoch.status == S::ok && row.epoch.hcal_mpc_inverse > 0,
            "finite raw state has its matching epoch");
       for (const auto &field : row.outputs)
-        need(field.computed && std::isfinite(*field.computed) && !field.value &&
-                 field.status == S::conditioning_budget_exceeded &&
-                 !field.error.common_source_background_age &&
-                 !field.error.arithmetic_storage_constraint &&
-                 !field.error.absolute_error_estimate,
-             "raw central witness cannot invent admitted errors or value");
+        need(field.computed && std::isfinite(*field.computed) && field.value &&
+                 field.status == S::ok &&
+                 field.error.common_source_background_age &&
+                 field.error.arithmetic_storage_constraint &&
+                 field.error.absolute_error_estimate,
+             "conditional native admission owns every required error leaf");
       close(*row.outputs[5].computed, 3 * *row.outputs[2].computed,
             4096 * std::numeric_limits<W>::epsilon(),
             "actual native baryon entropy readout");
@@ -730,7 +730,9 @@ void retain_native(const native::IdealAcousticBatch &batch,
            << ",\"P_calls\":" << batch.evaluation_work.background_evaluations
            << ",\"age_calls\":" << batch.evaluation_work.age_evaluations
            << ",\"writes\":" << batch.evaluation_work.state_element_writes
-           << ",\"predictions_admitted\":false}";
+           << ",\"native_fields_admitted\":"
+           << (batch.status==S::ok ? "true" : "false")
+           << ",\"reference_comparison_qualified\":false}";
   emit(returned, budget, true);
   for (const auto &trajectory : batch.trajectories)
     for (std::size_t j = 0; j < trajectory.attempts.size(); ++j) {
@@ -858,7 +860,9 @@ void retained_source_control(native::IdealAcousticTransfer &owner,
 void original_campaign(native::IdealAcousticTransfer &owner) {
   const std::array<double, 2> ks{1e-4, .01};
   const std::array<double, 1> a{.01};
-  const native::IdealAcousticPolicy native_policy;
+  native::IdealAcousticPolicy native_policy;
+  native_policy.maximum_rhs_per_wavenumber=2000000;
+  native_policy.maximum_rhs_batch=4000000;
   peer::Budget budget; // One whole-request budget across both original k.
 #if defined(IRRED_IDEAL_ACOUSTIC_DIAGNOSTIC_400M)
   budget.maximum_writes = 400000000;
@@ -881,7 +885,9 @@ void original_campaign(native::IdealAcousticTransfer &owner) {
          "\"e8bf08cadf571557a9e4e2f2b59121dc58a64362288a4b95f4b491d41e35ab36\","
          "\"k\":[0.0001,0.01],\"a\":[0.01],\"native_ai\":1e-10,"
          "\"model_id\":\""
-      << native::ideal_acoustic_model_id << "\",\"peer_method_id\":\""
+      << native::ideal_acoustic_model_id << "\",\"native_method_id\":\""
+      << native::ideal_acoustic_method_id << "\",\"native_arithmetic_id\":\""
+      << native::ideal_acoustic_arithmetic_id << "\",\"peer_method_id\":\""
       << peer::method_id << "\",\"peer_source_control_id\":\""
       << peer::source_control_id
       << "\",\"H0\":" << owner.source()->model.h0_km_s_mpc
@@ -916,8 +922,8 @@ void original_campaign(native::IdealAcousticTransfer &owner) {
   retain_native(actual, budget);
   need(actual.rows.size() == ks.size() * a.size(),
        "original native ordered nine-field grid");
-  need(actual.shared_dependency_status == S::conditioning_budget_exceeded,
-       "native full source gate remains explicitly unavailable");
+  need(actual.shared_dependency_status == S::ok && actual.status==S::ok,
+       "explicit augmented native source-inclusive caller passes its gates");
   need(actual.trajectories.size() == ks.size(),
        "original native trajectories retained");
   for (const auto &trajectory : actual.trajectories) {
@@ -997,12 +1003,12 @@ void original_campaign(native::IdealAcousticTransfer &owner) {
          "raw actual endpoint discrepancy is retained");
     for (std::size_t j = 0; j < 9; ++j) {
       const auto &field = row.outputs[j];
-      need(field.computed && std::isfinite(*field.computed) && !field.value &&
-               field.status == S::conditioning_budget_exceeded &&
-               !field.error.common_source_background_age &&
-               !field.error.arithmetic_storage_constraint &&
-               !field.error.absolute_error_estimate,
-           "all9 original native raw witnesses remain unqualified");
+      need(field.computed && std::isfinite(*field.computed) && field.value &&
+               field.status == S::ok &&
+               field.error.common_source_background_age &&
+               field.error.arithmetic_storage_constraint &&
+               field.error.absolute_error_estimate,
+           "all9 conditional native values retain complete owned error leaves");
       const W epsilon =
           W(native_policy.absolute_tolerance) +
           W(native_policy.relative_tolerance) * std::abs(*field.computed);
@@ -1027,6 +1033,9 @@ void original_campaign(native::IdealAcousticTransfer &owner) {
                  << reference.initial_age_lambda_error_mpc
                  << ",\"native_time\":" << field.error.time_refinement
                  << ",\"native_initial\":" << field.error.initial_refinement
+                 << ",\"native_source\":" << *field.error.common_source_background_age
+                 << ",\"native_arithmetic\":" << *field.error.arithmetic_storage_constraint
+                 << ",\"native_total\":" << *field.error.absolute_error_estimate
                  << ",\"peer_normalized_M\":" << reference.normalized_momentum
                  << ",\"peer_normalized_H\":"
                  << reference.normalized_hamiltonian

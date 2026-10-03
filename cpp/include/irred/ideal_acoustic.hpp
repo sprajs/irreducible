@@ -26,6 +26,8 @@ struct IdealAcousticPolicy {
   double absolute_tolerance = 1e-8, relative_tolerance = 3e-5;
   double maximum_log_step = .02, maximum_constraint_residual = 1e-6;
   std::size_t maximum_wavenumbers = 2, maximum_samples = 4096;
+  // Original defaults remain. The augmented caller may explicitly request at
+  // most 2M per k/4M per batch for nominal plus six response-vector owners.
   std::size_t maximum_rhs_per_wavenumber = 1000000;
   std::size_t maximum_rhs_batch = 2000000;
   std::size_t maximum_background_evaluations = 3000000;
@@ -140,7 +142,7 @@ IdealAcousticTransfer prepare_ideal_acoustic(IdealAcousticRequest &&,
 inline constexpr std::string_view ideal_acoustic_model_id =
     "GR/flat-ideal-infinite-coupling-photon-cold-baryon-CDM-smooth-Lambda-unit-zeta/v1";
 inline constexpr std::string_view ideal_acoustic_method_id =
-    "retained-background-defect-aware-five-state-RK4-ordered-epoch-grid/v1";
+    "retained-background-defect-aware-RK4-correlated-six-state-response-ordered-epoch-grid/v2";
 inline constexpr std::string_view ideal_acoustic_arithmetic_id =
-    "strict-wide-log-a-common-thermal-state-nine-signed-readouts/v1";
+    "strict-wide-conditional-64eps-clock-common-thermal-state-nine-signed-readouts/v2";
 } // namespace irred::cosmology
