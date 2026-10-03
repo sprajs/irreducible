@@ -112,6 +112,25 @@ int main() {
            capped.work.rhs == 4 && capped.rows[0].attempts_recorded == 1 &&
            capped.rows[0].attempts[0].endpoint_available,
        "all attempted stage work retained at global cap");
+  for (unsigned mask : {massless_fd_comoving_cdm, massless_fd_spatial_potential,
+                        massless_fd_lapse_potential}) {
+    const auto required = owner.evaluate(k, 1e-4, mask, p);
+    const auto &r = required.rows[0];
+    const auto *field =
+        mask == massless_fd_comoving_cdm
+            ? &r.comoving_cdm
+            : (mask == massless_fd_spatial_potential ? &r.spatial_potential
+                                                     : &r.lapse_potential);
+    need(field->status == S::work_limit && !field->value &&
+             required.work.rhs == capped.work.rhs &&
+             required.work.scalar_updates == capped.work.scalar_updates &&
+             required.work.background_queries == capped.work.background_queries,
+         "single requested coordinate retains mandatory coupled work refusal");
+    auto invalid = p;
+    invalid.maximum_constraint_residual = 0;
+    need(owner.evaluate(k, 1e-4, mask, invalid).status == S::invalid_input,
+         "output mask cannot disable shared constraint admission");
+  }
   std::cout << "massless_fd_transfer_contract passed "
                "source/modes/lifetime/masks/refusal/work controls\n";
 }

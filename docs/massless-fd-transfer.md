@@ -108,9 +108,12 @@ batch, four million background queries, 200,000 age quadrature evaluations
 and 16 MiB native payload. Failed stages/controls consume their completed
 work. The first cap refusal is evidence; a later method amendment cannot erase
 it. The native 17-attempt witness retains status, initializer, state/metric
-epochs, fields, counters, phase maxima and constraint maximum. If a final background query
-fails, Delta, phi and scaled shear survive, while `lapse_available=false`
-explicitly withholds psi at that state epoch.
+epochs, fields, counters, phase maxima and constraint maximum. A background
+query refusal withholds the requested result. Its diagnostic lapse witness
+remains available precisely when the retained successful metric epoch matches
+the actual state epoch; otherwise `lapse_available=false` withholds psi.
+An extra query failure may leave a valid same-epoch cached witness. Delta, phi,
+scaled shear and age survive independently of lapse availability.
 
 ## Independent reference and actual caller
 

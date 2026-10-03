@@ -49,6 +49,14 @@ int main() {
   require(conservative_h * std::exp(conservative_h) < old_h &&
               clock_phase_upper(1, 1, std::exp(conservative_h)) < old_h,
           "conservative stage and whole-step phase allocations");
+  require(
+      !requested_cross_failure(massless_fd_comoving_cdm, 1, 0, 1, .1L) &&
+          requested_cross_failure(massless_fd_spatial_potential, 1, 0, 1,
+                                  .1L) &&
+          requested_cross_failure(7, 1, 0, 1, .1L) &&
+          !requested_cross_failure(massless_fd_lapse_potential, 0, 0, 1, .1L) &&
+          requested_cross_failure(massless_fd_comoving_cdm, 0, 0, 1, .1L),
+      "only requested coordinate cross discrepancy refuses its result");
   for (unsigned j = 1; j <= 32; ++j) {
     MasslessFDTransferValue value;
     std::array<W, 5> terms;

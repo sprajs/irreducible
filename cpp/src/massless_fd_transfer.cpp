@@ -268,6 +268,10 @@ W clock_phase_upper(W k, W previous_eta, W next_eta) {
   return k * (std::abs(next_eta - previous_eta) +
               64 * eps_w * (std::abs(next_eta) + std::abs(previous_eta)));
 }
+bool requested_cross_failure(unsigned outputs, unsigned field, W finest,
+                             W coarse, W allocated) {
+  return (outputs & (1U << field)) && std::abs(coarse - finest) > allocated;
+}
 struct Run {
   S status = S::invalid_input;
   State y{};
@@ -797,8 +801,9 @@ MasslessFDTransfer::evaluate(std::span<const double> ks, double target,
       e[0] = 8 * std::max(std::abs(v(0) - v(4)), std::abs(v(4) - v(3)));
       e[1] = 8 * std::max(std::abs(v(1) - v(2)), std::abs(v(2) - v(0)));
       e[2] = 8 * std::max(std::abs(v(5) - v(6)), std::abs(v(6) - v(0)));
-      if (std::abs(v(7) - v(0)) >
-          e[0] + e[1] + e[2] + 128 * eps_w * std::max(1.L, std::abs(v(0))))
+      if (requested_cross_failure(
+              outputs, field, v(0), v(7),
+              e[0] + e[1] + e[2] + 128 * eps_w * std::max(1.L, std::abs(v(0)))))
         cause = S::conditioning_budget_exceeded;
     }
     if (cause != S::ok) {
