@@ -130,6 +130,11 @@ replace the decimal nodes by an exact untabled affine function. Permanent
 analytic affine controls use dyadic nodes/powers. The selected caller budgets
 are1e-7Mpc^3 multipole diagnostics and1e-6 output-unit mean diagnostics, a
 synthetic regression resolution rather than an observational error requirement.
+The independent Legendre16/32/64 peer also compares each measured native
+discrepancy with the emitted native combined diagnostic plus that peer's own
+32-to64 change. This is a required empirical consistency control. Neither the
+last refinement change nor its agreement with the native estimator is a proven
+reference enclosure.
 
 ## Source and unassessed model errors
 

@@ -2,6 +2,7 @@
 #include <algorithm>
 #include <cfenv>
 #include <cmath>
+#include <iomanip>
 #include <iostream>
 #include <limits>
 #include <utility>
@@ -19,6 +20,19 @@ struct Counters {
   bool probe() { if (angular>=1000000) return false; ++angular; return true; }
 };
 struct Rule { std::vector<W> nodes,weights; };
+struct Reference {
+  std::pair<W,W> value, last_change;
+};
+bool valid_diagnostics(const p::PowerValue& power) {
+  const double components[]{power.quadrature_estimate,power.arithmetic_estimate,
+      power.grid_projection_estimate,power.volume_projection_estimate};
+  W total=0;
+  for (double component:components) {
+    if (!std::isfinite(component) || component<0) return false;
+    total+=component;
+  }
+  return std::isfinite(power.combined_estimate) && power.combined_estimate>=total;
+}
 std::pair<W,W> legendre(unsigned n,W x,Counters& c) {
   ++c.recurrences;
   W previous=1,current=x;
@@ -168,12 +182,14 @@ int main() {
   REQUIRE(std::fegetround()==FE_TONEAREST && std::numeric_limits<W>::digits>=64);
   Counters counts;Rule r16,r32,r64;
   W change16_32=0,change32_64=0;
+  W native_gap=0,native_estimate=0,consistency_margin=0;
+  std::size_t owner_actions=0,owner_callbacks=0,known_peak=0;
   REQUIRE(make_rule(16,r16,counts));REQUIRE(make_rule(32,r32,counts));REQUIRE(make_rule(64,r64,counts));
   const p::ModelPoint models[]{ {.32,2,1,1.1,.9}, {.32,1,-1,.9,1.1}, {.32,2,.8,1.03,.97} };
   for (unsigned type=0;type<3;++type) {
     for (const auto& model:models) {
       auto s=source(type);
-      std::vector<std::pair<W,W>> reference;
+      std::vector<Reference> reference;
       reference.reserve(s.window.theory_k.size());
       for (double k:s.window.theory_k) {
         REQUIRE(++counts.queries<=64 && s.spectrum.k_per_mpc.size()<=4096);
@@ -187,27 +203,55 @@ int main() {
         change32_64=std::max({change32_64,std::abs(medium.first-fine.first),std::abs(medium.second-fine.second)});
         REQUIRE(std::abs(medium.first-fine.first)<=1e-7L);
         REQUIRE(std::abs(medium.second-fine.second)<=1e-7L);
-        reference.push_back(fine);
+        reference.push_back({fine,{std::abs(medium.first-fine.first),
+                                   std::abs(medium.second-fine.second)}});
       }
       auto owner=p::prepare(std::move(s),{2000000,payload});
       REQUIRE(owner.status()==p::Status::ok);
       const auto actual=owner.evaluate(model,{1e-7,1e-6,8000000,2000000,4096,20,payload,true});
       REQUIRE(actual.status==p::Status::ok && actual.input_multipoles.size()==reference.size());
       for (std::size_t j=0;j<reference.size();++j) {
-        REQUIRE(std::abs(static_cast<W>(actual.input_multipoles[j].p0.value)-reference[j].first)<=1e-6L);
-        REQUIRE(std::abs(static_cast<W>(actual.input_multipoles[j].p2.value)-reference[j].second)<=1e-6L);
+        const p::PowerValue* powers[]{&actual.input_multipoles[j].p0,
+                                      &actual.input_multipoles[j].p2};
+        const W values[]{reference[j].value.first,reference[j].value.second};
+        const W changes[]{reference[j].last_change.first,reference[j].last_change.second};
+        for (unsigned ell=0;ell<2;++ell) {
+          REQUIRE(valid_diagnostics(*powers[ell]));
+          const W gap=std::abs(static_cast<W>(powers[ell]->value)-values[ell]);
+          const W allowance=powers[ell]->combined_estimate+changes[ell];
+          REQUIRE(gap<=1e-6L);
+          // Empirical agreement with the ACTUAL emitted owner diagnostics and
+          // independently measured last refinement, not a reference enclosure.
+          REQUIRE(gap<=allowance);
+          native_gap=std::max(native_gap,gap);
+          native_estimate=std::max(native_estimate,static_cast<W>(powers[ell]->combined_estimate));
+          consistency_margin=std::max(consistency_margin,allowance-gap);
+          REQUIRE(actual.mean[ell*reference.size()+j].power.value==powers[ell]->value);
+        }
       }
+      const auto& work=actual.work;
+      owner_actions+=work.model_fields+work.support_columns+work.split_candidates+
+          work.angular_callbacks+work.bracket_comparisons+work.interpolation_calls+
+          work.window_products+work.output_writes;
+      owner_callbacks+=work.angular_callbacks;
+      known_peak=std::max(known_peak,actual.known_live_payload_estimate_bytes);
       // Explicit finite fixed-source inventory; not a portable whole RSS bound.
       REQUIRE(owner.retained_payload_bytes() && *owner.retained_payload_bytes()+
           actual.known_live_payload_estimate_bytes+
-          reference.capacity()*sizeof(std::pair<W,W>)+
+          reference.capacity()*sizeof(Reference)+
           (r16.nodes.capacity()+r16.weights.capacity()+r32.nodes.capacity()+
            r32.weights.capacity()+r64.nodes.capacity()+r64.weights.capacity())*sizeof(W)<payload);
     }
   }
   REQUIRE(counts.roots==56 && counts.newton<=56*64 && counts.recurrences<=56*130);
   REQUIRE(counts.angular<=1000000 && counts.queries==27);
-  std::cout << "windowed linear GL peer PASS; probes=" << counts.angular
+  std::cout << std::setprecision(18)
+            << "windowed linear GL peer PASS; probes=" << counts.angular
             << ", queries=" << counts.queries << ", refinement16-32=" << change16_32
-            << ", refinement32-64=" << change32_64 << "; empirical refinement only\n";
+            << ", refinement32-64=" << change32_64
+            << ", native-gap=" << native_gap << ", native-estimate=" << native_estimate
+            << ", maximum-consistency-margin=" << consistency_margin
+            << ", owner-actions=" << owner_actions << ", owner-callbacks=" << owner_callbacks
+            << ", owner-known-payload=" << known_peak
+            << "; empirical refinement/diagnostic agreement only\n";
 }

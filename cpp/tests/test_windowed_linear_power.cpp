@@ -238,6 +238,20 @@ int main() {
   REQUIRE(survives.status==p::Status::ok && survives.identity.spectrum=="synthetic/dyadic-spectrum");
   REQUIRE(close(survives.mean[0].power.value,mono));
   REQUIRE(heap_peak<bytes);
+  const auto& prep=assigned.preparation_work();
+  const auto& work=r.work;
   std::cout << "windowed linear controls PASS; requested-new peak=" << heap_peak
+            << ", owner-known-payload=" << r.known_live_payload_estimate_bytes
+            << ", preparation-actions=" << prep.fields+prep.spectrum_nodes+
+                prep.axis_nodes+prep.window_coefficients+prep.mapped_axis_writes
+            << ", evaluation-actions=" << work.model_fields+work.support_columns+
+                work.split_candidates+work.angular_callbacks+work.bracket_comparisons+
+                work.interpolation_calls+work.window_products+work.output_writes
+            << ", callbacks=" << work.angular_callbacks
+            << ", refused-actions=" << limited.work.model_fields+limited.work.support_columns+
+                limited.work.split_candidates+limited.work.angular_callbacks+
+                limited.work.bracket_comparisons+limited.work.interpolation_calls+
+                limited.work.window_products+limited.work.output_writes
+            << ", refused-callbacks=" << cb.work.angular_callbacks
             << " (not RSS/opaque allocation); native fit is case-specific\n";
 }
