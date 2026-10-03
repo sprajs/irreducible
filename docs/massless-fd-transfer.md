@@ -145,6 +145,9 @@ limits, species splitting/order and adversarial refusals. Shared source and
 thermal background ancestry are explicitly retained. Every attempted/rejected
 stage record is byte-guarded: 256 MiB per k case, 2 GiB campaign and 8 KiB per
 record, alongside two million RHS, 512 million updates and 16 MiB payload.
+The test encoder owns a fixed 8 KiB buffer before formatting. Complete writer
+buffer and simultaneous allocation checks on the selected standard library
+remain pending; that fixed encoder alone does not prove the whole-call payload.
 No raw long-double padding is serialized. CTest's 300-second timeout applies
 to the whole peer test binary, including all its cases; runtime limits are not
 performance qualification.

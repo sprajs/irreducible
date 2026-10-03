@@ -12,12 +12,13 @@
 #include <complex>
 #include <cstdlib>
 #include <filesystem>
+#include <fstream>
 #include <iomanip>
 #include <iostream>
 #include <limits>
-#include <sstream>
 #include <stdexcept>
 #include <string>
+#include <string_view>
 #include <vector>
 
 namespace {
@@ -375,6 +376,390 @@ std::filesystem::path evidence_directory() {
       "cannot create fresh retained peer evidence directory");
 }
 
+struct RetainedText {
+  std::array<char, 16384> bytes{};
+  std::size_t size = 0;
+  std::string_view view() const { return {bytes.data(), size}; }
+};
+
+RetainedText bounded_retained_text(const std::filesystem::path &path) {
+  RetainedText out;
+  std::ifstream input(path, std::ios::binary);
+  need(bool(input), "retained control record is readable");
+  input.read(out.bytes.data(), std::streamsize(out.bytes.size()));
+  out.size = std::size_t(input.gcount());
+  need(!input.bad() &&
+           (input.eof() || input.peek() == std::char_traits<char>::eof()),
+       "control record read stays within its fixed storage");
+  need(std::filesystem::file_size(path) == out.size,
+       "bounded read covers exactly the retained control bytes");
+  return out;
+}
+
+void encoder_controls(const std::filesystem::path &directory) {
+  peer::Record exact_record;
+  exact_record << "original-request-prefix ";
+  for (std::size_t j = exact_record.view().size(); j < 8192; ++j)
+    exact_record.put('x');
+  need(!exact_record.overflowed() && exact_record.view().size() == 8192,
+       "real fixed encoder admits exactly its original 8192-byte cap");
+  {
+    std::size_t campaign_bytes = 0;
+    peer::Budget budget;
+    budget.maximum_ledger_bytes = budget.maximum_campaign_bytes = 8192;
+    budget.campaign_bytes = &campaign_bytes;
+    const auto path = directory / "encoder-exact-cap.txt";
+    peer::Ledger ledger(path.string());
+    need(ledger.write(exact_record, budget) && budget.status == S::ok &&
+             budget.ledger_bytes == 8192 && campaign_bytes == 8192,
+         "real record write admits exact per-case and campaign byte caps");
+    need(!ledger.write("!", budget) && budget.status == S::work_limit &&
+             budget.ledger_bytes == 8192 && campaign_bytes == 8192 &&
+             budget.logging_refusals == 1,
+         "next byte refuses without appending or inventing retained work");
+    const auto retained = bounded_retained_text(path);
+    need(retained.view() == exact_record.view(),
+         "byte-cap refusal preserves every original exact-cap byte");
+  }
+  exact_record.put('!');
+  need(exact_record.overflowed() && exact_record.view().size() == 8192 &&
+           exact_record.view().back() == 'x',
+       "next formatter character cannot grow or overwrite fixed encoder");
+  {
+    std::array<char, 8193> bulk;
+    bulk.fill('b');
+    peer::Record record;
+    record.write(bulk.data(), std::streamsize(bulk.size()));
+    need(record.overflowed() && record.view().size() == 8192 &&
+             std::all_of(record.view().begin(), record.view().end(),
+                         [](char byte) { return byte == 'b'; }),
+         "real bulk formatter preserves exactly its bounded original prefix");
+  }
+  {
+    std::size_t campaign_bytes = 0;
+    peer::Budget budget;
+    budget.campaign_bytes = &campaign_bytes;
+    budget.rhs = 7;
+    budget.attempted_stages = 9;
+    budget.scalar_updates = 11;
+    const auto path = directory / "encoder-overflow-prefix.txt";
+    peer::Ledger ledger(path.string());
+    need(!ledger.write(exact_record, budget) &&
+             ledger.status == S::work_limit && budget.status == S::work_limit &&
+             budget.logging_refusals >= 1 && budget.rhs == 7 &&
+             budget.attempted_stages == 9 && budget.scalar_updates == 11,
+         "overflow preserves actual work and refuses accepted ledger output");
+    const auto retained = bounded_retained_text(path);
+    need(retained.size >= 8192 && retained.size == budget.ledger_bytes &&
+             retained.size == campaign_bytes &&
+             retained.view().substr(0, 8191) ==
+                 exact_record.view().substr(0, 8191) &&
+             retained.view()[8191] == '\n' &&
+             retained.view().find("kind=record-encoder-refusal") == 8192 &&
+             retained.view().find("retained_prefix_bytes=8191") !=
+                 std::string_view::npos &&
+             retained.view().find("rhs=7 attempted_stages=9 scalars=11") !=
+                 std::string_view::npos,
+         "overflow retains bounded original prefix and separate true counters");
+  }
+  for (std::size_t limit : {8191U, 8192U}) {
+    peer::Budget budget;
+    budget.maximum_ledger_bytes = limit;
+    const auto path = directory / ("encoder-overflow-external-" +
+                                   std::to_string(limit) + ".txt");
+    peer::Ledger ledger(path.string());
+    need(!ledger.write(exact_record, budget) &&
+             budget.status == S::work_limit && budget.logging_refusals >= 1 &&
+             budget.ledger_bytes == limit,
+         "external cap preserves actually appended overflow prefix only");
+    const auto retained = bounded_retained_text(path);
+    need(retained.size == limit &&
+             retained.view().substr(0, 8191) ==
+                 exact_record.view().substr(0, 8191) &&
+             retained.view().find("kind=record-encoder-refusal") ==
+                 std::string_view::npos &&
+             (limit == 8191 || retained.view().back() == '\n'),
+         "partial prefix is retained without fabricating missing refusal text");
+  }
+  {
+    const auto path = directory / "encoder-preserve-existing.txt";
+    peer::Budget first;
+    {
+      peer::Ledger ledger(path.string());
+      need(ledger.write("immutable-first-refusal\n", first),
+           "original refusal witness is retained before reopening");
+    }
+    peer::Ledger reopened(path.string());
+    need(reopened.status == S::invalid_input,
+         "nonempty original ledger cannot be reused as a fresh campaign");
+    const auto retained = bounded_retained_text(path);
+    need(retained.view() == "immutable-first-refusal\n",
+         "refused ledger reuse preserves original evidence exactly");
+  }
+}
+
+void gram_admission_controls(const std::filesystem::path &directory) {
+  // Fail at the second node so each record also has a real checked prefix.
+  // None of these are scientific source states or solver-admission fixtures.
+  const W nan = std::numeric_limits<W>::quiet_NaN();
+  const W infinity = std::numeric_limits<W>::infinity();
+  const W allowance = peer::node_translation_allowance(1.L);
+  need(std::isfinite(allowance) && allowance > 0,
+       "Gram arithmetic guard has a finite positive unit-scale allowance");
+  peer::Controls controls;
+  controls.run_id = "adversarial-per-node-Gram";
+  for (unsigned mode = 0; mode < 15; ++mode) {
+    peer::Budget budget;
+    budget.rhs = 2;
+    budget.attempted_stages = 3;
+    const auto path =
+        directory / ("gram-node-refusal-" + std::to_string(mode) + ".txt");
+    peer::Ledger ledger(path.string());
+    std::size_t visited = 0;
+    const bool accepted = peer::record_gram_nodes<W>(
+        ledger, budget, controls, 0.L, 3, "synthetic-invalid",
+        [&](std::size_t j) {
+          ++visited;
+          peer::NodeTranslationWitness<W> node{C(1), C(1), C(0), 1, C(0)};
+          if (j == 1) {
+            switch (mode) {
+            case 0:
+              node.before.real(nan);
+              break;
+            case 1:
+              node.after.imag(nan);
+              break;
+            case 2:
+              node.translated_difference.real(nan);
+              break;
+            case 3:
+              node.remainder_change.imag(nan);
+              break;
+            case 4:
+              node.scale = nan;
+              break;
+            case 5:
+              node.before.imag(infinity);
+              break;
+            case 6:
+              node.after.real(infinity);
+              break;
+            case 7:
+              node.translated_difference.imag(infinity);
+              break;
+            case 8:
+              node.remainder_change.real(infinity);
+              break;
+            case 9:
+              node.scale = infinity;
+              break;
+            case 10:
+              node.scale = -1;
+              break;
+            case 11:
+              node.translated_difference = C(2 * allowance);
+              break;
+            case 12:
+              node.after = C(2);
+              break;
+            case 13:
+              node.scale = 0;
+              node.translated_difference = C(1e-40L);
+              break;
+            case 14:
+              node.before = C(-std::numeric_limits<W>::max());
+              node.after = C(std::numeric_limits<W>::max());
+              node.scale = std::numeric_limits<W>::max();
+              break;
+            }
+          }
+          return node;
+        });
+    const auto expected = mode < 11 || mode == 14
+                              ? S::nonfinite_input
+                              : S::conditioning_budget_exceeded;
+    need(!accepted && budget.status == expected && visited == 2 &&
+             budget.scalar_updates == 50 && budget.rhs == 2 &&
+             budget.attempted_stages == 3 && budget.ledger_bytes > 0,
+         "real per-node Gram gate refuses before a later node or accepted "
+         "summary");
+    const auto retained = bounded_retained_text(path);
+    const std::string status = "node_status=" + std::to_string(int(expected));
+    need(retained.size == budget.ledger_bytes &&
+             retained.view().find(" node=0,") != std::string_view::npos &&
+             retained.view().find("refused_node=1") != std::string_view::npos &&
+             retained.view().find(status) != std::string_view::npos &&
+             retained.view().find("diagnostics_valid=0 checked_prefix=1") !=
+                 std::string_view::npos &&
+             retained.view().find("Gram-node-summary") ==
+                 std::string_view::npos,
+         "NaN and magnitude refusals retain exact node and checked prefix");
+  }
+  {
+    peer::Budget budget;
+    const auto path = directory / "gram-node-arithmetic-bound.txt";
+    peer::Ledger ledger(path.string());
+    need(peer::record_gram_nodes<W>(
+             ledger, budget, controls, 0.L, 2, "synthetic-boundary",
+             [&](std::size_t j) {
+               return peer::NodeTranslationWitness<W>{
+                   C(1), C(1), j ? C(allowance) : C(0), W(j ? 1 : 0), C(0)};
+             }) &&
+             budget.status == S::ok && budget.scalar_updates == 50,
+         "zero-scale zero change and exact arithmetic bound admit inclusively");
+    const auto retained = bounded_retained_text(path);
+    need(retained.view().find("Gram-node-summary") != std::string_view::npos &&
+             retained.view().find("checked=2") != std::string_view::npos,
+         "only completely checked Gram blocks earn a retained summary");
+  }
+  {
+    peer::Budget budget;
+    budget.maximum_scalar_updates = 49;
+    const auto path = directory / "gram-node-scalar-cap.txt";
+    peer::Ledger ledger(path.string());
+    std::size_t visited = 0;
+    need(!peer::record_gram_nodes<W>(ledger, budget, controls, 0.L, 2,
+                                     "synthetic-work-cap",
+                                     [&](std::size_t) {
+                                       ++visited;
+                                       return peer::NodeTranslationWitness<W>{
+                                           C(1), C(1), C(0), 1, C(0)};
+                                     }) &&
+             budget.status == S::work_limit && budget.scalar_updates == 25 &&
+             visited == 1,
+         "actual Gram callback is not invoked beyond its original scalar cap");
+    const auto retained = bounded_retained_text(path);
+    need(retained.size == budget.ledger_bytes &&
+             retained.view().find(" node=0,") != std::string_view::npos &&
+             retained.view().find("refused_node=1") != std::string_view::npos &&
+             retained.view().find("diagnostics_valid=0 checked_prefix=1") !=
+                 std::string_view::npos &&
+             retained.view().find("scalar_assignment_refusal=1") !=
+                 std::string_view::npos &&
+             retained.view().find("Gram-node-summary") ==
+                 std::string_view::npos,
+         "scalar refusal retains its already checked Gram-node prefix");
+  }
+}
+
+void tiny_translation_controls() {
+  // Formal tiny-coordinate algebra deliberately puts the impulse below the
+  // ulp of primitive O(1) fields. It is not an admitted physical epoch or a
+  // response-budget qualification. Expectations come from the stored paired
+  // rule's independent low polynomial integrals, without subtracting fields.
+  const auto rule = discrete_witness_rule();
+  constexpr W tiny = 1e-40L, fr = .8L, x = .2L, x2 = x * x;
+  const C alpha{tiny, 0}, beta{0, tiny / 2};
+  const W p2_mean = (3 * rule.m2 - 1) / 2;
+  const C expected_q2_change = -alpha * p2_mean;
+  peer::Budget budget;
+  const auto changed = peer::weighted_change<W>(
+      rule, [&](std::size_t j) { return -alpha - beta * rule.mu[j]; }, &budget);
+  near(changed.q2, expected_q2_change, arithmetic * tiny, arithmetic,
+       "tiny event dot retains actual residual change below primitive ulp");
+  need(changed.arithmetic_error >= 0 &&
+           changed.arithmetic_error <= arithmetic * tiny &&
+           budget.scalar_updates == 5 * rule.mu.size() + 4,
+       "tiny event dot has a dimensioned roundoff bound and charged "
+       "destinations");
+  const auto impulse =
+      peer::gram_impulse(fr, x2, alpha, beta, changed.q2, &budget);
+  const W expected_psi = -3 * fr * tiny * p2_mean;
+  const W expected_b = x * tiny / 2;
+  const W expected_density = x2 * tiny - 4 * expected_psi;
+  near(impulse.psi, expected_psi, arithmetic * tiny, arithmetic,
+       "tiny event lapse sign follows actual weighted remainder change");
+  near(impulse.sigma, x2 * tiny * p2_mean / 2, arithmetic * tiny, arithmetic,
+       "tiny event shear has physical x squared normalization");
+  near(
+      impulse.b, expected_b, arithmetic * tiny, arithmetic,
+      "tiny Gram imaginary dipole changes canonical Hcal B with original sign");
+  near(impulse.density, expected_density, arithmetic * tiny, arithmetic,
+       "tiny event density preserves lapse and constant translation together");
+  near(impulse.E, (1 - 2 * fr) * expected_psi + fr * x2 * tiny / 2,
+       arithmetic * tiny, arithmetic,
+       "tiny event Hamiltonian jump follows original primitive constraint");
+  near(impulse.W, expected_psi + fr * expected_b / 2, arithmetic * tiny,
+       arithmetic,
+       "tiny event momentum jump follows canonical radiation velocity");
+  need(impulse.psi != 0 && impulse.E != 0 && impulse.W != 0 &&
+           budget.scalar_updates == 5 * rule.mu.size() + 10,
+       "six real impulse destinations preserve nonzero tiny constraint jumps");
+
+  peer::Epoch epoch;
+  epoch.status = S::ok;
+  epoch.hcal = 1;
+  epoch.fr = fr;
+  epoch.fc = 1 - fr;
+  epoch.fl = epoch.closure_defect = 0;
+  epoch.x2 = x2;
+  epoch.g = -1 + epoch.fc / 2;
+  epoch.background_identity_defect = 0;
+  peer::State<W> before, after;
+  before.v[2] = .07L;
+  before.R.resize(rule.mu.size());
+  after = before;
+  for (std::size_t j = 0; j < rule.mu.size(); ++j)
+    after.R[j] -= alpha + beta * rule.mu[j];
+  after.v[5] += impulse.density;
+  after.v[6] += impulse.b;
+  const auto raw_before = peer::readout(before, rule, epoch);
+  const auto raw_after = peer::readout(after, rule, epoch);
+  need(raw_after.psi - raw_before.psi == 0 && raw_after.E - raw_before.E == 0 &&
+           raw_after.W - raw_before.W == 0 && after.v[2] == before.v[2],
+       "tiny source impulses survive when all raw primitive subtractions lose "
+       "them");
+  for (std::size_t j = 0; j < rule.mu.size(); ++j) {
+    const C delta_D = impulse.density + 4 * impulse.psi +
+                      imaginary * x * rule.mu[j] * impulse.b +
+                      x2 * (after.R[j] - before.R[j]);
+    near(delta_D, C(0), arithmetic * tiny, 0,
+         "tiny event stable nodal identity retains every translated D node");
+  }
+  {
+    peer::Budget refused;
+    refused.maximum_scalar_updates = 5;
+    const auto blocked =
+        peer::gram_impulse(fr, x2, alpha, beta, changed.q2, &refused);
+    need(refused.status == S::work_limit && refused.scalar_updates == 0 &&
+             blocked.psi == 0 && blocked.E == 0 && blocked.W == 0,
+         "actual impulse work gate refuses before six output assignments");
+  }
+
+  constexpr W k = .002L, eta = 1e-20L, H = 1.L, p = -10.L / 19;
+  epoch.x2 = k * k;
+  peer::Budget initial_budget;
+  const auto initial =
+      peer::initialize(rule, epoch, k, eta, 0.L, &initial_budget);
+  const W amplitude = -2 * p * eta * eta / 3;
+  const W expected_initial_q2 =
+      H * H * amplitude * (rule.squared_p2 - p2_mean * p2_mean - 1.L / 5);
+  const W expected_initial_psi = 3 * fr * expected_initial_q2;
+  near(initial.q2_translation, expected_initial_q2, arithmetic * tiny,
+       arithmetic, "tiny initializer includes actual squared-P2 normalization");
+  near(initial.psi_translation, expected_initial_psi, arithmetic * tiny,
+       arithmetic,
+       "tiny initial slip change is assembled before O(1) subtraction");
+  near(initial.sigma_translation, -k * k * expected_initial_q2 / (2 * H * H),
+       arithmetic * tiny * k * k, arithmetic,
+       "tiny initial shear retains the original k squared dimensions");
+  near(initial.density_translation,
+       k * k * amplitude * p2_mean - 4 * expected_initial_psi,
+       arithmetic * tiny, arithmetic,
+       "tiny initial constant-Gram and lapse density translations remain "
+       "distinct");
+  near(initial.psi_subtraction_error, -expected_initial_psi, arithmetic * tiny,
+       arithmetic,
+       "lost raw initial lapse subtraction is retained as a rounding "
+       "discrepancy");
+  need(initial_budget.status == S::ok && initial.q2_translation != 0 &&
+           initial.psi_translation != 0 &&
+           initial.actual.psi - initial.ideal.psi == 0 &&
+           initial.Z == initial.ideal.Z,
+       "tiny initialization retains nonzero stable correction and unchanged "
+       "original Z");
+}
+
 void resource_controls(const std::filesystem::path &directory) {
   {
     peer::State<W> source, destination;
@@ -486,7 +871,10 @@ void resource_controls(const std::filesystem::path &directory) {
   {
     peer::Budget budget;
     peer::Ledger ledger((directory / "record-size-refusal.txt").string());
-    need(!ledger.write(std::string(8193, 'x'), budget) &&
+    std::array<char, 8193> oversized;
+    oversized.fill('x');
+    need(!ledger.write(std::string_view(oversized.data(), oversized.size()),
+                       budget) &&
              budget.status == S::work_limit && budget.ledger_bytes == 0,
          "encoded record scratch cap refuses before append");
   }
@@ -734,7 +1122,7 @@ void full_trace_controls(const irred::cosmology::ThermalBackground &background,
       state.R.emplace_back(coefficient * (legendre(2, mu) - p2_mean) +
                                2 * p * legendre(2, mu) / 3,
                            0);
-    std::ostringstream input;
+    peer::Record input;
     input << std::setprecision(std::numeric_limits<W>::max_digits10)
           << "control-input a=" << scale_factor << " k=" << wave << " h=" << h
           << " w=" << w << " v=" << v << " Z=" << z
@@ -744,7 +1132,7 @@ void full_trace_controls(const irred::cosmology::ThermalBackground &background,
           << " cdm=" << background.source().omega_cdm
           << " radiation=" << radiation.a4_e2
           << " radiation_error=" << radiation.error_estimate << '\n';
-    need(ledger.write(input.str(), budget),
+    need(ledger.write(input, budget),
          "injected original input record retained");
     return state;
   };
@@ -878,8 +1266,8 @@ native_comparison(const irred::cosmology::ThermalBackground &background,
   native_evidence_budget.campaign_bytes = &campaign_bytes;
   peer::Ledger native_evidence(
       (directory / "native-request-and-return.txt").string());
-  auto retain = [&](const std::ostringstream &record) {
-    need(native_evidence.write(record.str(), native_evidence_budget),
+  auto retain = [&](const peer::Record &record) {
+    need(native_evidence.write(record, native_evidence_budget),
          "native request or returned witness retained and flushed");
   };
   auto work_record = [](std::ostream &record,
@@ -890,7 +1278,7 @@ native_comparison(const irred::cosmology::ThermalBackground &background,
            << " momentum_callbacks=" << work.momentum_callbacks;
   };
   const auto &source = background.source();
-  std::ostringstream request;
+  peer::Record request;
   request << std::setprecision(std::numeric_limits<W>::max_digits10)
           << "native-request status=started completion=unobserved"
           << " incomplete_disposition=interrupted actual_counters=unavailable"
@@ -944,7 +1332,7 @@ native_comparison(const irred::cosmology::ThermalBackground &background,
           << '\n';
   retain(request);
   const auto got = native.evaluate(waves, target, outputs, policy);
-  std::ostringstream returned;
+  peer::Record returned;
   returned
       << "native-return completion=returned actual_counters=available status="
       << static_cast<int>(got.status) << " rows=" << got.rows.size()
@@ -959,7 +1347,7 @@ native_comparison(const irred::cosmology::ThermalBackground &background,
   // returned.
   for (std::size_t row_index = 0; row_index < got.rows.size(); ++row_index) {
     const auto &row = got.rows[row_index];
-    std::ostringstream row_record;
+    peer::Record row_record;
     row_record << std::setprecision(std::numeric_limits<W>::max_digits10)
                << "native-row row=" << row_index
                << " k=" << row.wavenumber_mpc_inverse
@@ -977,7 +1365,7 @@ native_comparison(const irred::cosmology::ThermalBackground &background,
         &row.comoving_cdm, &row.spatial_potential, &row.lapse_potential};
     for (std::size_t field = 0; field < values.size(); ++field) {
       const auto &value = *values[field];
-      std::ostringstream record;
+      peer::Record record;
       record << std::setprecision(std::numeric_limits<W>::max_digits10)
              << "native-field row=" << row_index << " field=" << field
              << " status=" << static_cast<int>(value.status)
@@ -999,7 +1387,7 @@ native_comparison(const irred::cosmology::ThermalBackground &background,
          ++trial) {
       const auto &attempt = row.attempts[trial];
       const auto &initial_state = attempt.initial;
-      std::ostringstream record;
+      peer::Record record;
       record << std::setprecision(std::numeric_limits<W>::max_digits10)
              << "native-attempt row=" << row_index << " trial=" << trial
              << " status=" << static_cast<int>(attempt.status)
@@ -1110,7 +1498,7 @@ native_comparison(const irred::cosmology::ThermalBackground &background,
         (directory / ("comparison-row-" + std::to_string(row_index) + ".txt"))
             .string(),
         budget);
-    std::ostringstream peer_return;
+    peer::Record peer_return;
     peer_return
         << std::setprecision(std::numeric_limits<W>::max_digits10)
         << "peer-return row=" << row_index
@@ -1252,8 +1640,8 @@ NativeBatch retained_native_control(const Background &background,
   peer::Budget record_budget;
   record_budget.campaign_bytes = &campaign_bytes;
   peer::Ledger ledger((directory / (std::string(name) + ".txt")).string());
-  auto record = [&](const std::ostringstream &text) {
-    need(ledger.write(text.str(), record_budget),
+  auto record = [&](const peer::Record &text) {
+    need(ledger.write(text, record_budget),
          "additional native control record retained before admission check");
   };
   auto work = [](std::ostream &out, const MasslessFDTransferWork &count) {
@@ -1265,7 +1653,7 @@ NativeBatch retained_native_control(const Background &background,
   constexpr unsigned outputs = massless_fd_comoving_cdm |
                                massless_fd_spatial_potential |
                                massless_fd_lapse_potential;
-  std::ostringstream request;
+  peer::Record request;
   const auto &source = background.source();
   request << std::setprecision(std::numeric_limits<W>::max_digits10)
           << "control-request name=" << name
@@ -1304,7 +1692,7 @@ NativeBatch retained_native_control(const Background &background,
     request << "source-wave index=" << j << " k=" << waves[j] << '\n';
   record(request);
   const auto owner = prepare_massless_fd_transfer(background, 1e-14);
-  std::ostringstream prepared;
+  peer::Record prepared;
   prepared << "control-owner-prepare name=" << name
            << " status=" << static_cast<int>(owner.status()) << '\n';
   record(prepared);
@@ -1332,7 +1720,7 @@ NativeBatch retained_native_control(const Background &background,
          "additional native owner keeps physical species tuple order");
   }
   const auto batch = owner.evaluate(waves, target, outputs, policy);
-  std::ostringstream returned;
+  peer::Record returned;
   returned << "control-return name=" << name
            << " completion=returned status=" << static_cast<int>(batch.status)
            << " rows=" << batch.rows.size();
@@ -1341,7 +1729,7 @@ NativeBatch retained_native_control(const Background &background,
   record(returned);
   for (std::size_t j = 0; j < batch.rows.size(); ++j) {
     const auto &row = batch.rows[j];
-    std::ostringstream summary;
+    peer::Record summary;
     summary << std::setprecision(std::numeric_limits<W>::max_digits10)
             << "control-row index=" << j << " k=" << row.wavenumber_mpc_inverse
             << " eta=" << row.conformal_age_mpc
@@ -1357,7 +1745,7 @@ NativeBatch retained_native_control(const Background &background,
         &row.comoving_cdm, &row.spatial_potential, &row.lapse_potential};
     for (std::size_t field = 0; field < values.size(); ++field) {
       const auto &value = *values[field];
-      std::ostringstream line;
+      peer::Record line;
       line << std::setprecision(std::numeric_limits<W>::max_digits10)
            << "control-field row=" << j << " field=" << field
            << " status=" << static_cast<int>(value.status)
@@ -1377,7 +1765,7 @@ NativeBatch retained_native_control(const Background &background,
          std::min<std::size_t>(row.attempts_recorded, row.attempts.size());
          ++trial) {
       const auto &a = row.attempts[trial];
-      std::ostringstream line;
+      peer::Record line;
       line << std::setprecision(std::numeric_limits<W>::max_digits10)
            << "control-attempt row=" << j << " trial=" << trial
            << " status=" << static_cast<int>(a.status)
@@ -1530,8 +1918,8 @@ void species_and_epoch_controls(const Background &baseline,
   identity_budget.campaign_bytes = &campaign_bytes;
   peer::Ledger identity_record(
       (directory / "species-identity-setup.txt").string());
-  auto retain_identity = [&](const std::ostringstream &line) {
-    need(identity_record.write(line.str(), identity_budget),
+  auto retain_identity = [&](const peer::Record &line) {
+    need(identity_record.write(line, identity_budget),
          "species identity inputs/setup counters retained before checks");
   };
   need(identity_budget.charge(identity_budget.background_queries, 1,
@@ -1539,7 +1927,7 @@ void species_and_epoch_controls(const Background &baseline,
        "baseline species-identity background query charged");
   const auto base_radiation = baseline.scaled_expansion(0);
   identity_budget.momentum_callbacks += base_radiation.callbacks;
-  std::ostringstream base_record;
+  peer::Record base_record;
   base_record << std::setprecision(std::numeric_limits<W>::max_digits10)
               << "baseline-radiation status="
               << static_cast<int>(base_radiation.status)
@@ -1570,7 +1958,7 @@ void species_and_epoch_controls(const Background &baseline,
       "species-split", "species-temperature-weight", "species-reversed"};
   for (std::size_t variation = 0; variation < models.size(); ++variation) {
     const auto &model = *models[variation];
-    std::ostringstream input;
+    peer::Record input;
     input << std::setprecision(std::numeric_limits<W>::max_digits10)
           << "species-case name=" << names[variation]
           << " status=started completion=unobserved "
@@ -1587,7 +1975,7 @@ void species_and_epoch_controls(const Background &baseline,
          arithmetic, "independent massless g*T0^4 degeneracy");
     const auto background = prepare_thermal_background(model);
     identity_budget.momentum_callbacks += background.preparation_callbacks();
-    std::ostringstream prepared;
+    peer::Record prepared;
     prepared << "species-prepared name=" << names[variation]
              << " status=" << static_cast<int>(background.status())
              << " preparation_callbacks=" << background.preparation_callbacks()
@@ -1609,7 +1997,7 @@ void species_and_epoch_controls(const Background &baseline,
          "species identity retained-radiation query charged");
     const auto radiation = background.scaled_expansion(0);
     identity_budget.momentum_callbacks += radiation.callbacks;
-    std::ostringstream radiation_record;
+    peer::Record radiation_record;
     radiation_record << std::setprecision(std::numeric_limits<W>::max_digits10)
                      << "species-radiation name=" << names[variation]
                      << " status=" << static_cast<int>(radiation.status)
@@ -1635,7 +2023,7 @@ void species_and_epoch_controls(const Background &baseline,
     // baseline angular/TRACE reference rather than repeat its full campaign.
     compare_reference_point(got.rows[0], reference);
   }
-  std::ostringstream near_input;
+  peer::Record near_input;
   near_input << "near-radiation-prepare status=started completion=unobserved"
              << " incomplete_disposition=interrupted H0=70 gamma=0 "
                 "massless_nonphoton=0"
@@ -1645,7 +2033,7 @@ void species_and_epoch_controls(const Background &baseline,
   const auto near_radiation =
       prepare_thermal_background({70, 0, 0, 0, 1e-6, {{0, .0002, 2}}});
   identity_budget.momentum_callbacks += near_radiation.preparation_callbacks();
-  std::ostringstream near_prepared;
+  peer::Record near_prepared;
   near_prepared << "near-radiation-prepared status="
                 << static_cast<int>(near_radiation.status())
                 << " preparation_callbacks="
@@ -1667,7 +2055,7 @@ void species_and_epoch_controls(const Background &baseline,
   peer::Budget record_budget;
   record_budget.campaign_bytes = &campaign_bytes;
   peer::Ledger record((directory / "near-radiation-peer-return.txt").string());
-  std::ostringstream summary;
+  peer::Record summary;
   summary << "near-radiation-peer status="
           << static_cast<int>(independent.status)
           << " diagnostics_partial=" << (independent.status == S::ok ? 0 : 1)
@@ -1686,7 +2074,7 @@ void species_and_epoch_controls(const Background &baseline,
               << independent.contributions[field][term];
   }
   summary << '\n';
-  need(record.write(summary.str(), record_budget),
+  need(record.write(summary, record_budget),
        "near-radiation peer refusal or result retained");
   need(independent.status == S::ok && budget.status == S::ok,
        "required near-radiation angular TRACE peer earns admission within "
@@ -1737,14 +2125,14 @@ void late_and_phase_controls(const Background &background,
   age_budget.campaign_bytes = &campaign_bytes;
   peer::Ledger phase_record(
       (directory / "phase-construction-and-independent-age.txt").string());
-  std::ostringstream age_request;
+  peer::Record age_request;
   age_request << "independent-age-request status=started completion=unobserved"
               << " incomplete_disposition=interrupted "
                  "actual_counters=unavailable target_a=1"
               << " background_cap=" << age_budget.maximum_background_queries
               << " age_cap=" << age_budget.maximum_age_quadrature_evaluations
               << " scalars_cap=" << age_budget.maximum_scalar_updates << '\n';
-  need(phase_record.write(age_request.str(), age_budget),
+  need(phase_record.write(age_request, age_budget),
        "independent age pending request retained before setup and evaluation");
   need(age_budget.charge(age_budget.background_queries, 1,
                          age_budget.maximum_background_queries),
@@ -1755,7 +2143,7 @@ void late_and_phase_controls(const Background &background,
        "independent late-age retained radiation acquired");
   const auto independent_age = peer::endpoint_age(
       background, 1, radiation.a4_e2, radiation.error_estimate, age_budget);
-  std::ostringstream age_record;
+  peer::Record age_record;
   age_record << std::setprecision(std::numeric_limits<W>::max_digits10)
              << "independent-age status="
              << static_cast<int>(independent_age.status)
@@ -1769,7 +2157,7 @@ void late_and_phase_controls(const Background &background,
   else
     age_record << " eta=unavailable eta_error=unavailable";
   age_record << '\n';
-  need(phase_record.write(age_record.str(), age_budget),
+  need(phase_record.write(age_record, age_budget),
        "independent age result/refusal and its actual counters retained");
   need(independent_age.status == S::ok &&
            std::abs(independent_age.value - eta) <=
@@ -1785,7 +2173,7 @@ void late_and_phase_controls(const Background &background,
       std::nextafter(threshold, std::numeric_limits<double>::infinity());
   const double uncertainty_crossing =
       std::nextafter(static_cast<double>(20 / eta), 0.0);
-  std::ostringstream phase_inputs;
+  peer::Record phase_inputs;
   phase_inputs
       << std::setprecision(std::numeric_limits<W>::max_digits10)
       << "phase-inputs native_eta=" << eta << " native_eta_error=" << error
@@ -1797,7 +2185,7 @@ void late_and_phase_controls(const Background &background,
       << '\n'
       << "phase-mode index=3 role=central-inside-uncertainty-outside k="
       << uncertainty_crossing << '\n';
-  need(phase_record.write(phase_inputs.str(), age_budget),
+  need(phase_record.write(phase_inputs, age_budget),
        "each actual phase input and its selection reason retained before "
        "request");
   need(inside >= 1e-7 && beyond <= .01 && uncertainty_crossing <= .01 &&
@@ -1861,6 +2249,9 @@ int main() {
       return std::pair<W, W>{derivative[0], derivative[1]};
     });
     resource_controls(evidence);
+    encoder_controls(evidence);
+    gram_admission_controls(evidence);
+    tiny_translation_controls();
     eds_equation_controls();
     full_trace_controls(background, evidence, campaign_bytes);
     const auto reference =

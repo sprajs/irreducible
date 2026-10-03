@@ -14,8 +14,10 @@
 #include <fstream>
 #include <iomanip>
 #include <limits>
-#include <sstream>
+#include <ostream>
+#include <streambuf>
 #include <string>
+#include <string_view>
 #include <type_traits>
 #include <utility>
 #include <vector>
@@ -268,6 +270,49 @@ Translation<T> recenter(const Rule<T> &r, Angular<T> &y, T k,
 template <class T> struct Hybrid {
   T delta = 0, theta = 0, Vr = 0, sigma = 0, psi = 0;
 };
+template <class T> struct MomentChange {
+  C<T> q2{};
+  T absolute_terms = 0, arithmetic_error = 0;
+};
+template <class T, class F>
+MomentChange<T> weighted_change(const Rule<T> &r, F change,
+                                Budget *budget = nullptr) {
+  MomentChange<T> out;
+  for (std::size_t j = 0; j < r.mu.size(); ++j) {
+    if (budget && !budget->scalars(5))
+      return out;
+    const C<T> term = r.weight[j] * P2(r.mu[j]) * change(j);
+    out.q2 += term;
+    out.absolute_terms += std::abs(term);
+  }
+  if (budget && !budget->scalars(4))
+    return out;
+  out.q2 /= r.normalization;
+  out.absolute_terms /= r.normalization;
+  // Two products per term, <=nodes additions, normalization and error-bound
+  // assembly. Actual stored node/weight/P2 inputs are the declared dot law.
+  const T u = std::numeric_limits<T>::epsilon() / 2;
+  const T path = T(r.mu.size() + 6) * u;
+  out.arithmetic_error = path / (1 - path) * out.absolute_terms;
+  return out;
+}
+template <class T> struct GramImpulse {
+  T psi = 0, sigma = 0, density = 0, b = 0, E = 0, W = 0;
+};
+template <class T>
+GramImpulse<T> gram_impulse(T fr, T x2, C<T> alpha, C<T> beta,
+                            C<T> actual_q2_change, Budget *budget = nullptr) {
+  GramImpulse<T> out;
+  if (budget && !budget->scalars(6))
+    return out;
+  out.psi = 3 * fr * actual_q2_change.real();
+  out.sigma = -x2 * actual_q2_change.real() / 2;
+  out.density = x2 * alpha.real() - 4 * out.psi;
+  out.b = -(C<T>(0, std::sqrt(x2)) * beta).real();
+  out.E = out.psi + fr * out.density / 2;
+  out.W = out.psi + fr * out.b / 2;
+  return out;
+}
 template <class T>
 Hybrid<T> hybrid(const Rule<T> &r, const Angular<T> &y, T k, T H, T phi, T fr,
                  Budget *budget = nullptr) {
@@ -298,6 +343,11 @@ template <class T> struct Initial {
   Hybrid<T> actual;
   Translation<T> translation;
   T Z = 0, E = 0, W = 0;
+  T psi_translation = 0, sigma_translation = 0, density_translation = 0;
+  T b_translation = 0, q2_translation = 0;
+  T psi_subtraction_error = 0, sigma_subtraction_error = 0;
+  T psi_translation_error = 0, sigma_translation_error = 0;
+  T density_subtraction_error = 0, density_translation_error = 0;
 };
 template <class T>
 Initial<T> initialize(const Rule<T> &r, const Epoch &epoch, T k, T eta,
@@ -327,6 +377,60 @@ Initial<T> initialize(const Rule<T> &r, const Epoch &epoch, T k, T eta,
   }
   out.translation = recenter(r, out.angular, k, budget);
   out.actual = hybrid(r, out.angular, k, i.H, i.phi, i.fr, budget);
+  C<T> changed_q2{};
+  T changed_absolute = 0;
+  for (std::size_t j = 0; j < r.mu.size(); ++j) {
+    if (budget && !budget->scalars(7))
+      return out;
+    const C<T> original_Q = -2 * T(p) * eta * eta * P2(r.mu[j]) / 3;
+    const C<T> term =
+        r.weight[j] * P2(r.mu[j]) * (out.angular.Q[j] - original_Q);
+    changed_q2 += term;
+    changed_absolute += std::abs(term);
+  }
+  if (budget && !budget->scalars(21))
+    return out;
+  changed_q2 /= r.normalization;
+  changed_absolute /= r.normalization;
+  const T u = std::numeric_limits<T>::epsilon() / 2;
+  const T dot_path = T(r.mu.size() + 6) * u;
+  const T dot_error = dot_path / (1 - dot_path) * changed_absolute;
+  const T q2_Qtranslation =
+      changed_q2.real() - 2 * T(p) * eta * eta / 3 * (r.squared_p2 - T(1) / 5);
+  out.q2_translation = i.H * i.H * q2_Qtranslation;
+  out.psi_translation = 3 * i.fr * out.q2_translation;
+  out.sigma_translation = -k * k * q2_Qtranslation / 2;
+  out.density_translation =
+      k * k * out.translation.alpha.real() - 4 * out.psi_translation;
+  out.b_translation = -(C<T>(0, k * i.H) * out.translation.beta).real();
+  out.psi_subtraction_error = out.actual.psi - i.psi - out.psi_translation;
+  out.sigma_subtraction_error =
+      out.actual.sigma - i.sigma - out.sigma_translation;
+  out.psi_translation_error =
+      3 * i.fr * i.H * i.H * dot_error +
+      (24 * u / (1 - 24 * u)) * (std::abs(out.actual.psi) + std::abs(i.psi) +
+                                 std::abs(out.psi_translation));
+  out.sigma_translation_error =
+      k * k * dot_error / 2 +
+      (24 * u / (1 - 24 * u)) *
+          (std::abs(out.actual.sigma) + std::abs(i.sigma) +
+           std::abs(out.sigma_translation));
+  if (out.psi_translation_error > 0)
+    out.psi_translation_error = std::nextafter(
+        out.psi_translation_error, std::numeric_limits<T>::infinity());
+  if (out.sigma_translation_error > 0)
+    out.sigma_translation_error = std::nextafter(
+        out.sigma_translation_error, std::numeric_limits<T>::infinity());
+  out.density_subtraction_error =
+      out.actual.delta - i.delta_r - out.density_translation;
+  out.density_translation_error =
+      4 * out.psi_translation_error +
+      (24 * u / (1 - 24 * u)) *
+          (std::abs(out.actual.delta) + std::abs(i.delta_r) +
+           std::abs(out.density_translation));
+  if (out.density_translation_error > 0)
+    out.density_translation_error = std::nextafter(
+        out.density_translation_error, std::numeric_limits<T>::infinity());
   out.E = out.Z + out.actual.psi + x2 * i.phi / 3 +
           (i.fc * i.delta_c + i.fr * out.actual.delta) / 2;
   out.W = out.Z + out.actual.psi -
@@ -341,14 +445,53 @@ std::array<T, 2> constraint_rhs(T g, T x, T kappa, T E, T W, T fE = 0,
           -kappa * E - (g + 2) * W + fW};
 }
 
+// Fixed test-local encoding storage. A formatter can never grow the record
+// beyond the original 8 KiB cap; overflow retains its bounded original prefix.
+struct RecordBuffer final : std::streambuf {
+  std::array<char, 8192> bytes{};
+  bool exhausted = false;
+  RecordBuffer() { setp(bytes.data(), bytes.data() + bytes.size()); }
+  std::streamsize xsputn(const char *s, std::streamsize n) override {
+    const auto available = epptr() - pptr();
+    const auto accepted = std::min(n, std::streamsize(available));
+    if (accepted > 0) {
+      std::copy_n(s, std::size_t(accepted), pptr());
+      pbump(int(accepted));
+    }
+    if (accepted != n)
+      exhausted = true;
+    return accepted;
+  }
+  int_type overflow(int_type c) override {
+    if (traits_type::eq_int_type(c, traits_type::eof()))
+      return traits_type::not_eof(c);
+    exhausted = true;
+    return traits_type::eof();
+  }
+  std::string_view view() const {
+    return {bytes.data(), std::size_t(pptr() - pbase())};
+  }
+};
+struct Record final : std::ostream {
+  RecordBuffer buffer;
+  Record() : std::ostream(nullptr) { rdbuf(&buffer); }
+  std::string_view view() const { return buffer.view(); }
+  bool overflowed() const { return buffer.exhausted || !good(); }
+};
+
 // The logger retains every attempted RHS, including rejected DP stages. If
 // writing is refused, its bounded last refusal/counters remain in Result;
 // the existing evidence file is retained without truncation.
 struct Ledger {
+  std::array<char, 8192> file_buffer{};
+  // Declared before stream so it remains live through the file destructor.
+  // ISO filebuf may ignore pubsetbuf; the known-storage payload estimate is
+  // conditional on the audited native standard-library buffering contract.
   std::ofstream stream;
   Status status = Status::ok;
   explicit Ledger(const std::string &path) {
-    if (!path.empty()) {
+    if (!path.empty() && path.size() <= 4096) {
+      stream.rdbuf()->pubsetbuf(file_buffer.data(), file_buffer.size());
       stream.open(path, std::ios::out | std::ios::app);
       if (!stream || stream.tellp() != std::streampos(0))
         status = Status::invalid_input;
@@ -356,7 +499,7 @@ struct Ledger {
       status = Status::invalid_input;
     }
   }
-  bool write(const std::string &record, Budget &budget) {
+  bool write(std::string_view record, Budget &budget) {
     if (status != Status::ok || record.size() > 8192 ||
         record.size() > budget.maximum_ledger_bytes ||
         budget.ledger_bytes > budget.maximum_ledger_bytes - record.size() ||
@@ -379,6 +522,28 @@ struct Ledger {
     if (budget.campaign_bytes)
       *budget.campaign_bytes += record.size();
     return true;
+  }
+  bool write(const Record &record, Budget &budget) {
+    if (!record.overflowed())
+      return write(record.view(), budget);
+    // Preserve the original prefix before changing the refusal status. The
+    // newline plus prefix is itself <=8192 bytes. If external storage refuses,
+    // its earlier prefix and counters remain; there is no uncharged fallback.
+    const auto prefix = record.view().substr(0, 8191);
+    if (!write(prefix, budget) || !write("\n", budget))
+      return false;
+    Record refusal;
+    refusal << "kind=record-encoder-refusal retained_prefix_bytes="
+            << prefix.size() << " status=" << int(Status::work_limit)
+            << " rhs=" << budget.rhs
+            << " attempted_stages=" << budget.attempted_stages
+            << " scalars=" << budget.scalar_updates
+            << " ledger_bytes=" << budget.ledger_bytes << '\n';
+    const bool retained = write(refusal.view(), budget);
+    ++budget.logging_refusals;
+    status = budget.status = Status::work_limit;
+    (void)retained;
+    return false;
   }
 };
 
@@ -681,7 +846,7 @@ bool record_stage(Ledger &ledger, Budget &budget, const Controls &control,
                   const Readout<T> &o, long double sN, long double forcingE,
                   long double forcingW, Status stage_status,
                   const char *kind = "rhs", const Rule<T> *rule = nullptr) {
-  std::ostringstream text;
+  Record text;
   text << std::setprecision(std::numeric_limits<long double>::max_digits10)
        << "method=" << method_id << " arithmetic="
        << (std::numeric_limits<T>::digits > 53 ? "wide" : "binary64")
@@ -721,7 +886,7 @@ bool record_stage(Ledger &ledger, Budget &budget, const Controls &control,
          << " Gramodd=" << rule->odd_moment
          << " Gramdefect=" << rule->gram_defect;
   text << '\n';
-  return ledger.write(text.str(), budget);
+  return ledger.write(text, budget);
 }
 
 template <class T> struct NodeTranslationWitness {
@@ -729,6 +894,17 @@ template <class T> struct NodeTranslationWitness {
   T scale = 0;
   C<T> remainder_change{};
 };
+template <class T> T node_translation_allowance(T scale) {
+  // The old/new three-term D assemblies and small-coordinate difference use
+  // fewer than 64 real arithmetic destinations. The half-epsilon round-to-
+  // nearest product bound includes both assemblies; it is a reconstruction
+  // guard, not the physical force-to-output error budget.
+  const T u = std::numeric_limits<T>::epsilon() / 2;
+  const T bound = (64 * u / (1 - 64 * u)) * scale;
+  return bound > 0 ? std::nextafter(bound, std::numeric_limits<T>::infinity())
+                   : bound;
+}
+inline constexpr std::size_t node_witness_scalar_updates = 25;
 // Every node is checked and retained in bounded blocks. Maxima alone cannot
 // substitute for the original per-node preservation witness. Both raw D
 // subtraction and the small-coordinate translation identity are recorded.
@@ -738,21 +914,59 @@ bool record_gram_nodes(Ledger &ledger, Budget &budget, const Controls &control,
                        F witness) {
   long double maximum_raw = 0, maximum_translated = 0;
   for (std::size_t first = 0; first < nodes; first += 24) {
-    std::ostringstream record;
+    Record record;
     record << std::setprecision(std::numeric_limits<long double>::max_digits10)
            << "Gram-node-preservation run=" << control.run_id
            << " stage=" << budget.attempted_stages << " kind=" << kind
            << " eta=" << eta << " first=" << first;
     const auto last = std::min(nodes, first + 24);
     for (std::size_t j = first; j < last; ++j) {
-      // The callbacks below form 24 active real scalar destinations including
+      // The callbacks below form 25 active real scalar destinations including
       // their low-basis/remainder reconstructions, returned tuple, subtraction,
       // scale and maxima. Immutable input reads and text encoding add no state
       // updates; encoded bytes have their own independent cap.
-      if (!budget.scalars(24))
+      if (!budget.scalars(node_witness_scalar_updates)) {
+        record << " refused_node=" << j << " node_status=" << int(budget.status)
+               << " diagnostics_valid=0 checked_prefix=" << j
+               << " scalar_assignment_refusal=1 rhs=" << budget.rhs
+               << " attempted_stages=" << budget.attempted_stages
+               << " scalars=" << budget.scalar_updates << '\n';
+        ledger.write(record, budget);
         return false;
+      }
       const auto node = witness(j);
       const auto raw = node.after - node.before;
+      const T allowance = node_translation_allowance(node.scale);
+      const bool valid = finite(node.before) && finite(node.after) &&
+                         finite(node.translated_difference) &&
+                         finite(node.remainder_change) && finite(raw) &&
+                         std::isfinite(node.scale) && node.scale >= 0 &&
+                         std::isfinite(allowance);
+      if (!valid || std::abs(node.translated_difference) > allowance ||
+          std::abs(raw) > allowance) {
+        const Status refusal = !valid ? Status::nonfinite_input
+                                      : Status::conditioning_budget_exceeded;
+        record << " refused_node=" << j << " node_status=" << int(refusal)
+               << " diagnostics_valid=0 checked_prefix=" << j
+               << " failed_node_D_re=" << node.translated_difference.real()
+               << " failed_node_D_im=" << node.translated_difference.imag()
+               << " failed_raw_D_re=" << raw.real()
+               << " failed_raw_D_im=" << raw.imag()
+               << " before_D_re=" << node.before.real()
+               << " before_D_im=" << node.before.imag()
+               << " after_D_re=" << node.after.real()
+               << " after_D_im=" << node.after.imag()
+               << " failed_scale=" << node.scale
+               << " failed_remainder_re=" << node.remainder_change.real()
+               << " failed_remainder_im=" << node.remainder_change.imag()
+               << " allowed=" << allowance << " rhs=" << budget.rhs
+               << " attempted_stages=" << budget.attempted_stages
+               << " scalars=" << budget.scalar_updates << '\n';
+        if (!ledger.write(record, budget))
+          return false;
+        budget.status = refusal;
+        return false;
+      }
       const T normalized =
           node.scale > 0 ? std::abs(node.translated_difference) / node.scale
                          : (node.translated_difference == C<T>{}
@@ -766,20 +980,20 @@ bool record_gram_nodes(Ledger &ledger, Budget &budget, const Controls &control,
              << node.translated_difference.real() << ','
              << node.translated_difference.imag() << ',' << node.scale << ','
              << normalized << ',' << node.remainder_change.real() << ','
-             << node.remainder_change.imag();
+             << node.remainder_change.imag() << ',' << allowance;
     }
     record << " checked=" << last - first << '\n';
-    if (!ledger.write(record.str(), budget))
+    if (!ledger.write(record, budget))
       return false;
   }
-  std::ostringstream summary;
+  Record summary;
   summary << std::setprecision(std::numeric_limits<long double>::max_digits10)
           << "Gram-node-summary run=" << control.run_id
           << " stage=" << budget.attempted_stages << " kind=" << kind
           << " eta=" << eta << " checked=" << nodes
           << " maximum_raw_D_change=" << maximum_raw
           << " maximum_normalized_translation=" << maximum_translated << '\n';
-  return ledger.write(summary.str(), budget);
+  return ledger.write(summary, budget);
 }
 
 template <class T>
@@ -946,7 +1160,7 @@ Result run(const Background &background, long double radiation,
   bool reached_state_known = false;
   auto finish = [&](Status status) {
     out.status = status;
-    std::ostringstream endpoint_record;
+    Record endpoint_record;
     endpoint_record << std::setprecision(
                            std::numeric_limits<long double>::max_digits10)
                     << "run-end run=" << control.run_id
@@ -968,7 +1182,7 @@ Result run(const Background &background, long double radiation,
       for (unsigned field = 0; field < out.value.size(); ++field)
         endpoint_record << " X" << field << '=' << out.value[field];
     endpoint_record << '\n';
-    if (!ledger.write(endpoint_record.str(), budget) && status == Status::ok)
+    if (!ledger.write(endpoint_record, budget) && status == Status::ok)
       out.status = budget.status;
     out.rhs = budget.rhs;
     out.scalar_updates = budget.scalar_updates;
@@ -990,9 +1204,16 @@ Result run(const Background &background, long double radiation,
         control.relative_state_tolerance <= 2e-11L))
     return finish(Status::outside_domain);
   // Seven DP slopes, trial/base/embedded states, rule and bounded log record.
+  // The longest owned call path has <=12 Record objects (including refusal
+  // scratch); the explicit standalone caller contributes <=12 more live
+  // Records and <=4 Ledgers. These are storage bounds, never scalar charges.
+  // Actual node containers use <=12 complex slots per node; the factor24
+  // admits their simultaneous fixed-shape copy temporaries. No response
+  // companion storage is included: that method is still unadmitted.
   const std::size_t payload =
       sizeof(State<T>) * 12 +
-      control.nodes * (24 * sizeof(C<T>) + 4 * sizeof(T)) + 16384;
+      control.nodes * (24 * sizeof(C<T>) + 4 * sizeof(T)) +
+      24 * sizeof(Record) + 4 * sizeof(Ledger);
   if (payload > budget.maximum_payload_bytes)
     return finish(Status::work_limit);
   auto rule = make_rule<T>(control.nodes, budget);
@@ -1014,7 +1235,7 @@ Result run(const Background &background, long double radiation,
   auto initial =
       initialize(rule, epoch, T(k), initial_eta, T(age.error), &budget);
   if (budget.status != Status::ok) {
-    std::ostringstream refused;
+    Record refused;
     refused << std::setprecision(std::numeric_limits<long double>::max_digits10)
             << "initial-Gram-refusal run=" << control.run_id
             << " status=" << static_cast<int>(budget.status)
@@ -1025,8 +1246,42 @@ Result run(const Background &background, long double radiation,
             << " beta_im=" << initial.translation.beta.imag()
             << " nodes_translated=" << initial.translation.nodes_translated
             << " scalars=" << budget.scalar_updates << '\n';
-    ledger.write(refused.str(), budget);
+    ledger.write(refused, budget);
     return finish(budget.status);
+  }
+  const bool initial_finite =
+      std::isfinite(initial.psi_translation) &&
+      std::isfinite(initial.sigma_translation) &&
+      std::isfinite(initial.density_translation) &&
+      std::isfinite(initial.psi_subtraction_error) &&
+      std::isfinite(initial.sigma_subtraction_error) &&
+      std::isfinite(initial.density_subtraction_error) &&
+      std::isfinite(initial.psi_translation_error) &&
+      std::isfinite(initial.sigma_translation_error) &&
+      std::isfinite(initial.density_translation_error);
+  if (!initial_finite ||
+      std::abs(initial.psi_subtraction_error) > initial.psi_translation_error ||
+      std::abs(initial.sigma_subtraction_error) >
+          initial.sigma_translation_error ||
+      std::abs(initial.density_subtraction_error) >
+          initial.density_translation_error) {
+    const auto refusal = initial_finite ? Status::conditioning_budget_exceeded
+                                        : Status::nonfinite_input;
+    Record refused;
+    refused << "initial-stable-translation-refusal diagnostics_valid=0 status="
+            << int(refusal) << " unchanged_Z=" << initial.Z
+            << " psi_subtraction_error=" << initial.psi_subtraction_error
+            << " sigma_subtraction_error=" << initial.sigma_subtraction_error
+            << " density_subtraction_error="
+            << initial.density_subtraction_error
+            << " psi_bound=" << initial.psi_translation_error
+            << " sigma_bound=" << initial.sigma_translation_error
+            << " density_bound=" << initial.density_translation_error
+            << " scalars=" << budget.scalar_updates << '\n';
+    if (!ledger.write(refused, budget))
+      return finish(budget.status);
+    budget.status = refusal;
+    return finish(refusal);
   }
   // State construction writes seven active zeros, then the source assignments
   // and vector value initialization are separately charged actual writes.
@@ -1042,8 +1297,7 @@ Result run(const Background &background, long double radiation,
         v[4] = 0;
         // Exact identities of the same translated primitive witness. Retain
         // the tiny projected velocity without an O(1) subtraction.
-        v[5] = T(k * k) * initial.translation.alpha.real() -
-               4 * (initial.actual.psi - initial.ideal.psi);
+        v[5] = initial.density_translation;
         v[6] = -4 * initial.ideal.Delta / 3 -
                (C<T>(0, T(k * epoch.hcal)) * initial.translation.beta).real();
       }))
@@ -1059,7 +1313,7 @@ Result run(const Background &background, long double radiation,
   out.diagnostics.initial_zeta_translation =
       epoch.fr * (initial.actual.delta - initial.ideal.delta_r) /
       (3 * (epoch.fc + 4 * epoch.fr / 3));
-  std::ostringstream witness;
+  Record witness;
   witness << std::setprecision(std::numeric_limits<long double>::max_digits10)
           << "initial-projected-witness run=" << control.run_id
           << " source_asymptotic_zeta=1 source_p=" << p
@@ -1076,6 +1330,16 @@ Result run(const Background &background, long double radiation,
           << " actual_psi=" << initial.actual.psi
           << " actual_delta_r=" << initial.actual.delta
           << " actual_Vr=" << initial.actual.Vr
+          << " stable_psi_translation=" << initial.psi_translation
+          << " stable_sigma_translation=" << initial.sigma_translation
+          << " stable_density_translation=" << initial.density_translation
+          << " stable_b_translation=" << initial.b_translation
+          << " psi_subtraction_error=" << initial.psi_subtraction_error
+          << " sigma_subtraction_error=" << initial.sigma_subtraction_error
+          << " psi_translation_error=" << initial.psi_translation_error
+          << " sigma_translation_error=" << initial.sigma_translation_error
+          << " density_subtraction_error=" << initial.density_subtraction_error
+          << " density_translation_error=" << initial.density_translation_error
           << " alpha_re=" << initial.translation.alpha.real()
           << " alpha_im=" << initial.translation.alpha.imag()
           << " beta_re=" << initial.translation.beta.real()
@@ -1087,7 +1351,7 @@ Result run(const Background &background, long double radiation,
           << " Z_reset=0 background_component=" << control.background_component
           << " background_direction=" << control.background_direction
           << " age_direction=" << control.age_direction << '\n';
-  if (!ledger.write(witness.str(), budget))
+  if (!ledger.write(witness, budget))
     return finish(budget.status);
   if (!record_gram_nodes<T>(
           ledger, budget, control, initial_eta, rule.mu.size(), "initial",
@@ -1283,7 +1547,7 @@ Result run(const Background &background, long double radiation,
                    std::max(std::abs(static_cast<long double>(alpha.imag())),
                             std::abs(static_cast<long double>(beta.real()))));
       const auto before = readout(y, rule, current, &budget);
-      std::ostringstream began;
+      Record began;
       began << std::setprecision(std::numeric_limits<long double>::max_digits10)
             << "Gram-event-begin run=" << control.run_id
             << " stage=" << budget.attempted_stages << " eta=" << eta
@@ -1294,7 +1558,7 @@ Result run(const Background &background, long double radiation,
             << " E_before=" << before.E << " W_before=" << before.W
             << " scalars=" << budget.scalar_updates
             << " status=" << static_cast<int>(budget.status) << '\n';
-      if (!ledger.write(began.str(), budget))
+      if (!ledger.write(began, budget))
         return finish(budget.status);
       if (budget.status != Status::ok)
         return finish(budget.status);
@@ -1302,13 +1566,13 @@ Result run(const Background &background, long double radiation,
         return finish(Status::conditioning_budget_exceeded);
       for (std::size_t j = 0; j < y.R.size(); ++j) {
         if (!budget.scalars(2)) {
-          std::ostringstream refusal;
+          Record refusal;
           refusal << "Gram-node-assignment-refusal run=" << control.run_id
                   << " stage=" << budget.attempted_stages
                   << " nodes_translated=" << j << " diagnostics_valid=0 status="
                   << static_cast<int>(budget.status)
                   << " scalars=" << budget.scalar_updates << '\n';
-          ledger.write(refusal.str(), budget);
+          ledger.write(refusal, budget);
           return finish(budget.status);
         }
         y.R[j] -= alpha + beta * rule.mu[j];
@@ -1320,8 +1584,16 @@ Result run(const Background &background, long double radiation,
       }
       y.v[6] -= (C<T>(0, std::sqrt(T(current.x2))) * beta).real();
       const auto after = readout(y, rule, current, &budget);
-      const T delta_correction =
-          T(current.x2) * alpha.real() - 4 * (after.psi - before.psi);
+      const auto moment_change = weighted_change(
+          rule, [&](std::size_t j) { return y.R[j] - trial.R[j]; }, &budget);
+      const auto stable_impulse = gram_impulse(
+          T(current.fr), T(current.x2), alpha, beta, moment_change.q2, &budget);
+      if (budget.status != Status::ok) {
+        record_stage(ledger, budget, control, eta, y, current, after, 0, 0, 0,
+                     budget.status, "Gram-stable-moment-refusal", &rule);
+        return finish(budget.status);
+      }
+      const T delta_correction = stable_impulse.density;
       if (!budget.scalars(1)) {
         record_stage(ledger, budget, control, eta, y, current, after, 0, 0, 0,
                      budget.status, "Gram-density-assignment-refusal", &rule);
@@ -1335,15 +1607,44 @@ Result run(const Background &background, long double radiation,
                     std::abs(static_cast<long double>(std::sqrt(T(current.x2)) *
                                                       beta.imag()))}));
       auto corrected = readout(y, rule, current, &budget);
-      if (!budget.scalars(6))
+      if (!budget.scalars(20))
         return finish(budget.status);
-      const T delta_psi = corrected.psi - before.psi;
+      const T delta_psi = stable_impulse.psi;
       const T delta_b = y.v[6] - trial.v[6];
       const T delta_Cr = y.v[5] - trial.v[5];
+      const T b_assignment_disagreement = delta_b - stable_impulse.b;
+      const T density_assignment_disagreement =
+          delta_Cr - stable_impulse.density;
+      const T b_assignment_bound = node_translation_allowance(
+          std::abs(y.v[6]) + std::abs(trial.v[6]) + std::abs(stable_impulse.b));
+      const T density_assignment_bound =
+          node_translation_allowance(std::abs(y.v[5]) + std::abs(trial.v[5]) +
+                                     std::abs(stable_impulse.density));
       const T impulse_E = delta_psi + T(current.fr) * delta_Cr / 2;
       const T impulse_W = delta_psi + T(current.fr) * delta_b / 2;
-      const T delta_sigma = -T(current.x2) * (corrected.q2 - before.q2) / 2;
-      std::ostringstream event;
+      const T delta_sigma = stable_impulse.sigma;
+      const T raw_delta_psi = corrected.psi - before.psi;
+      const T raw_delta_sigma = -T(current.x2) * (corrected.q2 - before.q2) / 2;
+      const T psi_disagreement = raw_delta_psi - delta_psi;
+      const T sigma_disagreement = raw_delta_sigma - delta_sigma;
+      const T u = std::numeric_limits<T>::epsilon() / 2;
+      const T gamma24 = 24 * u / (1 - 24 * u);
+      T psi_disagreement_bound =
+          3 * T(current.fr) * moment_change.arithmetic_error +
+          gamma24 * (std::abs(corrected.psi) + std::abs(before.psi) +
+                     std::abs(delta_psi));
+      T sigma_disagreement_bound =
+          T(current.x2) * moment_change.arithmetic_error / 2 +
+          gamma24 *
+              (std::abs(T(current.x2) * corrected.q2 / 2) +
+               std::abs(T(current.x2) * before.q2 / 2) + std::abs(delta_sigma));
+      if (psi_disagreement_bound > 0)
+        psi_disagreement_bound = std::nextafter(
+            psi_disagreement_bound, std::numeric_limits<T>::infinity());
+      if (sigma_disagreement_bound > 0)
+        sigma_disagreement_bound = std::nextafter(
+            sigma_disagreement_bound, std::numeric_limits<T>::infinity());
+      Record event;
       event << std::setprecision(std::numeric_limits<long double>::max_digits10)
             << "Gram-event run=" << control.run_id
             << " stage=" << budget.attempted_stages << " eta=" << eta
@@ -1351,13 +1652,56 @@ Result run(const Background &background, long double radiation,
             << " alpha_re=" << alpha.real() << " alpha_im=" << alpha.imag()
             << " beta_re=" << beta.real() << " beta_im=" << beta.imag()
             << " delta_Cr=" << delta_Cr << " delta_b=" << delta_b
+            << " planned_delta_Cr=" << stable_impulse.density
+            << " planned_delta_b=" << stable_impulse.b
+            << " density_assignment_disagreement="
+            << density_assignment_disagreement
+            << " b_assignment_disagreement=" << b_assignment_disagreement
+            << " density_assignment_bound=" << density_assignment_bound
+            << " b_assignment_bound=" << b_assignment_bound
             << " delta_psi=" << delta_psi << " delta_sigma=" << delta_sigma
+            << " raw_delta_psi=" << raw_delta_psi
+            << " raw_delta_sigma=" << raw_delta_sigma
+            << " psi_disagreement=" << psi_disagreement
+            << " sigma_disagreement=" << sigma_disagreement
+            << " psi_disagreement_bound=" << psi_disagreement_bound
+            << " sigma_disagreement_bound=" << sigma_disagreement_bound
             << " impulse_E=" << impulse_E << " impulse_W=" << impulse_W
             << " E_subtraction_witness=" << corrected.E - before.E
             << " W_subtraction_witness=" << corrected.W - before.W
             << " unchanged_Z=" << y.v[2]
             << " constraint_reset=0 rhs_forcing=0\n";
-      if (!ledger.write(event.str(), budget) ||
+      const bool stable_finite =
+          finite(moment_change.q2) &&
+          std::isfinite(moment_change.arithmetic_error) &&
+          std::isfinite(delta_psi) && std::isfinite(delta_sigma) &&
+          std::isfinite(delta_Cr) && std::isfinite(delta_b) &&
+          std::isfinite(impulse_E) && std::isfinite(impulse_W) &&
+          std::isfinite(b_assignment_disagreement) &&
+          std::isfinite(density_assignment_disagreement) &&
+          std::isfinite(b_assignment_bound) &&
+          std::isfinite(density_assignment_bound) &&
+          std::isfinite(psi_disagreement) &&
+          std::isfinite(sigma_disagreement) &&
+          std::isfinite(psi_disagreement_bound) &&
+          std::isfinite(sigma_disagreement_bound);
+      if (!stable_finite ||
+          std::abs(psi_disagreement) > psi_disagreement_bound ||
+          std::abs(sigma_disagreement) > sigma_disagreement_bound ||
+          std::abs(b_assignment_disagreement) > b_assignment_bound ||
+          std::abs(density_assignment_disagreement) >
+              density_assignment_bound) {
+        const auto refusal = stable_finite
+                                 ? Status::conditioning_budget_exceeded
+                                 : Status::nonfinite_input;
+        event << "Gram-stable-impulse-refusal diagnostics_valid=0 status="
+              << int(refusal) << " scalars=" << budget.scalar_updates << '\n';
+        if (!ledger.write(event, budget))
+          return finish(budget.status);
+        budget.status = refusal;
+        return finish(refusal);
+      }
+      if (!ledger.write(event, budget) ||
           !record_gram_nodes<T>(
               ledger, budget, control, eta, rule.mu.size(), "accepted-event",
               [&](std::size_t j) {
@@ -1470,7 +1814,7 @@ inline Result campaign(const Background &background, long double k,
     refusal.status = ledger.status;
     return snapshot(refusal);
   }
-  std::ostringstream header;
+  Record header;
   header << std::setprecision(std::numeric_limits<long double>::max_digits10)
          << "campaign method=" << method_id << " k=" << k
          << " native_start=" << native_start << " target=" << target
@@ -1486,7 +1830,7 @@ inline Result campaign(const Background &background, long double k,
            << " temperature=" << s.temperature_today_ev
            << " weight=" << s.statistical_weight << '\n';
   }
-  if (!ledger.write(header.str(), budget)) {
+  if (!ledger.write(header, budget)) {
     refusal.status = budget.status;
     return snapshot(refusal);
   }
@@ -1598,7 +1942,7 @@ inline Result campaign(const Background &background, long double k,
     if (main.error[field] > epsilon / 6)
       main.status = Status::conditioning_budget_exceeded;
   }
-  std::ostringstream summary;
+  Record summary;
   summary << std::setprecision(std::numeric_limits<long double>::max_digits10)
           << "campaign-summary k=" << k
           << " status=" << static_cast<int>(main.status)
@@ -1607,7 +1951,7 @@ inline Result campaign(const Background &background, long double k,
     summary << " X" << field << '=' << main.value[field] << " error" << field
             << '=' << main.error[field];
   summary << '\n';
-  if (!ledger.write(summary.str(), budget))
+  if (!ledger.write(summary, budget))
     main.status = budget.status;
   return snapshot(main);
 }
