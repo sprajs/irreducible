@@ -1,5 +1,6 @@
 #include "irred/ideal_acoustic.hpp"
 #include "../src/ideal_acoustic_equations.hpp"
+#include "../src/ideal_acoustic_response.hpp"
 #include <array>
 #include <cmath>
 #include <cstdlib>
@@ -52,8 +53,40 @@ void equation_limits() {
   irred::cosmology::detail::ideal_acoustic_derivative(y,defective,wrong);
   close(wrong[0]-dy[0],3e-7L*y[3],1e-18L,"actual background forcing");
 }
+void source_direction_limits() {
+  // Formal radiation endpoint only: a physical photon-density change must not
+  // be mistaken for an independent O(1) L/F/B defect. Lambda-map correlation
+  // has its literal a^4 support, retained below in the expected derivative.
+  const W a=1e-8L,G=1e-4L,x2=1e-7L,a4=a*a*a*a;
+  const irred::cosmology::detail::IdealAcousticSourceCenter c{
+      a,G,0,0,G,0,x2,4.L/3,4.L/3,-1,0,1.L/3};
+  const auto d=irred::cosmology::detail::ideal_acoustic_source_directions(c);
+  need(d.status==S::ok,"correlated source direction availability");
+  close(d.gradient[0].L,-2*a4/G,1e-44L,"photon direction preserves radiation L");
+  close(d.gradient[0].F,(4.L/3)*a4/G,1e-30L,"photon F derivative has only Lambda correlation");
+  close(d.gradient[0].B,(4.L/3)*a4/G,1e-30L,"photon B derivative has only Lambda correlation");
+  const std::array<W,5> y{x2/4,0,x2/36,-1.L/3,-2.L/3};
+  const auto force=irred::cosmology::detail::ideal_acoustic_source_force(y,d.gradient[0]);
+  close(force[3],2*a4/(3*G),1e-44L,"photon source velocity has no spurious radiation force");
+  // Finite quotient identity, including its nonlinear remainder and an
+  // invalid uncertainty interval. These controls are independent scalar
+  // algebra, not an admitted whole-trajectory uncertainty result.
+  const W n=3,den=7,dn=.01L,dd=-.02L,f=n/den;
+  const W exact=(n+dn)/(den+dd)-f-(dn-f*dd)/den;
+  const auto r=irred::cosmology::detail::ideal_acoustic_quotient_remainder(
+      f,den,std::abs(dn),std::abs(dd));
+  // Both the comparison quotient subtraction and its central bound are RN
+  // arithmetic. Their scalar-control assembly allowance is separate from the
+  // future whole-trajectory source/arithmetic shares.
+  const W assembly=16*std::numeric_limits<W>::epsilon()*(1+std::abs(f));
+  need(r.status==S::ok && std::abs(exact)<=r.absolute_estimate+assembly,
+       "finite source quotient remainder");
+  need(irred::cosmology::detail::ideal_acoustic_quotient_remainder(f,den,1,den).status!=S::ok,
+       "source quotient singular interval refusal");
+}
 int main() {
   equation_limits();
+  source_direction_limits();
   auto input=fixture();
   auto prepared=prepare_ideal_acoustic(std::move(input));
   need(prepared.status()==S::ok,"actual positive photon/baryon preparation");
