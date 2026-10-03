@@ -277,7 +277,12 @@ GaussianBoxResult GaussianBox::evaluate(std::span<const double> r,
   GaussianBoxResult out;
   CdfWork work{policy};
   auto fail=[&](DensityStatus status,numerics::Status numerical) {
-    if (!out.gaussian_completion_available) out=GaussianBoxResult{};
+    if (!out.gaussian_completion_available) {
+      const auto step=out.completion_step;
+      const auto coordinate=out.completion_parameter_index;
+      out=GaussianBoxResult{};
+      out.completion_step=step;out.completion_parameter_index=coordinate;
+    }
     if (!out.endpoint_margins_available) {
       out.standardized_lower_margins.clear();out.standardized_upper_margins.clear();
       out.excluded_mass_upper=0;out.log_prior_volume={};
@@ -302,12 +307,15 @@ GaussianBoxResult GaussianBox::evaluate(std::span<const double> r,
   const auto bound=evaluation_payload_bound();
   if (!bound||*bound>policy.design.maximum_payload_bytes||n>policy.design.maximum_elements||p>policy.design.maximum_elements)
     return fail(DensityStatus::numerical_failure,numerics::Status::work_limit);
+  out.completion_step=BoxCompletionStep::profile_evaluation;
   auto fit=profile_.evaluate(r,ids,policy.design);
   if (fit.status!=DensityStatus::finite) return fail(fit.status,fit.numerical_status);
   try {
+    out.completion_step=BoxCompletionStep::source_whitening;
     auto wr=numerics::whiten(profile_.gaussian_.factor_,r,policy.design.maximum_elements,
         policy.design.maximum_payload_bytes,policy.design.maximum_forward_sensitivity);
     if (wr.status!=numerics::Status::ok) throw Refusal{wr.status};
+    out.completion_step=BoxCompletionStep::qr_completion;
     // The same retained reflectors, with no second factorization or C readback.
     for (std::size_t k=0;k<p;++k) {
       LD dot=wr.value[k];
@@ -325,7 +333,9 @@ GaussianBoxResult GaussianBox::evaluate(std::span<const double> r,
     out.profile_stationarity=fit.normalized_normal_equation_residual;
     out.unboxed_mean=std::move(fit.coefficients);out.unboxed_variance.resize(p);
     std::vector<double> weights(p,0);
+    out.completion_step=BoxCompletionStep::marginal_variances;
     for (std::size_t j=0;j<p;++j) {
+      out.completion_parameter_index=j;
       weights[j]=1;
       LinearFunctionalMetadata fm;fm.functional_identity="box marginal variance/"+support_.ordered_parameter_ids[j];
       fm.output_unit=profile_.design_metadata().parameter_units[j];fm.weight_units.assign(p,"declared coordinate selector");
@@ -335,10 +345,16 @@ GaussianBoxResult GaussianBox::evaluate(std::span<const double> r,
       out.unboxed_variance[j]=v.variance;
       out.maximum_variance_sensitivity=std::max(out.maximum_variance_sensitivity,v.estimated_forward_sensitivity);
     }
-    std::vector<double> zero(n,0);
-    const auto source=profile_.gaussian_.evaluate(zero,ids,policy.design.maximum_forward_sensitivity);
-    if (source.density.status!=DensityStatus::finite) throw Refusal{source.density.numerical_status};
-    out.source_covariance_log_determinant=source.log_determinant;
+    out.completion_parameter_index.reset();
+    out.completion_step=BoxCompletionStep::covariance_determinant;
+    // Preparation already owns this scalar. Retrieving it needs no inverse
+    // solve, whose conditioning contract concerns a different requested output.
+    const auto &source=profile_.gaussian_;
+    if (source.status()!=DensityStatus::finite||
+        source.factor_.status()!=numerics::Status::ok||source.factor_.size()!=n)
+      throw Refusal{numerics::Status::invalid_input};
+    out.source_covariance_log_determinant=scalar(source.factor_.log_determinant());
+    out.completion_step=BoxCompletionStep::complete;
     out.gaussian_completion_available=true;out.stage=BoxStage::gaussian_completion;
     I excluded=point(0),volume=point(0);
     out.standardized_lower_margins.resize(p);out.standardized_upper_margins.resize(p);

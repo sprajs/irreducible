@@ -70,6 +70,11 @@ acceptance does not identify original axis44 physically or qualify observed H0.
 
 Preparation consumes the move-only retained DesignProfile only after support,
 metadata and resource validation. Evaluation does not copy/refactor C or X.
+The observation normalization reads logdet(C) from the admitted retained factor;
+it does not solve an artificial zero residual to retrieve determinant metadata.
+Full covariance solve conditioning is distinct from the retained QR completion
+and determinant comparison. Original-input determinant accuracy still requires
+the independent reference gate.
 All active ordered IDs and bounds must match exactly; no dropped coordinates,
 jitter, widened box or changed budget repairs a refusal. Public tests use
 analytic separable truncated controls, correlated broad-box witnesses, original
@@ -77,6 +82,11 @@ unit/axis transformations and near-bound/tail refusals. External original-source
 inputs and failed receipts remain in their experiment owner.
 
 Each result carries an operation-owned stage and explicit availability flags.
+The separate typed `completion_step` identifies the attempted profile,
+whitening, QR, marginal-variance or covariance-determinant gate even when no
+completion is available. `completion_parameter_index` is present only during
+a marginal-variance attempt, in active source order. A completed Gaussian keeps
+its complete completion step through a later box refusal.
 An input/setup refusal is unassessed, with no completion. A later tail refusal
 retains the completed Gaussian and all endpoint margins; a later inversion
 refusal retains already admitted normalization intervals and actual work.
@@ -84,7 +94,13 @@ Unadmitted intervals stay unavailable even though their storage defaults to zero
 Only a complete result receives finite status. Preserved diagnostic stages do
 not convert a refused requested calculation into a qualified result.
 
-The named synthetic owner suite passes51 controls. A separate original Decimal
+The synthetic suite also retains an isolated observation with variance2^-40 and
+zero design response. Its determinant remains in the three-row observation
+normalization; an observation2^-20 in that row adds exactly one to q_min.
+An overstrict inherited profile sensitivity policy still refuses before any
+completion output, with the attempted gate preserved.
+
+The named synthetic owner suite includes these analytic controls. A separate original Decimal
 reference uses Machin's pi identity, the integrated Gaussian alternating power
 series and monotone bisection at90 and120 digits. It checks the finite[-8,8]
 quantiles, asymmetric[-7,9] median and mass, and the rational2D cofactor
