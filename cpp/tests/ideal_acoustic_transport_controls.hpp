@@ -57,6 +57,58 @@ struct Counters {
   }
 };
 
+inline void signed_radius_assembly_controls() {
+  namespace arithmetic = detail::ideal_acoustic_transport_internal;
+  // Powers of two make these exact real sums independent of RK/source
+  // ancestry. Exercise the same completion operation used by native combine.
+  const W r = .125L;
+  const W infinity = std::numeric_limits<W>::infinity();
+  arithmetic::Arithmetic adequate;
+  const W positive = adequate.assemble_signed_radius(-r, 2*r);
+  require(adequate.status == S::ok && arithmetic::radius(positive) &&
+              positive >= r && positive <= std::nextafter(r, infinity),
+          "signed provisional plus adequate allowance encloses its exact sum");
+  arithmetic::Arithmetic inadequate;
+  const W negative = inadequate.assemble_signed_radius(-r, r/2);
+  require(inadequate.status == S::ok && negative < 0 &&
+              !arithmetic::radius(negative),
+          "completed negative radius remains refused rather than clipped");
+  arithmetic::Arithmetic cancellation;
+  require(cancellation.assemble_signed_radius(-r, r) == 0 &&
+              cancellation.status == S::ok,
+          "exact signed cancellation retains zero");
+  const std::array<std::array<W,2>,3> positive_pairs{{{r,r}, {r,0}, {0,r}}};
+  for (const auto &operands : positive_pairs) {
+    arithmetic::Arithmetic nonnegative;
+    const W bound = nonnegative.assemble_signed_radius(operands[0], operands[1]);
+    require(nonnegative.status == S::ok && arithmetic::radius(bound) &&
+                bound >= operands[0]+operands[1],
+            "positive and zero-operand sums stay outward and admissible");
+  }
+  arithmetic::Arithmetic zero;
+  require(zero.assemble_signed_radius(0,0) == 0 && zero.status == S::ok,
+          "zero allowance and provisional stay exactly zero");
+  for (W invalid : {std::numeric_limits<W>::quiet_NaN(),
+                    std::numeric_limits<W>::infinity()}) {
+    arithmetic::Arithmetic nonnormal;
+    (void)nonnormal.assemble_signed_radius(invalid, r);
+    require(nonnormal.status == S::outside_domain,
+            "nonnormal signed addition cannot become admitted through zero");
+  }
+  arithmetic::Arithmetic invalid_allowance;
+  (void)invalid_allowance.assemble_signed_radius(r,-r);
+  require(invalid_allowance.status == S::outside_domain,
+          "assembly allowance itself must be nonnegative");
+  if (std::numeric_limits<W>::denorm_min() > 0) {
+    const W minimum = std::numeric_limits<W>::min();
+    arithmetic::Arithmetic subnormal;
+    (void)subnormal.assemble_signed_radius(
+        -std::nextafter(minimum, infinity), minimum);
+    require(subnormal.status == S::outside_domain,
+            "produced subnormal signed sum retains domain refusal");
+  }
+}
+
 // Direct fixed-source scalar equations for test comparisons only. They do not
 // replace the retained production H or use its momentum perturbation law.
 struct Primitive {
@@ -406,6 +458,7 @@ inline void endpoint_controls(const detail::IdealAcousticTransportFrame &frame,
 }
 
 inline void controls() {
+  signed_radius_assembly_controls();
   radiation_source_limit();
   const auto mapping =
       native::map_thermal_physical_model({70, .02, .10, 2.7, 0, {}});

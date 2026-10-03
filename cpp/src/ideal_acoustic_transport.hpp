@@ -129,6 +129,16 @@ struct Arithmetic {
       return a == 0 ? b : a;
     return up(add(a, b));
   }
+  // A signed RK provisional is not a radius until its once-owned assembly
+  // allowance has been added. Complete that signed sum outward; the caller
+  // still owns the final nonnegative-radius guard and all prior status checks.
+  W assemble_signed_radius(W provisional, W allowance) noexcept {
+    if (!radius(allowance)) {
+      status = S::outside_domain;
+      return 0;
+    }
+    return signed_upper(add(provisional, allowance));
+  }
   W times(W a, W b) noexcept {
     if (!radius(a) || !radius(b)) {
       status = S::outside_domain;

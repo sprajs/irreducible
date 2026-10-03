@@ -295,7 +295,7 @@ S combine(Context &c,const State &base,const Response &base_r,
         radius=a.add(radius,term); rs=a.plus(rs,a.magnitude(term));
       }
       radius=a.signed_upper(a.add(radius,a.loss(rs)));
-      if (offset==30) radius=a.plus(radius,assembly);
+      if (offset==30) radius=a.assemble_signed_radius(radius,assembly);
       if (!(radius>=0) || !detail::ideal_acoustic_transport_internal::radius(radius))
         return S::conditioning_budget_exceeded;
       out_r[offset+i]=radius;

@@ -35,6 +35,10 @@ with 52,108 RHS owners, 1,880 background queries and 696,476 state writes; all
 eighteen requested fields stayed absent. One coarse low-k attempt completed,
 but the remaining started attempts refused. These results remain preserved;
 they do not identify the failing stage or establish source-error admission.
+The subsequent c22c410 installed diagnostic retained the same refusal and
+counters. Its new witness locates both failed attempts at the first step's
+RK4 combination for input stage4, with the committed state still at a_i.
+It does not identify the internal scalar or arithmetic operation responsible.
 
 The declared infinite momentum-coupling limit first sums the photon and baryon
 enthalpy-weighted momentum equations. Their exchange cancels before their common
@@ -141,7 +145,17 @@ Successful attempts have no failure witness. The native and installed callers
 print these records before asserting admission. Recording borrows existing
 epochs without another query, recomputation, state reset or changed budget.
 The added fields count through the actual attempt/trajectory payload layout.
-This diagnostic source change has not yet been compiled or executed.
+These diagnostics were compiled and exercised by that installed consumer;
+the expanded native controls remain unexecuted.
+
+The signed-radius assembly correction completes the provisional ARITHMETIC
+sum with its already-owned nonnegative assembly allowance before applying
+the final nonnegative/normal guard. Negative completed radii still refuse;
+none is clipped or reset. Synthetic controls cover adequate and inadequate
+allowances, cancellation, zero and nonnormal results. This correction has
+source review only and has not yet been compiled or tested. It repairs the
+independent assembly-ordering issue without assigning that issue as the
+cause of the retained RK4 refusal or qualifying the full response method.
 
 An optional MPFR reference target advances a separate conformal-time photon
 oscillator and spatial Einstein trace. It uses the same emitted source and
