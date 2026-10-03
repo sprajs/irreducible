@@ -3,13 +3,69 @@
 #include "irred/abi.h"
 #include "irred/gaussian_posterior.hpp"
 #include <array>
+#include <atomic>
 #include <cfenv>
 #include <cmath>
+#include <cstddef>
+#include <cstdlib>
 #include <iostream>
 #include <limits>
+#include <new>
 #include <stdexcept>
 #include <string_view>
 using namespace irred;
+// Track requested heap bytes, excluding this header/allocator overhead/RSS.
+// Atomic observable state and noinline operators survive Release optimization.
+namespace allocation {
+struct alignas(std::max_align_t) Header {
+  size_t bytes;
+};
+std::atomic<size_t> live = 0, calls = 0, peak = 0, baseline = 0, fail_on = 0;
+std::atomic<bool> armed = false;
+void start(size_t fail = 0) {
+  baseline = live.load();
+  calls = 0;
+  peak = 0;
+  fail_on = fail;
+  armed = true;
+}
+} // namespace allocation
+#if defined(__GNUC__) || defined(__clang__)
+#define NOINLINE __attribute__((noinline))
+#else
+#define NOINLINE
+#endif
+NOINLINE void *operator new(size_t n) {
+  if (allocation::armed && ++allocation::calls == allocation::fail_on)
+    throw std::bad_alloc();
+  if (n > SIZE_MAX - sizeof(allocation::Header))
+    throw std::bad_alloc();
+  auto *h = static_cast<allocation::Header *>(
+      std::malloc(sizeof(allocation::Header) + (n ? n : 1)));
+  if (!h)
+    throw std::bad_alloc();
+  h->bytes = n;
+  const auto current = allocation::live.fetch_add(n) + n;
+  if (allocation::armed && current >= allocation::baseline &&
+      current - allocation::baseline > allocation::peak)
+    allocation::peak = current - allocation::baseline;
+  return h + 1;
+}
+NOINLINE void *operator new[](size_t n) { return ::operator new(n); }
+NOINLINE void operator delete(void *p) noexcept {
+  if (p) {
+    auto *h = static_cast<allocation::Header *>(p) - 1;
+    allocation::live -= h->bytes;
+    std::free(h);
+  }
+}
+NOINLINE void operator delete[](void *p) noexcept { ::operator delete(p); }
+NOINLINE void operator delete(void *p, size_t) noexcept {
+  ::operator delete(p);
+}
+NOINLINE void operator delete[](void *p, size_t) noexcept {
+  ::operator delete(p);
+}
 namespace {
 void need(bool x, const char *m) {
   if (!x)
@@ -105,12 +161,19 @@ int main() {
     need(v.peak_payload_bytes <= q.maximum_native_bytes &&
              v.retained_payload_bytes <= v.peak_payload_bytes,
          "charged phase bounds");
+    need(v.noise_preparation_attempted == 1 && v.noise_prepared == 1 &&
+             v.posterior_preparation_attempted == 1 &&
+             v.posterior_prepared == 1 && v.conditioning_cases_attempted == 2,
+         "native attempted and completed phases");
     statistics::Metadata md;
     md.ordered_ids = {"r0", "r1"};
     md.measure = "product d(mag)";
+    md.ordering_provenance = "explicit";
     auto g = statistics::prepare_gaussian(
         C, statistics::MatrixKind::covariance, md, 1000000, 1e-10,
         numerics::Arithmetic::longdouble_cpu_v1);
+    need(g.status() == statistics::DensityStatus::finite,
+         "standalone source accepted original order");
     statistics::ParameterPrior prior{{"zero", "colour"},
                                      {"mag", "mag"},
                                      {"zero"},
@@ -124,8 +187,14 @@ int main() {
                                      true};
     auto owner = statistics::GaussianPosterior::prepare(
         std::move(g), X, md.ordered_ids, std::move(prior));
+    need(owner.status() == statistics::DensityStatus::finite,
+         "standalone proper posterior finite");
     for (size_t k = 0; k < 2; ++k) {
       auto mean = owner.condition({R.data() + 2 * k, 2}, md.ordered_ids);
+      need(mean.status == statistics::DensityStatus::finite &&
+               mean.value.size() == 2 &&
+               mean.absolute_error_estimates.size() == 2,
+           "standalone finite mean and diagnostics before indexing");
       need(v.rows[k].status == static_cast<uint32_t>(mean.status),
            "native status parity");
       for (size_t j = 0; j < 2; ++j) {
@@ -143,22 +212,34 @@ int main() {
       auto limited = q;
       limited.maximum_native_bytes = cap;
       Result r;
-      need(irred_gaussian_posterior_evaluate(&b, &limited, &r.p) ==
-                   IRRED_GAUSSIAN_POSTERIOR_QUOTA_REFUSED &&
-               !r.p,
+      allocation::start();
+      const auto transport =
+          irred_gaussian_posterior_evaluate(&b, &limited, &r.p);
+      allocation::armed = false;
+      need(transport == IRRED_GAUSSIAN_POSTERIOR_QUOTA_REFUSED && !r.p,
            "no allocation envelope admitted");
+      need(allocation::calls == 0 && allocation::peak == 0,
+           "below minimum constructor really performs zero heap allocations");
     }
     {
       auto limited = q;
       limited.maximum_native_bytes = v.minimum_result_bytes;
       Result r;
-      need(irred_gaussian_posterior_evaluate(&b, &limited, &r.p) == IRRED_OK,
-           "exact failure owner quota");
+      allocation::start();
+      const auto transport =
+          irred_gaussian_posterior_evaluate(&b, &limited, &r.p);
+      allocation::armed = false;
+      need(transport == IRRED_OK, "exact failure owner quota");
       auto x = r.view();
       need(x.numerical_status == IRRED_NUMERICAL_STATUS_WORK_LIMIT &&
                x.covariance.length == 0 && x.case_count == 0 &&
                x.retained_payload_bytes == x.minimum_result_bytes,
            "charged minimal refusal");
+      need(
+          allocation::calls == 1 &&
+              allocation::peak == x.minimum_result_bytes &&
+              allocation::live - allocation::baseline == x.minimum_result_bytes,
+          "disengaged minimal owner has no hidden Gaussian string allocations");
     }
     for (unsigned field = 0; field < 4; ++field) {
       auto limited = q;
@@ -233,6 +314,137 @@ int main() {
                r.view().numerical_status ==
                    IRRED_NUMERICAL_STATUS_NOT_POSITIVE_DEFINITE,
            "no prior jitter");
+      auto x = r.view();
+      need(x.noise_prepared == 1 && x.posterior_preparation_attempted == 1 &&
+               x.posterior_prepared == 0 && x.conditioning_cases_attempted == 0,
+           "failed posterior attempt retained as attempted, not completed");
+    }
+    // Entire native call: result constructor, metadata, preparation, all
+    // conditioning and retained owners. Bookkeeping headers are excluded.
+    size_t total_calls = 0;
+    const size_t live_before = allocation::live;
+    {
+      Result measured;
+      allocation::start();
+      const auto transport =
+          irred_gaussian_posterior_evaluate(&b, &q, &measured.p);
+      allocation::armed = false;
+      total_calls = allocation::calls;
+      need(transport == IRRED_OK, "whole-phase allocation run");
+      const auto measured_view = measured.view();
+      need(measured_view.status == IRRED_GAUSSIAN_STATUS_FINITE &&
+               total_calls > 1,
+           "whole-phase allocation witness completes actual consumer");
+      need(allocation::peak <= measured_view.peak_payload_bytes &&
+               allocation::live - live_before <=
+                   measured_view.retained_payload_bytes,
+           "measured requested peak/retained heap fits declared payload scope");
+    }
+    need(allocation::live == live_before,
+         "whole owner destruction releases heap");
+    for (size_t point = 1; point <= total_calls; ++point) {
+      {
+        Result rejected;
+        allocation::start(point);
+        const auto transport =
+            irred_gaussian_posterior_evaluate(&b, &q, &rejected.p);
+        allocation::armed = false;
+        need(transport == IRRED_ALLOCATION_FAILURE || transport == IRRED_OK,
+             "injected allocation failure stays inside ABI");
+        if (transport == IRRED_ALLOCATION_FAILURE)
+          need(!rejected.p, "allocation transport has no owner");
+        else {
+          const auto x = rejected.view();
+          bool refused = x.status != IRRED_GAUSSIAN_STATUS_FINITE;
+          if (refused)
+            need(x.case_count == 0 && x.covariance.length == 0,
+                 "global allocation refusal withholds all moments");
+          else
+            for (size_t i = 0; i < x.case_count; ++i)
+              if (x.rows[i].status != IRRED_GAUSSIAN_STATUS_FINITE) {
+                refused = true;
+                need(x.rows[i].mean.length == 0 &&
+                         x.rows[i].absolute_error_estimates.length == 0,
+                     "failed conditioning allocation has no numeric row "
+                     "payload");
+              }
+          need(refused, "injected failure is not ignored");
+          need(allocation::peak <= x.peak_payload_bytes &&
+                   allocation::live - live_before <= x.retained_payload_bytes,
+               "refused attempt actual retained capacity still charged");
+        }
+      }
+      need(allocation::live == live_before,
+           "every failure site releases complete owner");
+    }
+    {
+      auto changed = b;
+      const std::array<double, 4> diagonal_C{1, 0, 0, 1},
+          diagonal_S{100, 0, 0, 100}, diagonal_X{.25, 0, 0, .25},
+          overflow_R{1.25, -.5, std::numeric_limits<double>::max(),
+                     std::numeric_limits<double>::max()};
+      changed.noise_covariance = values(diagonal_C);
+      changed.prior_covariance = values(diagonal_S);
+      changed.design = values(diagonal_X);
+      changed.conditioning_vectors = values(overflow_R);
+      auto late_source = statistics::prepare_gaussian(
+          diagonal_C, statistics::MatrixKind::covariance, md, 1000000, 1e-10,
+          numerics::Arithmetic::longdouble_cpu_v1);
+      need(late_source.status() == statistics::DensityStatus::finite,
+           "late-capacity source finite");
+      statistics::ParameterPrior late_prior{
+          {"zero", "colour"},
+          {"mag", "mag"},
+          {"zero"},
+          {.5, -.25},
+          {100, 0, 0, 100},
+          "proper synthetic prior",
+          "fixed X",
+          "mag",
+          "d(zero) d(colour)",
+          "independent original prior and noise",
+          true};
+      auto late_owner = statistics::GaussianPosterior::prepare(
+          std::move(late_source), diagonal_X, md.ordered_ids,
+          std::move(late_prior));
+      need(late_owner.status() == statistics::DensityStatus::finite,
+           "late-capacity posterior finite");
+      const auto failed_mean =
+          late_owner.condition({overflow_R.data() + 2, 2}, md.ordered_ids);
+      need(failed_mean.status != statistics::DensityStatus::finite &&
+               failed_mean.value.empty() &&
+               failed_mean.absolute_error_estimates.capacity() >= 2,
+           "original late cast failure retains allocated error capacity "
+           "witness");
+      Result r;
+      allocation::start();
+      const auto transport =
+          irred_gaussian_posterior_evaluate(&changed, &q, &r.p);
+      allocation::armed = false;
+      need(transport == IRRED_OK, "late mean cast refusal transported");
+      const auto x = r.view();
+      need(x.status == IRRED_GAUSSIAN_STATUS_FINITE && x.case_count == 2 &&
+               x.rows[0].status == IRRED_GAUSSIAN_STATUS_FINITE &&
+               x.rows[1].status != IRRED_GAUSSIAN_STATUS_FINITE &&
+               x.rows[1].mean.length == 0 &&
+               x.rows[1].absolute_error_estimates.length == 0 &&
+               x.conditioning_cases_attempted == 2,
+           "last late failure preserves original neighbor/order and withholds "
+           "failed numerics");
+      need(allocation::peak <= x.peak_payload_bytes &&
+               allocation::live - allocation::baseline <=
+                   x.retained_payload_bytes,
+           "late failed mean retained vectors included in measured bytes");
+      auto limited = q;
+      limited.maximum_native_bytes = x.peak_payload_bytes - 1;
+      Result quota;
+      need(irred_gaussian_posterior_evaluate(&changed, &limited, &quota.p) ==
+                   IRRED_OK &&
+               quota.view().status != IRRED_GAUSSIAN_STATUS_FINITE &&
+               quota.view().case_count == 0 &&
+               quota.view().covariance.length == 0,
+           "unchanged late-failure inputs under low global cap withhold every "
+           "moment");
     }
     {
       auto changed = b;
@@ -249,12 +461,57 @@ int main() {
                !r.p,
            "byte shape hostile");
     }
+    for (unsigned mutation = 0; mutation < 7; ++mutation) {
+      auto changed = b;
+      auto policy = q;
+      if (mutation == 0)
+        policy.reserved = 1;
+      if (mutation == 1)
+        changed.design.reserved = 1;
+      if (mutation == 2)
+        changed.design.length = UINT64_MAX;
+      if (mutation == 3)
+        changed.noise_row_ids.length = UINT64_MAX;
+      if (mutation == 4)
+        changed.case_count = UINT64_MAX;
+      if (mutation == 5)
+        changed.noise_row_ids.byte_length -= 1;
+      if (mutation == 6)
+        changed.design.data = reinterpret_cast<const double *>(uintptr_t(1));
+      Result r;
+      allocation::start();
+      const auto transport =
+          irred_gaussian_posterior_evaluate(&changed, &policy, &r.p);
+      allocation::armed = false;
+      need(transport == IRRED_INVALID_INPUT && !r.p && allocation::calls == 0,
+           "hostile count/overflow/reserved/alignment rejected before "
+           "allocation or dereference");
+    }
+    {
+      Result r;
+      need(irred_gaussian_posterior_evaluate(
+               reinterpret_cast<const irred_gaussian_posterior_batch *>(
+                   uintptr_t(1)),
+               &q, &r.p) == IRRED_INVALID_INPUT &&
+               !r.p,
+           "misaligned top-level descriptor never dereferenced");
+      need(irred_gaussian_posterior_evaluate(
+               &b, &q,
+               reinterpret_cast<irred_gaussian_posterior_result **>(
+                   uintptr_t(1))) == IRRED_INVALID_INPUT,
+           "misaligned output never dereferenced");
+    }
     std::fesetround(FE_DOWNWARD);
     {
       Result r;
       need(irred_gaussian_posterior_evaluate(&b, &q, &r.p) == IRRED_OK &&
                r.view().status != IRRED_GAUSSIAN_STATUS_FINITE,
            "arithmetic refusal");
+      need(r.view().noise_preparation_attempted == 1 &&
+               r.view().noise_prepared == 0 &&
+               r.view().posterior_preparation_attempted == 0,
+           "unsupported environment preserves attempt without claiming factor "
+           "complete");
     }
     std::fesetround(FE_TONEAREST);
     std::cout << "proper Gaussian posterior coarse ABI controls passed\n";

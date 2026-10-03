@@ -1,5 +1,5 @@
 //! Original inline fixture and operation-owned records; no Rust posterior equations.
-use serde_json::{Value, json};
+use serde_json::{json, Value};
 use std::{
     fs,
     path::PathBuf,
@@ -101,11 +101,9 @@ fn case_refusal_keeps_covariance_and_original_neighbors() {
     assert_eq!(v["result"]["rows"][0]["kind"], "finite");
     assert_eq!(v["result"]["rows"][1]["kind"], "failure");
     assert!(v["result"]["rows"][1].get("mean").is_none());
-    assert!(
-        v["result"]["rows"][1]
-            .get("absolute_error_estimates")
-            .is_none()
-    );
+    assert!(v["result"]["rows"][1]
+        .get("absolute_error_estimates")
+        .is_none());
     assert_eq!(spec.unwrap()["conditioning"], input["conditioning"]);
 }
 #[test]
@@ -156,6 +154,61 @@ fn unchanged_quota_and_semantic_refusals() {
     assert_ne!(code, 0);
     assert_eq!(v["receipt"]["execution"], "completed");
     assert_eq!(v["result"]["numerical_status"], "not_positive_definite");
+    assert_eq!(v["receipt"]["method"]["executed"], true);
+    assert_eq!(v["receipt"]["method"]["noise_prepared"], true);
+    assert_eq!(
+        v["receipt"]["method"]["posterior_preparation_attempted"],
+        true
+    );
+    assert_eq!(v["receipt"]["method"]["posterior_prepared"], false);
+    assert_eq!(v["receipt"]["method"]["conditioning_cases_attempted"], 0);
+    assert_eq!(
+        v["receipt"]["precision"]["actual_source"],
+        "F02/longdouble-cpu/v1"
+    );
+    assert_eq!(v["receipt"]["precision"]["posterior_products"], Value::Null);
+    input = fixture();
+    input["noise"]["covariance_row_major"] = json!([1., 2., 2., 1.]);
+    let (v, code, _) = run(&input);
+    assert_ne!(code, 0);
+    assert_eq!(v["result"]["phase"], "noise_preparation");
+    assert_eq!(v["receipt"]["method"]["executed"], true);
+    assert_eq!(
+        v["receipt"]["method"]["actual"],
+        "supplied-Gaussian-covariance-preparation/Cholesky/v1"
+    );
+    assert_eq!(v["receipt"]["method"]["noise_prepared"], false);
+    assert_eq!(v["receipt"]["precision"]["actual_source"], Value::Null);
+    assert_eq!(
+        v["receipt"]["precision"]["attempted_source"],
+        "F02/longdouble-cpu/v1"
+    );
+}
+#[test]
+fn proper_prior_retains_unmeasured_parameter_for_rank_deficient_and_underdetermined_designs() {
+    let mut input = fixture();
+    input["parameter_prior"]["covariance_row_major"] = json!([1., 0., 0., 0.5]);
+    input["design"]["values_row_major"] = json!([1., 0., 2., 0.]);
+    let (v, code, _) = run(&input);
+    assert_eq!(code, 0);
+    near(&v["result"]["covariance"][3], 0.5);
+    near(&v["result"]["covariance"][1], 0.);
+    near(&v["result"]["rows"][0]["mean"][1], -0.25);
+    input["noise"]["ordered_row_ids"] = json!(["r0"]);
+    input["noise"]["event_ids"] = json!(["synthetic-event-0"]);
+    input["noise"]["covariance_row_major"] = json!([2.]);
+    input["design"]["ordered_row_ids"] = json!(["r0"]);
+    input["design"]["values_row_major"] = json!([1., 0.]);
+    input["conditioning"]["ordered_row_ids"] = json!(["r0"]);
+    input["conditioning"]["event_ids"] = json!(["synthetic-event-0"]);
+    input["conditioning"]["vectors"] = json!([[1.25], [0.5]]);
+    let (v, code, _) = run(&input);
+    assert_eq!(code, 0);
+    near(&v["result"]["covariance"][0], 2. / 3.);
+    near(&v["result"]["covariance"][3], 0.5);
+    near(&v["result"]["rows"][0]["mean"][0], 0.75);
+    near(&v["result"]["rows"][0]["mean"][1], -0.25);
+    near(&v["result"]["rows"][1]["mean"][0], 0.5);
 }
 #[test]
 fn strict_nested_fields_duplicates_and_discovery() {
@@ -177,11 +230,9 @@ fn strict_nested_fields_duplicates_and_discovery() {
         .output()
         .unwrap();
     let v: Value = serde_json::from_slice(&out.stdout).unwrap();
-    assert!(
-        v["capabilities"]
-            .as_array()
-            .unwrap()
-            .iter()
-            .any(|x| x["id"] == "statistics.gaussian_posterior")
-    );
+    assert!(v["capabilities"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .any(|x| x["id"] == "statistics.gaussian_posterior"));
 }

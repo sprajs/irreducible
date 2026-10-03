@@ -2986,6 +2986,26 @@
           "u32"
         ],
         [
+          "noise_preparation_attempted",
+          "u32"
+        ],
+        [
+          "noise_prepared",
+          "u32"
+        ],
+        [
+          "posterior_preparation_attempted",
+          "u32"
+        ],
+        [
+          "posterior_prepared",
+          "u32"
+        ],
+        [
+          "conditioning_cases_attempted",
+          "u64"
+        ],
+        [
           "case_count",
           "u64"
         ],
@@ -4263,6 +4283,7 @@
     "work": "32*(n^3+n^2*p+n*p^2+8*p^3+B*(n^2+n*p+p^2)) charged before every requested attempt",
     "elements": "n*n+n*p+p+2*p*p+B*n+2*B*p pooled input/output elements",
     "bytes": "Minimal owner charged before allocation; metadata/source/posterior/evaluation phase envelopes retain source once, pooled results/capacities and serial scratch. Borrowed Rust/wire/JSON/stack/allocator/RSS excluded; no uncharged failure allocation.",
-    "batch": "Family of conditionals under ONE fixed noise/design/independent proper prior; no joint across cases, IID or emitted law."
+    "batch": "Family of conditionals under ONE fixed noise/design/independent proper prior; no joint across cases, IID or emitted law.",
+    "execution": "Native view owns attempted/completed noise and posterior preparation flags plus conditioning call count; flags survive global refusal without numeric payload. Returned arithmetic identity describes attempted contract until finite source preparation; no assertion of completed factor on refusal."
   }
 }

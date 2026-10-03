@@ -146,3 +146,10 @@ withheld, requested method/arithmetic and no actual execution claim. At an
 admissible cap an owned failure envelope remains charged; global cleanup
 releases all scientific/vector ownership. Failed native error-vector capacities
 remain charged internally even though failed views expose no numeric payload.
+
+Owned refusals retain native preparation attempt/completion flags and the
+number of conditioning calls attempted. The reported method identifies the
+attempted stage; a refused noise preparation does not establish a completed
+factor or actual arithmetic evaluation. Its returned arithmetic contract is
+labelled as attempted, while completed source/posterior preparation is recorded
+separately. Admission-only refusals keep actual execution fields absent.

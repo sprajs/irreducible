@@ -4,7 +4,7 @@ use super::{
     observations::{bytes, copied, doubles, strings},
 };
 use crate::gaussian_posterior_run::Request;
-use serde_json::{Value, json};
+use serde_json::{json, Value};
 use std::{mem::size_of, ptr};
 struct Owned(*mut std::ffi::c_void);
 impl Drop for Owned {
@@ -150,6 +150,12 @@ pub(crate) fn evaluate(r: &Request) -> Result<Calculation, String> {
         || v.abi_version != ABI_VERSION
         || v.reserved != 0
         || v.phase > 3
+        || v.noise_preparation_attempted > 1
+        || v.noise_prepared > v.noise_preparation_attempted
+        || v.posterior_preparation_attempted > v.noise_prepared
+        || v.posterior_prepared > v.posterior_preparation_attempted
+        || v.conditioning_cases_attempted > b.case_count
+        || (v.conditioning_cases_attempted > 0 && v.posterior_prepared != 1)
     {
         return Err("INVALID_POSTERIOR_VIEW".into());
     }
@@ -167,14 +173,35 @@ pub(crate) fn evaluate(r: &Request) -> Result<Calculation, String> {
             .map_err(|_| "INVALID_METADATA_ENCODING".into())
     };
     let finite = v.status == GAUSSIAN_STATUS_FINITE;
+    let attempted = v.noise_preparation_attempted == 1;
+    let method = if attempted {
+        let identity = decode(&v.method)?;
+        let expected = if v.posterior_preparation_attempted == 1 {
+            METHOD
+        } else {
+            "supplied-Gaussian-covariance-preparation/Cholesky/v1"
+        };
+        if identity != expected {
+            return Err("INVALID_POSTERIOR_METHOD".into());
+        }
+        json!({"requested":METHOD,"actual":identity,"executed":true,"actual_meaning":"attempted native algorithm; completion is separately stated","noise_prepared":v.noise_prepared == 1,"posterior_preparation_attempted":v.posterior_preparation_attempted == 1,"posterior_prepared":v.posterior_prepared == 1,"conditioning_cases_attempted":v.conditioning_cases_attempted})
+    } else {
+        requested_method
+    };
+    let arithmetic = if attempted {
+        let source = decode(&v.arithmetic)?;
+        json!({"requested_source":q.arithmetic,"attempted_source":source,"actual_source":if v.noise_prepared == 1 {Some(source)} else {None},"source_prepared":v.noise_prepared == 1,"attempted_meaning":"returned native arithmetic contract; a refused preparation does not establish completed factorization","posterior_products_requested":"longdouble-cpu/v1","posterior_products":if v.posterior_prepared == 1 {Some("longdouble-cpu/v1")} else {None},"output_storage":if finite {Some("binary64")} else {None}})
+    } else {
+        requested_arithmetic
+    };
     if !finite {
         if v.case_count != 0 || v.covariance.length != 0 {
             return Err("FAILED_POSTERIOR_PAYLOAD".into());
         }
         return Ok(Calculation {
             output: json!({"kind":"failure","phase":phase,"status":label,"numerical_status":numerical,"native_payload_present":true,"requested_case_count":b.case_count,"covariance":null,"rows":[]}),
-            method: requested_method,
-            arithmetic: requested_arithmetic,
+            method,
+            arithmetic,
             resources,
             covariance_passed: false,
             means_passed: false,
@@ -247,14 +274,13 @@ pub(crate) fn evaluate(r: &Request) -> Result<Calculation, String> {
         }
         out.push(json!({"kind":"finite","case_index":i,"case_id":r.conditioning.case_ids[i],"status":status,"numerical_status":num,"mean":mean,"absolute_error_estimates":errors,"backward_residual":row.backward_residual,"estimated_forward_sensitivity":row.estimated_forward_sensitivity}));
     }
-    let method = decode(&v.method)?;
-    if method != METHOD {
-        return Err("INVALID_POSTERIOR_METHOD".into());
+    if v.posterior_prepared != 1 || v.conditioning_cases_attempted != b.case_count {
+        return Err("INVALID_FINITE_EXECUTION".into());
     }
     Ok(Calculation {
         output: json!({"kind":if means_passed{"finite"}else{"failure"},"phase":phase,"status":label,"numerical_status":numerical,"native_payload_present":true,"ordered_row_ids":r.noise.ordered_row_ids,"event_ids":r.noise.event_ids,"ordered_parameter_ids":r.parameter_prior.ordered_parameter_ids,"parameter_units":r.parameter_prior.parameter_units,"parameter_measure":r.parameter_prior.parameter_measure,"covariance":values(&v.covariance,p*p)?,"covariance_relative_error_estimate":v.covariance_relative_error_estimate,"numerical_error_meaning":"empirical native arithmetic/conditioning diagnostics; distinct from physical posterior variance","rows":out,"batch_meaning":"family of conditionals under one fixed noise/design/prior; no IID or joint-across-cases law"}),
-        method: json!({"requested":METHOD,"actual":method,"executed":true}),
-        arithmetic: json!({"requested_source":q.arithmetic,"actual_source":decode(&v.arithmetic)?,"posterior_products":"longdouble-cpu/v1","output_storage":"binary64"}),
+        method,
+        arithmetic,
         resources,
         covariance_passed: true,
         means_passed,

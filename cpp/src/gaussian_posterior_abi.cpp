@@ -94,6 +94,9 @@ struct irred_gaussian_posterior_result {
   s::DensityStatus status = s::DensityStatus::invalid_input;
   n::Status numerical_status = n::Status::invalid_input;
   uint32_t phase = 0; // 0 admission, 1 noise, 2 posterior, 3 conditioning
+  bool noise_attempted = false, noise_prepared = false,
+       posterior_attempted = false, posterior_prepared = false;
+  size_t conditioning_attempts = 0;
   size_t work = 0, elements = 0, peak = 0, retained = 0;
   const char *arithmetic = "unresolved";
 };
@@ -276,12 +279,20 @@ irred_gaussian_posterior_evaluate(const irred_gaussian_posterior_batch *b,
       return refuse(s::DensityStatus::invalid_input, n::Status::work_limit);
     result->peak = std::max(result->peak, *source_phase_peak);
     result->phase = 1;
+    result->noise_attempted = true;
     auto source = s::prepare_gaussian(
         span(b->noise_covariance), s::MatrixKind::covariance,
         std::move(metadata), q->maximum_elements,
         q->maximum_forward_sensitivity, arithmetic);
+    const auto &source_arithmetic = source.metadata().arithmetic_id;
+    result->arithmetic = source_arithmetic == "F02/longdouble-cpu/v1"
+                             ? "F02/longdouble-cpu/v1"
+                         : source_arithmetic == "F02/binary64-legacy/v1"
+                             ? "F02/binary64-legacy/v1"
+                             : "unresolved";
     if (source.status() != s::DensityStatus::finite)
       return refuse(source.status(), source.numerical_status());
+    result->noise_prepared = true;
     const auto posterior_peak =
         s::GaussianPosterior::preparation_payload_bound(source, prior);
     if (!posterior_peak ||
@@ -294,12 +305,14 @@ irred_gaussian_posterior_evaluate(const irred_gaussian_posterior_batch *b,
                               static_cast<size_t>(q->maximum_work_units),
                               q->maximum_forward_sensitivity};
     result->phase = 2;
+    result->posterior_attempted = true;
     result->posterior.emplace(s::GaussianPosterior::prepare(
         std::move(source), span(b->design), source.metadata().ordered_ids,
         std::move(prior), policy));
     if (result->posterior->status() != s::DensityStatus::finite)
       return refuse(result->posterior->status(),
                     result->posterior->numerical_status());
+    result->posterior_prepared = true;
     const auto retained = result->posterior->retained_payload_bound(),
                scratch = result->posterior->evaluation_payload_bound();
     irred::detail::PayloadAccounting evaluation(sizeof(*result));
@@ -337,6 +350,7 @@ irred_gaussian_posterior_evaluate(const irred_gaussian_posterior_batch *b,
     if (!running_owned)
       return refuse(s::DensityStatus::invalid_input, n::Status::work_limit);
     for (size_t i = 0; i < count; ++i) {
+      ++result->conditioning_attempts;
       result->means[i] = result->posterior->condition(
           {b->conditioning_vectors.data + i * nrow, nrow},
           result->posterior->source().metadata().ordered_ids, policy);
@@ -397,27 +411,33 @@ irred_gaussian_posterior_result_view(const irred_gaussian_posterior_result *r,
   if (!aligned(r) || !aligned(v))
     return IRRED_INVALID_INPUT;
   const bool finite = r->status == s::DensityStatus::finite;
-  *v = {
-      sizeof(*v),
-      IRRED_ABI_VERSION,
-      static_cast<uint32_t>(r->status),
-      static_cast<uint32_t>(r->numerical_status),
-      r->phase,
-      0,
-      r->rows.size(),
-      r->rows.data(),
-      view(finite ? r->posterior->covariance() : std::span<const double>{}),
-      finite ? r->posterior->covariance_relative_error_estimate() : 0,
-      sizeof(*r),
-      r->work,
-      r->elements,
-      r->peak,
-      r->retained,
-      bytes(finite
-                ? r->posterior->method_id()
-                : "proper-Gaussian-parameter-posterior/whitened-precision/v1"),
-      finite ? bytes(r->posterior->source().metadata().arithmetic_id)
-             : bytes(r->arithmetic)};
+  *v = {sizeof(*v),
+        IRRED_ABI_VERSION,
+        static_cast<uint32_t>(r->status),
+        static_cast<uint32_t>(r->numerical_status),
+        r->phase,
+        0,
+        r->noise_attempted,
+        r->noise_prepared,
+        r->posterior_attempted,
+        r->posterior_prepared,
+        r->conditioning_attempts,
+        r->rows.size(),
+        r->rows.data(),
+        view(finite ? r->posterior->covariance() : std::span<const double>{}),
+        finite ? r->posterior->covariance_relative_error_estimate() : 0,
+        sizeof(*r),
+        r->work,
+        r->elements,
+        r->peak,
+        r->retained,
+        bytes(r->posterior_attempted
+                  ? "proper-Gaussian-parameter-posterior/whitened-precision/v1"
+              : r->noise_attempted
+                  ? "supplied-Gaussian-covariance-preparation/Cholesky/v1"
+                  : "unexecuted"),
+        finite ? bytes(r->posterior->source().metadata().arithmetic_id)
+               : bytes(r->arithmetic)};
   return IRRED_OK;
 }
 extern "C" uint32_t
