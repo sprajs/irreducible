@@ -121,7 +121,9 @@ struct Arithmetic {
   std::array<Interval,4> temporary;
   void check(const Interval &x) {
     work().guard(3);
-    if(!mpfr_number_p(x.lo)||!mpfr_number_p(x.hi)||mpfr_cmp(x.lo,x.hi)>0)
+    const bool finite_low=mpfr_number_p(x.lo),finite_high=mpfr_number_p(x.hi);
+    const int order=mpfr_cmp(x.lo,x.hi);
+    if(!finite_low||!finite_high||order>0)
       throw Refusal("invalid interval");
     const auto bad=MPFR_FLAGS_UNDERFLOW|MPFR_FLAGS_OVERFLOW|MPFR_FLAGS_NAN|
                    MPFR_FLAGS_ERANGE|MPFR_FLAGS_DIVBY0;
@@ -173,7 +175,8 @@ struct Arithmetic {
   }
   void reciprocal(Interval &r,const Interval &a) {
     work().guard(2);
-    if(mpfr_cmp_si(a.lo,0)<=0 && mpfr_cmp_si(a.hi,0)>=0)
+    const int low=mpfr_cmp_si(a.lo,0),high=mpfr_cmp_si(a.hi,0);
+    if(low<=0 && high>=0)
       throw Refusal("interval denominator contains zero");
     work().charge(1,2);
     if(&r==&a){mpfr_ui_div(temporary[0].lo,1,a.hi,MPFR_RNDD);
@@ -246,7 +249,8 @@ struct Arithmetic {
   }
   void require_bound(const Interval &x,W low,W high) {
     stored(temporary[1],low);stored(temporary[2],high);work().guard(2);
-    if(mpfr_cmp(x.lo,temporary[1].lo)<0||mpfr_cmp(x.hi,temporary[2].hi)>0)
+    const int below=mpfr_cmp(x.lo,temporary[1].lo),above=mpfr_cmp(x.hi,temporary[2].hi);
+    if(below<0||above>0)
       throw Refusal("declared finite source domain guard");
   }
 };
@@ -295,9 +299,16 @@ struct Equations {
       for(unsigned r=1;r<=j;++r){a.multiply(t[0],x[r],out[j-r]);a.add(t[2],t[2],t[0]);}
       a.multiply(out[j],out[0],t[2]);a.scale(out[j],out[j],-1);}
   }
+  void square_root_jet(Jet &out,const Jet &x,unsigned n) {
+    auto &a=arithmetic;a.square_root(out[0],x[0]);a.scale(t[3],out[0],2);a.reciprocal(t[3],t[3]);
+    for(unsigned j=1;j<=n;++j){a.integer(t[2],0);
+      for(unsigned r=1;r<j;++r){a.multiply(t[0],out[r],out[j-r]);a.add(t[2],t[2],t[0]);}
+      a.sub(t[2],x[j],t[2]);a.multiply(out[j],t[2],t[3]);}
+  }
   void coefficients(Table &y,const Interval &eta,unsigned n) {
     auto &a=arithmetic;
-    work().guard(3);if(mpfr_cmp_si(eta.lo,0)<=0||mpfr_cmp(eta.lo,eta_left.lo)<0||mpfr_cmp(eta.hi,eta_right.hi)>0)
+    work().guard(3);const int positive=mpfr_cmp_si(eta.lo,0),left=mpfr_cmp(eta.lo,eta_left.lo),right=mpfr_cmp(eta.hi,eta_right.hi);
+    if(positive<=0||left<0||right>0)
       throw Refusal("original positive opacity-cell time support");
     product(a2,y[SCALE],y[SCALE],n);product(a4,a2,a2,n);
     a.add(t[3],baryon,cdm);
@@ -305,10 +316,7 @@ struct Equations {
       a.multiply(t[0],lambda,a4[j]);a.add(p[j],p[j],t[0]);
       if(!j)a.add(p[j],p[j],photon);}
     if(!a.positive(p[0])||!a.positive(y[SCALE][0]))throw Refusal("nonpositive clock support");
-    a.square_root(s[0],p[0]);a.scale(t[3],s[0],2);a.reciprocal(t[3],t[3]);
-    for(unsigned j=1;j<=n;++j){a.integer(t[2],0);
-      for(unsigned r=1;r<j;++r){a.multiply(t[0],s[r],s[j-r]);a.add(t[2],t[2],t[0]);}
-      a.sub(t[2],p[j],t[2]);a.multiply(s[j],t[2],t[3]);}
+    square_root_jet(s,p,n);
     inverse(ia,y[SCALE],n);inverse(ip,p,n);product(h,s,ia,n);
     for(unsigned j=0;j<=n;++j){a.multiply(h[j],h[j],beta);a.multiply(fg[j],ip[j],photon);}
     product(fb,y[SCALE],ip,n);product(fc,y[SCALE],ip,n);
@@ -475,7 +483,8 @@ struct Stepper {
   }
   void step(State &y,Interval &eta,const Interval &hstep) {
     auto &a=e.arithmetic;StepReservation reservation;
-    work().guard(2);if(mpfr_cmp(hstep.lo,hstep.hi)||mpfr_cmp_si(hstep.lo,0)<=0)
+    work().guard(2);const int point=mpfr_cmp(hstep.lo,hstep.hi),positive=mpfr_cmp_si(hstep.lo,0);
+    if(point||positive<=0)
       throw Refusal("step must be an exact positive dyadic point");
     e.fill(start_jets,y,eta,4);
     a.integer(t[0],0);a.hull(time_span,t[0],hstep);a.add(time_box,eta,time_span);
@@ -581,9 +590,8 @@ void decode_endpoint(mpfr_ptr out,const EncodedEndpoint &wire) {
   long exponent=0;const auto parsed=std::from_chars(digits.data()+position+1,digits.data()+(end-digits.begin()),exponent);
   work().guard();if(parsed.ec!=std::errc{}||parsed.ptr!=digits.data()+(end-digits.begin())||exponent< -16384||exponent>16384)
     throw Refusal("endpoint exponent/profile refusal");
-  work().charge(1,2);
-  if(mpfr_set_str(out,digits.data(),16,MPFR_RNDN)!=0||mpfr_mul_2si(out,out,exponent,MPFR_RNDN)!=0)
-    throw Refusal("inexact endpoint decode");
+  work().charge(1,1);if(mpfr_set_str(out,digits.data(),16,MPFR_RNDN)!=0)throw Refusal("inexact endpoint integer decode");
+  work().charge(0,1);if(mpfr_mul_2si(out,out,exponent,MPFR_RNDN)!=0)throw Refusal("inexact endpoint exponent decode");
 }
 void encode(WireBox &out,const Interval &value,Arithmetic &a,Interval &roundtrip) {
   a.check(value);encode_endpoint(out.low,value.lo);encode_endpoint(out.high,value.hi);
@@ -672,7 +680,7 @@ bool within(const Interval &error,const Interval &allowance) {
   work().guard(1);return mpfr_cmp(error.hi,allowance.lo)<=0;
 }
 bool overlaps(const Interval &x,const Interval &y) {
-  work().guard(2);return mpfr_cmp(x.lo,y.hi)<=0 && mpfr_cmp(y.lo,x.hi)<=0;
+  work().guard(2);const int left=mpfr_cmp(x.lo,y.hi),right=mpfr_cmp(y.lo,x.hi);return left<=0 && right<=0;
 }
 void rational_control(Arithmetic &a,Interval &x,unsigned numerator,unsigned denominator) {
   // This exact Fraction oracle is GMP rational, separate from the interval
@@ -680,7 +688,7 @@ void rational_control(Arithmetic &a,Interval &x,unsigned numerator,unsigned deno
   // denominator owner; GMP internal instructions are not claimed as counted.
   Bytes fraction(sizeof(mpq_t)+128);mpq_t value;work().status_call();mpq_init(value);
   work().charge(1,0);mpq_set_ui(value,numerator,denominator);
-  work().guard(2);const bool ok=mpfr_cmp_q(x.lo,value)<=0 && mpfr_cmp_q(x.hi,value)>=0;
+  work().guard(2);const int left=mpfr_cmp_q(x.lo,value),right=mpfr_cmp_q(x.hi,value);const bool ok=left<=0 && right>=0;
   work().status_call();mpq_clear(value);require(ok,"independent exact rational oracle");a.check(x);
 }
 // Meaningful bounded operator/interval controls. They do not select a new
@@ -857,9 +865,8 @@ void recurrence_and_zero_opacity_controls(const Input &original) {
   e.inverse(inverse,first,5);
   for(unsigned j=0;j<=5;++j){a.integer(expected,j%2?-1:1);require(a.contains(inverse[j],expected),"actual jet reciprocal recurrence");}
   // sqrt((1+x)^2)=1+x, using the selected normalized sqrt recurrence.
-  a.square_root(inverse[0],product[0]);a.integer(e.t[10],2);a.reciprocal(e.t[10],e.t[10]);
-  for(unsigned j=1;j<=5;++j){a.integer(e.t[11],0);for(unsigned r=1;r<j;++r){a.multiply(e.t[12],inverse[r],inverse[j-r]);a.add(e.t[11],e.t[11],e.t[12]);}
-    a.sub(inverse[j],product[j],e.t[11]);a.multiply(inverse[j],inverse[j],e.t[10]);
+  e.square_root_jet(inverse,product,5);
+  for(unsigned j=1;j<=5;++j){
     a.integer(expected,j==1?1:0);require(a.contains(inverse[j],expected),"actual normalized sqrt jet exact polynomial");}
   stepper.initial(y,control,0);a.stored(eta,control.time[0]);a.stored(h,control.time[1]);a.sub(h,h,eta);a.divide_integer(h,h,64);
   // A separately labelled shear operator input; no change to the actual seed.
