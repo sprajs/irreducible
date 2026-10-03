@@ -68,6 +68,10 @@ struct Failure {
   Counts requested{}, served_prefix{};
   U live_bytes = 0, pending_bytes = 0, peak_bytes = 0;
   U requested_bytes = 0;
+  U requested_count = 0, requested_element_bytes = 0;
+  U requested_alignment = 0, requested_header_bytes = 0;
+  Payload requested_category = Payload::other;
+  unsigned requested_storage = 0;
 };
 struct Action {
   Counts count{};
@@ -83,26 +87,31 @@ struct Action {
   }
 };
 
+struct PayloadAccess;
 class Owner {
   struct MacroFrame { Macro id; Counts spent; };
   struct Block {
-    U bytes = 0, generation = 0;
+    U bytes = 0, overhead = 0, generation = 0;
     Payload category = Payload::other;
-    bool used = false, pending = false, node = false;
+    bool used = false, pending = false, node = false, heap = false, native = false;
   };
   Profile profile_;
   Counts caps_, served_{}, cleanup_reserved_{};
+  Counts relocation_spent_{}, relocation_reserved_{};
   std::array<MacroFrame, 16> macros_{};
   unsigned depth_ = 0;
   std::array<Block, maximum_blocks> blocks_{};
   std::array<U, unsigned(Payload::count)> ancillary_{};
   U ancillary_live_ = 0, live_ = 0, pending_ = 0, peak_ = 0;
   U next_generation_ = 1;
+  U node_blocks_ = 0, native_data_ = 0;
   Location location_;
   Failure failure_;
   bool arithmetic_admitted_ = false;
+  friend struct PayloadAccess; // ONE fixed private test-reference owner.
   static constexpr U at(Counter c) noexcept { return unsigned(c); }
   static constexpr Counts cleanup_cost{0, 0, 0, 1, 1, 0, 0, 512};
+  static constexpr Counts payload_cleanup_cost{0, 0, 0, 1, 1, 0, 1, 1024};
   static bool fits(U spent, U increment, U cap) noexcept {
     return spent <= cap && increment <= cap - spent;
   }
@@ -111,24 +120,43 @@ class Owner {
     return {c, c, c, 8 * c, 32 * c, caps_[at(Counter::iterations)],
             caps_[at(Counter::calls)], caps_[at(Counter::integer_upper)]};
   }
-  bool reserve_cleanup() noexcept {
+  bool reserve_cleanup(const Counts &cost = cleanup_cost) noexcept {
     for (unsigned i = 0; i < counter_count; ++i) {
       if (!fits(served_[i], cleanup_reserved_[i], caps_[i]) ||
-          !fits(served_[i] + cleanup_reserved_[i], cleanup_cost[i], caps_[i]))
-        return fail(Cause::work_limit, cleanup_cost);
+          !fits(served_[i] + cleanup_reserved_[i], cost[i], caps_[i]))
+        return fail(Cause::work_limit, cost);
     }
     for (unsigned i = 0; i < counter_count; ++i)
-      cleanup_reserved_[i] += cleanup_cost[i];
+      cleanup_reserved_[i] += cost[i];
     return true;
   }
-  void consume_cleanup() noexcept {
+  void consume_cleanup(const Counts &cost = cleanup_cost) noexcept {
     // Admission reserved this fixed integer-only exit before acquiring the
     // scope. It remains executable after failure without a floating epilogue.
     // The first failure's served_prefix stays the pre-failure snapshot; the
     // final served ledger also includes actual cleanup on the way out.
     for (unsigned i = 0; i < counter_count; ++i) {
-      cleanup_reserved_[i] -= cleanup_cost[i];
-      served_[i] += cleanup_cost[i];
+      cleanup_reserved_[i] -= cost[i];
+      served_[i] += cost[i];
+    }
+  }
+  bool reserve_payload_cleanup() noexcept {
+    const Counts local = macro_caps(Macro::relocation);
+    for (unsigned i = 0; i < counter_count; ++i)
+      if (!fits(relocation_spent_[i], relocation_reserved_[i], local[i]) ||
+          !fits(relocation_spent_[i] + relocation_reserved_[i],
+                payload_cleanup_cost[i], local[i]))
+        return fail(Cause::macro_limit, payload_cleanup_cost);
+    if (!reserve_cleanup(payload_cleanup_cost)) return false;
+    for (unsigned i = 0; i < counter_count; ++i)
+      relocation_reserved_[i] += payload_cleanup_cost[i];
+    return true;
+  }
+  void consume_payload_cleanup() noexcept {
+    consume_cleanup(payload_cleanup_cost);
+    for (unsigned i = 0; i < counter_count; ++i) {
+      relocation_reserved_[i] -= payload_cleanup_cost[i];
+      relocation_spent_[i] += payload_cleanup_cost[i];
     }
   }
 public:
@@ -160,6 +188,7 @@ public:
   U pending_bytes() const noexcept { return pending_; }
   U peak_bytes() const noexcept { return peak_; }
   const Counts &cleanup_reserved() const noexcept { return cleanup_reserved_; }
+  const Counts &relocation_served() const noexcept { return relocation_spent_; }
   void location(Location v) noexcept { location_ = v; }
   bool fail(Cause why, Counts requested = {}) noexcept {
     if (ok()) {
@@ -176,6 +205,9 @@ public:
       return fail(Cause::invalid_input, a.count);
     // Transactional: no field is committed before ALL local/global checks.
     const Counts local = depth_ ? macro_caps(macros_[depth_ - 1].id) : caps_;
+    const bool relocation = depth_ && macros_[depth_ - 1].id == Macro::relocation;
+    const Counts &local_spent = relocation ? relocation_spent_ :
+                                depth_ ? macros_[depth_ - 1].spent : served_;
     for (unsigned i = 0; i < counter_count; ++i) {
       if (served_[i] > std::numeric_limits<U>::max() - a.count[i])
         return fail(Cause::counter_overflow, a.count);
@@ -183,12 +215,15 @@ public:
         return fail(Cause::work_limit, a.count);
       if (!fits(served_[i] + a.count[i], cleanup_reserved_[i], caps_[i]))
         return fail(Cause::work_limit, a.count);
-      if (depth_ && !fits(macros_[depth_ - 1].spent[i], a.count[i], local[i]))
+      if (depth_ && !fits(local_spent[i], a.count[i], local[i]))
+        return fail(Cause::macro_limit, a.count);
+      if (relocation && !fits(local_spent[i] + a.count[i], relocation_reserved_[i], local[i]))
         return fail(Cause::macro_limit, a.count);
     }
     for (unsigned i = 0; i < counter_count; ++i) {
       served_[i] += a.count[i];
-      if (depth_) macros_[depth_ - 1].spent[i] += a.count[i];
+      if (relocation) relocation_spent_[i] += a.count[i];
+      else if (depth_) macros_[depth_ - 1].spent[i] += a.count[i];
     }
     return true;
   }
