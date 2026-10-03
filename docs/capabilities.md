@@ -105,6 +105,20 @@ cosmological posterior, released-box prior or observational qualification.
 
 The native [GR growth](gr-growth.md) consumer retains the radiation-free flat LCDM background for a pressureless growing mode D(a) and f(a), normalized by D/a→1. Exact Einstein–de Sitter and independent ODE/refinement controls test its bounded domain. It adds no CLI/ABI operation, scale-dependent transfer, radiation/relic perturbations, RSD likelihood or observational qualification.
 
+The native [perfect-fluid transfer](linear-transfer.md) owner evolves flat GR
+scalar CDM and an explicitly self-interacting perfect radiation fluid with smooth
+Lambda, using the compatible retained thermal background. Its signed unit-zeta
+comoving density transfer has radiation-era scale dependence. A separate
+finite-support primordial spectrum predicts a top-hat band variance and the
+explicitly named sigma8_band; variance and sigma diagnostics retain their units.
+Analytic EdS/radiation, independently refined Einstein-trace evolution, initial
+and time refinement, window integration and refusal controls supply named
+numerical evidence. This standalone C++ API has no CLI/C ABI route. Baryons,
+collisionless massless/massive relics, real photon transport, ordinary full-support
+sigma8, measured RSD compatibility and primary CMB remain open. This amplitude
+cannot be composed with the existing radiation-free GR f without a compatible
+new consumer.
+
 The native [ground-state hydrogen equilibrium](hydrogen-equilibrium.md) operator
 solves the supplied-temperature/physical-density Saha model with separately
 represented positive ionized and neutral fractions. Exact SI definitions and

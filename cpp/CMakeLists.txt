@@ -534,5 +534,8 @@ include(cmake/optical_detector.cmake)
 # Finite uniform-box normalization of a retained Gaussian linear target.
 include(cmake/gaussian_box.cmake)
 
+# Bounded perfect-fluid CDM transfer and declared finite-band primordial variance.
+include(cmake/linear_transfer.cmake)
+
 # Distinct bounded singlet H/He history with one shared electron density.
 include(cmake/hydrogen_helium_history.cmake)
