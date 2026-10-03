@@ -465,6 +465,26 @@ int main() {
                x.rows[1].joint_density_available == 0,
            "retained nondropped per-case refusal");
     }
+    for (unsigned variant = 0; variant < 3; ++variant) {
+      auto changed = b;
+      const auto bad_value =
+          variant == 0   ? std::numeric_limits<double>::denorm_min()
+          : variant == 1 ? std::numeric_limits<double>::infinity()
+                         : std::numeric_limits<double>::max();
+      const std::array<double, 4> future{.25, -.5, bad_value, bad_value};
+      changed.future_vectors = values(future);
+      Result r;
+      run(changed, q, r);
+      const auto x = view(r);
+      need(x.status == IRRED_GAUSSIAN_STATUS_FINITE && x.case_count == 2 &&
+               x.rows[0].status == IRRED_GAUSSIAN_STATUS_FINITE &&
+               x.rows[1].status != IRRED_GAUSSIAN_STATUS_FINITE &&
+               !x.rows[1].mean.data &&
+               !x.rows[1].absolute_error_estimates.data &&
+               x.rows[1].joint_density_available == 0,
+           "future-domain/density failure atomically withholds mean and "
+           "density");
+    }
     // Stored policy must reserve setup AND every case, not only setup work.
     {
       std::array<double, 64> training{}, future{};

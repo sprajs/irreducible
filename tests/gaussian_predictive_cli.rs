@@ -241,6 +241,22 @@ fn per_case_failure_is_retained_without_zero_payload_or_renormalization() {
     );
 }
 #[test]
+fn finite_future_overflow_withholds_both_requested_groups_atomically() {
+    let mut input = fixture();
+    input["future_vectors"]["vectors"] = json!([[0.25, -0.5], [1e308, 1e308]]);
+    let (v, code, spec) = run(&input);
+    assert_eq!(code, 2);
+    assert_eq!(v["receipt"]["execution"], "completed");
+    assert_eq!(v["result"]["rows"][0]["kind"], "finite");
+    assert_eq!(v["result"]["rows"][1]["kind"], "failure");
+    assert!(v["result"]["rows"][1].get("future_mean").is_none());
+    assert!(v["result"]["rows"][1].get("joint_density").is_none());
+    assert_eq!(
+        spec.unwrap()["future_vectors"]["vectors"],
+        input["future_vectors"]["vectors"]
+    );
+}
+#[test]
 fn global_spd_failures_name_actual_stage_without_claiming_completion() {
     for (field, phase, completed) in [
         (
