@@ -332,6 +332,22 @@ fn released(s: Snapshot) {
 fn structural_controls() {
     use serde_json::{Map, Value};
     use std::mem::{align_of, size_of};
+    // Fixed scalar layout measurements precede every predicate. There is no
+    // active payload epoch while logging them.
+    println!(
+        "THERMAL_RUST_LAYOUT pointer={} option_nonnull={} string={}/{} value={}/{} map={}/{} request={} wire={} tracker_header={}",
+        size_of::<usize>(),
+        size_of::<Option<std::ptr::NonNull<u8>>>(),
+        size_of::<String>(),
+        align_of::<String>(),
+        size_of::<Value>(),
+        align_of::<Value>(),
+        size_of::<Map<String, Value>>(),
+        align_of::<Map<String, Value>>(),
+        size_of::<crate::bao_thermal_run::Request>(),
+        crate::bridge::bao_thermal::wire_size(),
+        size_of::<Header>()
+    );
     assert_eq!(size_of::<usize>(), 8);
     assert_eq!(size_of::<Option<std::ptr::NonNull<u8>>>(), 8);
     assert!(
@@ -344,29 +360,33 @@ fn structural_controls() {
             && align_of::<Value>() <= 8
             && align_of::<Map<String, Value>>() <= 8
     );
-    println!(
-        "THERMAL_RUST_LAYOUT pointer={} string={}/{} value={}/{} map={}/{} request={} wire={} tracker_header={}",
-        size_of::<usize>(),
-        size_of::<String>(),
-        align_of::<String>(),
-        size_of::<Value>(),
-        align_of::<Value>(),
-        size_of::<Map<String, Value>>(),
-        align_of::<Map<String, Value>>(),
-        size_of::<crate::bao_thermal_run::Request>(),
-        crate::bridge::bao_thermal::wire_size(),
-        size_of::<Header>()
-    );
     for count in [1usize, 11, 12, 143, 144, 1024, 4096] {
         for descending in [false, true] {
             begin();
             let mut m = Map::new();
+            let mut insertion_failure = None;
             for i in 0..count {
                 let k = if descending { count - 1 - i } else { i };
                 m.insert(format!("{k:04}"), Value::Null);
                 // The allowance uses final entries after the pending insert,
                 // including all nodes allocated by its transient split.
-                assert!(snapshot().peak <= 512 + 1024 * (i + 1));
+                let measured = snapshot();
+                if !(measured.peak <= 512 + 1024 * (i + 1)) {
+                    insertion_failure = Some((i, k, m.len(), measured));
+                    break;
+                }
+            }
+            if let Some((i, key, len, measured)) = insertion_failure {
+                drop(m);
+                let after_release = end();
+                println!(
+                    "THERMAL_MAP_INSERT_FAILURE count={count} descending={descending} index={i} key={key} len={len} measured={measured:?} bound={} released={after_release:?}",
+                    512 + 1024 * (i + 1)
+                );
+                // Same original inequality, after the first measured failure
+                // and its release state have been retained in the phase log.
+                assert!(measured.peak <= 512 + 1024 * (i + 1));
+                unreachable!("failed insertion predicate must stop this control");
             }
             let clone = m.clone();
             let peak = snapshot();
@@ -388,11 +408,12 @@ fn structural_controls() {
     begin();
     preexisting.reserve(1000);
     let adopted = snapshot();
-    assert_eq!(adopted.adopted_preexisting_reallocations, 1);
-    assert!(adopted.live >= 1008 && adopted.realloc_overlap_envelope >= adopted.live + 8);
+    let capacity = preexisting.capacity();
     drop(preexisting);
     let s = end();
-    println!("THERMAL_ADOPTED_GROWTH {adopted:?} released={s:?}");
+    println!("THERMAL_ADOPTED_GROWTH capacity={capacity} measured={adopted:?} released={s:?}");
+    assert_eq!(adopted.adopted_preexisting_reallocations, 1);
+    assert!(adopted.live >= 1008 && adopted.realloc_overlap_envelope >= adopted.live + 8);
     released(s);
     // Actual byte/String/Value Vec growth, with old/new request overlap.
     begin();
@@ -405,12 +426,13 @@ fn structural_controls() {
         values.push(Value::Null);
     }
     let growth = snapshot();
-    assert!(growth.realloc_overlap_envelope <= 4 * (4096 * 2 + 4096 * size_of::<Value>()) + 4096);
+    let capacities = [bytes.capacity(), text.capacity(), values.capacity()];
     drop(bytes);
     drop(text);
     drop(values);
     let s = end();
-    println!("THERMAL_VEC_GROWTH {growth:?} released={s:?}");
+    println!("THERMAL_VEC_GROWTH capacities={capacities:?} measured={growth:?} released={s:?}");
+    assert!(growth.realloc_overlap_envelope <= 4 * (4096 * 2 + 4096 * size_of::<Value>()) + 4096);
     released(s);
 }
 fn inventory(root: &std::path::Path, base: &std::path::Path, entries: &mut Vec<serde_json::Value>) {
