@@ -245,6 +245,7 @@ void save_tail(const f::TransportState &state,FiniteOpacityAttemptReceipt &attem
   }
   attempt.final_core[ki]=state.core;attempt.final_eta_mpc[ki]=reached_eta;
   attempt.final_scale_factor[ki]=reached_a;
+  attempt.reached_wavenumbers=std::max(attempt.reached_wavenumbers,ki+1);
   ledger.commit_refusal_writes(2*(hierarchy-2)+13);
 }
 } // namespace
@@ -393,7 +394,6 @@ FiniteOpacitySourceResult FiniteOpacitySourceProducer::produce(FiniteOpacityPoli
         constexpr std::size_t scratch_initializations=2*193*10+22*22+44+2*(11+2*193);
         if(!ledger.writes(scratch_initializations+11+2*193+11)){attempt.status=out.status=ledger.status;return out;}
         f::TransportState state;f::TransportScratch scratch;
-        attempt.reached_wavenumbers=ki+1;
         for(unsigned j=0;j<11;++j)state.core[j]=id.seeds[ki].emitted_core[j];
         if(!ledger.reserve_refusal_writes(2*(lmax-2)+13)){attempt.status=out.status=ledger.status;return out;}
         save_tail(state,attempt,lmax,ki,eta_mpc,a,ledger);
