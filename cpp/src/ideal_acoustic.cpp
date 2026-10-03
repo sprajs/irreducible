@@ -19,6 +19,7 @@ using W = long double;
 using State = std::array<W, 6>; // Delta,S,dV,Vc,phi,eta(Mpc).
 using Response = detail::IdealAcousticResponseState;
 using Frame = detail::IdealAcousticTransportFrame;
+using FailureStage = IdealAcousticFailureStage;
 using RadiusArithmetic = detail::ideal_acoustic_transport_internal::Arithmetic;
 using Epoch = detail::ThermalConformalEpoch;
 bool arithmetic() noexcept {
@@ -137,7 +138,9 @@ S frame(Context &c,W a,const Epoch &e,
 // Original MB64/67/70 ideal exchange cancellation, transformed into the
 // cancellation-safe comoving variables. The actual supplied-L defect remains.
 S rhs_at(Context &c, W a, const Epoch &e, W n,W n_radius,
-         const State &y,const Response &r, State &dy,Response &dr) {
+         const State &y,const Response &r, State &dy,Response &dr,
+         FailureStage &failure_stage) {
+  failure_stage=FailureStage::rk_nominal_rhs;
   const auto sound=detail::thermal_baryon_sound(c.loading,a);
   if (sound.status!=S::ok) return sound.status;
   if (!c.budget.rhs() || !c.budget.writes(dy.size())) return S::work_limit;
@@ -147,8 +150,10 @@ S rhs_at(Context &c, W a, const Epoch &e, W n,W n_radius,
   dy[5]=1/e.hcal;
   for (W value:dy) if (!std::isfinite(value)) return S::overflow;
   Frame f;
+  failure_stage=FailureStage::rk_frame;
   auto status=frame(c,a,e,sound,n,n_radius,f);
   if (status!=S::ok) return status;
+  failure_stage=FailureStage::rk_response_rhs;
   return detail::ideal_acoustic_transport_rhs(y,r,f,c.uncertainty,dr,
                                              accounting(c.budget));
 }
@@ -344,59 +349,70 @@ Run evolve(Context &c,W start,std::span<const double> targets,W step,
   ++c.budget.work.attempts;
   out.attempt.initial_scale_factor=static_cast<double>(start);
   out.attempt.maximum_log_step=static_cast<double>(step);
-  auto finish=[&](S cause) {
+  std::optional<W> committed_a;
+  auto finish=[&](S cause,FailureStage stage,unsigned rk_stage=0,
+                  std::optional<W> coefficient_a={}) {
     out.status=cause; out.attempt.status=cause;
     out.attempt.work=difference(c.budget.work,before);
+    if (cause!=S::ok)
+      out.attempt.failure=IdealAcousticFailure{
+          stage,rk_stage,committed_a,coefficient_a};
   };
-  if (age.status!=S::ok) { finish(age.status); return out; }
+  if (age.status!=S::ok) { finish(age.status,FailureStage::initial_age); return out; }
   auto current=epoch(c,start);
-  if (current.status!=S::ok) { finish(current.status); return out; }
+  if (current.status!=S::ok) { finish(current.status,FailureStage::initial_background,0,start); return out; }
   const auto &model=c.background.source();
   const W m=(W(model.omega_b)+W(model.omega_cdm))*start/W(model.omega_gamma);
   const auto sound=detail::thermal_baryon_sound(c.loading,start);
-  if (sound.status!=S::ok) { finish(sound.status); return out; }
+  if (sound.status!=S::ok) { finish(sound.status,FailureStage::initial_loading,0,start); return out; }
   if (m>1e-4L || sound.loading>1e-4L || current.x2>1e-6L || current.fl>1e-10L) {
-    finish(S::outside_domain); return out;
+    finish(S::outside_domain,FailureStage::initial_domain,0,start); return out;
   }
   constexpr W p0=-2.L/3;
-  if (!c.budget.writes(6+10)) { finish(S::work_limit); return out; }
+  if (!c.budget.writes(6+10)) { finish(S::work_limit,FailureStage::initial_state_storage,0,start); return out; }
   State y{-3*p0*current.x2/8,-p0*current.x2*current.x2/96,
           -p0*current.x2/24,
           p0*(.5L+m/16-7*m*m/160-current.x2/120),
           p0*(1-m/16+7*m*m/160-current.x2/30),age.value};
   out.attempt.unprojected_initial_state=std::array<W,5>{y[0],y[1],y[2],y[3],y[4]};
   const W old_delta=y[0],B=current.fb+4*current.fg/3;
-  if (!(current.enthalpy_fraction>0)) { finish(S::outside_domain); return out; }
-  if (!c.budget.writes(1+10+1)) { finish(S::work_limit); return out; }
+  if (!(current.enthalpy_fraction>0)) { finish(S::outside_domain,FailureStage::initial_projection,0,start); return out; }
+  if (!c.budget.writes(1+10+1)) { finish(S::work_limit,FailureStage::initial_projection,0,start); return out; }
   y[0]=(-(2.L/3)*current.x2*y[4]+B*y[1]-3*B*y[2])/current.enthalpy_fraction;
   out.attempt.projected_initial_state=std::array<W,5>{y[0],y[1],y[2],y[3],y[4]};
   out.attempt.initial_delta_projection=y[0]-old_delta;
+  committed_a=start;
   W n=std::log(start),a=start;
   RadiusArithmetic clock_arithmetic;
   // The selected log law is relative to the true log. Outward128eps covers
   // its implicit stored-versus-true denominator under64eps<1/2.
   W n_radius=clock_arithmetic.times(2,
       clock_arithmetic.loss(clock_arithmetic.plus(1,std::abs(n))));
-  if (!c.budget.writes(36)) { finish(S::work_limit); return out; }
+  if (!c.budget.writes(36)) { finish(S::work_limit,FailureStage::initial_clock,0,start); return out; }
   Response response{};
   Frame initial_frame;
   auto initial_status=frame(c,a,current,sound,n,n_radius,initial_frame);
+  FailureStage initial_stage=FailureStage::initial_frame;
   detail::IdealAcousticTransportInitialBounds initial_bounds;
-  if (initial_status==S::ok)
+  if (initial_status==S::ok) {
+    initial_stage=FailureStage::initial_source_bounds;
     initial_status=detail::ideal_acoustic_initial_bounds(y,initial_frame,
         c.uncertainty,c.retained.lambda_retained,age.source_estimate,age.estimate,
         initial_bounds,accounting(c.budget));
-  if (initial_status==S::ok)
+  }
+  if (initial_status==S::ok) {
+    initial_stage=FailureStage::initial_response;
     initial_status=detail::ideal_acoustic_transport_initial(y,initial_frame,
         c.uncertainty,initial_bounds,response,accounting(c.budget));
-  if (initial_status!=S::ok) { finish(initial_status); return out; }
+  }
+  if (initial_status!=S::ok) { finish(initial_status,initial_stage,0,start); return out; }
   try { out.samples.reserve(targets.size()); }
-  catch (const std::bad_alloc &) { finish(S::work_limit); return out; }
+  catch (const std::bad_alloc &) { finish(S::work_limit,FailureStage::sample_storage); return out; }
   for (double target:targets) {
     const W end=std::log(W(target));
     while (n<end) {
       const W h=std::min(end-n,step/(1+std::sqrt(current.x2)));
-      if (!(h>0) || n+h==n) { finish(S::conditioning_budget_exceeded); return out; }
+      if (!(h>0) || n+h==n) { finish(S::conditioning_budget_exceeded,FailureStage::step_clock); return out; }
       const W mid_n=n+h/2,next=std::min(end,n+h);
       const W mid_a=std::exp(mid_n),next_a=std::exp(next);
       const W mid_radius=clock_arithmetic.plus(n_radius,
@@ -405,41 +421,45 @@ Run evolve(Context &c,W start,std::span<const double> targets,W step,
           clock_arithmetic.loss(clock_arithmetic.plus(std::abs(n),h))),
           clock_arithmetic.loss(clock_arithmetic.plus(1,std::abs(next))));
       if (clock_arithmetic.status!=S::ok) {
-        finish(clock_arithmetic.status); return out;
+        finish(clock_arithmetic.status,FailureStage::step_clock); return out;
       }
       auto middle=epoch(c,mid_a),last=epoch(c,next_a);
       if (middle.status!=S::ok || last.status!=S::ok) {
-        finish(middle.status!=S::ok ? middle.status : last.status); return out;
+        finish(middle.status!=S::ok ? middle.status : last.status,
+               FailureStage::step_background,middle.status!=S::ok ? 2 : 4,
+               middle.status!=S::ok ? mid_a : next_a); return out;
       }
-      if (!c.budget.writes(210)) { finish(S::work_limit); return out; }
+      if (!c.budget.writes(210)) { finish(S::work_limit,FailureStage::rk_storage); return out; }
       State k1{},k2{},k3{},k4{},tmp{};
       Response r1{},r2{},r3{},r4{},tmp_r{};
-      S cause=rhs_at(c,a,current,n,n_radius,y,response,k1,r1);
-      if (cause!=S::ok) { finish(cause); return out; }
+      FailureStage rhs_stage=FailureStage::rk_nominal_rhs;
+      S cause=rhs_at(c,a,current,n,n_radius,y,response,k1,r1,rhs_stage);
+      if (cause!=S::ok) { finish(cause,rhs_stage,1,a); return out; }
       cause=combine(c,y,response,{&k1,&k1,&k1,&k1},{&r1,&r1,&r1,&r1},
                     {h/2,0,0,0},tmp,tmp_r);
-      if (cause!=S::ok) { finish(cause); return out; }
-      cause=rhs_at(c,mid_a,middle,mid_n,mid_radius,tmp,tmp_r,k2,r2);
-      if (cause!=S::ok) { finish(cause); return out; }
+      if (cause!=S::ok) { finish(cause,FailureStage::rk_combine,2,mid_a); return out; }
+      cause=rhs_at(c,mid_a,middle,mid_n,mid_radius,tmp,tmp_r,k2,r2,rhs_stage);
+      if (cause!=S::ok) { finish(cause,rhs_stage,2,mid_a); return out; }
       cause=combine(c,y,response,{&k2,&k2,&k2,&k2},{&r2,&r2,&r2,&r2},
                     {h/2,0,0,0},tmp,tmp_r);
-      if (cause!=S::ok) { finish(cause); return out; }
-      cause=rhs_at(c,mid_a,middle,mid_n,mid_radius,tmp,tmp_r,k3,r3);
-      if (cause!=S::ok) { finish(cause); return out; }
+      if (cause!=S::ok) { finish(cause,FailureStage::rk_combine,3,mid_a); return out; }
+      cause=rhs_at(c,mid_a,middle,mid_n,mid_radius,tmp,tmp_r,k3,r3,rhs_stage);
+      if (cause!=S::ok) { finish(cause,rhs_stage,3,mid_a); return out; }
       cause=combine(c,y,response,{&k3,&k3,&k3,&k3},{&r3,&r3,&r3,&r3},
                     {h,0,0,0},tmp,tmp_r);
-      if (cause!=S::ok) { finish(cause); return out; }
-      cause=rhs_at(c,next_a,last,next,next_radius,tmp,tmp_r,k4,r4);
-      if (cause!=S::ok) { finish(cause); return out; }
-      if (!c.budget.writes(42)) { finish(S::work_limit); return out; }
+      if (cause!=S::ok) { finish(cause,FailureStage::rk_combine,4,next_a); return out; }
+      cause=rhs_at(c,next_a,last,next,next_radius,tmp,tmp_r,k4,r4,rhs_stage);
+      if (cause!=S::ok) { finish(cause,rhs_stage,4,next_a); return out; }
+      if (!c.budget.writes(42)) { finish(S::work_limit,FailureStage::endpoint_combine,0,next_a); return out; }
       const auto old_y=y; const auto old_response=response;
       cause=combine(c,old_y,old_response,{&k1,&k2,&k3,&k4},{&r1,&r2,&r3,&r4},
                     {h/6,h/3,h/3,h/6},y,response);
-      if (cause!=S::ok) { finish(cause); return out; }
+      if (cause!=S::ok) { finish(cause,FailureStage::endpoint_combine,0,next_a); return out; }
       // Commit the epoch with the new state before any subsequent admission.
       n=next; n_radius=next_radius; a=next_a; current=std::move(last);
-      for (W value:y) if (!std::isfinite(value)) { finish(S::overflow); return out; }
-      if (!c.budget.diagnostic()) { finish(S::work_limit); return out; }
+      committed_a=a;
+      for (W value:y) if (!std::isfinite(value)) { finish(S::overflow,FailureStage::committed_state,0,a); return out; }
+      if (!c.budget.diagnostic()) { finish(S::work_limit,FailureStage::hamiltonian_constraint,0,a); return out; }
       const auto constraint=residual(y,current);
       out.attempt.maximum_normalized_hamiltonian_residual=std::max(
           out.attempt.maximum_normalized_hamiltonian_residual,constraint.normalized);
@@ -456,25 +476,25 @@ Run evolve(Context &c,W start,std::span<const double> targets,W step,
       out.attempt.maximum_absolute_acceleration_defect=std::max(
           out.attempt.maximum_absolute_acceleration_defect,std::abs(current.acceleration_defect));
       if (!std::isfinite(constraint.normalized) || constraint.normalized>c.budget.p.maximum_constraint_residual) {
-        finish(S::conditioning_budget_exceeded); return out;
+        finish(S::conditioning_budget_exceeded,FailureStage::hamiltonian_constraint,0,a); return out;
       }
-      if (!c.budget.diagnostic()) { finish(S::work_limit); return out; }
+      if (!c.budget.diagnostic()) { finish(S::work_limit,FailureStage::phase_response,0,a); return out; }
       RadiusArithmetic phase_arithmetic;
       std::array<W,6> phase_linear{},phase_total{};
       const auto phase_status=detail::ideal_acoustic_transport_internal::response_sizes(
           response,c.uncertainty,phase_linear,phase_total,phase_arithmetic);
-      if (phase_status!=S::ok) { finish(phase_status); return out; }
+      if (phase_status!=S::ok) { finish(phase_status,FailureStage::phase_response,0,a); return out; }
       // Stage source/arithmetic support includes the initial age. The complete
       // mesh/start phase allowance is additionally enforced at every output.
       if (!(y[5]>=0) || c.k*phase_arithmetic.plus(y[5],phase_total[5])>20) {
-        finish(S::outside_domain); return out;
+        finish(S::outside_domain,FailureStage::phase_domain,0,a); return out;
       }
     }
     ++c.budget.work.endpoint_evaluations;
-    if (!c.budget.writes(84)) { finish(S::work_limit); return out; }
+    if (!c.budget.writes(84)) { finish(S::work_limit,FailureStage::endpoint_storage,0,a); return out; }
     out.samples.push_back({S::ok,y,response,n,n_radius,a,current});
   }
-  finish(S::ok); return out;
+  finish(S::ok,FailureStage::endpoint_storage); return out;
 }
 struct Readout {
   S status=S::invalid_input;

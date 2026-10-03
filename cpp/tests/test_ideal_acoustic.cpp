@@ -23,6 +23,55 @@ void close(W actual,W expected,W error,const char *message) {
     need(false,message);
   }
 }
+void print_failure(const IdealAcousticAttempt &trial) {
+  if (!trial.failure) { std::cout<<" failure=null"; return; }
+  const auto &f=*trial.failure;
+  std::cout<<" failure_stage="<<static_cast<unsigned>(f.stage)
+           <<" rk_stage="<<f.rk_stage<<" committed_a=";
+  if (f.last_committed_scale_factor) std::cout<<*f.last_committed_scale_factor;
+  else std::cout<<"null";
+  std::cout<<" coefficient_a=";
+  if (f.attempted_coefficient_scale_factor) std::cout<<*f.attempted_coefficient_scale_factor;
+  else std::cout<<"null";
+}
+void failure_witness_limits(const IdealAcousticTransfer &owner) {
+  const std::array<double,1> k{1e-4},a{.01};
+  IdealAcousticPolicy age;
+  age.maximum_age_evaluations=0;
+  const auto age_failure=owner.evaluate(k,a,1,age);
+  need(age_failure.status==S::work_limit && age_failure.trajectories.size()==1 &&
+       age_failure.trajectories[0].attempts_started==1,"early age refusal shape");
+  const auto &age_trial=age_failure.trajectories[0].attempts[0];
+  need(age_trial.failure && age_trial.failure->stage==IdealAcousticFailureStage::initial_age &&
+       age_trial.failure->rk_stage==0 && !age_trial.failure->last_committed_scale_factor &&
+       !age_trial.failure->attempted_coefficient_scale_factor &&
+       age_failure.evaluation_work.background_evaluations==0 &&
+       age_failure.evaluation_work.rhs_evaluations==0,"unavailable initial epoch stays absent without callbacks");
+  IdealAcousticPolicy storage;
+  storage.maximum_state_element_writes=0;
+  const auto storage_failure=owner.evaluate(k,a,1,storage);
+  need(storage_failure.status==S::work_limit && storage_failure.trajectories.size()==1 &&
+       storage_failure.trajectories[0].attempts_started==1,"initial storage refusal shape");
+  const auto &storage_trial=storage_failure.trajectories[0].attempts[0];
+  need(storage_trial.failure &&
+       storage_trial.failure->stage==IdealAcousticFailureStage::initial_state_storage &&
+       !storage_trial.failure->last_committed_scale_factor &&
+       storage_trial.failure->attempted_coefficient_scale_factor==W(owner.source()->initial_scale_factor) &&
+       storage_trial.work.state_element_writes==0 && storage_trial.work.rhs_evaluations==0,
+       "storage refusal retains attempted coefficient epoch before a state exists");
+  IdealAcousticPolicy rhs;
+  rhs.maximum_rhs_per_wavenumber=0;
+  const auto rhs_failure=owner.evaluate(k,a,1,rhs);
+  need(rhs_failure.status==S::work_limit && rhs_failure.trajectories.size()==1 &&
+       rhs_failure.trajectories[0].attempts_started==1,"initial RHS refusal shape");
+  const auto &rhs_trial=rhs_failure.trajectories[0].attempts[0];
+  need(rhs_trial.failure && rhs_trial.failure->stage==IdealAcousticFailureStage::rk_nominal_rhs &&
+       rhs_trial.failure->rk_stage==1 &&
+       rhs_trial.failure->last_committed_scale_factor==W(owner.source()->initial_scale_factor) &&
+       rhs_trial.failure->attempted_coefficient_scale_factor==rhs_trial.failure->last_committed_scale_factor &&
+       rhs_trial.work.rhs_evaluations==0 && !rhs_failure.rows[0].outputs[0].computed,
+       "first RK refusal retains matching committed and attempted epochs without derivative execution");
+}
 IdealAcousticRequest fixture() {
   return {{70,.02,.10,2.7,0,{}},1e-10,"synthetic:ideal-acoustic-original150249"};
 }
@@ -108,6 +157,7 @@ int main() {
        !prepared.background(),"moved-source invalidation");
   owner=std::move(owner);
   need(owner.status()==S::ok && owner.source(),"self-move preserves owner");
+  failure_witness_limits(owner);
   const std::array<double,2> k{.01,1e-4};
   const std::array<double,2> a{1e-3,.01};
   IdealAcousticPolicy augmented;
@@ -134,7 +184,8 @@ int main() {
                  <<" P="<<trial.work.background_evaluations
                  <<" writes="<<trial.work.state_element_writes
                  <<" raw_H="<<trial.maximum_direct_hamiltonian_residual
-                 <<" normalized_H="<<trial.maximum_normalized_hamiltonian_residual<<'\n';
+                 <<" normalized_H="<<trial.maximum_normalized_hamiltonian_residual;
+        print_failure(trial); std::cout<<'\n';
       }
     for (const auto &row:batch.rows) {
       std::cout<<"raw_refused_epoch k_index="<<row.original_k_index
@@ -183,6 +234,7 @@ int main() {
     }
     for (const auto &attempt:trajectory.attempts) {
       need(attempt.status==S::ok,"native acoustic numerical attempt");
+      need(!attempt.failure,"successful attempt has no first-refusal witness");
       need(attempt.unprojected_initial_state && attempt.projected_initial_state &&
            attempt.initial_delta_projection,"initial source and actual projection retained");
     }

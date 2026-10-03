@@ -67,6 +67,22 @@ int main() {
       };
       state("unprojected",trial.unprojected_initial_state);
       state("projected",trial.projected_initial_state);
+      std::cout<<",\"failure\":";
+      if (!trial.failure) std::cout<<"null";
+      else {
+        const auto &failure=*trial.failure;
+        std::cout<<"{\"stage\":"<<static_cast<unsigned>(failure.stage)
+                 <<",\"rk_stage\":"<<failure.rk_stage<<",\"committed_a\":";
+        if (failure.last_committed_scale_factor) std::cout<<*failure.last_committed_scale_factor;
+        else std::cout<<"null";
+        std::cout<<",\"coefficient_a\":";
+        if (failure.attempted_coefficient_scale_factor) std::cout<<*failure.attempted_coefficient_scale_factor;
+        else std::cout<<"null";
+        std::cout<<'}';
+      }
+      std::cout<<",\"rhs\":"<<trial.work.rhs_evaluations
+               <<",\"P_queries\":"<<trial.work.background_evaluations
+               <<",\"state_writes\":"<<trial.work.state_element_writes;
       std::cout<<"}\n";
       admitted=admitted && trial.status==S::ok && trial.unprojected_initial_state &&
                trial.projected_initial_state && trial.initial_delta_projection;

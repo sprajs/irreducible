@@ -57,12 +57,34 @@ struct IdealAcousticValue {
   std::optional<double> value;
   IdealAcousticError error;
 };
+// Operation-owned first-refusal IDs. Stage0 means no RK stage; stages1..4
+// identify the attempted RK input. These are diagnostics, not output IDs.
+enum class IdealAcousticFailureStage : unsigned {
+  initial_age = 1, initial_background, initial_loading, initial_domain,
+  initial_state_storage, initial_projection, initial_clock, initial_frame,
+  initial_source_bounds, initial_response, sample_storage, step_clock,
+  step_background, rk_storage, rk_nominal_rhs, rk_frame, rk_response_rhs,
+  rk_combine, endpoint_combine, committed_state, hamiltonian_constraint,
+  phase_response, phase_domain, endpoint_storage
+};
+struct IdealAcousticFailure {
+  IdealAcousticFailureStage stage = IdealAcousticFailureStage::initial_age;
+  unsigned rk_stage = 0;
+  // Last fully committed nominal state, before a failing partial assembly.
+  // Unavailable before the initial projected nominal state exists.
+  std::optional<long double> last_committed_scale_factor;
+  // Existing coefficient/input epoch used by the failing operation; no query
+  // is made to fill this witness. Clock/storage-only failures may lack it.
+  std::optional<long double> attempted_coefficient_scale_factor;
+};
 struct IdealAcousticAttempt {
   numerics::Status status = numerics::Status::invalid_input;
   double initial_scale_factor = 0, maximum_log_step = 0;
   std::optional<std::array<long double, 5>> unprojected_initial_state;
   std::optional<std::array<long double, 5>> projected_initial_state;
   std::optional<long double> initial_delta_projection;
+  // Successful attempts have no failure. Original status remains authoritative.
+  std::optional<IdealAcousticFailure> failure;
   long double maximum_normalized_hamiltonian_residual = 0;
   long double maximum_absolute_hamiltonian_residual = 0;
   long double maximum_relative_reduced_constraint = 0;

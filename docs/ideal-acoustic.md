@@ -28,6 +28,14 @@ All eighteen raw field comparisons passed their original known refinement
 checks. The original 100M protocol, full peer source errors and external MPFR
 payload admission remain unearned.
 
+The integrated source-inclusive build at 4c2026e passed compilation and the
+shared thermal contract, then its native test refused before publishing fields.
+A fresh installed consumer against that same archive returned `outside_domain`
+with 52,108 RHS owners, 1,880 background queries and 696,476 state writes; all
+eighteen requested fields stayed absent. One coarse low-k attempt completed,
+but the remaining started attempts refused. These results remain preserved;
+they do not identify the failing stage or establish source-error admission.
+
 The declared infinite momentum-coupling limit first sums the photon and baryon
 enthalpy-weighted momentum equations. Their exchange cancels before their common
 velocity is imposed. Cold baryon pressure and zero photon shear are additional
@@ -122,7 +130,18 @@ flow bound translates all five physical coordinates and eta to that epoch,
 including a stored exp/log roundtrip that happens to equal the requested a.
 An unresolved or singular endpoint allowance refuses. These are
 conditional numerical estimates; no universal libm or inference qualification
-is asserted. This source successor has not yet been compiled or executed.
+is asserted. The integrated source successor's first execution refused as
+recorded above; its complete conditional admission remains open.
+
+Each failed numerical attempt now retains an operation-owned first-refusal
+stage, RK input stage1..4 when applicable, the last committed nominal-state
+scale factor and the attempted coefficient scale factor. Unavailable epochs
+remain absent; a partial failing assembly does not advance the committed epoch.
+Successful attempts have no failure witness. The native and installed callers
+print these records before asserting admission. Recording borrows existing
+epochs without another query, recomputation, state reset or changed budget.
+The added fields count through the actual attempt/trajectory payload layout.
+This diagnostic source change has not yet been compiled or executed.
 
 An optional MPFR reference target advances a separate conformal-time photon
 oscillator and spatial Einstein trace. It uses the same emitted source and
