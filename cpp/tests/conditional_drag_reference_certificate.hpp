@@ -421,6 +421,17 @@ public:
     out.lower = in.lower; out.upper = in.upper; out.valid = true;
     return true;
   }
+  bool absolute_upper(W &out, const Interval &in) noexcept {
+    if (!owner_.guard()) return false;
+    if (&out == &in.lower || &out == &in.upper)
+      return owner_.fail(Cause::invalid_ownership);
+    if (!inputs(in, in) || !owner_.action(Action::floating(1, 1))) return false;
+    W negative_lower; negative_lower = -in.lower;
+    if (!normal(negative_lower) || !owner_.guard()) return false;
+    if (!owner_.action(Action::floating(1, 0, 1))) return false;
+    out = negative_lower > in.upper ? negative_lower : in.upper;
+    return normal(out);
+  }
   bool add(Interval &out, const Interval &a, const Interval &b) noexcept {
     if (!output(out, a, b) ||
         !directed(out.lower, a.lower, b.lower, Operation::add, Direction::lower) ||

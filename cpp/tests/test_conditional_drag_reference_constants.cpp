@@ -56,7 +56,9 @@ void original_atomic_and_absolute_cold_controls() {
   need(arithmetic.prepare_directions(), "atomic direction source");
   ref::SourceNumbers numbers(arithmetic);
   ref::AtomicNumbers constants;
-  need(numbers.atomic(constants), "all original declared source constants acquired");
+  const bool acquired = numbers.atomic(constants);
+  need(acquired, "all original declared source constants acquired");
+  if (!acquired) return; // Do not read intentionally unassigned Wide fields after refusal.
   namespace original = hydrogen_helium_history_reference;
   need(constants.kb.lower <= original::kb && constants.kb.upper >= original::kb &&
        constants.h.lower <= original::h && constants.h.upper >= original::h &&

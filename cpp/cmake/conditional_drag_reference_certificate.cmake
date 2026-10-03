@@ -22,3 +22,11 @@ target_compile_options(test_conditional_drag_reference_ownership PRIVATE
   -Wall -Wextra -Wpedantic -fno-fast-math -ffp-contract=off -fno-elide-constructors)
 add_test(NAME conditional_drag_reference_ownership_contract
   COMMAND test_conditional_drag_reference_ownership)
+
+add_executable(test_conditional_drag_reference_saha
+  tests/test_conditional_drag_reference_saha.cpp)
+target_link_libraries(test_conditional_drag_reference_saha PRIVATE irred_core)
+target_compile_options(test_conditional_drag_reference_saha PRIVATE
+  -Wall -Wextra -Wpedantic -fno-fast-math -ffp-contract=off -fno-elide-constructors)
+add_test(NAME conditional_drag_reference_saha_contract
+  COMMAND test_conditional_drag_reference_saha)
