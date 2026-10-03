@@ -119,6 +119,29 @@ controls; the dense small hierarchy is not the independent angular reference.
 The installed public-header/archive consumer also produces one bounded positive
 finite source and checks its unadmitted discriminator and surviving boundary.
 
+The runnable [finite_opacity_source_grid example](../cpp/examples/finite_opacity_source_grid.cpp) acquires a complete raw grid
+and moves its six buffers once into the continuous temperature/E projector.
+Build that CMake target and run it without arguments. It retains the immutable
+source identity and separate positive boundary after destroying the producer,
+then prints the original inputs, preparation/trajectory work, ordered raw grid,
+ownership checks and two forced-support ell=2 temperature/E rows. It reports
+quadrature/arithmetic diagnostics separately from absent radial/source-grid
+errors; full temperature and boundary composition remain absent.
+
+Its first strict standalone compile against the original `04332db` installed
+archive and fixed run passed in 1.235 seconds including compilation. All 585
+input pins were unchanged, and all 297 actually consumed compiler dependencies
+were covered. The synthetic two-k, two-opacity-knot fixture spans a=0.001 to
+0.00101. All nine trajectories completed 72 aggregate steps with 9,314
+background calls, 1,331,954 charged writes and 225,564 native payload bytes.
+The ten ordered raw rows projected into two forced-support rows using 40
+radial-kernel evaluations. The same six buffers, identity and boundary survived
+the move; both positive omitted-boundary bounds were retained. This is the
+original archive's first example run, separately from integrated CMake/CI.
+On this short fixture, quarter-cell endpoints limit all three time policies
+to the same eight steps per attempt. Their zero differences do not establish
+time-error acceptance. Source numerical admission remains false.
+
 At frozen commit `04332db2239122ea2a2685e2375ebb15e98686ea`, the first bounded
 trial passed both native contract binaries and the fresh installed consumer.
 Its seven serial configure/build/run/install steps all passed in 67.410 seconds,
