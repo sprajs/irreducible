@@ -49,6 +49,7 @@ Read [AGENTS.md](../AGENTS.md) first, then choose a guide:
 | Generate addressed full-covariance Gaussian vectors and run synthetic recovery campaigns | [Gaussian simulation](gaussian-simulation.md) |
 | Predict and recover a synthetic anchor/Cepheid/SN ladder in C++ | [Calibration ladder](calibration-ladder.md) |
 | Run tests or add a fixture | [Testing](testing.md) and [fixture provenance](../cpp/tests/fixtures/README.md) |
+| Inspect the private exact-argument sqrt/log/exp prerequisite and pending gates | [Elementary postchecks](thermal-elementary.md) |
 | Maintain these docs | [Maintenance](maintenance.md) |
 
 These docs travel with the source. Read the version for your commit and check the actual build's capabilities and qualification state before using a result.
