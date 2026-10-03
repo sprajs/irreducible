@@ -12,6 +12,7 @@
 #include <irred/linear_transfer.hpp>
 #include <irred/hydrogen_equilibrium.hpp>
 #include <irred/hydrogen_helium_equilibrium.hpp>
+#include <irred/hydrogen_helium_history.hpp>
 #include <irred/baryon_abundance.hpp>
 #include <irred/recombination_drag.hpp>
 #include <irred/sis_thin_lens.hpp>
@@ -717,6 +718,49 @@ int installed_growth_rsd() {
  return r.status==statistics::DensityStatus::finite && r.slots[0].result && r.slots[0].result->density.status==statistics::DensityStatus::finite &&
   std::abs(r.slots[0].result->density.log_value+.5*std::log(2*std::numbers::pi))<1e-12 ? 0:25;
 }
+int installed_hydrogen_helium_history() {
+ using namespace irred::cosmology;
+ using Status=irred::numerics::Status;
+ HydrogenHeliumHistoryRequest request{{67.4,.02237,.12,2.7255,1.7e-5,{}},
+  .19,.015,"installed synthetic independently supplied nuclei",2700,300};
+ HydrogenHeliumHistoryPolicy policy;
+ // An explicit caller mesh; defaults and physical/rate assumptions stay fixed.
+ policy.base_intervals=16384;
+ auto owner=prepare_hydrogen_helium_history(request,policy);
+ if(owner.status()!=Status::ok || !owner.source()) return 29;
+ request.hydrogen_nuclei_today_per_cubic_metre=0;
+ request.nuclei_origin="changed caller input";
+ auto copy=owner;
+ owner=HydrogenHeliumHistory{};
+ auto retained=std::move(copy);
+ if(copy.status()!=Status::invalid_input || copy.source() ||
+  !retained.source() || !retained.background() ||
+  retained.source()->hydrogen_nuclei_today_per_cubic_metre!=.19 ||
+  retained.source()->nuclei_origin!="installed synthetic independently supplied nuclei") return 29;
+ const auto work=retained.work().total();
+ const std::array<double,3> redshifts{2700,1300,300};
+ const auto result=retained.evaluate(redshifts,history_hydrogen_ionized|
+  history_helium_ionized|history_electron_density|history_matter_temperature|
+  history_thomson_opacity);
+ if(result.status!=Status::ok || result.rows.size()!=redshifts.size() ||
+  retained.work().total()!=work) return 29;
+ for(std::size_t i=0;i<redshifts.size();++i) {
+  const auto &row=result.rows[i];
+  const HydrogenHeliumHistoryValue *groups[]{&row.hydrogen_ionized_fraction,
+   &row.helium_singly_ionized_fraction,&row.electron_number_density_per_cubic_metre,
+   &row.matter_temperature_kelvin,&row.thomson_opacity_per_redshift};
+  for(const auto *group:groups)
+   if(group->status!=Status::ok || !group->value || !std::isfinite(*group->value) ||
+    *group->value<=0) return 29;
+  const long double u=1+row.redshift;
+  const long double shared_charge=u*u*u*(.19L * *row.hydrogen_ionized_fraction.value+
+   .015L * *row.helium_singly_ionized_fraction.value);
+  if(row.redshift!=redshifts[i] ||
+   std::abs(*row.electron_number_density_per_cubic_metre.value-shared_charge)>
+    8e-15L*shared_charge) return 29;
+ }
+ return 0;
+}
 int main() {
  const auto result=irred::numerics::log1p_checked(0.5);
  if(result.status!=irred::numerics::Status::ok || std::abs(result.value-0.4054651081081643819780131154643491)>=1e-14) return 1;
@@ -780,5 +824,6 @@ int main() {
  if(const auto law_status=installed_abundance_law();law_status!=0) return law_status;
 
  if(const auto rsd_status=installed_growth_rsd();rsd_status!=0) return rsd_status;
+ if(const auto hhe_history_status=installed_hydrogen_helium_history();hhe_history_status!=0) return hhe_history_status;
  return installed_correlated_calibration();
 }

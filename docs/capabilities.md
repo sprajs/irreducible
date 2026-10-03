@@ -135,8 +135,21 @@ LTE state. The native [supplied baryon abundance](baryon-abundance.md) owner
 now maps physical omega_b and a He4 mass fraction, with explicitly supplied
 neutral effective masses, into nuclei densities and a supplied-temperature LTE
 consumer. Original Decimal and independent charge-root controls test this
-composition. Abundance prediction, helium kinetics and a cosmic history remain
+composition. Abundance prediction and qualification of a cosmic input law remain
 separate.
+
+The native [conditional H/He history](hydrogen-helium-history.md) now retains
+independently supplied nuclei densities and advances HII/HeII singlet kinetics
+with one shared electron density and coupled Compton/adiabatic temperature.
+Its bounded massless thermal state, artificial restricted-Saha start at redshift
+2600–2800 and late endpoint 300–600 have a separate model identity. Original
+Radau/refinement and Decimal rate controls test the numerical contract. The
+installed consumer explicitly requests 16384 base intervals, preserves owned
+state and checks shared charge; the unchanged 8192 default can refuse trace He
+while preserving other groups. Literal-paper/code discrepancies, omitted HeIII,
+low-temperature rate extrapolation and unpropagated atomic/rate uncertainty
+remain explicit. This adds no CLI/ABI route, full RECFAST fidelity, qualified
+abundance/temperature law, physical drag endpoint or present-day CMB visibility.
 
 The retained native [pure-H history](recombination-drag.md) composes that initial
 condition with the shared thermal background and source-defined
