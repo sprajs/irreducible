@@ -186,7 +186,7 @@ pub(crate) fn evaluate(r: &Request) -> Result<Calculation, String> {
         || v.case_count != count as u64
         || v.covariance.length != p.checked_mul(p).ok_or("RESOURCE_LIMIT")? as u64
         || !v.covariance_relative_error_estimate.is_finite()
-        || v.covariance_relative_error_estimate < 0
+        || v.covariance_relative_error_estimate < 0.0
     {
         return Err("INVALID_FINITE_POSTERIOR_VIEW".into());
     }
@@ -242,7 +242,7 @@ pub(crate) fn evaluate(r: &Request) -> Result<Calculation, String> {
         }
         let mean = values(&row.mean, p)?;
         let errors = values(&row.absolute_error_estimates, p)?;
-        if errors.iter().any(|&x| x < 0) {
+        if errors.iter().any(|&x| x < 0.0) {
             return Err("INVALID_NUMERICAL_ERROR".into());
         }
         out.push(json!({"kind":"finite","case_index":i,"case_id":r.conditioning.case_ids[i],"status":status,"numerical_status":num,"mean":mean,"absolute_error_estimates":errors,"backward_residual":row.backward_residual,"estimated_forward_sensitivity":row.estimated_forward_sensitivity}));
