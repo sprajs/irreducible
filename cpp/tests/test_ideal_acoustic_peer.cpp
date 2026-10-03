@@ -1,6 +1,10 @@
 #include "../src/ideal_acoustic_equations.hpp"
 #include "irred/ideal_acoustic.hpp"
 #include "irred/quantities.hpp"
+#if defined(IRRED_IDEAL_ACOUSTIC_DIAGNOSTIC_400M) && \
+    !defined(IRRED_IDEAL_ACOUSTIC_MPFR_REFERENCE)
+#error "IRRED_IDEAL_ACOUSTIC_DIAGNOSTIC_400M requires IRRED_IDEAL_ACOUSTIC_MPFR_REFERENCE"
+#endif
 #if defined(IRRED_IDEAL_ACOUSTIC_MPFR_REFERENCE)
 #include "ideal_acoustic_peer.hpp"
 #endif
@@ -855,7 +859,14 @@ void original_campaign(native::IdealAcousticTransfer &owner) {
   const std::array<double, 2> ks{1e-4, .01};
   const std::array<double, 1> a{.01};
   const native::IdealAcousticPolicy native_policy;
-  peer::Budget budget; // Unchanged whole-request caps across both original k.
+  peer::Budget budget; // One whole-request budget across both original k.
+#if defined(IRRED_IDEAL_ACOUSTIC_DIAGNOSTIC_400M)
+  budget.maximum_writes = 400000000;
+  constexpr std::string_view protocol_id =
+      "diagnostic-original-DP54-400M/v1";
+#else
+  constexpr std::string_view protocol_id = "original-DP54-100M/v1";
+#endif
   peer::Source source;
   {
     peer::BudgetScope scope(budget);
@@ -865,7 +876,8 @@ void original_campaign(native::IdealAcousticTransfer &owner) {
   need(source.status == S::ok, "original once-captured peer source");
   Record started;
   started
-      << "{\"kind\":\"original-request-started\",\"request_sha256\":"
+      << "{\"kind\":\"original-request-started\",\"protocol_id\":\""
+      << protocol_id << "\",\"request_sha256\":"
          "\"e8bf08cadf571557a9e4e2f2b59121dc58a64362288a4b95f4b491d41e35ab36\","
          "\"k\":[0.0001,0.01],\"a\":[0.01],\"native_ai\":1e-10,"
          "\"model_id\":\""
@@ -892,6 +904,11 @@ void original_campaign(native::IdealAcousticTransfer &owner) {
       << ",\"peer_max_endpoints\":" << budget.maximum_endpoints
       << ",\"peer_max_payload\":" << budget.maximum_payload
       << ",\"peer_max_artifact\":" << budget.maximum_artifact_bytes
+#if defined(IRRED_IDEAL_ACOUSTIC_DIAGNOSTIC_400M)
+      << ",\"original_peer_max_writes\":100000000,"
+         "\"prior_original_failure_sha256\":\""
+         "88ac3bd9d568e09dfc16b9dd9188e855570cffd36400489c0cbb17ce71597f9e\""
+#endif
       << ",\"source_admitted\":false,\"external_runtime_admitted\":false}";
   emit(started, budget, true);
   const auto actual =

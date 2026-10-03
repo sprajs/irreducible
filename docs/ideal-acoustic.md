@@ -11,8 +11,16 @@ At 8e87b8f, the fresh strict Release build compiled the native, portable peer,
 optional MPFR reference and shared diagnostic targets. The native and shared
 contracts passed. The portable peer then exposed an exhausted early-age budget
 being reported as a generic invalid integration policy; the run stopped before
-the MPFR campaign. That original failure is retained. The narrow owner refusal
-correction and limits 0, 1 and 2 controls await a fresh validation run.
+the MPFR campaign. That original failure is retained.
+
+The correction passed at f45c152 with the native, shared diagnostic and portable
+peer contracts. Its optional MPFR run completed all ten attempts and all nine
+raw comparisons for k=1e-4, then reached the original cumulative 100M
+destination-write ceiling during the first attempt at k=.01. The default
+protocol remains refused. A separately labeled, compile-only diagnostic variant
+uses 400M writes for the same twenty attempts and quality checks to diagnose the
+remaining raw fields; its source selection does not qualify the original cap,
+complete source errors or external MPFR payload.
 
 The declared infinite momentum-coupling limit first sums the photon and baryon
 enthalpy-weighted momentum equations. Their exchange cancels before their common
