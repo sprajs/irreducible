@@ -95,6 +95,14 @@ reference controls supply named numerical evidence. Fixed physical densities
 do not imply H0 cancellation. Released compression validity and observational
 qualification remain separate; the massless conditional model keeps its identity.
 
+The C++ [declared effective-fluid background](effective-fluid.md) retains that
+thermal species state and adds one compiled compensated density law, with E/H
+batches and a matched finite-endpoint ruler. Zero-amplitude parity, conservation,
+independent fixed-grid/refinement and an installed positive-mass consumer pass
+their named numerical controls. This independently normalized approximation
+does not supply the paper EDE scalar mapping, perturbations, a predicted drag
+endpoint or an observational alternative-theory fit.
+
 The native [proper Gaussian parameter posterior](gaussian-posterior.md) retains
 fixed observation/design factors and an explicitly independent full proper
 Gaussian prior. It returns conditional mean, covariance and normalized density

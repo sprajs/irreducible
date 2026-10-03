@@ -25,6 +25,7 @@ Read [AGENTS.md](../AGENTS.md) first, then choose a guide:
 | Use one early/late state for distances and conditional ruler ratios in C++ | [Early and late expansion](early-late.md) |
 | Evaluate explicit thermal relic density, pressure and flat E/H in C++ | [Thermal neutrino background](thermal-neutrino.md) |
 | Map physical densities/temperatures and evaluate thermal distances/ruler ratios | [Thermal observables](thermal-observables.md) |
+| Evaluate a declared compensated fluid background and matched finite ruler | [Effective fluid](effective-fluid.md) |
 | Evaluate a supplied-drag BAO density with a retained ordered covariance in C++ | [Massless conditional BAO](bao-conditional.md) or [thermal conditional BAO](bao-thermal.md) |
 | Calculate a pressureless GR growing mode in C++ | [GR growth](gr-growth.md) |
 | Predict bounded perfect-fluid CDM transfer and a declared primordial band variance | [Perfect-fluid transfer](linear-transfer.md) |
