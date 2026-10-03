@@ -61,6 +61,7 @@ pub(crate) fn execute() -> Result<(), String> {
                         {"id":"cosmology.sound_horizon","implementation":"implemented","scientific":true,"qualification":"unqualified","target":"conditional comoving sound horizon at supplied drag redshift"},
                         {"id":"background.evaluate","implementation":"implemented","scientific":true,"qualification":"unqualified","requested_groups":["radial","luminosity_shape","clock","physical","kinematics","expansion"],"models":["lcdm","constant_q","cpl","fixed_q5"],"node_reuse":"exact z bits within each model batch; no cross-model cache"},
                         {"id":"observations.prepare","implementation":"implemented","scientific":true,"qualification":"unqualified","profiles":["pantheon_plus_released_v1","gaussian_fixture_v1","typed_magnitude_covariance"],"ownership":"immutable shared native source"},
+                        {"id":"statistics.gaussian_predictive","implementation":"implemented","scientific":true,"qualification":"unqualified","outputs":["predictive_means","joint_predictive_log_densities"],"source_semantics":"synthetic controls","ownership":"one retained native joint future law per coarse batch; no joint-across-cases law"},
                         {"id":"statistics.gaussian_posterior","implementation":"implemented","scientific":true,"qualification":"unqualified","outputs":["posterior_covariance","posterior_means"],"source_semantics":"synthetic controls","ownership":"one native fixed-design/noise/prior owner per coarse batch"},
                         {"id":"statistics.gaussian","implementation":"implemented","scientific":true,"qualification":"unqualified","modes":["normalized_density","profile_offset_score"]},
                         {"id":"supernova.profile","implementation":"implemented","scientific":true,"qualification":"unqualified","models":["lcdm","constant_q","cpl","fixed_q5"],"source_effects":["none","grey_log1p_magnitude"],"target":"conditional single-offset relative profile"},
@@ -170,6 +171,7 @@ pub(crate) fn execute() -> Result<(), String> {
                         "supernova.profile" | "bao.density" => crate::session::execute_once(&input,&store),
                         "statistics.gaussian" => crate::statistics_run::execute(&input,&store),
                         "statistics.gaussian_posterior" => crate::gaussian_posterior_run::execute(&input),
+                        "statistics.gaussian_predictive" => crate::gaussian_predictive_run::execute(&input),
                         "observations.prepare" => crate::observation_run::execute(&input,&store),
                         _ => Err("UNSUPPORTED_SPECIFICATION".into()),
                     }

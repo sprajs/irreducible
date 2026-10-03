@@ -11,7 +11,8 @@ irred stream STORE [LIMITS.json]
 
 `run` evaluates one complete request and writes immutable input, resolved specification, output and execution records. It uses the same preparation/evaluation implementation as retained sessions. Rust parses and acquires sources; C++ owns equations and numerical calculations. No expression from a request is executable physics.
 
-Current model/observation requests use schema version 2 and operation `background.evaluate`, `observations.prepare`, `statistics.gaussian`, `supernova.profile`, `bao.density` or `photometry.predict`. Integer, quantity and scalar numerical fixtures also require request schema 2, using canonical operation names while retaining scientific equation and method identities. Use the generated schema for exact required fields, caps and enums; unknown fields and recursively duplicated JSON object members are rejected before intermediate values can erase raw descriptor evidence.
+Current model/observation requests use schema version 2 and operation `background.evaluate`, `observations.prepare`, `statistics.gaussian`, `statistics.gaussian_posterior`,
+`statistics.gaussian_predictive`, `supernova.profile`, `bao.density` or `photometry.predict`. Integer, quantity and scalar numerical fixtures also require request schema 2, using canonical operation names while retaining scientific equation and method identities. Use the generated schema for exact required fields, caps and enums; unknown fields and recursively duplicated JSON object members are rejected before intermediate values can erase raw descriptor evidence.
 
 Expansion descriptors contain only active parameters: LCDM omega_m, constant q, CPL omega_m/w0/wa, or five ordered q coefficients. FlatFLRW is explicit. Observer convention and physical scale are supplied for projections that need them. Request only the required output groups; partial failures preserve independent successful values. Source effects are separate from expansion, with none or explicit grey log1p magnitude shift in the SN consumer.
 
@@ -48,3 +49,15 @@ independent outputs and the unchanged numerical/scientific scope.
 `photometry_predict` is a stateless stream action with the same complete request
 under `request`; it produces no retained handle. It shares the one-shot path and
 caps transient native bytes against remaining retained session allowance.
+
+## Fixed synthetic Gaussian prediction
+
+`statistics.gaussian_predictive` uses strict inline ordered training and future
+noise/response objects and an independent proper parameter prior. One retained
+native owner returns requested future means and whole-vector joint log densities
+for a coarse family of supplied training vectors. Cases do not declare IID draws
+or a joint law across cases. Only `synthetic_controls` is admitted, and no
+covariance readback is exported. See [Gaussian prediction](gaussian-predictive.md)
+for the exact units, row/event disjointness, masks, original resource ceilings,
+phase records and per-case refusal contract. Its generic linear response is
+separate from the native-only proper-prior ladder and H0 projections.
