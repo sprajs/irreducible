@@ -1,5 +1,6 @@
 #include "irred/gaussian_design.hpp"
 #include "payload_accounting.hpp"
+#include "retained_gaussian.hpp"
 #include <algorithm>
 #include <cfenv>
 #include <cmath>
@@ -27,12 +28,6 @@ bool unique(std::span<const std::string> ids) {
 bool same(std::span<const std::string> a, std::span<const std::string> b) {
   return a.size() == b.size() && std::equal(a.begin(), a.end(), b.begin());
 }
-bool output(long double v, double &d) {
-  if (!std::isfinite(v) || std::abs(v) > std::numeric_limits<double>::max())
-    return false;
-  d = static_cast<double>(v);
-  return v == 0 ? d == 0 : std::fpclassify(d) == FP_NORMAL;
-}
 bool policy_valid(DesignPolicy p) {
   return std::isfinite(p.maximum_forward_sensitivity) &&
          p.maximum_forward_sensitivity > 0;
@@ -53,6 +48,8 @@ DesignProfile::DesignProfile(DesignProfile &&o) noexcept
       numerical_status_(
           std::exchange(o.numerical_status_, numerics::Status::invalid_input)),
       rank_(std::exchange(o.rank_, DesignRank::unassessed)),
+      preparation_whitening_attempts_(std::exchange(o.preparation_whitening_attempts_,0)),
+      preparation_whitenings_completed_(std::exchange(o.preparation_whitenings_completed_,0)),
       triangular_condition_(std::exchange(o.triangular_condition_, 0)),
       transpose_triangular_condition_(
           std::exchange(o.transpose_triangular_condition_, 0)),
@@ -168,6 +165,7 @@ DesignProfile DesignProfile::prepare(Gaussian &&g, std::span<const double> x,
     // when its range is wider than binary64 normalized coordinates allow.
     for (std::size_t i = 0; i < n; ++i)
       column[i] = static_cast<long double>(x[i * p + j]) / maximum;
+    ++out.preparation_whitening_attempts_;
     auto whitened =
         numerics::whiten(g.factor_, std::span<const long double>(column),
                          policy.maximum_elements, policy.maximum_payload_bytes,
@@ -176,6 +174,7 @@ DesignProfile DesignProfile::prepare(Gaussian &&g, std::span<const double> x,
       fail(whitened.status);
       return out;
     }
+    ++out.preparation_whitenings_completed_;
     long double norm = 0;
     for (const auto v : whitened.value)
       norm = std::hypot(norm, v);
@@ -249,38 +248,8 @@ DesignProfile DesignProfile::prepare(Gaussian &&g, std::span<const double> x,
     }
   // Norm-infinity conditioning of triangular R in pivoted, equilibrated
   // coordinates. Q preserves 2-norm, not infinity norm; this is not kappa2(A).
-  long double norm_r = 0, norm_transpose_r = 0, norm_inverse_transpose_r = 0;
-  std::vector<long double> inverse_rows(p, 0), inverse_column(p);
-  for (std::size_t i = 0; i < p; ++i) {
-    long double row = 0;
-    for (std::size_t j = i; j < p; ++j)
-      row += std::abs(out.qr_[i * p + j]);
-    norm_r = std::max(norm_r, row);
-  }
-  for (std::size_t j = 0; j < p; ++j) {
-    long double column_norm = 0;
-    for (std::size_t i = 0; i <= j; ++i)
-      column_norm += std::abs(out.qr_[i * p + j]);
-    norm_transpose_r = std::max(norm_transpose_r, column_norm);
-  }
-  for (std::size_t j = 0; j < p; ++j) {
-    std::fill(inverse_column.begin(), inverse_column.end(), 0);
-    for (std::size_t k = p; k > 0; --k) {
-      const auto i = k - 1;
-      long double v = i == j ? 1 : 0;
-      for (std::size_t t = i + 1; t < p; ++t)
-        v -= out.qr_[i * p + t] * inverse_column[t];
-      inverse_column[i] = v / out.qr_[i * p + i];
-      inverse_rows[i] += std::abs(inverse_column[i]);
-    }
-    long double column_norm = 0;
-    for (const auto value : inverse_column)
-      column_norm += std::abs(value);
-    norm_inverse_transpose_r = std::max(norm_inverse_transpose_r, column_norm);
-  }
-  const auto condition =
-      std::max(1.L, norm_r * *std::max_element(inverse_rows.begin(),
-                                               inverse_rows.end()));
+  const auto conditions=detail::qr_conditions(out.qr_,p);
+  const auto condition=conditions.triangular;
   const auto sensitivity =
       condition * (std::numeric_limits<double>::epsilon() + rank_floor);
   if (!std::isfinite(condition) || !std::isfinite(sensitivity) ||
@@ -288,8 +257,7 @@ DesignProfile DesignProfile::prepare(Gaussian &&g, std::span<const double> x,
     fail(numerics::Status::conditioning_budget_exceeded);
     return out;
   }
-  const auto transpose_condition =
-      std::max(1.L, norm_transpose_r * norm_inverse_transpose_r);
+  const auto transpose_condition=conditions.transpose;
   if (!std::isfinite(transpose_condition) ||
       transpose_condition > std::numeric_limits<double>::max()) {
     fail(numerics::Status::overflow);
@@ -355,68 +323,21 @@ DesignResult DesignProfile::evaluate(std::span<const double> r,
   if (wr.status != numerics::Status::ok)
     return fail(wr.status);
   auto transformed = wr.value;
-  for (std::size_t k = 0; k < p; ++k) {
-    long double dot = transformed[k];
-    for (std::size_t i = k + 1; i < n; ++i)
-      dot += qr_[i * p + k] * transformed[i];
-    dot *= tau_[k];
-    transformed[k] -= dot;
-    for (std::size_t i = k + 1; i < n; ++i)
-      transformed[i] -= qr_[i * p + k] * dot;
-  }
-  std::vector<long double> beta(p);
-  for (std::size_t k = p; k > 0; --k) {
-    const auto i = k - 1;
-    long double v = transformed[i];
-    for (std::size_t j = i + 1; j < p; ++j)
-      v -= qr_[i * p + j] * beta[j];
-    beta[i] = v / qr_[i * p + i];
-  }
-  out.coefficients.resize(p);
-  out.adjusted_residuals.resize(n);
-  for (std::size_t j = 0; j < p; ++j)
-    if (!output(beta[j] / scales_[pivot_[j]], out.coefficients[pivot_[j]]))
-      return fail(numerics::Status::outside_domain);
-  for (std::size_t i = 0; i < n; ++i) {
-    long double v = r[i];
-    for (std::size_t j = 0; j < p; ++j)
-      v -= static_cast<long double>(x_[i * p + j]) * out.coefficients[j];
-    if (!output(v, out.adjusted_residuals[i]))
-      return fail(numerics::Status::outside_domain);
-  }
-  auto we = numerics::whiten(
-      gaussian_.factor_, std::span<const double>(out.adjusted_residuals),
-      policy.maximum_elements, policy.maximum_payload_bytes,
+  const auto view=detail::RetainedQrAccess::view(*this);
+  detail::qr_transform(view,tau_,transformed);
+  std::vector<long double> column_scales(p,0);
+  for(std::size_t j=0;j<p;++j)
+    for(std::size_t i=0;i<n;++i)
+      column_scales[j]+=std::abs(whitened_design_[i*p+j]*wr.value[i]);
+  return detail::qr_finish_fit(view,r,std::span<const long double>(transformed),
+      std::span<const long double>(column_scales),
+      [&](std::size_t i,std::size_t j){return x_[i*p+j];},
+      [&](std::size_t i,std::size_t j){return whitened_design_[i*p+j];},
+      [&](std::span<const double> adjusted){return numerics::whiten(gaussian_.factor_,adjusted,
+          policy.maximum_elements,policy.maximum_payload_bytes,policy.maximum_forward_sensitivity);},
       policy.maximum_forward_sensitivity);
-  if (we.status != numerics::Status::ok)
-    return fail(we.status);
-  long double q = 0, defect = 0, denom = 0;
-  for (std::size_t i = 0; i < n; ++i)
-    q += we.value[i] * we.value[i];
-  for (std::size_t j = 0; j < p; ++j) {
-    long double d = 0, scale = 0;
-    for (std::size_t i = 0; i < n; ++i) {
-      const long double z = whitened_design_[i * p + j];
-      d += z * we.value[i];
-      scale += std::abs(z * wr.value[i]);
-    }
-    defect = std::max(defect, std::abs(d));
-    denom = std::max(denom, scale);
-  }
-  // Absolute fallback at zero RHS: normalized coordinates are dimensionless.
-  const long double normal = denom == 0 ? defect : defect / denom;
-  if (!std::isfinite(normal) || normal > policy.maximum_forward_sensitivity)
-    return fail(numerics::Status::conditioning_budget_exceeded);
-  if (q < 0 || !output(q, out.quadratic) ||
-      !output(-q / 2, out.relative_log_score))
-    return fail(numerics::Status::outside_domain);
-  out.normalized_normal_equation_residual = static_cast<double>(normal);
-  out.covariance_whitening_backward_residual = we.backward_residual;
-  out.covariance_whitening_rounding_estimate = we.arithmetic_rounding_estimate;
-  out.status = DensityStatus::finite;
-  out.numerical_status = numerics::Status::ok;
-  return out;
 }
+
 std::optional<std::size_t> DesignProfile::estimator_variance_payload_bound(
     const LinearFunctionalMetadata &m) const noexcept {
   detail::PayloadAccounting b(sizeof(EstimatorVarianceResult));
@@ -450,7 +371,7 @@ EstimatorVarianceResult DesignProfile::estimator_variance(
     out.status = DensityStatus::incompatible_metadata;
     return out;
   }
-  const auto p = scales_.size(), n = metadata().ordered_ids.size();
+  const auto p = scales_.size();
   if (!policy_valid(policy) || w.size() != p || m.weight_units.size() != p ||
       m.functional_identity.empty() || m.output_unit.empty() ||
       std::any_of(m.weight_units.begin(), m.weight_units.end(),
@@ -464,57 +385,9 @@ EstimatorVarianceResult DesignProfile::estimator_variance(
     return fail(numerics::Status::work_limit);
   if (preparation_sensitivity_ > policy.maximum_forward_sensitivity)
     return fail(numerics::Status::conditioning_budget_exceeded);
-  std::vector<long double> u(p), z(p);
-  for (std::size_t i = 0; i < p; ++i) {
-    u[i] = static_cast<long double>(w[pivot_[i]]) / scales_[pivot_[i]];
-    if (!std::isfinite(u[i]) || std::fpclassify(u[i]) == FP_SUBNORMAL ||
-        (w[pivot_[i]] != 0 && u[i] == 0))
-      return fail(numerics::Status::outside_domain);
-    long double value = u[i];
-    for (std::size_t j = 0; j < i; ++j)
-      value -= qr_[j * p + i] * z[j];
-    z[i] = value / qr_[i * p + i];
-    if (!std::isfinite(z[i]) || std::fpclassify(z[i]) == FP_SUBNORMAL)
-      return fail(numerics::Status::outside_domain);
-  }
-  long double variance = 0, norm_z = 0, norm_u = 0, norm_rt = 0, defect = 0;
-  for (std::size_t i = 0; i < p; ++i) {
-    variance += z[i] * z[i];
-    norm_z = std::max(norm_z, std::abs(z[i]));
-    norm_u = std::max(norm_u, std::abs(u[i]));
-    long double row_norm = 0, residual = -u[i];
-    for (std::size_t j = 0; j <= i; ++j) {
-      row_norm += std::abs(qr_[j * p + i]);
-      residual += qr_[j * p + i] * z[j];
-    }
-    norm_rt = std::max(norm_rt, row_norm);
-    defect = std::max(defect, std::abs(residual));
-  }
-  const auto denominator = norm_rt * norm_z + norm_u;
-  const auto backward = denominator == 0 ? 0 : defect / denominator;
-  if (!std::isfinite(variance) || (variance == 0 && norm_u != 0) ||
-      !output(variance, out.variance))
-    return fail(numerics::Status::outside_domain);
-  const auto rounding =
-      variance == 0
-          ? 0
-          : std::abs(variance - static_cast<long double>(out.variance)) /
-                variance;
-  const auto eta = transpose_triangular_condition_ *
-                   (backward + (static_cast<long double>(n) + p) *
-                                   std::numeric_limits<long double>::epsilon());
-  const auto sensitivity = 2 * eta + eta * eta +
-                           p * std::numeric_limits<long double>::epsilon() +
-                           rounding;
-  if (!std::isfinite(sensitivity) ||
-      sensitivity > policy.maximum_forward_sensitivity)
-    return fail(numerics::Status::conditioning_budget_exceeded);
-  out.triangular_backward_residual = static_cast<double>(backward);
-  out.estimated_forward_sensitivity = static_cast<double>(sensitivity);
-  out.output_rounding_error_relative = static_cast<double>(rounding);
-  out.metadata = std::move(m);
-  out.status = DensityStatus::finite;
-  out.numerical_status = numerics::Status::ok;
+  out=detail::qr_variance(detail::RetainedQrAccess::view(*this),w,policy.maximum_forward_sensitivity);
+  if(out.status==DensityStatus::finite) out.metadata=std::move(m);
   return out;
 }
+
 } // namespace irred::statistics

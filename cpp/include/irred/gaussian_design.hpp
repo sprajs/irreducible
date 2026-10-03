@@ -100,6 +100,7 @@ public:
 
 private:
   friend class GaussianBox;
+  friend struct irred::detail::RetainedQrAccess;
   Gaussian gaussian_;
   DesignMetadata design_metadata_;
   std::vector<double> x_;
@@ -109,6 +110,7 @@ private:
   DensityStatus status_ = DensityStatus::invalid_input;
   numerics::Status numerical_status_ = numerics::Status::invalid_input;
   DesignRank rank_ = DesignRank::unassessed;
+  std::size_t preparation_whitening_attempts_=0,preparation_whitenings_completed_=0;
   double triangular_condition_ = 0, transpose_triangular_condition_ = 0,
          preparation_sensitivity_ = 0;
 };

@@ -41,6 +41,7 @@ void Gaussian::swap(Gaussian &other) noexcept {
   swap(status_, other.status_);
   swap(numerical_status_, other.numerical_status_);
   swap(metadata_, other.metadata_);
+  swap(input_matrix_kind_, other.input_matrix_kind_);
   swap(covariance_, other.covariance_);
   swap(mean_shift_, other.mean_shift_);
   swap(latent_ids_, other.latent_ids_);
@@ -51,7 +52,8 @@ void Gaussian::swap(Gaussian &other) noexcept {
 Gaussian::Gaussian(Gaussian &&other) noexcept
     : status_(std::exchange(other.status_, DensityStatus::invalid_input)),
       numerical_status_(std::exchange(other.numerical_status_, numerics::Status::invalid_input)),
-      metadata_(std::move(other.metadata_)), covariance_(std::move(other.covariance_)),
+      metadata_(std::move(other.metadata_)),
+      input_matrix_kind_(std::exchange(other.input_matrix_kind_, std::nullopt)), covariance_(std::move(other.covariance_)),
       mean_shift_(std::move(other.mean_shift_)), latent_ids_(std::move(other.latent_ids_)),
       priors_(std::move(other.priors_)), history_(std::move(other.history_)),
       factor_(std::move(other.factor_)) {}
@@ -351,6 +353,7 @@ Gaussian prepare_gaussian(std::span<const double> matrix, MatrixKind kind,
   }
   if (kind != MatrixKind::covariance && kind != MatrixKind::precision)
     return g;
+  g.input_matrix_kind_ = kind;
   if (!std::isfinite(budget) || budget <= 0)
     return g;
   auto f = numerics::cholesky(matrix, n, cap, arithmetic);

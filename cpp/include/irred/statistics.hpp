@@ -5,6 +5,7 @@
 #include <span>
 #include <string>
 #include <vector>
+namespace irred::detail { struct RetainedQrAccess; }
 namespace irred::bao { class PreparedDensity; }
 namespace irred::rsd { class PreparedDensity; }
 namespace irred::statistics {
@@ -110,6 +111,8 @@ public:
   numerics::Status numerical_status() const noexcept {
     return numerical_status_;
   }
+  // Recorded by preparation, independently of caller-authored metadata strings.
+  std::optional<MatrixKind> input_matrix_kind() const noexcept { return input_matrix_kind_; }
   const Metadata &metadata() const noexcept { return metadata_; }
   const std::vector<PriorRecord> &priors() const noexcept { return priors_; }
   const std::vector<SelectionRecord> &selection_history() const noexcept {
@@ -161,11 +164,13 @@ private:
   DensityStatus status_ = DensityStatus::invalid_input;
   numerics::Status numerical_status_ = numerics::Status::invalid_input;
   Metadata metadata_;
+  std::optional<MatrixKind> input_matrix_kind_;
   std::vector<double> covariance_, mean_shift_;
   std::vector<std::string> latent_ids_;
   std::vector<PriorRecord> priors_;
   std::vector<SelectionRecord> history_;
   numerics::Factorization factor_;
+  friend struct irred::detail::RetainedQrAccess;
   friend class irred::bao::PreparedDensity;
   friend class irred::rsd::PreparedDensity;
   friend class DesignProfile;
