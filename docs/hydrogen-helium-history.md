@@ -172,6 +172,22 @@ batch and performs no new ODE/background work. Requested groups have separate
 status, optional value and absolute error estimate. Unrequested or refused
 values are never zeros. Invalid query rows preserve other valid rows.
 
+`thermal_mapping_witnesses()` exposes the four once-captured scalar witnesses
+of the original complete [physical map](thermal-observables.md), in photon,
+baryon, CDM and other-massless order. A later preparation refusal retains
+these already earned fields. Copying retains their values; moving clears
+them from the source owner. They are arithmetic metadata, and are not
+propagated into the current kinetic-history errors or interpreted as a
+physical abundance law.
+
+One private within-cell owner supplies the interpolation used by every
+history query. It retains the existing linear fraction/temperature law,
+neighboring-slope curvature estimates and interpolated nodal coefficient
+`A=c*sigma_T/[H*(1+z)]`. Opacity is `A*n_e` with the same shared electron
+density and error composition. It performs no new interior background query
+and owns no second full history vector. Extracting this common cell law does
+not provide a drag primitive, late opacity tail or physical drag epoch.
+
 | Output mask | Group | Units |
 | --- | --- | --- |
 | 1 | HII fraction per H nucleus | dimensionless |

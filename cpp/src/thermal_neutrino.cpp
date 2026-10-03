@@ -310,10 +310,18 @@ ThermalPhysicalMapping map_thermal_physical_model(const ThermalPhysicalModel &m,
     if (x!=0 && !normal_positive(x)) return false;
     dest=static_cast<double>(x); return std::isfinite(dest);
   };
-  if (!cast(photon,mapped.omega_gamma) ||
-      !cast(m.physical_baryon_density/h2,mapped.omega_b) ||
-      !cast(m.physical_cdm_density/h2,mapped.omega_cdm) ||
-      !cast(m.physical_massless_nonphoton_density/h2,mapped.omega_massless_nonphoton)) {
+  std::array<ThermalScalarMapWitness, 4> witnesses{};
+  auto capture = [&](long double x, double &dest, unsigned i) {
+    if (!cast(x, dest)) return false;
+    witnesses[i] = {x, (i == 0 ? 128.L : 32.L) *
+        std::numeric_limits<long double>::epsilon() * std::abs(x),
+        std::abs(x - static_cast<long double>(dest)), dest};
+    return true;
+  };
+  if (!capture(photon,mapped.omega_gamma,0) ||
+      !capture(m.physical_baryon_density/h2,mapped.omega_b,1) ||
+      !capture(m.physical_cdm_density/h2,mapped.omega_cdm,2) ||
+      !capture(m.physical_massless_nonphoton_density/h2,mapped.omega_massless_nonphoton,3)) {
     out.status=S::outside_domain; return out;
   }
   mapped.species.reserve(m.species.size());
@@ -328,7 +336,8 @@ ThermalPhysicalMapping map_thermal_physical_model(const ThermalPhysicalModel &m,
     if (out.status!=S::ok) return out;
     mapped.species.push_back(species);
   }
-  out.status=S::ok; out.model=std::move(mapped); return out;
+  out.status=S::ok; out.model=std::move(mapped);
+  out.scalar_witnesses = witnesses; return out;
 }
 ThermalBackground prepare_thermal_background(const ThermalFlatModel &m,
                                              ThermalPolicy p) {
