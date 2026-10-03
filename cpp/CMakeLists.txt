@@ -535,6 +535,9 @@ include(cmake/optical_detector.cmake)
 # Finite uniform-box normalization of a retained Gaussian linear target.
 include(cmake/gaussian_box.cmake)
 
+# Bounded perfect-fluid CDM transfer and declared finite-band primordial variance.
+include(cmake/linear_transfer.cmake)
+
 # Forwarding observation of invariant predictive preparation and batch solves.
 if(CMAKE_SIZEOF_VOID_P EQUAL 8 AND CMAKE_SYSTEM_NAME STREQUAL "Linux" AND CMAKE_CXX_COMPILER_ID MATCHES "^(GNU|Clang)$")
   target_compile_definitions(test_gaussian_predictive PRIVATE IRRED_PREDICTIVE_WORK_OBSERVATION)

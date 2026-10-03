@@ -27,6 +27,8 @@ Read [AGENTS.md](../AGENTS.md) first, then choose a guide:
 | Map physical densities/temperatures and evaluate thermal distances/ruler ratios | [Thermal observables](thermal-observables.md) |
 | Evaluate a supplied-drag BAO density with a retained ordered covariance in C++ | [Massless conditional BAO](bao-conditional.md) or [thermal conditional BAO](bao-thermal.md) |
 | Calculate a pressureless GR growing mode in C++ | [GR growth](gr-growth.md) |
+| Predict bounded perfect-fluid CDM transfer and a declared primordial band variance | [Perfect-fluid transfer](linear-transfer.md) |
+| Inspect the open primary CMB projection prerequisites | [Primary CMB contract](primary-cmb-projection.md) |
 | Predict supplied-amplitude growth and a synthetic full-covariance RSD density | [Conditional growth/RSD](growth-rsd.md) |
 | Evaluate supplied-temperature/density hydrogen ionization in C++ | [Hydrogen equilibrium](hydrogen-equilibrium.md) |
 | Evaluate supplied-temperature/density H/He equilibrium with shared electrons | [Hydrogen–helium equilibrium](hydrogen-helium-equilibrium.md) |
