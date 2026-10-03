@@ -37,6 +37,105 @@ accept both joint log-likelihood error and resulting parameter shifts.
 
 ## Next bounded choices
 
+### Current execution order: a runnable reference experiment
+
+The 2026-10-03 priority is an executable path toward the common-theory fit.
+Use a pinned external full-LambdaCDM solver and official likelihoods while native
+physics develops. Reference capability and native capability have separate
+identities; neither a source review nor a conditional native approximation
+qualifies the complete observational model.
+
+1. In Reproducible, inspect the existing pinned CLASS solver and freeze one
+   complete physical parameter/species, helium, reionization and primordial
+   state. Run a small fixed-point campaign that retains original TT/TE/EE
+   spectra, matter power, background/distances and thermal outputs from that
+   same state. Pin source, runtime, configuration, outputs and resource limits.
+2. Acquire and run an official Planck primary-CMB likelihood at those points,
+   with explicit multipole selection, units, lensing treatment and nuisance/
+   prior conditioning. An official marginalized/lite product retains its
+   source-defined scope; posterior-summary Gaussians cannot replace it.
+3. Expose one minimal agent-runnable command for predictions, per-probe
+   likelihoods and a bounded parameter scan. Add compatible BAO and SN adapters
+   using existing compiled covariance/score owners where possible. Report
+   separate scores until dependence, calibration and prior contracts permit
+   a joint target. A scan is not a qualified posterior.
+4. Advance native photon/baryon perturbations and continuous observable
+   projection against this reference. Implement useful physical closure with
+   analytic and independent checks at the consumer's required accuracy;
+   defer optional precision, codec and allocation refinements.
+5. Extend the runnable subset to windowed clustering and a named lens system,
+   then a source-supported alternative theory. Preserve unsupported closures,
+   overlap and model-dependent reductions rather than substituting a background
+   curve or a fitted summary.
+
+The first reference demonstration is implemented in Reproducible's
+[full-state experiment](https://github.com/sprajs/reproducible/blob/f373efae2329c9f4fe3e6bfe2ef66f8e75b47bc0/experiments/lcdm-reference/README.md).
+Four ordered CLASS 3.3.0 cases (anchor, changed precision and two spectral-tilt
+variants) produced lensed TT/EE/TE through ell=2508, separate linear/Halofit matter
+power, distances and thermal tables in 26.76 seconds. The printed predicted drag
+ruler is 147.054261 Mpc; its rounding, fixed helium, neutrino state and source-point
+conditioning remain explicit. The original output-prefix failure is retained.
+The driver is merged with passing exact-main CI; empirical precision differences
+have no certified solver/interpolation bound, and no observational fit is claimed.
+
+The original official Planck PLC 3.01 code and baseline data are acquired and
+hashed. Its C-only runtime now scores all four retained prediction cases after
+three released self-checks passed a declared engineering tolerance. The selected
+primary target is Plik-lite TTTEEE, Commander low-TT and SimAll low-EE; lensing
+reconstruction is excluded. Their anchor log-likelihood sum is -501.989645875621.
+The fixed-state spectral-tilt changes of -0.005 and +0.005 give relative
+log-likelihood changes of -0.12994738800023242 and -3.2478527006437616. The empirical
+changed-precision shift is -0.09120307809814676, without a certified solver or
+likelihood error bound. A_planck=1 is fixed with one explicitly external relative
+calibration penalty of zero; paper-coordinate equivalence and component-internal
+prior terms remain unexamined. Raw component scores and omitted normalization
+are retained. These conditional points do not establish a fit or posterior.
+
+The separate DESI DR2 adapter now prepares the original ordered 13-row covariance
+once and evaluates four full CLASS mean vectors through the retained native
+Gaussian SDK. All four background/thermal tables are byte-identical, so the
+quadratic 31.433594404478523 and conditional log density -9.15910744477944 are
+identical. An independent 80/120-digit pivoted-elimination calculation agrees
+with the native quadratic, determinant and normalized score within a predeclared
+1e-8 engineering criterion; actual differences are below 3e-15. This checks
+fixed-input arithmetic, not the printed ruler, background interpolation,
+released-compression validity or cross-probe independence. The calibrator-inclusive
+Pantheon+SH0ES adapter is being prepared as an explicitly new common-M relative
+profile with the full covariance; its full-dimension numerical and source gates
+remain open. No joint target is admitted.
+
+The native ideal photon/baryon/CDM acoustic kernel passed shared-state, raw-native
+and portable-peer contracts. Its original 100-million-write MPFR campaign
+exhausted its allowance after the first wavenumber; that failure is preserved.
+A separately labelled 400-million-write diagnostic completed all twenty runs
+and eighteen field comparisons at the same accuracy checks, using 258,259,637
+counted writes. Complete mapped-source/trajectory and endpoint-error admission
+remain open; the larger diagnostic does not pass the original resource gate.
+
+The supplied continuous finite-support temperature/E-mode projector passed four
+native analytic/angular/shared-state contracts and two fresh installed SDK
+consumers. An actual same-mode/source-k comparison first showed large differences
+against CLASS's interpolated final-q table. A separately identified CLASS copy
+then inserted that exact source k as one production q node, preserving all
+original q nodes and exported source/time/model arrays. Comparing its direct
+stored transfers with the unchanged native results reduces temperature
+differences to 0.13–0.19%, while polarization differs by 0.44–2.94%. These are
+unqualified diagnostic differences: source/time interpolation, radial/Bessel,
+support and truncation errors remain unassessed. The [projection guide](continuous-cmb-projection.md)
+retains both comparisons. Neither development checkpoint supplies native
+primary-CMB closure.
+Prospector owns the exact product/model contracts and practical acquisition;
+Reproducible owns the executable reference and adapters; Irreducible owns native
+physics and the smallest necessary library/CLI boundaries. Keep one integration
+owner per repository and four total local compute jobs.
+
+All nineteen scopes remain visible below. Noncritical released-box/ladder
+held-out work, predictive transport, finite abundance cohorts, private
+supervisor/allocator/elementary refinements, and repeated Site/documentation
+cycles are checkpointed and deferred. Preserve their unfinished source, inputs
+and failed gates. Resume one only when a precise missing output blocks this
+experiment; do not relax its original scientific acceptance.
+
 The nineteen scopes below retain the identities from the 2026-10-02 remaining-scope
 audit. This table is their active queue. Inspect current source, built discovery
 and accepted experiment findings before changing a status. Completed prerequisites
@@ -68,12 +167,12 @@ checks do not close them.
 | NEXT-11: one thermal BAO compression | Two [supplied-drag thermal controls](https://github.com/sprajs/reproducible/blob/54167f180ff490c1627f12c8fd2b72166c13e99d/experiments/lcdm-campaign/README.md) pass 34 unchanged-budget ratio/density comparisons. A one-call orchestration consumer of the existing thermal BAO owner is committed on a work branch with source-reviewed ownership and causal-refusal repairs. Test-only controls are written for the actual decoder, native bridge and common recorder allocation path; their full source review and execution remain pending. The candidate CLI allocation-profile gate stays false until its declared evidence passes. Then qualify the released DESI compression and its model domain. | Preserve ordered covariance and distinct physical-density/species/temperature/drag identities. Fixed physical densities do not imply H0 cancellation. Transport parity and the fixed numerical controls are not observed fits; compression validity, model dependence and predicted physical drag stay separate. No free-ruler or massless-state substitution is admitted. |
 | NEXT-12: one supplied abundance/temperature law | Shared-electron LTE and finite joint abundance/mass/temperature moments exist. The [seven-scalar atomic binding](hydrogen-equilibrium.md) pins central facts and provider uncertainty meanings. A restricted synthetic two-state retained-H/He history consumer is committed on a source-reviewed work branch; its photon-temperature coordinate differs from the existing arbitrary supplied matter-temperature LTE law. Earn its compiled resource/lifetime/serialization controls and implement the complete independent history/moment comparison, while resolving a complete physical joint input law. | Preserve complete states, neutral effective-mass conventions, joint cross-row/output covariance and every required-state refusal. An arbitrary matter-temperature vector cannot be silently replaced by evolved history temperature. Exact-emitted working inputs do not propagate mapping uncertainty through kinetics. Complete history/reference arithmetic, moments, original order, resource/lifetime gates remain unearned. Scalar uncertainties do not establish a physical joint law; atomic assets/G, BBN and source-to-trajectory uncertainty remain separate. |
 | NEXT-13: one observed RSD estimator/AP contract | Radiation-free pressureless D/f and supplied-reference sigma8/f*sigma8 with synthetic covariance density exist. The [current estimator/mock contract](https://github.com/sprajs/prospector/blob/8ecd8e97c7a1201442927718ce1f8586ddb79090/register/contracts/next13-boss-dr12-current-estimator-mock-source-contract-v1.json) supplements the acquired BOSS assets with pinned RUSTICO/BRASS code, current schemas and source differences from historical releases. The additional [historical method/mock contract](https://github.com/sprajs/prospector/blob/97c6e8e8a34d58332e145bb633a30cb254ce68bd/register/contracts/next13-boss-dr12-historical-method-mock-ancestry-source-contract-v1.json) distinguishes fixed analysis fiducials and the separate covariance, fibre-collision and selection-free mock populations. Resolve exact historical code/output, AP conventions, window/cuts and physically paired mocks with joint covariance. | Current code and file suffixes do not identify historical outputs or paired valid mock populations. Preserve shot-noise, squared-mask and bin-center conventions. Complete ordered P/B auto/cross covariance, finite-mock treatment, amplitude/reference epoch and 8 h^-1 Mpc window remain required; unknown BAO/RSD overlap stays unknown. NEXT-14 is needed for a primordial-predicted amplitude, not an explicitly qualified supplied amplitude. |
-| NEXT-14: one linear matter transfer and amplitude | The native [perfect-fluid transfer](linear-transfer.md) retains its self-interacting radiation/CDM/Lambda identity and primordial finite-band variance. Shared retained thermal coefficient access is now implemented. The distinct massless-FD/CDM/Lambda candidate has [conditional source-method acceptance](https://github.com/sprajs/prospector/blob/6453f33771fd13b9f13b763972f1c43495b1e24e/register/contracts/next14-pure-massless-fd-cdm-lambda-unit-zeta-transfer-v3.json) and four earlier selected native passes. Conditional whole-campaign preflight shows that its current physical/witness graph and text evidence cannot fit their original caps; these are source lower bounds, not executed refusals. Derive a distinct complete method and lossless evidence ownership before a rerun. The separate [ideal acoustic contract](https://github.com/sprajs/prospector/blob/6453f33771fd13b9f13b763972f1c43495b1e24e/register/contracts/next14-ideal-photon-cold-baryon-cdm-lambda-acoustic-v1.json) remains source/algebra only. | All seven numerical/consumer gates remain open: projected initial bias Delta=(7/19)zeta*x_i^2 versus regular zeta*x_i^2/4; retained thermal diagnostics; conformal age/phase; time/hierarchy refinement; independent trace/angular peer; complete initial/time/L/angle/background/cast allocations and all-attempt work/live/evidence caps; installed compiled consumer. Preserve every original control, logical-node witness and failed prefix. A local elementary-function proposal does not certify the full forcing or pipeline. FD excludes photons/baryons; ideal acoustic excludes relics/finite opacity. Full species transfer, sigma8, radiation-free-growth composition, CMB and measured RSD qualification remain open. |
+| NEXT-14: one linear matter transfer and amplitude | The native [perfect-fluid transfer](linear-transfer.md) retains its self-interacting radiation/CDM/Lambda identity and primordial finite-band variance. Shared retained thermal coefficient access is now implemented. The distinct massless-FD/CDM/Lambda candidate has [conditional source-method acceptance](https://github.com/sprajs/prospector/blob/6453f33771fd13b9f13b763972f1c43495b1e24e/register/contracts/next14-pure-massless-fd-cdm-lambda-unit-zeta-transfer-v3.json) and four earlier selected native passes. Conditional whole-campaign preflight shows that its current physical/witness graph and text evidence cannot fit their original caps; these are source lower bounds, not executed refusals. Derive a distinct complete method and lossless evidence ownership before a rerun. The separate [ideal acoustic contract](https://github.com/sprajs/prospector/blob/6453f33771fd13b9f13b763972f1c43495b1e24e/register/contracts/next14-ideal-photon-cold-baryon-cdm-lambda-acoustic-v1.json) remains source/algebra only. The external full-state reference now produces linear and Halofit matter spectra with explicit massive-neutrino and primordial identities. The distinct native ideal photon/baryon/CDM acoustic implementation has a first raw contract pass; correlated mapped-source response, integrated conformal-time error and independent reference admission are still required. The older collisionless source/codec campaign is preserved and deferred. | All seven numerical/consumer gates remain open: projected initial bias Delta=(7/19)zeta*x_i^2 versus regular zeta*x_i^2/4; retained thermal diagnostics; conformal age/phase; time/hierarchy refinement; independent trace/angular peer; complete initial/time/L/angle/background/cast allocations and all-attempt work/live/evidence caps; installed compiled consumer. Preserve every original control, logical-node witness and failed prefix. A local elementary-function proposal does not certify the full forcing or pipeline. FD excludes photons/baryons; ideal acoustic excludes relics/finite opacity. Full species transfer, sigma8, radiation-free-growth composition, CMB and measured RSD qualification remain open. |
 | NEXT-15: coupled non-LTE H/He kinetics | Native [conditional H/He singlet history](hydrogen-helium-history.md) now supplies a bounded shared-charge SDK prerequisite with independently supplied nuclei and coupled temperature. Primary-source inspection limits the quantified singlet rate-fit claim to 4000–10000 K; the current late history includes colder extrapolation. A separately identified supplied-boundary continuation of the same singlet equations is being specified, retaining the current Saha-boundary consumer. Close the rate/temperature/energy/domain and upstream-boundary contracts before adding triplet or HeIII kinetics. | Original stiff Radau/refinement, charge/initial-LTE/trace controls and Decimal rate facts test the named approximation. Preserve literal-source/code discrepancies, artificial initial and late boundaries, default trace-He refusals and separate atomic/rate uncertainty. NEXT-12 is required when claiming a qualified abundance/temperature law; full RECFAST and physical drag remain open. |
-| NEXT-16: source-defined physical drag endpoint | Shared loading/ruler, once-captured thermal map witnesses and the original cell law pass 32 affected regressions and fresh installation on a frozen build. The separate move-only synthetic supplied-tail interval/root/ruler candidate now passes 33 selected native contracts, installed callers and a whole-core optional-elision-disabled profile at unchanged caps. A test-only outward-interval/counter and exact-constant foundation is now committed on its work branch; it does not yet implement the complete endpoint certificate. Its complete independent endpoint arithmetic/refinement gate remains withheld; no physical weighted-tail interval is admitted. Resolve the source-defined full endpoint/tail before predicting a physical ruler. | Depends on NEXT-15 plus qualified density/history/tail inputs. Internal native TOTAL admission and scoped requested-heap inequalities do not establish complete reference error or whole-process memory. Preserve the original unqualified reference and every refusal; require the independent combined error <=5e-5 Mpc at EACH endpoint, checked all-attempt work/storage, lifetime controls and actual SDK identity. Never substitute a late-truncated unit-depth root for physical drag. |
+| NEXT-16: source-defined physical drag endpoint | Shared loading/ruler, once-captured thermal map witnesses and the original cell law pass 32 affected regressions and fresh installation on a frozen build. The separate move-only synthetic supplied-tail interval/root/ruler candidate now passes 33 selected native contracts, installed callers and a whole-core optional-elision-disabled profile at unchanged caps. A test-only outward-interval/counter and exact-constant foundation is now committed on its work branch; it does not yet implement the complete endpoint certificate. Its complete independent endpoint arithmetic/refinement gate remains withheld; no physical weighted-tail interval is admitted. Resolve the source-defined full endpoint/tail before predicting a physical ruler. CLASS predicts its own full-state drag ruler and retains same-run thermal outputs; this reference does not qualify or replace the conditional native endpoint. | Depends on NEXT-15 plus qualified density/history/tail inputs. Internal native TOTAL admission and scoped requested-heap inequalities do not establish complete reference error or whole-process memory. Preserve the original unqualified reference and every refusal; require the independent combined error <=5e-5 Mpc at EACH endpoint, checked all-attempt work/storage, lifetime controls and actual SDK identity. Never substitute a late-truncated unit-depth root for physical drag. |
 | NEXT-17: one selected source population | Per-source optical/time/detector operators exist. Source/algebra review accepts a bounded synthetic two-subject law with one global optical state, eight latent states, all 256 catalogs and 225 selected catalogs. Next close the Reproducible experiment protocol and pass its numerical/consumer gates before accepting finite expected-mass recovery. | Measured NEXT-17 still requires a pinned population/generating law, propagation, instrument and selection likelihood through NEXT-07–NEXT-10. Preserve nondetections, all states/catalogs and shared calibration/training dependence; finite normalization/selection/recovery controls remain unexecuted, and measured injection/extraction needs its own gates. No RNG draw or measured-population acceptance follows from the finite algebra. |
 | NEXT-18: one named strong-lens observable likelihood | Synthetic SIS/mass-sheet images, delays and PSF pixels exist. The [calibrated B1608 asset contract](https://github.com/sprajs/prospector/blob/8ecd8e97c7a1201442927718ce1f8586ddb79090/register/contracts/b1608-go10158-calibrated-asset-source-contract-v1.json) pins one current GO10158 ACS/WFC F606W FLT, SCI/ERR/DQ roles, exposure, calibration/reference cards, headerlets and processing warnings. The additional [author conditioning contract](https://github.com/sprajs/prospector/blob/97c6e8e8a34d58332e145bb633a30cb254ce68bd/register/contracts/b1608-author-observation-conditioning-source-contract-v1.json) distinguishes non-Gaussian delay reconstructions, fitted aperture kinematics, regularized imaging and selected environment priors. Pixels remain unanalysed. Acquire the remaining original products and qualify their joint instrument/noise/dependence likelihood. | Current processing, WCS labels and ERR formulas do not prove alignment, a measured noise law or equivalence to the author reduction. RAW zero ERR/DQ placeholders are not zero uncertainty; a named FLC headerlet is not the FLC image. Preserve all warnings and source clocks/calibration branches. Independent propagation/potential/measurement and full-likelihood controls must retain mass-sheet/H0 degeneracy; fitted summaries and SIS velocity are not extra measurements or observed stellar kinematics. |
-| NEXT-19: one primary CMB observable | The [primary projection contract](primary-cmb-projection.md) still requires common qualified thermal/visibility, photon/species/metric hierarchy and primordial modes. A narrower finite supplied isotropic shell-coefficient projection is committed on a source-reviewed work branch as one useful numerical prerequisite. Its native and angular-reference controls are unexecuted; the complete fixed-corpus reference storage proof is being repaired within its original cap. Compiled arithmetic, complete error/resource controls and installed consumption remain pending. It supplies no continuous source, history or C_l. The perfect-fluid CDM transfer does not close primary CMB. | Depends on NEXT-14 and NEXT-15; NEXT-16 supplies a history/endpoint prerequisite, while drag is not last-scattering visibility. Freeze Fourier/angular/unit conventions, signed-shell order, finite boundary meaning, complete projection error/work/storage and independent angular controls before implementation. Continuous transport, full source terms, primordial spectrum, likelihood refinement, reionization and unsupported sectors remain open. |
+| NEXT-19: one primary CMB observable | The primary projection contract still requires common qualified thermal/visibility, photon/species/metric hierarchy and primordial modes. The external reference now emits lensed TT/EE/TE and scores four retained cases with the original official primary-likelihood products and released self-checks. Its conditional scan and empirical precision shift are separate from a fit or posterior. Native continuous scalar temperature/E transfer geometry is implemented for explicitly supplied piecewise-linear split sources, ell<=64 and phase<=512, with four native contracts and two installed SDK consumers passing. It retains finite support and missing radial/source error qualifications. An actual same-mode/source-k comparison and a distinct direct-q CLASS control retain unresolved temperature/polarization differences; no match qualification is admitted. The older finite isotropic shell-coefficient source and its unexecuted reference are preserved and deferred. | Depends on NEXT-14 and NEXT-15; NEXT-16 supplies a history/endpoint prerequisite, while drag is not last-scattering visibility. Freeze Fourier/angular/unit conventions, signed-shell order, finite boundary meaning, complete projection error/work/storage and independent angular controls before implementation. Continuous transport, full source terms, primordial spectrum, likelihood refinement, reionization and unsupported sectors remain open. |
 
 Existing sampled ABI2/CLI ingestion, proper-Gaussian posterior and addressed
 recovery campaigns are qualified prerequisites for their named controls, not

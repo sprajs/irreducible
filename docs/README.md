@@ -28,6 +28,7 @@ Read [AGENTS.md](../AGENTS.md) first, then choose a guide:
 | Evaluate a supplied-drag BAO density with a retained ordered covariance in C++ | [Massless conditional BAO](bao-conditional.md) or [thermal conditional BAO](bao-thermal.md) |
 | Calculate a pressureless GR growing mode in C++ | [GR growth](gr-growth.md) |
 | Predict bounded perfect-fluid CDM transfer and a declared primordial band variance | [Perfect-fluid transfer](linear-transfer.md) |
+| Project supplied continuous scalar temperature/E sources in C++ | [Continuous CMB projection](continuous-cmb-projection.md) |
 | Inspect the open primary CMB projection prerequisites | [Primary CMB contract](primary-cmb-projection.md) |
 | Predict supplied-amplitude growth and a synthetic full-covariance RSD density | [Conditional growth/RSD](growth-rsd.md) |
 | Evaluate supplied-temperature/density hydrogen ionization in C++ | [Hydrogen equilibrium](hydrogen-equilibrium.md) |

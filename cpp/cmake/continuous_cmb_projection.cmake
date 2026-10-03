@@ -1,0 +1,7 @@
+target_sources(irred_core PRIVATE src/continuous_cmb_projection.cpp)
+add_executable(test_continuous_cmb_projection tests/test_continuous_cmb_projection.cpp)
+target_link_libraries(test_continuous_cmb_projection PRIVATE irred_core)
+target_compile_options(test_continuous_cmb_projection PRIVATE
+  -Wall -Wextra -Wpedantic -fno-fast-math -ffp-contract=off)
+add_test(NAME continuous_cmb_projection_contract COMMAND test_continuous_cmb_projection)
+set_tests_properties(continuous_cmb_projection_contract PROPERTIES TIMEOUT 240)
