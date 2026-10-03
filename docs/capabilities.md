@@ -154,6 +154,10 @@ collision/constraint limits, an independently assembled small dense stage solve
 and installed ownership/refusal controls pass. A complete raw source can be
 returned with `conditioning_budget_exceeded` and numerical admission false:
 integrated clock/background, arithmetic and source-grid errors remain absent.
+The runnable `finite_opacity_source_grid` example passes that complete grid once
+to forced-support T/E projection while retaining the separate positive boundary,
+source identity and absent errors. Its first fixed two-k run passed against the
+original installed archive; complete transfer and source admission stay withheld.
 This diagnostic producer does not qualify a regular full-species mode, physical
 recombination, complete projected transfer or primary CMB observable.
 
