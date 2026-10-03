@@ -1,6 +1,7 @@
 #include "irred/linear_transfer.hpp"
 #include "irred/quantities.hpp"
 #include "payload_accounting.hpp"
+#include "thermal_conformal_epoch.hpp"
 #include <algorithm>
 #include <cfenv>
 #include <cmath>
@@ -12,7 +13,7 @@ using W = long double;
 // Delta_c, relative entropy, V_r-V_c, V_c, phi. Never subtract O(1) states
 // to form the O(k^2) comoving density.
 using State = std::array<W, 5>;
-constexpr W c_km_s = W(irred::speed_of_light_m_per_s) / 1000;
+constexpr W c_km_s = detail::thermal_conformal_c_km_s;
 bool arithmetic() {
   return std::fegetround() == FE_TONEAREST &&
          std::numeric_limits<W>::digits >= 64 &&
@@ -34,20 +35,17 @@ Epoch epoch(const ThermalBackground &b, W a, W k) {
   Epoch out;
   ThermalPolicy p;
   p.momentum_method = b.momentum_method();
-  const auto e = b.scaled_expansion(a, p);
+  const auto &m = b.source();
+  const auto e = detail::thermal_conformal_epoch(
+      b, a, k, W(m.omega_gamma) + m.omega_massless_nonphoton, p);
   out.status = e.status;
   if (e.status != S::ok)
     return out;
-  const auto &m = b.source();
-  const W a2 = a * a, a4 = a2 * a2, scaled = e.a4_e2;
-  const W hubble_conformal = W(m.h0_km_s_mpc) / c_km_s * std::sqrt(scaled) / a;
-  out.fm = W(m.omega_cdm) * a / scaled;
-  out.fr = (W(m.omega_gamma) + m.omega_massless_nonphoton) / scaled;
-  out.fl = W(*b.omega_lambda()) * a4 / scaled;
-  out.x2 = (k / hubble_conformal) * (k / hubble_conformal);
-  out.log_h_derivative = -1 + out.fm / 2 + 2 * out.fl;
-  if (!std::isfinite(out.x2) || hubble_conformal <= 0)
-    out.status = S::overflow;
+  out.fm = e.fc;
+  out.fr = e.fr;
+  out.fl = e.fl;
+  out.x2 = e.x2;
+  out.log_h_derivative = e.g;
   return out;
 }
 State derivative(const State &y, const Epoch &e) {
