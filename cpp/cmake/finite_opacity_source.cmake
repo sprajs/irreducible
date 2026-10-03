@@ -1,0 +1,11 @@
+# Root-owned cpp/CMakeLists.txt includes this module after review.
+target_sources(irred_core PRIVATE src/finite_opacity_source.cpp)
+add_executable(test_finite_opacity_source tests/test_finite_opacity_source.cpp)
+target_link_libraries(test_finite_opacity_source PRIVATE irred_core)
+target_compile_options(test_finite_opacity_source PRIVATE -Wall -Wextra -Wpedantic -fno-fast-math -ffp-contract=off)
+add_test(NAME finite_opacity_source_contract COMMAND test_finite_opacity_source)
+add_executable(test_finite_opacity_public tests/test_finite_opacity_public.cpp)
+target_link_libraries(test_finite_opacity_public PRIVATE irred_core)
+target_compile_options(test_finite_opacity_public PRIVATE -Wall -Wextra -Wpedantic -fno-fast-math -ffp-contract=off)
+add_test(NAME finite_opacity_public_contract COMMAND test_finite_opacity_public)
+set_tests_properties(finite_opacity_source_contract finite_opacity_public_contract PROPERTIES TIMEOUT 120)
