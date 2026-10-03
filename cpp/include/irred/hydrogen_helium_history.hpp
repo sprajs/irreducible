@@ -1,8 +1,12 @@
 #pragma once
 #include "irred/thermal_neutrino.hpp"
+#include <limits>
 #include <string>
 namespace irred::cosmology {
-namespace detail { struct HydrogenHeliumCellAccess; }
+namespace detail {
+struct HydrogenHeliumCellAccess;
+struct HydrogenHeliumPreparationAccess;
+}
 // A distinct bounded singlet-only approximation: source-code-convention He
 // detailed balance/escape, shared NIST central ionization energies, F_H=1,
 // T_photo=T_m, and Compton/adiabatic temperature. Not literal SSS1999/RECFAST.
@@ -12,6 +16,13 @@ inline constexpr std::string_view hydrogen_helium_history_model_id =
 inline constexpr std::string_view hydrogen_helium_history_method_id =
     "shared-charge-coupled-BE-temperature-elimination-quadratic-z-"
     "Richardson2-refinement3/v1";
+inline constexpr std::string_view hydrogen_helium_supplied_history_model_id =
+    "HII-HeII-singlet-RecfastCLASS-convention-NIST-central-FH1-TphotoTm-"
+    "Compton-adiabatic-supplied-binary64-boundary-bounded/v1";
+enum class HydrogenHeliumHistoryBoundary {
+  restricted_two_stage_saha,
+  supplied_binary64
+};
 struct HydrogenHeliumHistoryRequest {
   ThermalPhysicalModel model;
   // Independently supplied total physical nuclei densities today, m^-3.
@@ -30,6 +41,34 @@ struct HydrogenHeliumHistoryPolicy {
          relative_temperature_tolerance = 2e-6;
   double absolute_opacity_tolerance = 2e-9, relative_opacity_tolerance = 3e-6;
   ThermalPolicy thermal;
+};
+// These emitted binary64 values are the exact boundary of a conditional IVP.
+// Earlier wide-to-double casts and upstream numerical/physical uncertainty
+// are not propagated. Fractions use their own nuclei denominator.
+struct HydrogenHeliumSuppliedInitialState {
+  double hydrogen_ionized_fraction = 0;
+  double helium_singly_ionized_fraction = 0;
+  double matter_temperature_kelvin = 0;
+  std::string origin;
+  std::string source_identity;
+};
+struct HydrogenHeliumSuppliedHistoryRequest {
+  HydrogenHeliumHistoryRequest history;
+  HydrogenHeliumSuppliedInitialState initial;
+};
+struct HydrogenHeliumInitialImportWitness {
+  // Order: HII/H, HeII/He, Tm in K. Promotion is exact on this wide profile.
+  std::array<long double, 3> promoted_values{};
+  std::array<long double, 3> measured_absolute_promotion_loss{};
+};
+struct HydrogenHeliumRateDomainWitness {
+  // Includes every attempted residual/rate temperature, including failed
+  // line-search/mesh work. Absence is not a zero-temperature range.
+  std::optional<std::array<long double, 2>> attempted_kelvin_range;
+  bool invalid_temperature_attempted = false;
+  // Present only after complete central Richardson node/cell construction.
+  // Encloses its linear cell T, not the exact ODE or its uncertainty.
+  std::optional<std::array<long double, 2>> retained_kelvin_range;
 };
 struct HydrogenHeliumHistoryValue {
   numerics::Status status = numerics::Status::invalid_input;
@@ -54,10 +93,18 @@ struct HydrogenHeliumHistoryBatch {
 };
 struct HydrogenHeliumHistoryWork {
   std::size_t background_evaluations = 0, momentum_callbacks = 0,
-              initial_charge_evaluations = 0, rhs_evaluations = 0;
+              initial_charge_evaluations = 0, rhs_evaluations = 0,
+              initial_boundary_evaluations = 0;
   std::size_t total() const noexcept {
-    return background_evaluations + momentum_callbacks +
-           initial_charge_evaluations + rhs_evaluations;
+    std::size_t sum = 0;
+    for (const auto n : {background_evaluations, momentum_callbacks,
+                        initial_charge_evaluations, rhs_evaluations,
+                        initial_boundary_evaluations}) {
+      if (n > std::numeric_limits<std::size_t>::max() - sum)
+        return std::numeric_limits<std::size_t>::max();
+      sum += n;
+    }
+    return sum;
   }
 };
 class HydrogenHeliumHistory {
@@ -75,6 +122,23 @@ public:
     return source_ ? &background_ : nullptr;
   }
   HydrogenHeliumHistoryWork work() const noexcept { return work_; }
+  // A tag on a refused owner describes the attempted profile, not admission.
+  std::optional<HydrogenHeliumHistoryBoundary> boundary_kind() const noexcept {
+    return boundary_;
+  }
+  std::string_view model_identity() const noexcept;
+  std::string_view method_identity() const noexcept {
+    return boundary_ ? hydrogen_helium_history_method_id : std::string_view{};
+  }
+  const HydrogenHeliumSuppliedInitialState *supplied_initial_state() const noexcept {
+    return supplied_initial_ ? &*supplied_initial_ : nullptr;
+  }
+  const HydrogenHeliumInitialImportWitness *initial_import_witness() const noexcept {
+    return initial_import_ ? &*initial_import_ : nullptr;
+  }
+  const HydrogenHeliumRateDomainWitness *rate_domain_witness() const noexcept {
+    return rate_domain_ ? &*rate_domain_ : nullptr;
+  }
   // Original map metadata is retained once, including on later preparation
   // refusal. No remapping of the supplied physical source is performed.
   const std::array<ThermalScalarMapWitness, 4> *thermal_mapping_witnesses() const noexcept {
@@ -102,6 +166,10 @@ private:
   };
   numerics::Status status_ = numerics::Status::invalid_input;
   std::optional<HydrogenHeliumHistoryRequest> source_;
+  std::optional<HydrogenHeliumHistoryBoundary> boundary_;
+  std::optional<HydrogenHeliumSuppliedInitialState> supplied_initial_;
+  std::optional<HydrogenHeliumInitialImportWitness> initial_import_;
+  std::optional<HydrogenHeliumRateDomainWitness> rate_domain_;
   ThermalBackground background_;
   HydrogenHeliumHistoryPolicy policy_;
   HydrogenHeliumHistoryWork work_;
@@ -110,14 +178,18 @@ private:
   std::optional<double> maximum_log_heiii_activity_;
   std::vector<Node> nodes_;
   friend struct detail::HydrogenHeliumCellAccess;
-  friend HydrogenHeliumHistory prepare_hydrogen_helium_history(
-      const HydrogenHeliumHistoryRequest &, HydrogenHeliumHistoryPolicy);
+  friend struct detail::HydrogenHeliumPreparationAccess;
   friend std::optional<std::size_t> hydrogen_helium_history_payload_bound(
-      std::size_t, std::size_t, std::size_t, std::size_t) noexcept;
+      std::size_t, std::size_t, std::size_t, std::size_t, std::size_t,
+      std::size_t) noexcept;
 };
 HydrogenHeliumHistory prepare_hydrogen_helium_history(
     const HydrogenHeliumHistoryRequest &, HydrogenHeliumHistoryPolicy = {});
+HydrogenHeliumHistory prepare_hydrogen_helium_supplied_history(
+    const HydrogenHeliumSuppliedHistoryRequest &, HydrogenHeliumHistoryPolicy = {});
 std::optional<std::size_t> hydrogen_helium_history_payload_bound(
     std::size_t fine_intervals, std::size_t output_points,
-    std::size_t species, std::size_t nuclei_origin_bytes) noexcept;
+    std::size_t species, std::size_t nuclei_origin_bytes,
+    std::size_t supplied_origin_bytes = 0,
+    std::size_t supplied_source_identity_bytes = 0) noexcept;
 } // namespace irred::cosmology

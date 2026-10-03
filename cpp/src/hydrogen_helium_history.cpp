@@ -29,6 +29,24 @@ bool physical(const State &x) {
 bool budget(double a, double r) {
   return std::isfinite(a) && std::isfinite(r) && a >= 0 && r >= 0 && (a > 0 || r > 0);
 }
+std::size_t remaining_work(const HydrogenHeliumHistoryWork &work, std::size_t cap) {
+  const auto spent = work.total();
+  return spent < cap ? cap - spent : 0;
+}
+bool charge_momentum(HydrogenHeliumHistoryWork &work, std::size_t count,
+                     std::size_t cap) {
+  if (count > remaining_work(work, cap) ||
+      count > SIZE_MAX - work.momentum_callbacks) return false;
+  work.momentum_callbacks += count;
+  return true;
+}
+void retain_range(std::optional<std::array<W, 2>> &range, W T) {
+  if (!range) range = std::array<W, 2>{T, T};
+  else {
+    (*range)[0] = std::min((*range)[0], T);
+    (*range)[1] = std::max((*range)[1], T);
+  }
+}
 W heiii_log(W T, W ne) {
   const W kT = boltzmann_constant_joule_per_kelvin * T;
   return std::log(atomic::detail::electron_quantum_density_si(kT)) -
@@ -61,6 +79,7 @@ struct Evolution {
   S status = S::ok;
   HydrogenHeliumHistoryWork &work;
   std::size_t cap;
+  HydrogenHeliumRateDomainWitness &domain;
   State accumulated_root_error{};
   struct Residual {
     std::array<W, 2> r;
@@ -75,6 +94,12 @@ struct Evolution {
     const W ne = c.nH * x[0] + c.nHe * x[1], M = c.nH + c.nHe,
         A = c.compton * ne / (M + ne), den = 1 + h * A + 2 * h / c.u,
         T = (previous[2] + h * A * c.Tr) / den;
+    if (!(T > 0) || !std::isfinite(T)) {
+      domain.invalid_temperature_attempted = true;
+      status = S::conditioning_budget_exceeded; return {};
+    }
+    // One observation site covers all meshes and accepted/failed Newton trials.
+    retain_range(domain.attempted_kelvin_range, T);
     const auto f = detail::hhe_rhs(x[0], x[1], T, c.nH, c.nHe, c.H, c.u);
     const W n[]{c.nH, c.nHe};
     Residual out{{x[0] - previous[0] + h * f.value[0],
@@ -153,16 +178,20 @@ void project(HydrogenHeliumHistoryValue &v, W value, W error, W a, W r) {
 } // namespace
 std::optional<std::size_t> hydrogen_helium_history_payload_bound(
     std::size_t fine, std::size_t output, std::size_t species,
-    std::size_t origin) noexcept {
+    std::size_t origin, std::size_t supplied_origin,
+    std::size_t supplied_identity) noexcept {
   irred::detail::PayloadAccounting p(sizeof(HydrogenHeliumHistory) +
                                     sizeof(HydrogenHeliumHistoryBatch) + 4096);
-  if (fine == SIZE_MAX || origin == SIZE_MAX) return {};
+  if (fine == SIZE_MAX || origin == SIZE_MAX || supplied_origin == SIZE_MAX ||
+      supplied_identity == SIZE_MAX) return {};
   // Simultaneous coefficient, output and three BE/refined state buffers.
   p.add(fine + 1, sizeof(Coeff) + sizeof(HydrogenHeliumHistory::Node) +
                          4 * sizeof(State));
   p.add(output, sizeof(HydrogenHeliumHistoryRow));
   p.add(species, 4 * (sizeof(ThermalSpecies) + sizeof(ThermalPhysicalSpecies)));
   p.add(origin + 1, 1);
+  if (supplied_origin) p.add(supplied_origin + 1, 1);
+  if (supplied_identity) p.add(supplied_identity + 1, 1);
   return p.result();
 }
 HydrogenHeliumHistory &HydrogenHeliumHistory::operator=(const HydrogenHeliumHistory &o) {
@@ -175,32 +204,53 @@ HydrogenHeliumHistory::HydrogenHeliumHistory(HydrogenHeliumHistory &&o) noexcept
 HydrogenHeliumHistory &HydrogenHeliumHistory::operator=(HydrogenHeliumHistory &&o) noexcept {
   if (this != &o) {
     status_ = o.status_; source_ = std::move(o.source_);
+    boundary_ = o.boundary_; supplied_initial_ = std::move(o.supplied_initial_);
+    initial_import_ = o.initial_import_; rate_domain_ = o.rate_domain_;
     background_ = std::move(o.background_); policy_ = o.policy_; work_ = o.work_;
     mapping_witnesses_ = std::move(o.mapping_witnesses_);
     excluded_heiii_activity_ = o.excluded_heiii_activity_;
     maximum_log_heiii_activity_ = o.maximum_log_heiii_activity_;
     nodes_ = std::move(o.nodes_);
     o.source_.reset(); o.status_ = S::invalid_input; o.work_ = {};
+    o.boundary_.reset(); o.supplied_initial_.reset(); o.initial_import_.reset();
+    o.rate_domain_.reset();
     o.mapping_witnesses_.reset();
     o.excluded_heiii_activity_.reset(); o.maximum_log_heiii_activity_.reset();
     o.nodes_.clear();
   }
   return *this;
 }
-HydrogenHeliumHistory prepare_hydrogen_helium_history(
-    const HydrogenHeliumHistoryRequest &s, HydrogenHeliumHistoryPolicy p) {
+std::string_view HydrogenHeliumHistory::model_identity() const noexcept {
+  if (!boundary_) return {};
+  return *boundary_ == HydrogenHeliumHistoryBoundary::supplied_binary64
+             ? hydrogen_helium_supplied_history_model_id
+             : hydrogen_helium_history_model_id;
+}
+namespace detail {
+struct HydrogenHeliumPreparationAccess {
+static HydrogenHeliumHistory prepare(const HydrogenHeliumHistoryRequest &s,
+    const HydrogenHeliumSuppliedInitialState *supplied, HydrogenHeliumHistoryPolicy p) {
   HydrogenHeliumHistory out;
+  out.boundary_ = supplied ? HydrogenHeliumHistoryBoundary::supplied_binary64
+                          : HydrogenHeliumHistoryBoundary::restricted_two_stage_saha;
   if (!arithmetic() || !budget(p.absolute_fraction_tolerance, p.relative_fraction_tolerance) ||
       !budget(p.absolute_temperature_tolerance_kelvin, p.relative_temperature_tolerance) ||
       !budget(p.absolute_opacity_tolerance, p.relative_opacity_tolerance) ||
       p.base_intervals < 2 || s.nuclei_origin.empty()) return out;
+  if (supplied && (supplied->origin.empty() || supplied->source_identity.empty())) return out;
   if (p.base_intervals > 16384 || 4 * p.base_intervals > p.maximum_fine_intervals ||
       s.model.species.size() > 16 || s.nuclei_origin.size() > 65536) {
     out.status_ = S::work_limit; return out;
   }
+  if (supplied && (supplied->origin.size() > 65536 - s.nuclei_origin.size() ||
+      supplied->source_identity.size() >
+          65536 - s.nuclei_origin.size() - supplied->origin.size())) {
+    out.status_ = S::work_limit; return out;
+  }
   const std::size_t N = 4 * p.base_intervals;
   auto bytes = hydrogen_helium_history_payload_bound(N, 0, s.model.species.size(),
-                                                    s.nuclei_origin.size());
+      s.nuclei_origin.size(), supplied ? supplied->origin.size() : 0,
+      supplied ? supplied->source_identity.size() : 0);
   if (!bytes || *bytes > p.maximum_native_bytes || *bytes > (1ull << 30)) {
     out.status_ = S::work_limit; return out;
   }
@@ -229,18 +279,66 @@ HydrogenHeliumHistory prepare_hydrogen_helium_history(
     // This first new history profile qualifies only the massless thermal state.
     if (v.mass_ev != 0) { out.status_ = S::outside_domain; return out; }
   }
+  if (supplied) {
+    if (!remaining_work(out.work_, p.maximum_total_work)) {
+      out.status_ = S::work_limit; return out;
+    }
+    ++out.work_.initial_boundary_evaluations;
+    for (double value : {supplied->hydrogen_ionized_fraction,
+                        supplied->helium_singly_ionized_fraction,
+                        supplied->matter_temperature_kelvin})
+      if (!std::isfinite(value)) { out.status_ = S::nonfinite_input; return out; }
+    const W Tr = W(s.model.tcmb_kelvin) * (1 + W(s.initial_redshift));
+    if (!(supplied->hydrogen_ionized_fraction > 0 &&
+          supplied->hydrogen_ionized_fraction < 1 &&
+          supplied->helium_singly_ionized_fraction > 0 &&
+          supplied->helium_singly_ionized_fraction < 1 &&
+          supplied->matter_temperature_kelvin >= 4000 &&
+          W(supplied->matter_temperature_kelvin) <= Tr)) {
+      out.status_ = S::outside_domain; return out;
+    }
+  }
   try {
+    // Acquire this source once before any thermal/background work. A failed
+    // emplace publishes no partial boundary or import witness.
+    if (supplied) {
+      out.supplied_initial_.emplace(*supplied);
+      out.initial_import_ = HydrogenHeliumInitialImportWitness{
+          {W(supplied->hydrogen_ionized_fraction),
+           W(supplied->helium_singly_ionized_fraction),
+           W(supplied->matter_temperature_kelvin)}, {0, 0, 0}};
+    }
+    std::size_t accounted_fine = N, mapped_species_capacity = s.model.species.size();
+    auto payload_ok = [&]() {
+      const auto species = std::max({mapped_species_capacity,
+          out.background_.source().species.capacity(),
+          out.source_ ? out.source_->model.species.capacity() : std::size_t(0)});
+      const auto bound = hydrogen_helium_history_payload_bound(accounted_fine, 0,
+          species, out.source_ ? out.source_->nuclei_origin.capacity() : s.nuclei_origin.size(),
+          out.supplied_initial_ ? out.supplied_initial_->origin.capacity() : 0,
+          out.supplied_initial_ ? out.supplied_initial_->source_identity.capacity() : 0);
+      return bound && *bound <= p.maximum_native_bytes && *bound <= (1ull << 30);
+    };
+    if (!payload_ok()) { out.status_ = S::work_limit; return out; }
     auto t = p.thermal;
     t.maximum_native_bytes = std::min(t.maximum_native_bytes, p.maximum_native_bytes);
-    t.maximum_total_callbacks = std::min(t.maximum_total_callbacks, p.maximum_total_work);
+    t.maximum_total_callbacks = std::min(t.maximum_total_callbacks,
+                                         remaining_work(out.work_, p.maximum_total_work));
     const auto mapped = map_thermal_physical_model(s.model, t);
     if (!mapped.model) { out.status_ = mapped.status; return out; }
     out.mapping_witnesses_ = mapped.scalar_witnesses;
+    mapped_species_capacity = mapped.model->species.capacity();
+    if (!payload_ok()) { out.status_ = S::work_limit; return out; }
     out.background_ = prepare_thermal_background(*mapped.model, t);
-    out.work_.momentum_callbacks = out.background_.preparation_callbacks();
+    if (!charge_momentum(out.work_, out.background_.preparation_callbacks(), p.maximum_total_work)) {
+      out.status_ = S::work_limit; return out;
+    }
     if (out.background_.status() != S::ok) { out.status_ = out.background_.status(); return out; }
     out.source_ = s; out.policy_ = p;
+    if (!payload_ok()) { out.status_ = S::work_limit; return out; }
     std::vector<Coeff> c(N + 1);
+    accounted_fine = std::max(accounted_fine, c.capacity() - 1);
+    if (!payload_ok()) { out.status_ = S::work_limit; return out; }
     W max_H_error = 0;
     const W span = W(s.initial_redshift) - s.late_redshift,
         photon = W(mapped.model->omega_gamma) *
@@ -254,7 +352,9 @@ HydrogenHeliumHistory prepare_hydrogen_helium_history(
       t.maximum_total_callbacks = std::min(p.thermal.maximum_total_callbacks,
                                            p.maximum_total_work - out.work_.total());
       const auto b = out.background_.scaled_expansion(a, t);
-      out.work_.momentum_callbacks += b.callbacks;
+      if (!charge_momentum(out.work_, b.callbacks, p.maximum_total_work)) {
+        out.status_ = S::work_limit; return out;
+      }
       if (b.status != S::ok) { out.status_ = b.status; return out; }
       if (!(b.a4_e2 > b.error_estimate)) { out.status_ = S::conditioning_budget_exceeded; return out; }
       const W H = s.model.h0_km_s_mpc * 1000 / megaparsec_in_metres_wide() *
@@ -267,16 +367,24 @@ HydrogenHeliumHistory prepare_hydrogen_helium_history(
       max_H_error = std::max(max_H_error, he);
     }
     S initialization = S::ok;
-    const State x0 = initial(c.front(), out.work_, p.maximum_total_work, initialization);
+    const State x0 = supplied ? out.initial_import_->promoted_values
+                             : initial(c.front(), out.work_, p.maximum_total_work, initialization);
     if (initialization != S::ok || !physical(x0)) {
       out.status_ = initialization == S::ok ? S::conditioning_budget_exceeded : initialization;
       return out;
     }
     const W initial_log = heiii_log(x0[2], c.front().nH * x0[0] + c.front().nHe * x0[1]);
     out.excluded_heiii_activity_ = static_cast<double>(std::exp(initial_log));
-    Evolution evolution{S::ok, out.work_, p.maximum_total_work};
+    out.rate_domain_.emplace();
+    Evolution evolution{S::ok, out.work_, p.maximum_total_work, *out.rate_domain_};
     auto mesh = [&](std::size_t stride) {
-      std::vector<State> states(N / stride + 1); states[0] = x0;
+      std::vector<State> states(N / stride + 1);
+      if (states.capacity() - 1 > SIZE_MAX / stride) {
+        evolution.status = S::work_limit; return states;
+      }
+      accounted_fine = std::max(accounted_fine, (states.capacity() - 1) * stride);
+      if (!payload_ok()) { evolution.status = S::work_limit; return states; }
+      states[0] = x0;
       for (std::size_t i = 1; i < states.size(); ++i) {
         const std::size_t j = i * stride;
         states[i] = evolution.step(c[j], states[i - 1], c[j - stride].z - c[j].z);
@@ -322,7 +430,10 @@ HydrogenHeliumHistory prepare_hydrogen_helium_history(
       return f * (1 - f) * width * width * second / 2;
     };
     out.nodes_.resize(N + 1);
+    accounted_fine = std::max(accounted_fine, out.nodes_.capacity() - 1);
+    if (!payload_ok()) { out.status_ = S::work_limit; return out; }
     W maximum_log = initial_log;
+    std::optional<std::array<W, 2>> retained_temperature;
     for (std::size_t i = 0; i <= N; ++i) {
       const auto mid = interpolate(middle, 2, i), old_coarse = interpolate(coarse, 4, i);
       State state{}, error{};
@@ -344,16 +455,28 @@ HydrogenHeliumHistory prepare_hydrogen_helium_history(
       if (!physical(state) || state[2] > c[i].Tr) {
         out.status_ = S::conditioning_budget_exceeded; return out;
       }
+      retain_range(retained_temperature, state[2]);
       const W activity = heiii_log(state[2], c[i].nH * state[0] + c[i].nHe * state[1]);
       maximum_log = std::max(maximum_log, activity);
       out.nodes_[i] = {c[i].z, state[0], state[1], state[2], error[0], error[1], error[2],
                        c[i].opacity, (c[i].H_error + arithmetic_floor) * c[i].opacity};
     }
+    out.rate_domain_->retained_kelvin_range = retained_temperature;
     out.maximum_log_heiii_activity_ = static_cast<double>(maximum_log);
     if (maximum_log > std::log(1e-12L)) { out.status_ = S::outside_domain; return out; }
     out.status_ = S::ok;
   } catch (const std::bad_alloc &) { out.status_ = S::work_limit; }
   return out;
+}
+};
+} // namespace detail
+HydrogenHeliumHistory prepare_hydrogen_helium_history(
+    const HydrogenHeliumHistoryRequest &s, HydrogenHeliumHistoryPolicy p) {
+  return detail::HydrogenHeliumPreparationAccess::prepare(s, nullptr, p);
+}
+HydrogenHeliumHistory prepare_hydrogen_helium_supplied_history(
+    const HydrogenHeliumSuppliedHistoryRequest &s, HydrogenHeliumHistoryPolicy p) {
+  return detail::HydrogenHeliumPreparationAccess::prepare(s.history, &s.initial, p);
 }
 HydrogenHeliumHistoryBatch HydrogenHeliumHistory::evaluate(
     std::span<const double> redshifts, unsigned mask, std::size_t max_points,
@@ -363,12 +486,27 @@ HydrogenHeliumHistoryBatch HydrogenHeliumHistory::evaluate(
   if (status_ != S::ok) { out.status = status_; return out; }
   if (redshifts.size() > max_points || redshifts.size() > 65536) { out.status = S::work_limit; return out; }
   const auto bytes = hydrogen_helium_history_payload_bound(
-      nodes_.size() - 1, redshifts.size(), source_->model.species.size(), source_->nuclei_origin.capacity());
+      nodes_.capacity() - 1, redshifts.size(),
+      std::max(source_->model.species.capacity(), background_.source().species.capacity()),
+      source_->nuclei_origin.capacity(),
+      supplied_initial_ ? supplied_initial_->origin.capacity() : 0,
+      supplied_initial_ ? supplied_initial_->source_identity.capacity() : 0);
   if (!bytes || *bytes > std::min(max_bytes, policy_.maximum_native_bytes) || *bytes > (1ull << 30)) {
     out.status = S::work_limit; return out;
   }
   try {
     out.rows.resize(redshifts.size());
+    const auto actual_bytes = hydrogen_helium_history_payload_bound(
+        nodes_.capacity() - 1, out.rows.capacity(),
+        std::max(source_->model.species.capacity(), background_.source().species.capacity()),
+        source_->nuclei_origin.capacity(),
+        supplied_initial_ ? supplied_initial_->origin.capacity() : 0,
+        supplied_initial_ ? supplied_initial_->source_identity.capacity() : 0);
+    if (!actual_bytes || *actual_bytes > std::min(max_bytes, policy_.maximum_native_bytes) ||
+        *actual_bytes > (1ull << 30)) {
+      out.status = S::work_limit;
+      out.rows = std::vector<HydrogenHeliumHistoryRow>{}; return out;
+    }
     for (std::size_t row = 0; row < redshifts.size(); ++row) {
       const double z = redshifts[row]; auto &r = out.rows[row]; r.redshift = z;
       HydrogenHeliumHistoryValue *v[]{&r.hydrogen_ionized_fraction, &r.helium_singly_ionized_fraction,

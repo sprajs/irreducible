@@ -76,6 +76,10 @@ struct HydrogenHeliumCellAccess {
       p.string(h.source_->nuclei_origin);
       p.vector(h.source_->model.species);
     }
+    if (h.supplied_initial_) {
+      p.string(h.supplied_initial_->origin);
+      p.string(h.supplied_initial_->source_identity);
+    }
     return p.result();
   }
 };
