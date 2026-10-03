@@ -1,0 +1,7 @@
+target_sources(irred_core PRIVATE src/effective_fluid.cpp)
+foreach(fluid_test IN ITEMS effective_fluid effective_fluid_peer effective_fluid_installed)
+  add_executable(test_${fluid_test} tests/test_${fluid_test}.cpp)
+  target_link_libraries(test_${fluid_test} PRIVATE irred_core)
+  target_compile_options(test_${fluid_test} PRIVATE -Wall -Wextra -Wpedantic -fno-fast-math -ffp-contract=off)
+  add_test(NAME ${fluid_test}_contract COMMAND test_${fluid_test})
+endforeach()
