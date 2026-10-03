@@ -351,7 +351,7 @@ int main() {
       Result r;
       const auto expected = (variant == 6 || variant == 12)
                                 ? IRRED_ABI_MISMATCH
-                                : IRRED_INVALID_ARGUMENT;
+                                : IRRED_INVALID_INPUT;
       need(irred_gaussian_predictive_evaluate(&changed, &q, &r.p) == expected &&
                !r.p,
            "invalid ABI wire never executed; version disposition distinct");
@@ -365,11 +365,11 @@ int main() {
           reinterpret_cast<const irred_gaussian_posterior_policy *>(
               reinterpret_cast<const uint8_t *>(&q) + 1);
       need(irred_gaussian_predictive_evaluate(unaligned_batch, &q, &r.p) ==
-                   IRRED_INVALID_ARGUMENT &&
+                   IRRED_INVALID_INPUT &&
                !r.p,
            "misaligned batch header");
       need(irred_gaussian_predictive_evaluate(&b, unaligned_policy, &r.p) ==
-                   IRRED_INVALID_ARGUMENT &&
+                   IRRED_INVALID_INPUT &&
                !r.p,
            "misaligned policy header");
       auto bad_policy = q;
@@ -385,7 +385,7 @@ int main() {
           reinterpret_cast<irred_gaussian_predictive_result **>(output.data() +
                                                                 1);
       need(irred_gaussian_predictive_evaluate(&b, &q, unaligned_output) ==
-               IRRED_INVALID_ARGUMENT,
+               IRRED_INVALID_INPUT,
            "misaligned result pointer descriptor");
       alignas(irred_gaussian_predictive_view)
           std::array<uint8_t, sizeof(irred_gaussian_predictive_view) + 1>
@@ -393,7 +393,7 @@ int main() {
       auto *unaligned_view = reinterpret_cast<irred_gaussian_predictive_view *>(
           returned.data() + 1);
       need(irred_gaussian_predictive_result_view(original.p, unaligned_view) ==
-               IRRED_INVALID_ARGUMENT,
+               IRRED_INVALID_INPUT,
            "misaligned result view descriptor");
     }
     {
