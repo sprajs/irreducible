@@ -28,7 +28,7 @@ inline IdealAcousticSourceDirections ideal_acoustic_source_directions(
     const IdealAcousticSourceCenter &c) noexcept {
   using S=numerics::Status; using W=long double;
   IdealAcousticSourceDirections out;
-  if (!(c.a>0 && c.a<=.01L) || !(c.photon>0) || !(c.baryon>=0) ||
+  if (!(c.a>0 && c.a<=W(.01)) || !(c.photon>0) || !(c.baryon>=0) ||
       !(c.cdm>=0) || !(c.shadow_p>0) || !(c.shadow_p_n>=0) || !(c.x2>=0))
     return out;
   for (W v:{c.a,c.photon,c.baryon,c.cdm,c.shadow_p,c.shadow_p_n,

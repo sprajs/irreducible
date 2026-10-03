@@ -83,9 +83,22 @@ empirical diagnostic. A small constraint residual alone cannot admit an output.
 source/error gate refuses. Only `status==ok` with `value` and complete component
 admission denotes an admitted prediction. Missing common forward/derivative
 ownership stays absent and withholds value/error; it is never assigned zero.
-The current shared helper exposes algebraic coefficients while its complete
-source bundles remain unavailable. The narrowly owned same-source diagnostic
-and response propagation are explicit pending dependencies.
+The native evaluator has not yet consumed the reviewed opt-in same-source
+diagnostic. Its correlated full-state response remains an explicit pending
+dependency. The private response header is included in the native contract
+source but is not used to admit the current raw fields. This successor has
+not yet been built.
+
+An optional MPFR reference target advances a separate conformal-time photon
+oscillator and spatial Einstein trace. It uses the same emitted source and
+retained Lambda as an explicitly identified polynomial source control. Ten
+attempts retain three time resolutions, three smaller starts and an additional
+precision comparison. Raw comparisons include all nine coordinates and their
+known time, start and precision shares. Complete peer source/arithmetic and
+external-runtime payload admission remain unavailable; a raw comparison pass
+does not qualify those missing contributions. The portable peer target keeps
+analytic radiation, loading, EdS and constraint-propagation controls without
+requiring MPFR.
 
 Original aggregate caps include all five attempts: 2M RHS, 3M background
 queries, 1M age queries, 30M state-element writes and 16 MiB owned payload.

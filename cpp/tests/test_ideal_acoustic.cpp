@@ -1,6 +1,7 @@
 #include "irred/ideal_acoustic.hpp"
 #include "../src/ideal_acoustic_equations.hpp"
 #include "../src/ideal_acoustic_response.hpp"
+#include "../src/ideal_acoustic_transport.hpp"
 #include <array>
 #include <cmath>
 #include <cstdlib>
@@ -62,6 +63,13 @@ void source_direction_limits() {
       a,G,0,0,G,0,x2,4.L/3,4.L/3,-1,0,1.L/3};
   const auto d=irred::cosmology::detail::ideal_acoustic_source_directions(c);
   need(d.status==S::ok,"correlated source direction availability");
+  auto endpoint=c;
+  endpoint.a=W(.01);
+  need(irred::cosmology::detail::ideal_acoustic_source_directions(endpoint).status==S::ok,
+       "source directions admit the original binary64 endpoint");
+  endpoint.a=W(std::nextafter(.01,std::numeric_limits<double>::infinity()));
+  need(irred::cosmology::detail::ideal_acoustic_source_directions(endpoint).status!=S::ok,
+       "source directions refuse the next binary64 epoch beyond support");
   close(d.gradient[0].L,-2*a4/G,1e-44L,"photon direction preserves radiation L");
   close(d.gradient[0].F,(4.L/3)*a4/G,1e-30L,"photon F derivative has only Lambda correlation");
   close(d.gradient[0].B,(4.L/3)*a4/G,1e-30L,"photon B derivative has only Lambda correlation");
