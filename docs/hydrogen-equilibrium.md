@@ -21,13 +21,15 @@ K = n_Qe*exp(-chi/(kB*T))/n_H
 x^2/y = K,  x+y = 1.
 ```
 
-The electron/proton/neutral degeneracy convention is 2/1/2, giving a prefactor
-of one. Factoring nuclear spin into proton/atom counts as 2/2/4 gives the same
-ratio. The translational mass ratio `m_p/m_H` is approximated by one. This
-equation follows [Hirata's ground-state derivation, equation 24](http://www.tapir.caltech.edu/~chirata/ph217/lec06.pdf)
+The supplied electron/bare-ion/neutral electronic count convention is 2/1/2,
+giving a prefactor of one. The neutral electronic count follows `g=2J+1` for
+the ASD ground `2S_(1/2)` state; free-electron and bare-ion counts are model
+conventions. Common nuclear factors are omitted consistently, and the
+translational mass ratio `m_p/m_H` is approximated by one. Ground-state Saha
+references are [Hirata, equation 24](http://www.tapir.caltech.edu/~chirata/ph217/lec06.pdf)
 and [Sales, Carvalho and Souza, equation 6](https://link.springer.com/article/10.1140/epjc/s10052-023-11671-z).
-The latter distinguishes equilibrium Saha calculations from the non-equilibrium
-processes needed for a recombination history. No cosmological density mapping,
+The scalar-source audit below does not qualify partition truncation, LTE
+applicability, nuclear-spin or mass corrections. No cosmological density mapping,
 photon temperature history, expansion rate or helium fraction is inferred here.
 
 Every input must be finite, with `1<=T<=100000 K` and `n_H>0`. A conservative
@@ -44,22 +46,47 @@ assumptions; a numerical admission is not a physical validation.
 The atomic assets identity is
 `SI2019-exact-h-kB-eV-CODATA2022-me-NIST-ASD5.12-H1-fixed`:
 
-- Electron mass is `9.1093837139e-31 kg`, fixed to the central
-  [CODATA 2022 value](https://physics.nist.gov/cuu/pdf/all.pdf). Its standard
-  uncertainty is `2.8e-40 kg`.
+- Electron mass is `9.1093837139e-31 kg`, fixed to the central CODATA 2022
+  value. The official electron-mass page explicitly labels its standard
+  uncertainty as `2.8e-40 kg`. Its concise `(28)` notation gives the last
+  digits of that uncertainty; it is distinct from ASD's theory marker.
 - Ground-state hydrogen ionization energy is `13.598434599702 eV`, from
-  [NIST ASD 5.12](https://physics.nist.gov/cgi-bin/ASD/ie.pl?at_num_out=on&biblio=on&e_out=0&el_name_out=on&level_out=on&shells_out=on&spectra=H-DS+i&unc_out=on&units=1),
-  with supplied uncertainty `1.2e-11 eV`.
+  NIST ASD 5.12, with displayed uncertainty `1.2e-11 eV`. ASD encloses the
+  energy in parentheses: its official legend identifies an ab-initio value
+  or one otherwise not derived from evaluated experimental data. The selected
+  query does not identify a hydrogen isotope.
 - The shared `quantities.hpp` owns exact SI definitions
   `h=6.62607015e-34 J s`, `kB=1.380649e-23 J/K` and
   `eV_J=1.602176634e-19 J/eV`. These definitions are not atomic measurements.
+  Their exact defining decimal values do not imply exact finite binary storage.
+
+The accepted source binding is the [seven-scalar Prospector serialization at
+commit 669093656632a7600fa2a4d883455ccd9a9c3da8](https://github.com/sprajs/prospector/blob/669093656632a7600fa2a4d883455ccd9a9c3da8/register/source-data/hhe-atomic-central-asd512-codata2022-v1.json),
+SHA256 `d5c189e4623b5eadc2f44f5035dc959e95ff85df69fc199cf8fc0f57ca9c1839`.
+Its [bounded source review](https://github.com/sprajs/prospector/blob/669093656632a7600fa2a4d883455ccd9a9c3da8/register/reviews/2026-10-03-atomic-source-claims.json)
+records original snapshot hashes and selected locators.
+The seven central decimal values and four nonzero uncertainty decimal values
+match the current `long double` literals in `hydrogen_equilibrium.hpp`,
+`hydrogen_helium_equilibrium.hpp` and `quantities.hpp`. This comparison checks
+decimal transcription; it does not establish platform bit patterns, a binary64
+conversion policy or the numerical adequacy of a representation.
+
+The checked ASD help does not establish standard uncertainty, a sigma
+multiplier, coverage probability or a probability law for the three ionization
+energies. CODATA's electron-mass standard uncertainty does not supply those
+missing ASD meanings. ASD says its displayed eV uncertainties already include
+its conversion-factor contribution; no second conversion uncertainty is added.
+No joint covariance among these seven scalars is established. Repeated query
+rows and CODATA page/PDF representations are duplicate source facts.
 
 The header exposes the fixed atomic central values and uncertainties for native
 consumers. Atomic uncertainty is excluded from numerical diagnostics. Ground-state
 truncation, ideal-gas/equilibrium assumptions and the translational mass
 approximation are also excluded. They cannot be added to arithmetic error as if
-they were independent measurement noise. Original source documents were read;
-no external implementation, partition table or source asset is bundled or copied.
+they were independent measurement noise. The source binding supports selected
+scalar facts and conditional ground electronic counts; it does not qualify a
+full source-derived Saha closure or recombination history. No external
+implementation, partition table or source asset is bundled or copied.
 
 ## Stable separate fractions
 
