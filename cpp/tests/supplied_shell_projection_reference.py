@@ -23,6 +23,7 @@ MAX_SOURCE_BYTES = 65536
 MAX_REPORT_BYTES = 262144
 NUMERIC_SLOT = 4096
 WRAPPER_SLOT = 256
+CONTROL_BYTES = 65536
 SCRATCH_BYTES = 256 * NUMERIC_SLOT + 64 * WRAPPER_SLOT
 ZERO, ONE = Decimal(0), Decimal(1)
 ABS_ALLOC = Decimal("1e-10")
@@ -84,7 +85,7 @@ class Payload:
 
     def check(self, extra=0):
         live = (self.input_bytes + SCRATCH_BYTES + self.persistent +
-                8 * self.report_bytes + 65536 + extra)
+                8 * self.report_bytes + CONTROL_BYTES + extra)
         if live > MAX_PAYLOAD:
             raise Refusal("whole-live payload cap")
         self.peak = max(self.peak, live)
@@ -833,6 +834,34 @@ class Reference:
         self.root_reservation = payload.hold(numeric=512, wrappers=128)
         self.basis = self.nodes = None
         self.context = None
+        self.retained_profile = None
+
+    def prepare_roots(self):
+        a = self.arithmetic
+        self.basis = integer_legendre(a)
+        self.nodes = prepare_nodes(self.basis, a)
+        # All isolation/weight checks completed and helper locals have died.
+        # The SAME node/Interval/Decimal objects remain; the slice shares the
+        # first nine original coefficient tuples while full prep still owns
+        # the higher basis. Reserve its new outer tuple BEFORE allocation.
+        overlap = self.payload.hold(wrappers=1)
+        shrunk = False
+        try:
+            retained_basis = self.basis[:9]
+            self.retained_profile = retained_profile(retained_basis, self.nodes, self.work)
+            self.basis = retained_basis
+            del retained_basis
+            # No local full-basis/Q9..16 or prepare_nodes frame survives here.
+            retained = 128 * NUMERIC_SLOT + 64 * WRAPPER_SLOT
+            self.payload.release(self.root_reservation - retained)
+            self.root_reservation = retained
+            shrunk = True
+        finally:
+            # A failed profile can retain its slice in traceback locals until
+            # the caller handles Refusal. Keep full prep AND overlap on that
+            # path; only a completed shrink transfers the slice to128/64.
+            if shrunk:
+                self.payload.release(overlap)
 
     def case(self, case, records, provenance):
         self.work.stage = "source-admission"
@@ -916,8 +945,7 @@ class Reference:
         if not isinstance(rows, list) or len(rows) != len(shells) * len(ells):
             raise Refusal("native row shape")
         if self.nodes is None:
-            self.basis = integer_legendre(a)
-            self.nodes = prepare_nodes(self.basis, a)
+            self.prepare_roots()
         for ki, shell_row in enumerate(shells):
             for li, ell in enumerate(ells):
                 self.context = {"case_id": case["id"], "k_index": ki,
@@ -976,6 +1004,83 @@ def measured_size(value, seen=None, work=None):
     return size
 
 
+def retained_profile(basis, nodes, work):
+    work.charge("comparison_cast_operations")
+    if len(basis) != 9 or len(nodes) != 16 or any(len(poly) != ell + 1 for ell, poly in enumerate(basis)):
+        raise Refusal("retained root graph shape")
+    numerical = wrappers = 0
+
+    def probe(value, limit):
+        work.charge("comparison_cast_operations")
+        if sys.getsizeof(value) > limit:
+            raise Refusal("retained root object profile")
+
+    for owner in (basis, nodes):
+        probe(owner, WRAPPER_SLOT)
+        wrappers += 1
+    for poly in basis:
+        probe(poly, WRAPPER_SLOT)
+        wrappers += 1
+        for coefficient in poly:
+            probe(coefficient, NUMERIC_SLOT)
+            numerical += 1
+    for node in nodes:
+        for owner in (node, node.mu, node.weight):
+            probe(owner, WRAPPER_SLOT)
+            wrappers += 1
+        for endpoint in (node.mu.lo, node.mu.hi, node.weight.lo, node.weight.hi):
+            probe(endpoint, NUMERIC_SLOT)
+            numerical += 1
+    work.charge("comparison_cast_operations")
+    if numerical != 109 or wrappers != 59:
+        raise Refusal("retained root owner count")
+    return {"numeric_owners": numerical, "wrappers": wrappers,
+            "reserved_numeric_slots": 128, "reserved_wrapper_slots": 64}
+
+
+def control_profile(work, payload, reference, report):
+    """Measure fixed controls, excluding independently reserved data graphs."""
+    work.charge("comparison_cast_operations")
+    # Establish this unit before any Work dictionary iterator is created.
+    # Further graph/profile charges only replace existing count values.
+    work.charge("source_graph_inspections")
+
+    def inspected_size(owner):
+        work.charge("comparison_cast_operations")
+        return sys.getsizeof(owner)
+
+    owners = (work, payload) if reference is None else (work, payload, reference, reference.arithmetic)
+    header_bytes = 0
+    for owner in owners:
+        header_bytes += inspected_size(owner) + inspected_size(vars(owner))
+    # Actual top-level dictionary and current list capacity/pointer tables.
+    # Numerical output dictionaries and source objects stay in their original
+    # report/input reservations and are not walked/copied a second time.
+    for owner in (report, report["outputs"], report["source_provenance"]):
+        header_bytes += inspected_size(owner)
+    contexts = []
+    if reference is not None:
+        for context in (reference.arithmetic.down, reference.arithmetic.up):
+            header_bytes += inspected_size(context) + inspected_size(context.flags) + inspected_size(context.traps)
+            contexts.append((context.prec, context.Emin, context.Emax, context.clamp,
+                             tuple(context.flags.values()), tuple(context.traps.values())))
+    projected = {"work": vars(work), "payload": vars(payload), "contexts": contexts,
+                 "report": {key: value for key, value in report.items()
+                            if key not in ("outputs", "source_provenance")}}
+    if reference is not None:
+        projected["reference"] = {"root_reservation": reference.root_reservation,
+                                  "context": reference.context,
+                                  "retained_profile": reference.retained_profile}
+    # Keep512 bytes for the two bounded final-refusal scalar strings replacing
+    # their preinstalled None slots after this guard. They are control metadata,
+    # not retained numerical output, and remain within the same64KiB component.
+    size = header_bytes + measured_size(projected, work=work) + 512
+    work.charge("comparison_cast_operations")
+    if size > CONTROL_BYTES:
+        raise Refusal("fixed control/header profile cap")
+    return size
+
+
 def check_runtime(work):
     work.charge("comparison_cast_operations")
     if sys.implementation.name != "cpython" or struct.calcsize("P") != 8:
@@ -1026,6 +1131,7 @@ def check_corpus(corpus, raw_size):
             raise Refusal("empty/invalid corpus")
         reference = Reference(work, payload)
         report["arithmetic_profile_controls"] = reference.arithmetic.profile_controls()
+        report["control_profile_bytes"] = control_profile(work, payload, reference, report)
         for case in cases:
             reference.case(case, records, provenance)
         report["status"] = "ok" if all(row["status"] == "ok" for row in records) else "comparison_failed"
@@ -1041,4 +1147,28 @@ def check_corpus(corpus, raw_size):
                   rounding_events=work.rounding_events, peak_reserved_payload_bytes=payload.peak,
                   trapped_events=work.trapped_events,
                   payload_scope="owned input/reference/report plus reserved simultaneous temporaries; excludes interpreter/allocator/RSS")
+    report["retained_reference_profile"] = reference.retained_profile if reference is not None else None
+    report["control_profile_bytes"] = 0
+    report["control_profile_refusal"] = None
+    report.setdefault("reason", None)
+    try:
+        report["control_profile_bytes"] = control_profile(work, payload, reference, report)
+    except Refusal as error:
+        report["status"] = "refused"
+        report["control_profile_refusal"] = str(error)
+        if report["reason"] is None:
+            report["reason"] = report["control_profile_refusal"]
+    except (ArithmeticError, MemoryError, ValueError, TypeError) as error:
+        # Match the main calculation's retention scope. Earlier rows and
+        # provenance stay owned even if this NEW profile projection fails.
+        report["status"] = "refused"
+        report["control_profile_refusal"] = type(error).__name__
+        if report["reason"] is None:
+            report["reason"] = "retained implementation refusal in final control/profile"
+    # Include every final profile inspection and any rejected charge; reporting
+    # cannot reset or publish the pre-guard snapshot as the complete work.
+    report.update(work=dict(work.counts, total=work.total), rejected_work=work.rejected,
+                  last_attempt=work.last_attempt, rounding_events=work.rounding_events,
+                  trapped_events=work.trapped_events,
+                  failed_reference=(reference.context if reference is not None and report["status"] == "refused" else None))
     return report
