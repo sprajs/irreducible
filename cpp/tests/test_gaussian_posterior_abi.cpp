@@ -321,7 +321,7 @@ int main() {
     }
     // Entire native call: result constructor, metadata, preparation, all
     // conditioning and retained owners. Bookkeeping headers are excluded.
-    size_t total_calls = 0;
+    size_t total_calls = 0, measured_peak = 0, measured_retained = 0;
     const size_t live_before = allocation::live;
     {
       Result measured;
@@ -330,6 +330,8 @@ int main() {
           irred_gaussian_posterior_evaluate(&b, &q, &measured.p);
       allocation::armed = false;
       total_calls = allocation::calls;
+      measured_peak = allocation::peak;
+      measured_retained = allocation::live - live_before;
       need(transport == IRRED_OK, "whole-phase allocation run");
       const auto measured_view = measured.view();
       need(measured_view.status == IRRED_GAUSSIAN_STATUS_FINITE &&
@@ -514,7 +516,11 @@ int main() {
            "complete");
     }
     std::fesetround(FE_TONEAREST);
-    std::cout << "proper Gaussian posterior coarse ABI controls passed\n";
+    std::cout << "proper Gaussian posterior coarse ABI controls passed\n"
+              << "whole_call_allocations=" << total_calls
+              << " measured_requested_peak_bytes=" << measured_peak
+              << " measured_retained_bytes=" << measured_retained
+              << " injected_failure_sites=" << total_calls << '\n';
     return 0;
   } catch (const std::exception &e) {
     std::fesetround(FE_TONEAREST);
