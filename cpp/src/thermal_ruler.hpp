@@ -138,8 +138,10 @@ struct ThermalRulerIntegral {
   ThermalWide loading_estimate_mpc = 0, arithmetic_estimate_mpc = 0;
 };
 namespace thermal_ruler_internal {
-struct Context {
-  const ThermalBackground &background;
+// The two compiled background owners share this exact ruler law. No runtime
+// provider registry or expression input; legacy specialization stays unchanged.
+template<class Background> struct Context {
+  const Background &background;
   const ThermalBaryonLoading &loading;
   const ThermalRulerAllowance &allowance;
   ThermalRulerWorkBudget &work;
@@ -147,8 +149,8 @@ struct Context {
   std::size_t outer_attempts = 0;
   numerics::Status status = numerics::Status::ok;
 };
-inline double integrand(double t, const void *ptr) {
-  auto &c = *const_cast<Context *>(static_cast<const Context *>(ptr));
+template<class Background> inline double integrand(double t, const void *ptr) {
+  auto &c = *const_cast<Context<Background> *>(static_cast<const Context<Background> *>(ptr));
   const auto nan = std::numeric_limits<double>::quiet_NaN();
   if (c.status != numerics::Status::ok) return nan;
   if (c.outer_attempts >= c.allowance.maximum_outer_callbacks || !c.work.charge_outer()) {
@@ -221,8 +223,8 @@ inline numerics::Status complete_diagnostics(ThermalRulerIntegral &out,
       ? S::ok : S::conditioning_budget_exceeded;
 }
 } // namespace thermal_ruler_internal
-inline ThermalRulerIntegral integrate_thermal_ruler(
-    const ThermalBackground &background, const ThermalBaryonLoading &loading,
+template<class Background> inline ThermalRulerIntegral integrate_thermal_ruler(
+    const Background &background, const ThermalBaryonLoading &loading,
     ThermalWide endpoint, const ThermalRulerAllowance &p, ThermalRulerWorkBudget &work) {
   using S = numerics::Status;
   ThermalRulerIntegral out;
@@ -237,8 +239,8 @@ inline ThermalRulerIntegral integrate_thermal_ruler(
   if (!(absolute > 0 || p.relative_tolerance > 0)) { out.status = S::conditioning_budget_exceeded; return out; }
   const auto available = std::min(work.remaining(), p.maximum_outer_callbacks);
   if (available < 3) { out.status = S::work_limit; return out; }
-  thermal_ruler_internal::Context c{background, loading, p, work, endpoint};
-  const auto q = numerics::integrate(thermal_ruler_internal::integrand, &c, 0, 1,
+  thermal_ruler_internal::Context<Background> c{background, loading, p, work, endpoint};
+  const auto q = numerics::integrate(thermal_ruler_internal::integrand<Background>, &c, 0, 1,
       {absolute, p.relative_tolerance / 8, available, p.maximum_depth});
   out.status = c.status == S::ok ? q.status : c.status;
   if (out.status != S::ok) return out;

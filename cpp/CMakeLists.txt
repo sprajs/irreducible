@@ -542,6 +542,7 @@ include(cmake/windowed_linear_power.cmake)
 
 # Continuous scalar temperature and polarization transfer geometry.
 include(cmake/continuous_cmb_projection.cmake)
+include(cmake/effective_fluid.cmake)
 
 # Synthetic two-deflector extended-source pixel means.
 include(cmake/two_deflector_forward.cmake)
