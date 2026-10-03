@@ -32,6 +32,7 @@ Read [AGENTS.md](../AGENTS.md) first, then choose a guide:
 | Inspect the retained supplied-source angular comparison and native regression | [CMB geometry regression](continuous-cmb-projection-regression.md) |
 | Inspect the open primary CMB projection prerequisites | [Primary CMB contract](primary-cmb-projection.md) |
 | Predict supplied-amplitude growth and a synthetic full-covariance RSD density | [Conditional growth/RSD](growth-rsd.md) |
+| Calculate supplied linear Kaiser/AP multipoles and signed window means | [Windowed linear power](windowed-linear-power.md) |
 | Evaluate supplied-temperature/density hydrogen ionization in C++ | [Hydrogen equilibrium](hydrogen-equilibrium.md) |
 | Evaluate supplied-temperature/density H/He equilibrium with shared electrons | [Hydrogen–helium equilibrium](hydrogen-helium-equilibrium.md) |
 | Map supplied neutral-mass baryon/He abundance and compose shared-electron LTE | [Baryon abundance](baryon-abundance.md) |
