@@ -2,7 +2,9 @@
 #include "irred/quantities.hpp"
 #include "irred/thermal_neutrino.hpp"
 #include <algorithm>
+#include <cfenv>
 #include <cmath>
+#include <initializer_list>
 #include <limits>
 #include <optional>
 #include <string_view>
@@ -10,6 +12,54 @@
 namespace irred::cosmology::detail {
 inline constexpr long double thermal_conformal_c_km_s =
     static_cast<long double>(irred::speed_of_light_m_per_s) / 1000;
+// Actual retained scalar metadata, captured once by the real consumer after its
+// one background preparation. It is not a coefficient/derivative certificate.
+struct ThermalRetainedCoefficientWitness {
+  numerics::Status status = numerics::Status::invalid_input;
+  long double critical_density_ev4 = 0, omega_species_today = 0;
+  long double lambda_retained = 0, species_normalization_error = 0;
+  double lambda_emitted = 0;
+  long double lambda_getter_signed_loss = 0;
+  ThermalMomentumMethod momentum_method = ThermalMomentumMethod::direct_adaptive;
+};
+struct ThermalRetainedCoefficientAccess {
+  // Defined in class: implicitly inline. No source vector/P/map/reprepare.
+  // Real consumers own once-only capture, matching background/witness copies,
+  // move invalidation, actual source/diagnostic work and simultaneous payload.
+  static std::optional<ThermalRetainedCoefficientWitness>
+  capture(const ThermalBackground &background) noexcept {
+    // Prior preparation success does not establish the current rounding mode.
+    // Check the retained thermal profile before the one getter conversion.
+    if (std::numeric_limits<long double>::digits < 64 ||
+        std::numeric_limits<long double>::max_exponent < 16384 ||
+        std::fegetround() != FE_TONEAREST ||
+        background.status_ != numerics::Status::ok)
+      return {};
+    const auto emitted = background.omega_lambda();
+    if (!emitted || !std::isfinite(*emitted) ||
+        !(background.critical_ev4_ > 0) ||
+        !std::isfinite(background.critical_ev4_) ||
+        !(background.omega_species_ >= 0) ||
+        !std::isfinite(background.omega_species_) ||
+        !(background.lambda_ >= 0) || !std::isfinite(background.lambda_) ||
+        !(background.normalization_error_ >= 0) ||
+        !std::isfinite(background.normalization_error_))
+      return {};
+    ThermalRetainedCoefficientWitness out;
+    out.status = numerics::Status::ok;
+    out.critical_density_ev4 = background.critical_ev4_;
+    out.omega_species_today = background.omega_species_;
+    out.lambda_retained = background.lambda_;
+    out.species_normalization_error = background.normalization_error_;
+    out.lambda_emitted = *emitted;
+    out.lambda_getter_signed_loss =
+        background.lambda_ - static_cast<long double>(*emitted);
+    out.momentum_method = background.method_;
+    if (!std::isfinite(out.lambda_getter_signed_loss))
+      return {};
+    return out;
+  }
+};
 // These complete diagnostics are unavailable until their source/arithmetic
 // ownership is earned. Entries are absolute estimates/radii, in the same units
 // as their epoch coordinates (hcal is Mpc^-1; the rest are dimensionless).
@@ -104,9 +154,21 @@ inline ThermalConformalEpoch thermal_conformal_epoch_from_scaled(
         std::max(static_cast<long double>(above) - *lambda,
                  static_cast<long double>(*lambda) - below) / 2;
   }
-  if (!(out.hcal > 0) || !std::isfinite(out.hcal) ||
-      !std::isfinite(out.x2) || !std::isfinite(out.g))
+  // For the admitted same-owner source/query chain, P is positive and the
+  // supplied cold/radiation/Lambda numerators are nonnegative. Guard every
+  // stored derived coordinate and literal diagnostic before publishing ok;
+  // algebraic availability does not earn either optional error bundle.
+  if (!(out.p > 0) || !(out.hcal > 0) || !std::isfinite(out.p) ||
+      !std::isfinite(out.hcal) || !std::isfinite(out.g) ||
+      !std::isfinite(out.closure_defect) ||
+      !std::isfinite(out.background_identity_defect) ||
+      !std::isfinite(out.acceleration_defect))
     out.status = numerics::Status::overflow;
+  for (const auto value : {out.p_error, out.fb, out.fc, out.fg, out.fr, out.fl,
+                           out.x2, out.cold_fraction, out.enthalpy_fraction,
+                           out.lambda_cast_error})
+    if (!(value >= 0) || !std::isfinite(value))
+      out.status = numerics::Status::overflow;
   return out;
 }
 inline ThermalConformalEpoch thermal_conformal_epoch(

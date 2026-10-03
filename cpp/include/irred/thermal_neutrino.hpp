@@ -89,6 +89,9 @@ struct ThermalBackgroundBatch {
   std::vector<ThermalBackgroundRow> rows;
   std::size_t callbacks = 0;
 };
+namespace detail {
+struct ThermalRetainedCoefficientAccess;
+}
 class ThermalBackground {
 public:
   ThermalBackground() = default;
@@ -117,6 +120,7 @@ private:
   long double critical_ev4_ = 0, omega_species_ = 0, lambda_ = 0;
   long double normalization_error_ = 0;
   std::size_t callbacks_ = 0;
+  friend struct detail::ThermalRetainedCoefficientAccess;
   friend ThermalBackground prepare_thermal_background(const ThermalFlatModel &,
                                                       ThermalPolicy);
 };
