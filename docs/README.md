@@ -25,12 +25,15 @@ Read [AGENTS.md](../AGENTS.md) first, then choose a guide:
 | Use one early/late state for distances and conditional ruler ratios in C++ | [Early and late expansion](early-late.md) |
 | Evaluate explicit thermal relic density, pressure and flat E/H in C++ | [Thermal neutrino background](thermal-neutrino.md) |
 | Map physical densities/temperatures and evaluate thermal distances/ruler ratios | [Thermal observables](thermal-observables.md) |
+| Evaluate a declared compensated fluid background and matched finite ruler | [Effective fluid](effective-fluid.md) |
 | Evaluate a supplied-drag BAO density with a retained ordered covariance in C++ | [Massless conditional BAO](bao-conditional.md) or [thermal conditional BAO](bao-thermal.md) |
 | Calculate a pressureless GR growing mode in C++ | [GR growth](gr-growth.md) |
 | Predict bounded perfect-fluid CDM transfer and a declared primordial band variance | [Perfect-fluid transfer](linear-transfer.md) |
 | Project supplied continuous scalar temperature/E sources in C++ | [Continuous CMB projection](continuous-cmb-projection.md) |
+| Inspect the retained supplied-source angular comparison and native regression | [CMB geometry regression](continuous-cmb-projection-regression.md) |
 | Inspect the open primary CMB projection prerequisites | [Primary CMB contract](primary-cmb-projection.md) |
 | Predict supplied-amplitude growth and a synthetic full-covariance RSD density | [Conditional growth/RSD](growth-rsd.md) |
+| Calculate supplied linear Kaiser/AP multipoles and signed window means | [Windowed linear power](windowed-linear-power.md) |
 | Evaluate supplied-temperature/density hydrogen ionization in C++ | [Hydrogen equilibrium](hydrogen-equilibrium.md) |
 | Evaluate supplied-temperature/density H/He equilibrium with shared electrons | [Hydrogen–helium equilibrium](hydrogen-helium-equilibrium.md) |
 | Map supplied neutral-mass baryon/He abundance and compose shared-electron LTE | [Baryon abundance](baryon-abundance.md) |

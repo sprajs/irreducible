@@ -95,6 +95,14 @@ reference controls supply named numerical evidence. Fixed physical densities
 do not imply H0 cancellation. Released compression validity and observational
 qualification remain separate; the massless conditional model keeps its identity.
 
+The C++ [declared effective-fluid background](effective-fluid.md) retains that
+thermal species state and adds one compiled compensated density law, with E/H
+batches and a matched finite-endpoint ruler. Zero-amplitude parity, conservation,
+independent fixed-grid/refinement and an installed positive-mass consumer pass
+their named numerical controls. This independently normalized approximation
+does not supply the paper EDE scalar mapping, perturbations, a predicted drag
+endpoint or an observational alternative-theory fit.
+
 The native [proper Gaussian parameter posterior](gaussian-posterior.md) retains
 fixed observation/design factors and an explicitly independent full proper
 Gaussian prior. It returns conditional mean, covariance and normalized density
@@ -132,8 +140,12 @@ and refusal/lifetime controls pass locally. Time-quadrature and assembly estimat
 do not bound producer-grid, omitted-support or standard radial-function error;
 those missing estimates stay absent. The C++ library supplies this geometry
 without a CLI/C ABI route, thermal source evolution, primordial integration,
-C_l, lensing or observational qualification. A same-mode, same-k CLASS transfer
-comparison is still pending.
+C_l, lensing or observational qualification. Same-mode/source-k CLASS comparisons
+retain unresolved temperature/E differences, including a distinct direct-q control.
+The [permanent supplied-source regression](continuous-cmb-projection-regression.md)
+now passes all four original 604-row PL geometry checks against independent
+angular references, with signed Doppler, endpoint, ownership and refusal controls.
+This does not bound the producer's smooth source, radial or omitted-support error.
 
 The native [ground-state hydrogen equilibrium](hydrogen-equilibrium.md) operator
 solves the supplied-temperature/physical-density Saha model with separately

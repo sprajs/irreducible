@@ -90,6 +90,11 @@ The public SDK
 consumer maps one explicit synthetic positive-mass relic source and checks a
 matched zero/positive-amplitude background and finite ruler, and preserves the
 earned positive-FD normalization work on a later negative-closure refusal. Shared thermal/FD
-ancestry is not an independent massive-relic certificate. These new controls
-are written but have not yet been compiled or executed; runtime qualification
-requires the frozen source review and a separately allocated compute job.
+ancestry is not an independent massive-relic certificate. On 2026-10-03 all
+26 selected compiled contracts and a freshly installed SDK consumer passed.
+The 274.01-second continuation used the unchanged archive from an earlier
+strict build whose test-discovery step failed before scientific execution;
+that failure is retained. The continuation ran the selected binaries directly,
+without a rebuild or a claim of full CTest execution. Each of the nine peer
+fixtures passed its original complete reference allocation and native-diagnostic
+comparison. Integrated CI and the physical/source gates above remain separate.
