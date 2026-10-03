@@ -129,16 +129,22 @@ struct Traversal {
     }
     return out;
   }
-  static V simpson(const Node &a, const Node &m, const Node &b) {
+  V simpson(const Node &a, const Node &m, const Node &b) {
     V out{};
-    for (unsigned n = 0; n < 4; ++n)
-      out[n] = (b.eta - a.eta) * (a.value[n] + 4 * m.value[n] + b.value[n]) / 6;
+    for (unsigned n = 0; n < 4; ++n) {
+      const W weighted = a.value[n] + 4 * m.value[n] + b.value[n];
+      out[n] = (b.eta - a.eta) * weighted / 6;
+      if (!usable(out[n]) || (weighted != 0 && out[n] == 0)) status = S::outside_domain;
+    }
     return out;
   }
-  static V assembly_scale(const Node &a, const Node &m, const Node &b) {
+  V assembly_scale(const Node &a, const Node &m, const Node &b) {
     V out{};
-    for (unsigned n = 0; n < 4; ++n)
-      out[n] = (b.eta - a.eta) * (a.absolute[n] + 4 * m.absolute[n] + b.absolute[n]) / 6;
+    for (unsigned n = 0; n < 4; ++n) {
+      const W weighted = a.absolute[n] + 4 * m.absolute[n] + b.absolute[n];
+      out[n] = (b.eta - a.eta) * weighted / 6;
+      if (!usable(out[n]) || (weighted > 0 && out[n] == 0)) status = S::outside_domain;
+    }
     return out;
   }
   Integral visit(const Frame &f, unsigned depth) {
@@ -157,6 +163,7 @@ struct Traversal {
     const V lo = simpson(f.a, left, f.m), hi = simpson(f.m, right, f.b);
     const V lo_scale = assembly_scale(f.a, left, f.m);
     const V hi_scale = assembly_scale(f.m, right, f.b);
+    if (status != S::ok) { out.status = status; return out; }
     W et = 0, ee = 0, vt = 0;
     for (unsigned n = 0; n < 4; ++n) {
       out.value[n] = lo[n] + hi[n];
@@ -291,7 +298,7 @@ ContinuousCmbResult project_continuous_cmb(
         const auto a = tr.node(s.eta_mpc[cell]);
         const auto m = tr.node((W(s.eta_mpc[cell]) + s.eta_mpc[cell + 1]) / 2);
         const auto b = tr.node(s.eta_mpc[cell + 1]);
-        const auto v = tr.visit({a, m, b, Traversal::simpson(a, m, b),
+        const auto v = tr.visit({a, m, b, tr.simpson(a, m, b),
                                 W(policy.absolute_tolerance) / (s.eta_mpc.size() - 1)}, 0);
         if (v.status != S::ok) { total.status = v.status; break; }
         ++row.completed_source_cells;
@@ -313,11 +320,12 @@ ContinuousCmbResult project_continuous_cmb(
         const double cast = static_cast<double>(value);
         // Positive assembly scale survives interpolation/Simpson cancellation.
         // Actual row calls enter the conservative accumulation allowance.
-        const W ae = (128 + 16 * W(row.kernel_evaluations)) * eps * norm +
-                     std::abs(value - W(cast));
+        const W accumulation = (128 + 16 * W(row.kernel_evaluations)) * eps * norm;
+        const W ae = accumulation + std::abs(value - W(cast));
         quad = static_cast<double>(qe); arith = static_cast<double>(ae);
         if (!usable(value) || !std::isfinite(cast) || (value != 0 && cast == 0) ||
             !usable(qe) || !usable(ae) ||
+            (norm > 0 && (accumulation == 0 || !usable(accumulation))) ||
             !std::isfinite(quad) || !std::isfinite(arith) ||
             (qe > 0 && quad == 0) || (ae > 0 && arith == 0)) { row.status = S::outside_domain; return; }
         if (qe + ae > policy.absolute_tolerance + policy.relative_tolerance * std::abs(value)) {

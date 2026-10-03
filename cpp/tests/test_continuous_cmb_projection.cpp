@@ -251,6 +251,15 @@ void lifetime_and_refusals() {
   need(tiny_owner.status() == S::ok && tiny.status == S::outside_domain &&
        tiny.kernel_evaluations > 0 && !tiny.rows[0].temperature,
        "nonzero source/radial product underflow refuses instead of exact zero");
+  ContinuousCmbSource assembly = constant_source(0);
+  assembly.k_mpc_inverse = {1}; assembly.eta_mpc = {0, std::numeric_limits<double>::denorm_min()};
+  assembly.observer_eta_mpc = 1e-70;
+  assembly.t0 = {1e-300, 1e-300}; assembly.t1 = {0, 0};
+  assembly.t2 = {0, 0}; assembly.polarization = {0, 0};
+  auto assembly_owner = prepare_continuous_cmb_projection(std::move(assembly));
+  const auto too_small = project_continuous_cmb(assembly_owner, l64, continuous_temperature);
+  need(assembly_owner.status() == S::ok && too_small.status == S::outside_domain &&
+       !too_small.rows[0].temperature, "positive finite Simpson assembly underflow refuses");
 }
 } // namespace
 int main() {

@@ -213,6 +213,7 @@ inline numerics::Status thermal_conformal_no_species_diagnostics(
       !(a > 0 && a <= 1) || !std::isfinite(a))
     return S::conditioning_budget_exceeded;
   if (!source.species.empty() || source.omega_massless_nonphoton != 0 ||
+      !(source.omega_gamma > 0) || !(source.omega_b > 0) || !(source.omega_cdm > 0) ||
       retained.omega_species_today != 0 || retained.species_normalization_error != 0 ||
       epoch.fr != epoch.fg || !(epoch.x2 >= std::numeric_limits<W>::min()))
     return S::outside_domain;
