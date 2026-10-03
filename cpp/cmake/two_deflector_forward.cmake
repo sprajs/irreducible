@@ -1,0 +1,10 @@
+# Synthetic single-plane softened elliptical-potential pixel means.
+target_sources(irred_core PRIVATE src/two_deflector_forward.cpp)
+foreach(forward_control IN ITEMS two_deflector_forward two_deflector_forward_private)
+  add_executable(test_${forward_control} tests/test_${forward_control}.cpp)
+  target_include_directories(test_${forward_control} PRIVATE include)
+  target_link_libraries(test_${forward_control} PRIVATE irred_core)
+  target_compile_options(test_${forward_control} PRIVATE -Wall -Wextra -Wpedantic -fno-fast-math -ffp-contract=off)
+  add_test(NAME ${forward_control}_contract COMMAND test_${forward_control})
+  set_tests_properties(${forward_control}_contract PROPERTIES TIMEOUT 240)
+endforeach()
