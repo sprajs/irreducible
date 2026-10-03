@@ -37,6 +37,7 @@ Read [AGENTS.md](../AGENTS.md) first, then choose a guide:
 | Propagate a supplied joint abundance/mass/temperature law | [Finite abundance law](baryon-abundance-law.md) |
 | Prepare pure-H ionization/temperature and finite-endpoint optical histories | [Recombination and drag](recombination-drag.md) |
 | Prepare a bounded conditional H/He singlet history with shared electrons | [Hydrogen–helium history](hydrogen-helium-history.md) |
+| Prepare a conditional supplied-driver HeI effective-escape history in C++ | [Helium escape history](helium-escape-history.md) |
 | Predict a synthetic SIS point-source image, delay and Gaussian PSF pixels in C++ | [SIS thin lens](sis-thin-lens.md) |
 | Check scientific assumptions | [Scientific contracts](scientific-contracts.md) |
 | Profile an ordered multi-column Gaussian model in C++ | [Gaussian design](gaussian-design.md) |

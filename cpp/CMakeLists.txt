@@ -543,6 +543,9 @@ include(cmake/continuous_cmb_projection.cmake)
 # Distinct bounded singlet H/He history with one shared electron density.
 include(cmake/hydrogen_helium_history.cmake)
 
+# Conditional supplied-driver HeI effective-escape history.
+include(cmake/helium_escape_history.cmake)
+
 # Forwarding observation of invariant predictive preparation and batch solves.
 if(CMAKE_SIZEOF_VOID_P EQUAL 8 AND CMAKE_SYSTEM_NAME STREQUAL "Linux" AND CMAKE_CXX_COMPILER_ID MATCHES "^(GNU|Clang)$")
   target_compile_definitions(test_gaussian_predictive PRIVATE IRRED_PREDICTIVE_WORK_OBSERVATION)
