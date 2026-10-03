@@ -13,6 +13,9 @@ namespace {
 using LD=long double;
 using Refusal=detail::BoxRefusal;
 using Accounting=detail::PayloadAccounting;
+// Fixed literal scans/copies and metadata headers complete the 4S ledger:
+// 20H+100 scalar slack plus417 covers 4H+518 without a string-layout gate.
+constexpr std::size_t metadata_literal_and_header_work=417;
 // Logical copy/event bytes depend on contents, never spare allocation. The
 // same field traversal below still uses capacity-based Accounting for payload.
 class LogicalMetadataCopies {
@@ -267,6 +270,7 @@ std::optional<std::size_t>GaussianBoxHeldout::preparation_work_bound(const Gauss
   LogicalMetadataCopies copies;charge(copies,g.metadata());charge(copies,d);charge(copies,s);charge(copies,m);
   if(!copies.result())return {};
   Accounting b(256);b.add(*copies.result(),4);b.add(*names.result(),n);b.add(*names.result(),p);b.add(*names.result(),p);b.add(*names.result(),8);
+  b.add(1,metadata_literal_and_header_work);
   b.add(1,*factor);b.add(1,*qr);b.add(1,*w);b.add(n,n);b.add(n,n);b.add(n,p);b.add(n,p);b.add(n,p);b.add(n,p);
   b.add(n,p);b.add(n,p);b.add(n,p);b.add(n,p);b.add(n,64);b.add(p,128);
   const auto pp=product(p,p),conditions=conditions_work(p),variance=variance_work(p);if(!pp||!conditions||!variance)return {};

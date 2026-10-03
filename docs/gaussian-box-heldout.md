@@ -106,6 +106,13 @@ The released protocol additionally requires its own wall-time/address limits
 and shared job lease. Default/failed/moved-from accessors are safe, failed
 receipts move intact, and self moves preserve state.
 
+Preparation metadata work depends on logical contents, so reserves and copies
+of the same metadata preserve its work upper; payload still counts actual
+capacities. Its complete copy/move/default/literal ledger includes an explicit
+fixed 417-unit term for literal length scans and metadata headers. This changes
+the source-derived required work rather than a configured cap or default: the
+same cap can refuse through the existing precharge and retain the source.
+
 A failure retains only availability-qualified diagnostics. Optional raw refusal
 witnesses may be nonfinite and must be transported as tagged values, not bare
 JSON `nan`/`inf` or invented finite zero. The installed consumer source includes
