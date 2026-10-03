@@ -1,0 +1,253 @@
+{
+  "schema": "finite-opacity-source-provenance/v1",
+  "proposal_manifest_sha256": "3b4e7719dea04404227da1e9f50dd1117992f90bfeefed261ab9fd6d6294f098",
+  "proposal_sha256": "dd3b5f3fc25c1a39267ef1e04e1610be6e58b3cb18c8d0550e74617e7216847c",
+  "implementation_base": "12acfa67e284e8d3798a4c6b29db58eee52607bb",
+  "CLASS_equation_ancestry": "0ceb7a9a4c1e444ef5d5d56a8328a0640be91b18",
+  "CLASS_ancestry_manifest_sha256": "022745dd8aa68be53f6705b4c855f91c6c99b28e50c4ef0fa707e70da924b757",
+  "independent_source_review_sha256": "2f34d47d67340787d16c7c97f37388dc03ef07e806e5eca776c67147d2e932c2",
+  "independent_findings_sha256": "55d2347a115d40ab3794ab1a573ffe7da4fd80b783c58775c675d462764727f3",
+  "member_count": 49,
+  "members": {
+    "controls.json": {
+      "sha256": "ed0d029fc3dafaeda06eb06f963b2b61e06180ca6bc2e296d19e9b8402c957db",
+      "bytes": 5977
+    },
+    "copy-receipt.json": {
+      "sha256": "74e8c5868a1fc75eb216853a532a6a634b0d76a60c027bc218149ee5bf04ea01",
+      "bytes": 14534
+    },
+    "current-context-refresh.json": {
+      "sha256": "a5fbf8ff6ad6d5608726e7350f437d7d9b2096ab0588e7dd68f4e71ca11c1aa9",
+      "bytes": 3941
+    },
+    "final-original-recheck.json": {
+      "sha256": "c4d5381379246b873baa2b38388eddb5d3d184f6e7af44612d1094c7c01d42d6",
+      "bytes": 7295
+    },
+    "originals/class0ceb/README.md": {
+      "sha256": "24738c5700f7f0754ad29f14874d35b7fd5a314b8d6cb7e6729b93b7158c1bf9",
+      "bytes": 4565
+    },
+    "originals/class0ceb/include/perturbations.h": {
+      "sha256": "754fd3606bb54db6b5929442cead1d499844d1c6f397b442e767a6e2997e31cf",
+      "bytes": 50189
+    },
+    "originals/class0ceb/source/perturbations.c": {
+      "sha256": "5e2a48fbed1d012fb83b37a5c574f46bc2f074191268010476d0d82682a45a8e",
+      "bytes": 422469
+    },
+    "originals/class0ceb/source/transfer.c": {
+      "sha256": "4e00bfdde7e162e5b86a51d3a47999db296b9c7448f769ffc7775429118f5ad0",
+      "bytes": 205033
+    },
+    "originals/class0ceb/source-manifest.json": {
+      "sha256": "022745dd8aa68be53f6705b4c855f91c6c99b28e50c4ef0fa707e70da924b757",
+      "bytes": 76004
+    },
+    "originals/native/12acfa67/cpp/src/thermal_conformal_epoch.hpp": {
+      "sha256": "9914aa71068d538118d39cb2d8beca06c4a9209dfd1450fd7fdb4aa711a16861",
+      "bytes": 20967
+    },
+    "originals/native/12acfa67/docs/continuous-cmb-projection.md": {
+      "sha256": "ed8bb8c5fcd2d8b65307a923dc642a0d191e39695d2f2e6b18c7a3fa37f87b41",
+      "bytes": 8275
+    },
+    "originals/native/12acfa67/docs/primary-cmb-projection.md": {
+      "sha256": "4901db0b5f95112e11b220923256eb569d0e85e1f82162620d74d82157c677ec",
+      "bytes": 3519
+    },
+    "originals/native/12acfa67/docs/roadmap.md": {
+      "sha256": "1c5e01a1e111bf169a89a9d13adc55ac65394f85b2a124a686035f97ea2365af",
+      "bytes": 69311
+    },
+    "originals/native/7c22cb25/AGENTS.md": {
+      "sha256": "00047e42cb443b80bfc32051a119bf1c4ea0896215763c9bc80d69e79419ed3e",
+      "bytes": 14460
+    },
+    "originals/native/7c22cb25/cpp/include/irred/quantities.hpp": {
+      "sha256": "15ece3b41b91e8744c2d9ea228f75e97afef225f08a2109a813a8ebfca2ae0e3",
+      "bytes": 2480
+    },
+    "originals/native/7c22cb25/cpp/include/irred/thermal_neutrino.hpp": {
+      "sha256": "4a866d09debec551b3d0b9409905ead6aac694140641e8a73256fbd3cf57422e",
+      "bytes": 7937
+    },
+    "originals/native/7c22cb25/cpp/include/irred/thermal_observables.hpp": {
+      "sha256": "05657bc506780738386d50d9d4346b8f13fa0afa9e50e59b2c0609ce57d63d6d",
+      "bytes": 3315
+    },
+    "originals/native/7c22cb25/cpp/src/payload_accounting.hpp": {
+      "sha256": "9c2e396b5a5094845f8aa3f43ec53d371a7aa76e6d33e33f8248d7e7c00da240",
+      "bytes": 1738
+    },
+    "originals/native/7c22cb25/cpp/src/thermal_conformal_epoch.hpp": {
+      "sha256": "7b5e0f1ca400ec28403e4918fd8cf679778eeccd386942a67af6f81a59d082e4",
+      "bytes": 9491
+    },
+    "originals/native/7c22cb25/cpp/src/thermal_neutrino.cpp": {
+      "sha256": "82af900b19e4b584faae56d44e47022985010596ba9a7ef7ef2af5891e80c8c0",
+      "bytes": 24389
+    },
+    "originals/native/7c22cb25/cpp/src/thermal_observables.cpp": {
+      "sha256": "58e8a66c16d2592c60d4b1a3806e5d101b84abc112503a6131e70a68d6e75aa8",
+      "bytes": 17390
+    },
+    "originals/native/7c22cb25/docs/hydrogen-helium-history.md": {
+      "sha256": "e363ed74cdf6f54844e53a08fb52045daac74a21097b7e12d233582bdcdd8073",
+      "bytes": 16153
+    },
+    "originals/native/7c22cb25/docs/primary-cmb-projection.md": {
+      "sha256": "f1aefaa846e7d2c2b98e8b486dc97f346f0d5d97085d2ae54ee9ec55a67cd874",
+      "bytes": 3053
+    },
+    "originals/native/7c22cb25/docs/roadmap.md": {
+      "sha256": "1d62dd28c71286eb63686ab6275bc38eff7dd46931dab06059d629d93fab325e",
+      "bytes": 61593
+    },
+    "originals/native/7c22cb25/docs/thermal-observables.md": {
+      "sha256": "b37548775082499cd1cd96744ee0d52a568e402a030a7f1869ff383b1968a95b",
+      "bytes": 10490
+    },
+    "originals/native/c6c606fa/cpp/include/irred/ideal_acoustic.hpp": {
+      "sha256": "b799b0b3056c55f9f79bf2a062870df6f5e4ffb67c4f9e5c4a565ecac8336fdb",
+      "bytes": 7486
+    },
+    "originals/native/c6c606fa/cpp/src/ideal_acoustic_equations.hpp": {
+      "sha256": "d8dd51de975560a351cff0668b6d38b1a02ca554c5f0efb326ff7bdfcc338cbd",
+      "bytes": 966
+    },
+    "originals/native/c6c606fa/docs/ideal-acoustic.md": {
+      "sha256": "e2f73c44c4b6c1ca059443a02b132b85ef963213a35ef18e5ea4ea97bd097baa",
+      "bytes": 7443
+    },
+    "originals/native/e094d14a/cpp/include/irred/continuous_cmb_projection.hpp": {
+      "sha256": "8ddbbec08ca54f58808c876f5c705128745dbd43c37087beef2a21d967272c2c",
+      "bytes": 4521
+    },
+    "originals/native/e094d14a/cpp/src/continuous_cmb_projection.cpp": {
+      "sha256": "69671d96fc6a0b547e63d152ffe8be8a9b64e797d02274b9a9c783742144efd3",
+      "bytes": 17084
+    },
+    "originals/native/e094d14a/docs/continuous-cmb-projection.md": {
+      "sha256": "ed8bb8c5fcd2d8b65307a923dc642a0d191e39695d2f2e6b18c7a3fa37f87b41",
+      "bytes": 8275
+    },
+    "originals/primary/CLASS-II-primary-text.txt": {
+      "sha256": "d219b6a06bc14d35c3328d45a79031b1b9bf7037c305605dd0a424e9dc1d2649",
+      "bytes": 135016
+    },
+    "originals/primary/LOS-acquisition.json": {
+      "sha256": "be23d41f8b6feb8ddd34c2dd6c4cbbb95eb322b98761c8f4e1e8a4cf5c3feb73",
+      "bytes": 5188
+    },
+    "originals/primary/LOS-primary-text.txt": {
+      "sha256": "3511a46acf736743d06e8d572ad2301e300b21f594e59937df1adc91587f90c7",
+      "bytes": 54001
+    },
+    "originals/primary/MB-paper-record.json": {
+      "sha256": "9fcd318a679dadff060ebd2e3a8cbc40c79cb72ee83b612e1762f2369df6f6c1",
+      "bytes": 2599
+    },
+    "originals/primary/MB-primary-text.txt": {
+      "sha256": "6d20a4d613f84696f7bf870823e5acb9b63383da0f2dc3fff4e0f93ec59d7933",
+      "bytes": 137747
+    },
+    "originals/primary/MB-primary.pdf": {
+      "sha256": "8893f63227cbf374853265e43d62af19a1ba726e7e0b0b575fdeed5fb0c0575a",
+      "bytes": 710665
+    },
+    "originals/primary/mb-p22.png": {
+      "sha256": "59347cb9356dc2c22a459f4c719ab7ef805764b6b99337a84a4f66d98772edf1",
+      "bytes": 124420
+    },
+    "originals/primary/mb-p31.png": {
+      "sha256": "93f1b31270f3925a4530e24cb9c8dd52566978d99ba47e4157ac7c590b5bcf59",
+      "bytes": 169682
+    },
+    "pre-cap-scope-proposal.md": {
+      "sha256": "9ce86f7986196e5f60c86e6159cc787f37f89fac9a1e6863a067eb7a27f9da7f",
+      "bytes": 27451
+    },
+    "pre-cap-scope-public-api-sketch.md": {
+      "sha256": "dfdbd88f0f831b3c989350ee685980b8dc4cfc628c6058fcf5892671dad4151b",
+      "bytes": 5027
+    },
+    "pre-cap-scope-reference-spec.md": {
+      "sha256": "83c03f45d7f83ea3d8af1acd13ea83e1c54052aa2fcb05905abf51c1827dbdce",
+      "bytes": 8862
+    },
+    "pre-code-findings.json": {
+      "sha256": "ff6b1c7a804ec8575138016423a999064eeac6b69fec3f2eb521853bf842ca1f",
+      "bytes": 1399
+    },
+    "pre-refresh-proposal-7c22-draft.md": {
+      "sha256": "b4fba7b9f4bde2b3c367ebc34c71439eb2a20103e653d6aad843f0dec969bda8",
+      "bytes": 25990
+    },
+    "proposal.md": {
+      "sha256": "dd3b5f3fc25c1a39267ef1e04e1610be6e58b3cb18c8d0550e74617e7216847c",
+      "bytes": 28092
+    },
+    "public-api-sketch.md": {
+      "sha256": "dbffc51d4b057c9a70e1135897dcf49ec00ad61193e71b6a4950f64a5caa46d3",
+      "bytes": 5026
+    },
+    "reference-spec.md": {
+      "sha256": "a65572109c5e379c8c5cc0fb21f3696e847471e92d698d7661e3d6f065952033",
+      "bytes": 9296
+    },
+    "source-needs.json": {
+      "sha256": "7a484e8aed307fd94395f49cc8226974bb35096ab1e873c790220d0f90788997",
+      "bytes": 2596
+    },
+    "source-review.md": {
+      "sha256": "d90aca14f0f9d37bf2a6a2d31f4b571cb94507c5ccaec3977c24855303a47728",
+      "bytes": 5625
+    }
+  },
+  "source_bodies_not_published": true,
+  "implementation_freeze_refinements": [
+    "200000 whole coupled-stage solve attempts; separate actual tail-block inversions/core factors and charged destination updates",
+    "All native velocity coordinates and stage residuals use dimensionless theta/k",
+    "Quarter-cell export axes are emitted to binary64 before integration; same exact exported time law"
+  ],
+  "preserved_cap_finding": "pre-code-findings.json; original 4096-time lower bound294840 exceeded100000; final1024/4096 scope preserves100000",
+  "unearned_gates": [
+    "broader runtime/fault/regression qualification beyond the recorded narrow native and installed trial",
+    "independent same-model angular reference and complete EACH <=5% errors",
+    "integrated correlated common-background/clock/age-a0 response",
+    "arithmetic/linear forward response",
+    "physical source-grid and radial/boundary composition",
+    "regular asymptotic mode",
+    "physical opacity/composition/recombination/reionization law",
+    "full neutrino CLASS",
+    "primordial spectrum and C_l",
+    "observational/physical qualification"
+  ],
+  "implementation_peer_review": {
+    "reviewed_source_head": "347203eab0fde12eb60eebd5dc4592bd14203af0",
+    "review_sha256": "7bb8d92e030c4d9bdc80424de072d5c571a5703688c060e8bcebec47a5d08f32",
+    "findings_sha256": "19d8685280356ac5100fa5808056382a167368ae832eb8d90883ba8f3dda50e7",
+    "record_sha256": "e87af2c52926a2006472b0c0581c63eb19af22602b03cbb550a3cb1082f7514f",
+    "manifest_sha256": "aa4f64d759066abab32825759d3de13b58344ff4363cad645682b391c3b13e30",
+    "preserved_before_correction": true,
+    "correction_scopes": [
+      "F04 separate begun/denied local and aggregate step counts",
+      "F05 node99 and diagnostic33 logical initialization/population/copy allowances plus prefix controls",
+      "F06 explicit finite full-stage residual arithmetic before maximum aggregation",
+      "C07 bounded positive installed computed/unadmitted source and same-boundary owner"
+    ],
+    "successor_independent_readback": {
+      "source_head": "04332db2239122ea2a2685e2375ebb15e98686ea",
+      "source_review_sha256": "6ae114c753e4cfee97677028d775431a0383fd32426ec3536098b18bc6d1273c",
+      "actual_trial_sha256": "de8c664554d44c8804a6de61b6b80a6d2bcd8e987e1687dbbb7b3bb7d44f771a",
+      "actual_readback_sha256": "7cbba3c7d8cb7a5437e59360fba6477c3ad2e15644923e71aedb6f751c93b9c0",
+      "scope": "Two native contracts and one fresh installed consumer; seven serial steps, 67.410359 seconds including setup/build; all 89 source/runtime pins unchanged.",
+      "full_suite_or_current_integrated_CI_earned": false,
+      "source_numerical_admission": false,
+      "measured_internal_work_totals": null
+    },
+    "jobs": 0
+  }
+}

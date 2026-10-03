@@ -539,8 +539,19 @@ include(cmake/linear_transfer.cmake)
 
 # Ideal infinitely coupled photon/baryon acoustic perturbations.
 include(cmake/ideal_acoustic.cmake)
+
+# Supplied linear Kaiser/geometric AP window means.
+include(cmake/windowed_linear_power.cmake)
+
 # Continuous scalar temperature and polarization transfer geometry.
 include(cmake/continuous_cmb_projection.cmake)
+include(cmake/effective_fluid.cmake)
+
+# Synthetic two-deflector extended-source pixel means.
+include(cmake/two_deflector_forward.cmake)
+
+# Conditional finite-opacity photon/baryon source and surviving boundary.
+include(cmake/finite_opacity_source.cmake)
 
 # Distinct bounded singlet H/He history with one shared electron density.
 include(cmake/hydrogen_helium_history.cmake)
