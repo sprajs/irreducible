@@ -132,9 +132,49 @@ void schur_and_refusals() {
        ledger.status==irred::numerics::Status::work_limit && state.core==saved &&
        work.coupled_stage_solves==1 && work.refused_write_request>0,"write refusal preserves original state");
 }
+void record_prefix_and_nonfinite_residuals() {
+  using namespace irred::cosmology;
+  FiniteOpacityPolicy policy;
+  const std::size_t node_total=f::node_local_write_allowance+f::node_owned_copy_allowance;
+  for(bool deny_local:{true,false}) {
+    FiniteOpacityWork work;policy.maximum_destination_writes=deny_local?node_total:2*node_total-1;
+    f::Ledger ledger{work,policy};std::vector<FiniteOpacityNode> nodes;nodes.reserve(2);
+    need(ledger.writes(f::node_local_write_allowance),"first node local allowance");
+    FiniteOpacityNode first;first.eta_index=7;
+    need(f::publish_node(std::move(first),nodes,ledger),"first owned node publication");
+    const bool local=ledger.writes(f::node_local_write_allowance);
+    if(local) {FiniteOpacityNode second;second.eta_index=8;need(!f::publish_node(std::move(second),nodes,ledger),"node copy denied");}
+    need(local!=deny_local && nodes.size()==1 && nodes[0].eta_index==7 &&
+         ledger.status==irred::numerics::Status::work_limit && work.refused_write_request==
+             (deny_local?f::node_local_write_allowance:f::node_owned_copy_allowance),"node prefix and exact denied allowance");
+  }
+  const std::size_t diagnostic_total=f::diagnostic_local_write_allowance+f::diagnostic_owned_copy_allowance;
+  for(bool deny_local:{true,false}) {
+    FiniteOpacityWork work;policy.maximum_destination_writes=deny_local?diagnostic_total:2*diagnostic_total-1;
+    f::Ledger ledger{work,policy};std::vector<FiniteOpacityChannelDiagnostic> records;records.reserve(2);
+    need(ledger.writes(f::diagnostic_local_write_allowance),"first diagnostic local allowance");
+    FiniteOpacityChannelDiagnostic first;first.k_index=3;
+    need(f::publish_diagnostic(std::move(first),records,ledger),"first owned diagnostic publication");
+    const bool local=ledger.writes(f::diagnostic_local_write_allowance);
+    if(local) {FiniteOpacityChannelDiagnostic second;second.k_index=4;need(!f::publish_diagnostic(std::move(second),records,ledger),"diagnostic copy denied");}
+    need(local!=deny_local && records.size()==1 && records[0].k_index==3 &&
+         ledger.status==irred::numerics::Status::work_limit && work.refused_write_request==
+             (deny_local?f::diagnostic_local_write_allowance:f::diagnostic_owned_copy_allowance),"diagnostic prefix and denied allowance");
+  }
+  for(W hostile:{std::numeric_limits<W>::quiet_NaN(),std::numeric_limits<W>::infinity()}) {
+    FiniteOpacityWork work;policy=FiniteOpacityPolicy{};f::Ledger ledger{work,policy};W maximum=.25L;
+    need(!f::accumulate_stage_residual(1,1,hostile,0,1,.5L,.5L,maximum,ledger) &&
+         ledger.status==irred::numerics::Status::overflow && maximum==.25L,
+         "nonfinite derivative refused before maximum aggregation");
+  }
+  FiniteOpacityWork work;f::Ledger ledger{work,policy};W maximum=.25L;
+  need(!f::accumulate_stage_residual(1,1,std::numeric_limits<W>::max(),0,2,1,0,maximum,ledger) &&
+       ledger.status==irred::numerics::Status::overflow && maximum==.25L,"finite input overflowing term refused");
+}
 } // namespace
 int main() {
   static_assert(!std::is_copy_constructible_v<irred::cosmology::FiniteOpacitySourceProducer>);
   static_assert(!std::is_copy_constructible_v<irred::cosmology::FiniteOpacitySourceResult>);
-  limits();schur_and_refusals();std::cout<<"finite opacity analytic/source/Schur contract passed\n";
+  limits();schur_and_refusals();record_prefix_and_nonfinite_residuals();
+  std::cout<<"finite opacity analytic/source/Schur contract passed\n";
 }

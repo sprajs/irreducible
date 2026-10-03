@@ -215,6 +215,7 @@ bool append_node(const FiniteOpacityIdentity &id,std::size_t ki,std::size_t ti,W
   const W survival=std::exp(-tau),visibility=opacity*survival;
   if(!(survival>0) || !std::isnormal(survival) || !std::isfinite(visibility) ||
      (opacity>0 && (!std::isnormal(visibility) || !(visibility>0)))) { ledger.status=S::overflow;return false; }
+  if(!ledger.writes(f::node_local_write_allowance))return false;
   FiniteOpacityNode node;node.eta_index=ti;node.k_index=ki;node.eta_mpc=eta_mpc;node.scale_factor=a;
   node.core=state.core;node.raw_channels=f::raw_source(e,k,opacity,survival,state.core);
   node.psi=f::potential_psi(e,k,state.core);node.phi_prime_mpc_inverse=f::potential_prime(e,k,state.core,node.psi);
@@ -231,8 +232,7 @@ bool append_node(const FiniteOpacityIdentity &id,std::size_t ki,std::size_t ti,W
     }
     node.channel_cast_loss[ch]=std::abs(node.raw_channels[ch]-W(emitted));
   }
-  if(!ledger.writes(11+4+4+12)) return false;
-  attempt.nodes.push_back(node);return true;
+  return f::publish_node(std::move(node),attempt.nodes,ledger);
 }
 // Slots are acquired once. The mandatory prefix copy after every attempted
 // transport solve has reserved write space before that solve is allowed.
@@ -400,8 +400,10 @@ FiniteOpacitySourceResult FiniteOpacitySourceProducer::produce(FiniteOpacityPoli
         if(!append_node(id,ki,0,eta_mpc,a,state,attempt,ledger)) {attempt.status=out.status=ledger.status;return out;}
         for(std::size_t ti=1;ti<grid.size();++ti) {
           while(eta_mpc<grid[ti]) {
+            if(!ledger.step()){
+              ++attempt.denied_step_requests;attempt.status=out.status=ledger.status;return out;
+            }
             ++attempt.attempted_steps;
-            if(!ledger.step()){attempt.status=out.status=ledger.status;return out;}
             const auto current=epoch(id,a,k,ledger);
             if(current.status!=S::ok){attempt.status=out.status=current.status;return out;}
             const W factor=std::ldexp(1.L,-int(refinement));
@@ -455,6 +457,9 @@ FiniteOpacitySourceResult FiniteOpacitySourceProducer::produce(FiniteOpacityPoli
     for(std::size_t ki=0;ki<nk;++ki) for(std::size_t ti=0;ti<grid.size();++ti) {
       const auto index=ki*grid.size()+ti;const auto &node=finest.nodes[index];
       for(unsigned ch=0;ch<4;++ch) {
+        if(!ledger.writes(f::diagnostic_local_write_allowance)){
+          out.status=ledger.status;out.source.reset();return out;
+        }
         const W value=node.raw_channels[ch];FiniteOpacityChannelDiagnostic d;
         d.eta_index=ti;d.k_index=ki;d.channel=ch;
         d.allocation=policy.channel_absolute_tolerance_mpc_inverse+policy.relative_tolerance*std::abs(value);
@@ -462,7 +467,10 @@ FiniteOpacitySourceResult FiniteOpacitySourceProducer::produce(FiniteOpacityPoli
         d.hierarchy_difference=std::abs(value-out.attempts[5].nodes[index].raw_channels[ch]);
         d.previous_time_difference=std::abs(out.attempts[7].nodes[index].raw_channels[ch]-out.attempts[6].nodes[index].raw_channels[ch]);
         d.previous_hierarchy_difference=std::abs(out.attempts[5].nodes[index].raw_channels[ch]-out.attempts[2].nodes[index].raw_channels[ch]);
-        d.measured_cast_loss=node.channel_cast_loss[ch];out.diagnostics.push_back(d);
+        d.measured_cast_loss=node.channel_cast_loss[ch];
+        if(!f::publish_diagnostic(std::move(d),out.diagnostics,ledger)){
+          out.status=ledger.status;out.source.reset();return out;
+        }
         if(!ledger.writes(1)){out.status=ledger.status;out.source.reset();return out;}
         auto &v=ch==0?source.t0:ch==1?source.t1:ch==2?source.t2:source.polarization;
         v[ti*nk+ki]=static_cast<double>(value);

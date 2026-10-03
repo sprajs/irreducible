@@ -50,13 +50,15 @@ void public_owner() {
        boundary->omitted_temperature_absolute_bound[0]>0,"positive surviving boundary and omitted bound");
   auto moved=std::move(producer);need(producer.status()==S::invalid_input && !producer.identity(),"producer move invalidates getters");
   moved=std::move(moved);need(moved.identity()==identity,"self move preserves owner");
-  FiniteOpacityPolicy short_work;short_work.maximum_attempted_steps=1;
+  auto short_work=trial;short_work.maximum_attempted_steps=1;
   const auto refused=moved.produce(short_work);
   need(refused.status==S::work_limit && !refused.source && !refused.source_numerically_admitted &&
        refused.boundary()==boundary && refused.identity.get()==identity &&
        !refused.attempts.empty() && !refused.attempts[0].nodes.empty(),"work refusal preserves original/boundary/prefix");
   need(refused.work.background_clock_calls>=identity->preparation_work.background_clock_calls &&
-       refused.work.attempted_steps==1,"original aggregate work is not reset");
+       refused.work.attempted_steps==1 && refused.work.denied_step_requests==1 &&
+       refused.attempts[0].attempted_steps==1 && refused.attempts[0].denied_step_requests==1,
+       "original begun-step aggregate and separately denied request");
   const auto &prefix=refused.attempts[0];
   need(prefix.final_core.size()==2 && prefix.final_eta_mpc[0]>=identity->original.opacity.eta_mpc.front() &&
        prefix.final_scale_factor[0]>=identity->original.initial_scale_factor && prefix.reached_wavenumbers==1,
@@ -75,6 +77,10 @@ void public_owner() {
          attempt.final_scale_factor[0]>=identity->original.initial_scale_factor,
          "complete endpoint core and actual clock match retained hierarchy");
   }
+  std::size_t begun_steps=0,denied_steps=0;
+  for(const auto &attempt:result.attempts){begun_steps+=attempt.attempted_steps;denied_steps+=attempt.denied_step_requests;}
+  need(begun_steps==result.work.attempted_steps && denied_steps==result.work.denied_step_requests && denied_steps==0,
+       "complete begun/denied local-to-aggregate identities");
   for(const auto &d:result.diagnostics)need(!d.common_background_clock_error && !d.arithmetic_linear_error && !d.source_grid_error,
       "missing integrated errors remain absent");
   need(result.peak_owned_payload_bound && *result.peak_owned_payload_bound<=result.policy.maximum_native_bytes,

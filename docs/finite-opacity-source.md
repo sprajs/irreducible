@@ -85,6 +85,19 @@ is never reset by evaluation. Capacity, strings with terminators, original
 owners, retained attempts, source arrays and model scratch are counted;
 requested replacement buffers are checked before reserve and actual capacity
 after reserve. Allocator metadata, RSS and arbitrary caller clones are excluded.
+Begun step counts increment locally only after their aggregate reservation;
+denied requests have a separate counter and perform no next-step computation.
+The aggregate begun/denied counts equal their sums over all attempt receipts.
+The logical record ledger charges a node's 33 initialized fields, 33 population
+updates and 33 owned-copy fields separately. Each channel diagnostic charges
+12 initialized fields (including three absent-error discriminators), nine
+population updates and 12 owned-copy fields. Reservations precede construction,
+assignments and publication. These are declared buffer allowances, rather than
+compiler-store counts or physical-input uncertainties. Private prefix controls
+cover denials before local population and before owned publication.
+Both core and tail stage checks reject nonfinite derivatives, terms, residuals,
+scales and normalized values before maximum aggregation; the prior complete
+state is retained on refusal.
 
 Complete raw output currently returns `conditioning_budget_exceeded` with
 `source_numerically_admitted=false`. Time/hierarchy differences and measured
@@ -103,6 +116,8 @@ the finite Hamiltonian/zeta seed, exchange cancellation, zero collision energy,
 polarized -0.3K fast decay, stationary leading 16/45 shear, masks, lifetime,
 one-move export and refusal accounting. These are engineering/analytic
 controls; the dense small hierarchy is not the independent angular reference.
+The installed public-header/archive consumer also produces one bounded positive
+finite source and checks its unadmitted discriminator and surviving boundary.
 
 The equations were independently authored from retained MB, CLASS and
 line-of-sight source readings. No CLASS code/assets or paper bodies are copied

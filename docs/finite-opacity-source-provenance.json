@@ -224,5 +224,21 @@
     "full neutrino CLASS",
     "primordial spectrum and C_l",
     "observational/physical qualification"
-  ]
+  ],
+  "implementation_peer_review": {
+    "reviewed_source_head": "347203eab0fde12eb60eebd5dc4592bd14203af0",
+    "review_sha256": "7bb8d92e030c4d9bdc80424de072d5c571a5703688c060e8bcebec47a5d08f32",
+    "findings_sha256": "19d8685280356ac5100fa5808056382a167368ae832eb8d90883ba8f3dda50e7",
+    "record_sha256": "e87af2c52926a2006472b0c0581c63eb19af22602b03cbb550a3cb1082f7514f",
+    "manifest_sha256": "aa4f64d759066abab32825759d3de13b58344ff4363cad645682b391c3b13e30",
+    "preserved_before_correction": true,
+    "correction_scopes": [
+      "F04 separate begun/denied local and aggregate step counts",
+      "F05 node99 and diagnostic33 logical initialization/population/copy allowances plus prefix controls",
+      "F06 explicit finite full-stage residual arithmetic before maximum aggregation",
+      "C07 bounded positive installed computed/unadmitted source and same-boundary owner"
+    ],
+    "successor_independent_readback": "pending",
+    "jobs": 0
+  }
 }

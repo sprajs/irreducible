@@ -38,6 +38,7 @@ struct FiniteOpacityPolicy {
 };
 struct FiniteOpacityWork {
   std::size_t attempted_steps = 0, background_clock_calls = 0;
+  std::size_t denied_step_requests = 0; // no step computation began
   std::size_t coupled_stage_solves = 0, tail_block_inversions = 0;
   std::size_t core_factorizations = 0, destination_writes = 0;
   // destination_writes is a charged logical buffer-update ledger, including
@@ -107,6 +108,7 @@ struct FiniteOpacityAttemptReceipt {
   std::vector<FiniteOpacityCore> final_core;
   std::vector<long double> final_eta_mpc, final_scale_factor;
   std::size_t attempted_steps = 0, completed_steps = 0;
+  std::size_t denied_step_requests = 0;
   std::size_t reached_wavenumbers = 0;
   long double maximum_stage_residual = 0, minimum_scaled_pivot = 1;
   long double maximum_clock_stage_residual = 0;

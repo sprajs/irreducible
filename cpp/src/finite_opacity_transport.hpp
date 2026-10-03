@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <array>
 #include <limits>
+#include <utility>
 
 namespace irred::cosmology::detail::finite_opacity {
 using S = numerics::Status;
@@ -36,9 +37,46 @@ struct Ledger {
   bool background() {
     return count(work.background_clock_calls,1,policy.maximum_background_clock_calls);
   }
-  bool step() { return count(work.attempted_steps,1,policy.maximum_attempted_steps); }
+  bool step() {
+    if(count(work.attempted_steps,1,policy.maximum_attempted_steps))return true;
+    ++work.denied_step_requests;return false; // produce returns on this denial
+  }
   bool solve() { return count(work.coupled_stage_solves,1,policy.maximum_coupled_stage_solves); }
 };
+// Exact logical record law, excluding padding/CPU stores and expression-only
+// temporaries. Node: 2 indices + 31 real coordinates. Diagnostic: 3 indices,
+// 6 real values and 3 absent-error discriminators. Local initialization and
+// population are separate charged allowances; copying into the owner is a
+// third operation. A refused publication leaves every earlier record intact.
+inline constexpr std::size_t node_local_write_allowance=33+33;
+inline constexpr std::size_t node_owned_copy_allowance=33;
+inline constexpr std::size_t diagnostic_local_write_allowance=12+9;
+inline constexpr std::size_t diagnostic_owned_copy_allowance=12;
+inline bool publish_node(FiniteOpacityNode &&node,std::vector<FiniteOpacityNode> &owner,Ledger &ledger) {
+  if(!ledger.writes(node_owned_copy_allowance))return false;
+  owner.push_back(std::move(node));return true;
+}
+inline bool publish_diagnostic(FiniteOpacityChannelDiagnostic &&record,
+                               std::vector<FiniteOpacityChannelDiagnostic> &owner,Ledger &ledger) {
+  if(!ledger.writes(diagnostic_owned_copy_allowance))return false;
+  owner.push_back(std::move(record));return true;
+}
+inline bool accumulate_stage_residual(W old,W stage,W derivative0,W derivative1,
+                                      W h,W a0,W a1,W &maximum,Ledger &ledger) {
+  if(!std::isfinite(old) || !std::isfinite(stage) || !std::isfinite(derivative0) ||
+     !std::isfinite(derivative1) || !std::isfinite(h) || !std::isfinite(a0) || !std::isfinite(a1)) {
+    ledger.status=S::overflow;return false;
+  }
+  const W term=h*(a0*derivative0+a1*derivative1);
+  const W residual=stage-old-term;
+  const W scale=1+std::abs(old)+std::abs(stage)+std::abs(term);
+  if(!std::isfinite(term) || !std::isfinite(residual) || !std::isfinite(scale) || !(scale>0)) {
+    ledger.status=S::overflow;return false;
+  }
+  const W normalized=std::abs(residual)/scale;
+  if(!std::isfinite(normalized)) {ledger.status=S::overflow;return false;}
+  maximum=std::max(maximum,normalized);return true;
+}
 using Pair = std::array<W,2>;
 using Block = std::array<std::array<W,2>,2>;
 inline Pair multiply(const Block &a,const Pair &b) {
@@ -223,18 +261,16 @@ inline bool radau_step(const std::array<Epoch,2> &epoch,const Pair &opacity,
   W maximum=0;
   for(unsigned s=0;s<2;++s) {
     for(unsigned j=0;j<11;++j) {
-      const W term=h*(radau_a[s][0]*derivative[0][j]+radau_a[s][1]*derivative[1][j]);
-      const W residual=scratch.stages[s].core[j]-state.core[j]-term;
-      const W scale=1+std::abs(state.core[j])+std::abs(scratch.stages[s].core[j])+std::abs(term);
-      maximum=std::max(maximum,std::abs(residual)/scale);
+      if(!accumulate_stage_residual(state.core[j],scratch.stages[s].core[j],
+          derivative[0][j],derivative[1][j],h,radau_a[s][0],radau_a[s][1],maximum,ledger))return false;
     }
     for(bool temperature:{true,false}) for(unsigned l=3;l<=lmax;++l) {
       const auto &old=temperature?state.temperature:state.polarization;
       const auto &y=temperature?scratch.stages[s].temperature:scratch.stages[s].polarization;
       const W d0=tail_derivative(l,lmax,eta+h/3,k,opacity[0],scratch.stages[0],temperature);
       const W d1=tail_derivative(l,lmax,eta+h,k,opacity[1],scratch.stages[1],temperature);
-      const W term=h*(radau_a[s][0]*d0+radau_a[s][1]*d1);
-      maximum=std::max(maximum,std::abs(y[l]-old[l]-term)/(1+std::abs(y[l])+std::abs(old[l])+std::abs(term)));
+      if(!accumulate_stage_residual(old[l],y[l],d0,d1,h,radau_a[s][0],
+          radau_a[s][1],maximum,ledger))return false;
     }
   }
   receipt.maximum_stage_residual=std::max(receipt.maximum_stage_residual,maximum);
