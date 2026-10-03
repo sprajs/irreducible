@@ -761,6 +761,48 @@ int installed_hydrogen_helium_history() {
  }
  return 0;
 }
+int installed_hydrogen_helium_supplied_history() {
+ using namespace irred::cosmology;
+ using Status=irred::numerics::Status;
+ HydrogenHeliumSuppliedHistoryRequest request{
+  {{67.4,.02237,.12,2.7255,1.7e-5,{}},.19,.015,
+   "installed independent synthetic nuclei",2700,300},
+  {.9990234375,.5,7000,"installed synthetic nonLTE boundary","NEXT15-controls/v1#B0"}};
+ HydrogenHeliumHistoryPolicy policy; policy.base_intervals=16384;
+ auto owner=prepare_hydrogen_helium_supplied_history(request,policy);
+ if(owner.status()!=Status::ok || !owner.supplied_initial_state() ||
+  !owner.initial_import_witness() || !owner.rate_domain_witness() ||
+  !owner.rate_domain_witness()->attempted_kelvin_range ||
+  !owner.rate_domain_witness()->retained_kelvin_range ||
+  owner.work().initial_boundary_evaluations!=1 || owner.work().initial_charge_evaluations!=0 ||
+  owner.model_identity()!=hydrogen_helium_supplied_history_model_id) return 31;
+ request.initial={}; request.history.nuclei_origin.clear();
+ auto copy=owner; owner=HydrogenHeliumHistory{}; auto retained=std::move(copy);
+ if(copy.status()!=Status::invalid_input || copy.boundary_kind() || copy.supplied_initial_state() ||
+  copy.initial_import_witness() || copy.rate_domain_witness() ||
+  !retained.source() || !retained.background() ||
+  retained.supplied_initial_state()->source_identity!="NEXT15-controls/v1#B0") return 31;
+ const std::array<double,4> redshifts{2700,1300,300,1300};
+ const auto work=retained.work().total();
+ const auto result=retained.evaluate(redshifts,31);
+ if(result.status!=Status::ok || result.rows.size()!=redshifts.size() ||
+  retained.work().total()!=work) return 31;
+ for(std::size_t i=0;i<result.rows.size();++i) {
+  const auto &r=result.rows[i];
+  const HydrogenHeliumHistoryValue *groups[]{&r.hydrogen_ionized_fraction,
+   &r.helium_singly_ionized_fraction,&r.electron_number_density_per_cubic_metre,
+   &r.matter_temperature_kelvin,&r.thomson_opacity_per_redshift};
+  for(const auto *g:groups) if(g->status!=Status::ok || !g->value || !std::isfinite(*g->value)) return 31;
+  const long double u=1+static_cast<long double>(r.redshift), ne=u*u*u*(
+   .19L * *r.hydrogen_ionized_fraction.value+.015L * *r.helium_singly_ionized_fraction.value);
+  if(r.redshift!=redshifts[i] || std::abs(*r.electron_number_density_per_cubic_metre.value-ne)>8e-15L*ne) return 31;
+ }
+ if(*result.rows[0].hydrogen_ionized_fraction.value!=.9990234375 ||
+  *result.rows[0].helium_singly_ionized_fraction.value!=.5 ||
+  *result.rows[0].matter_temperature_kelvin.value!=7000) return 31;
+ for(const auto loss:retained.initial_import_witness()->measured_absolute_promotion_loss) if(loss!=0) return 31;
+ return 0;
+}
 int main() {
  const auto result=irred::numerics::log1p_checked(0.5);
  if(result.status!=irred::numerics::Status::ok || std::abs(result.value-0.4054651081081643819780131154643491)>=1e-14) return 1;
@@ -825,5 +867,6 @@ int main() {
 
  if(const auto rsd_status=installed_growth_rsd();rsd_status!=0) return rsd_status;
  if(const auto hhe_history_status=installed_hydrogen_helium_history();hhe_history_status!=0) return hhe_history_status;
+ if(const auto hhe_supplied_status=installed_hydrogen_helium_supplied_history();hhe_supplied_status!=0) return hhe_supplied_status;
  return installed_correlated_calibration();
 }

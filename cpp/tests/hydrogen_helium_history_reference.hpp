@@ -8,6 +8,7 @@
 #include <cmath>
 #include <limits>
 #include <numbers>
+#include <optional>
 #include <stdexcept>
 #include <vector>
 namespace hydrogen_helium_history_reference {
@@ -22,7 +23,17 @@ struct Model {
       other = 1.7e-5, nH0 = .19, nHe0 = .015, initial = 2700, late = 300;
   std::vector<std::array<double, 2>> massless_species;
 };
-struct Stats { std::size_t steps = 0, rhs = 0, newton = 0; W root_correction = 0; };
+struct Stats {
+  std::size_t steps = 0, rhs = 0, newton = 0, attempts = 0, rejected = 0,
+      linear_solves = 0;
+  W root_correction = 0;
+  State accepted_correction_sum{};
+};
+struct StepPolicy {
+  W correction_tolerance = 2e-16L;
+  std::size_t maximum_rhs = std::numeric_limits<std::size_t>::max();
+  bool bounded_temperature = false;
+};
 W mpc() { return 1e6L * 648000 / std::numbers::pi_v<W> * 149597870700.L; }
 W radiation_constant() {
   return 8 * std::pow(std::numbers::pi_v<W>, 5) * std::pow(kb, 4) / (15 * h * h * h * c * c * c);
@@ -63,9 +74,17 @@ struct Physics {
     return {A / (A + e), B / (B + e), 1};
   }
   State operator()(W s, const State &state) const {
+    const W u = (1 + W(model.initial)) * std::exp(-s);
+    return rhs(s, state, hubble(u));
+  }
+  // One independent rate/escape owner for both reference lanes. The legacy
+  // call retains its original ideal-photon arithmetic; supplied calls use
+  // independently reconstructed emitted H and photon energy coefficients.
+  State rhs(W s, const State &state, W H,
+            std::optional<W> emitted_photon_energy = {}) const {
     const W u = (1 + W(model.initial)) * std::exp(-s),
         nH = W(model.nH0) * u * u * u, nHe = W(model.nHe0) * u * u * u,
-        ne = nH * state[0] + nHe * state[1], H = hubble(u),
+        ne = nH * state[0] + nHe * state[1],
         Tr = W(model.T0) * u, T = state[2] * Tr,
         Q = std::pow(2 * std::numbers::pi_v<W> * me * kb * T / (h * h), 1.5L),
         t = T / 10000, alphaH = 1e-19L * 4.309L * std::pow(t, -.6166L) / (1 + .6703L * std::pow(t, .53L)),
@@ -84,8 +103,15 @@ struct Physics {
         CHe = (51.3L + escapeHe) / (51.3L + escapeHe + betaHe),
         groundH = alphaH * Q * std::exp(-chiH / (kb * T)),
         groundHe = 4 * alphaHe * Q * std::exp(-chiHe / (kb * T)),
-        gamma_over_H = 8 * sigma * radiation_constant() * std::pow(Tr, 4) /
+        gamma_over_H = emitted_photon_energy
+                       ? 8 * sigma * *emitted_photon_energy / (3 * me * c * H) * ne / (nH + nHe + ne)
+                       : 8 * sigma * radiation_constant() * std::pow(Tr, 4) /
                        (3 * me * c * H) * ne / (nH + nHe + ne);
+    for (const W required : {H, Q, alphaH, alphaHe, betaH, betaHe,
+                            escapeH, escapeHe, CH, CHe, groundH, groundHe,
+                            gamma_over_H})
+      if (!(required > 0) || !std::isfinite(required))
+        throw std::runtime_error("reference required positive quantity");
     return {-CH * (alphaH * ne * state[0] - groundH * (1 - state[0])) / H,
             -CHe * (alphaHe * ne * state[1] - groundHe * (1 - state[1])) / H,
             -state[2] - gamma_over_H * (state[2] - 1)};
@@ -129,12 +155,19 @@ W norm(const Vector &d, const Vector &v) {
   }
   return out;
 }
-State step(const Physics &f, W s, W ds, State y, Stats &stats) {
+template<class PhysicsOwner>
+State step(const PhysicsOwner &f, W s, W ds, State y, Stats &stats,
+           StepPolicy policy = {}) {
   constexpr W A[2][2]{{5.L / 12, -1.L / 12}, {3.L / 4, 1.L / 4}};
   Vector v{y[0], y[1], y[2], y[0], y[1], y[2]};
   auto residual = [&](const Vector &x) {
-    State k[]{f(s + ds / 3, {x[0], x[1], x[2]}), f(s + ds, {x[3], x[4], x[5]})};
-    stats.rhs += 2; Vector r{};
+    if (stats.rhs > policy.maximum_rhs || policy.maximum_rhs - stats.rhs < 2)
+      throw std::runtime_error("reference RHS cap");
+    ++stats.rhs;
+    const State first = f(s + ds / 3, {x[0], x[1], x[2]});
+    ++stats.rhs;
+    State k[]{first, f(s + ds, {x[3], x[4], x[5]})};
+    Vector r{};
     for (unsigned i = 0; i < 2; ++i)
       for (unsigned j = 0; j < 3; ++j) r[3 * i + j] = x[3 * i + j] - y[j] - ds * (A[i][0] * k[0][j] + A[i][1] * k[1][j]);
     return r;
@@ -146,25 +179,33 @@ State step(const Physics &f, W s, W ds, State y, Stats &stats) {
       const W scale = j % 3 == 2 ? v[j] : std::min(v[j], 1 - v[j]),
           d = 1e-5L * scale;
       auto a = v, b = v; a[j] += d; b[j] -= d;
+      if (!(d > 0) || a[j] == v[j] || b[j] == v[j])
+        throw std::runtime_error("reference FD representation");
       const auto ra = residual(a), rb = residual(b);
       for (unsigned i = 0; i < 6; ++i) J[i][j] = (ra[i] - rb[i]) / (2 * d);
     }
     for (W &a : r) a = -a;
+    ++stats.linear_solves;
     const auto direction = solve(J, r); const W n = norm(direction, v);
     if (!std::isfinite(n)) throw std::runtime_error("reference nonfinite correction");
-    if (n < 2e-16L) {
+    if (n < policy.correction_tolerance) {
+      if (!positive(v) || (policy.bounded_temperature && (v[2] > 1 || v[5] > 1)))
+        throw std::runtime_error("reference accepted physical box");
       stats.root_correction = std::max(stats.root_correction, n); ++stats.steps;
+      for (unsigned j = 0; j < 3; ++j)
+        stats.accepted_correction_sum[j] += std::abs(direction[3 + j]);
       return {v[3], v[4], v[5]};
     }
     W damping = 1; bool accepted = false;
     for (unsigned k = 0; k < 64; ++k) {
       auto next = v; for (unsigned j = 0; j < 6; ++j) next[j] += damping * direction[j];
-      if (positive(next)) {
+      if (positive(next) && (!policy.bounded_temperature || (next[2] <= 1 && next[5] <= 1))) {
         const auto rr = residual(next);
         W scaled = 0;
         // Compare residuals in the existing Newton metric; final acceptance
         // recomputes the finite-difference Jacobian and correction above.
         Vector negative = rr; for (W &a : negative) a = -a;
+        ++stats.linear_solves;
         const auto dd = solve(J, negative); scaled = norm(dd, next);
         if (scaled < n) { v = next; accepted = true; break; }
       }

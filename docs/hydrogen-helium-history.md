@@ -282,3 +282,119 @@ redshift 300–600 cannot be presented as physical `z_drag`. A source-defined
 endpoint needs a separately qualified late opacity/residual/reionization law
 and its positive tail/boundary, plus a downstream ruler budget. This API
 deliberately supplies no drag root or present-day visibility.
+
+## Owned supplied-boundary continuation
+
+The source implementation adds
+`prepare_hydrogen_helium_supplied_history(HydrogenHeliumSuppliedHistoryRequest, policy)`
+to the same public native header. Its compiled, installed and numerical gates
+are pending. This section specifies the interface and its unexecuted controls;
+it transfers no earlier restricted-Saha qualification to a new boundary.
+
+The model identity is
+`HII-HeII-singlet-RecfastCLASS-convention-NIST-central-FH1-TphotoTm-Compton-adiabatic-supplied-binary64-boundary-bounded/v1`.
+`HydrogenHeliumSuppliedHistoryRequest::history` supplies the existing background,
+nuclei inventory and initial/late coordinates. Its `initial` object owns three
+binary64 values, `hydrogen_ionized_fraction`,
+`helium_singly_ionized_fraction`, and `matter_temperature_kelvin`, together with
+nonempty `origin` and `source_identity` strings. The aggregate length of these
+two strings and `nuclei_origin` is bounded by 65536 bytes. Fractions require
+`0<p0,q0<1`; initial temperature requires
+`4000 K<=Tm0<=long_double(T_CMB,0)*(1+long_double(z_initial))`.
+All existing background, nuclei, species and redshift limits remain required.
+An upper temperature rounded above that wide bound refuses; it is never clipped.
+This open box is computational scope, not a promise that every initial state
+passes the existing solver or per-output error gates.
+
+The supplied numbers define the exact finite boundary of the conditional IVP.
+Upstream physical/numerical uncertainty and an earlier wide-to-binary64 cast are
+excluded from this owner's conditional numerical error. An upstream consumer
+must retain their separate source/cast/error record. The owner promotes each
+double exactly under its existing arithmetic profile and exposes the promoted
+values and zero measured promotion losses through `initial_import_witness()`.
+No Saha call redefines that boundary. The existing restricted two-stage Saha
+factory, initial law and default model identity remain actual supported consumers.
+Both factories use one preparation, backward-Euler/refinement and cell owner,
+the same rates, central atomic values, thermal mapper and temperature equation.
+
+`boundary_kind()` and `model_identity()` on a refused result describe the
+attempted profile, rather than preparation admission. Default and moved-from
+owners have no tag and empty model/method identities. The new work counter
+`initial_boundary_evaluations` charges one admitted attempt to validate/import
+the supplied coordinates. The original four work categories retain their
+meanings, and checked `total()` cannot wrap. After metadata/policy/common-source
+preflight, import work is charged before boundary validation. A zero cap admits
+no import. A cap exhausted by a valid import retains its owned source/witness
+and refuses before thermal preparation. Thermal preparation and every later
+background/RHS attempt receive only remaining work. Defaults remain N=8192,
+four million total work and 32 MiB requested native payload, with the original
+finest mesh, hard 1 GiB bound and numerical allocations.
+
+The owner acquires supplied metadata once before thermal preparation. A failed
+acquisition publishes no partial supplied object/import witness. Once earned,
+those fields survive a later mapping, background, work, solver or HeIII scope
+refusal. Common `source()`/`background()` retain their existing publication
+stage after successful background preparation; original map witnesses may be
+available earlier. Copies independently own strings, species and nodes;
+replacement is exception-safe. Moves clear all source/witness/tag fields in
+their source owner. Preparation and evaluation turn allocation failure into
+`work_limit`; an ordinary value copy may throw `std::bad_alloc`.
+
+`rate_domain_witness()` retains an attempted Kelvin range for every actual
+residual/RHS rate temperature, including failed line searches and coarse,
+middle and fine mesh work. Invalid/nonpositive attempted temperatures have a
+separate flag; absent ranges are not zero ranges. A complete retained Kelvin
+range is published only after every central Richardson node and cell is
+constructed. It encloses the retained linear-cell temperature, not the exact
+ODE or its uncertainty. A partial failure cannot present its prefix as a
+complete range. A later omitted-stage refusal can retain a complete range.
+The existing maximum nodal HeIII LTE-activity gate remains unchanged and is
+not a proof about kinetic HeIII or unsampled interiors.
+
+The payload owner includes actual capacities and terminators of the new owned
+strings, species/source acquisition, simultaneous preparation buffers and
+returned row capacities. The public checked payload helper accepts additional
+supplied-origin/source-identity byte arguments; its four-argument source use
+remains valid through default arguments. The cap concerns requested preparation
+and evaluation payload. Arbitrary caller-owned copies, allocator metadata and
+RSS are separate quantities. The proposed allocation campaign measures original,
+copied and replacement owners simultaneously, faults every observed allocation
+site and requires strong destination preservation; those measurements remain
+pending and do not create a general cap on caller-owned multiplicity.
+
+The independent reference uses the exact emitted `ThermalFlatModel` coefficients
+as provenance, never native H or histories as truth. It independently reconstructs
+massless H and photon energy in SI; emitted photon energy is
+`Omega_gamma,em*rho_critical_energy*u^4`, rather than replacing it with an ideal
+original-temperature photon density. It advances the same rates in
+`s=log[(1+z_initial)/(1+z)]`, `theta=Tm/T_r` with the original independent Radau
+IIA3/FD-six-unknown kernel. The old direct-SI Saha/cubic reference route remains
+available. On the supplied route, failed steps retain work and retry by bounded
+binary subdivision, at most forty consecutive halvings, from the last accepted
+state. Each case/resolution has separate reference limits of `2^20` attempted
+substeps, `2^27` RHS calls and 32 MiB requested reference payload. These do not
+increase native caps.
+
+New direct controls B0/B1/B2 retain their literal binary64 inputs, all five bulk
+outputs and five early dyadic probes. Initial p/q/Tm must recover the supplied
+bits. The reference runs at resolutions 1, 2 and 4 plus a resolution-4 root
+control tightened from `2e-16` to `2e-18`. For every output, its empirical error
+is the larger adjacent refinement difference plus root-control difference and
+`128*epsilon(long double)*abs(value)`. It must consume at most five percent of
+the unchanged output allocation. Native discrepancy must fit both that
+allocation and its own diagnostic plus the admitted reference error. Missing
+or refused groups block a complete numerical case; they are preserved.
+Reference values are recorded at wide `max_digits10`, without a reporting cast.
+The original-input mapping lane and paired wide/emitted restart flows retain
+their differences separately and cannot enlarge the primary numerical budget.
+
+The new permanent owner, allocation, same-IVP reference and installed source
+controls are unexecuted. Shared empirical rates/constants and long-double/libm
+ancestry remain explicit. Reference refinement is empirical numerical evidence,
+not a full-history high-precision or physical certificate. The matched 1999
+Letter's singlet-fit statement applies to 4000–10000 K; the engine's
+`10^0.477121 K` convention differs from its printed `3 K`. Later low-temperature
+use remains an owned extrapolation. Missing detailed primary rate/energy/domain
+source review, boundary physical support, additional heat processes, triplets,
+HeIII dynamics, the late tail and observational/inference qualification remain
+open. No new CLI, ABI, physical drag or temperature-law inference is provided.

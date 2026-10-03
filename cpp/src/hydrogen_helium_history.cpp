@@ -320,6 +320,9 @@ static HydrogenHeliumHistory prepare(const HydrogenHeliumHistoryRequest &s,
       return bound && *bound <= p.maximum_native_bytes && *bound <= (1ull << 30);
     };
     if (!payload_ok()) { out.status_ = S::work_limit; return out; }
+    if (supplied && !remaining_work(out.work_, p.maximum_total_work)) {
+      out.status_ = S::work_limit; return out;
+    }
     auto t = p.thermal;
     t.maximum_native_bytes = std::min(t.maximum_native_bytes, p.maximum_native_bytes);
     t.maximum_total_callbacks = std::min(t.maximum_total_callbacks,
