@@ -2,9 +2,11 @@
 
 This branch contains a source implementation of a distinct native C++ consumer:
 flat GR, positive pressureless CDM, nonnegative Lambda and explicitly supplied
-zero-mass Fermi–Dirac species. Compilation, the numerical controls and the actual
-installed caller remain pending. This page states its proposed bounded contract;
-it does not award a numerical or observational qualification.
+zero-mass Fermi–Dirac species. Strict GNU Release compilation and four narrow
+native/shared-consumer tests passed at checkpoint `4e52cab4`. The current peer
+repairs, full numerical comparison and actual installed caller remain pending.
+This page states the bounded candidate contract; it does not award a numerical
+or observational qualification.
 
 The physical identity is
 `GR/flat-pure-explicit-massless-FD-CDM-lambda-unit-zeta/v1`. It excludes physical
@@ -128,6 +130,13 @@ Einstein E/W modes, not unwanted physical modes or every angular discretization
 error. Original E, W, TRACE, correction, slip/conservation/background forcing
 and recentering histories remain recorded.
 
+Source review found incomplete forcing-to-output accounting in the first peer
+implementation. Its normalized-conservation integral and endpoint output scale
+cannot establish an output error allowance. Complete state/event response and
+retained-background derivative accounting remain blocking method work. The
+source records preserve that original proposal and the subsequent repairs;
+their presence does not qualify a peer result.
+
 Time/kappa, angle, start, background/age and arithmetic/recentering reference
 shares each need epsilon/30, total epsilon/6. Its independent controls include
 closed characteristic/Bessel transport, actual-moment identities, constraint
@@ -136,8 +145,9 @@ limits, species splitting/order and adversarial refusals. Shared source and
 thermal background ancestry are explicitly retained. Every attempted/rejected
 stage record is byte-guarded: 256 MiB per k case, 2 GiB campaign and 8 KiB per
 record, alongside two million RHS, 512 million updates and 16 MiB payload.
-No raw long-double padding is serialized. A 300-second external watchdog
-limits a numerical case; runtime limits are not performance qualification.
+No raw long-double padding is serialized. CTest's 300-second timeout applies
+to the whole peer test binary, including all its cases; runtime limits are not
+performance qualification.
 
 `cpp/tests/test_installed_massless_fd.cpp` is the actual small SDK caller:
 H0 70 km/s/Mpc, fractional CDM .3, zero photon/additional/baryon densities,

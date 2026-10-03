@@ -191,6 +191,7 @@ template <class T> struct Angular {
 template <class T> struct Translation {
   C<T> alpha{}, beta{};
   T maximum_node_change = 0, shear_translation = 0, parity_defect = 0;
+  std::size_t nodes_translated = 0;
 };
 
 template <class T>
@@ -227,6 +228,8 @@ Translation<T> recenter(const Rule<T> &r, Angular<T> &y, T k,
     q0 += r.weight[j] * y.Q[j];
     q1 += r.weight[j] * r.mu[j] * y.Q[j];
   }
+  if (budget && !budget->scalars(9))
+    return out;
   q0 /= r.normalization;
   q1 /= r.normalization;
   const T determinant = r.m2 - r.odd_moment * r.odd_moment;
@@ -240,6 +243,8 @@ Translation<T> recenter(const Rule<T> &r, Angular<T> &y, T k,
   }
   const T old_A = y.A;
   const C<T> old_B = y.B;
+  if (budget && !budget->scalars(3))
+    return out;
   y.A += (k * k * out.alpha).real();
   y.B -= C<T>(0, k) * out.beta;
   for (std::size_t j = 0; j < y.Q.size(); ++j) {
@@ -248,6 +253,7 @@ Translation<T> recenter(const Rule<T> &r, Angular<T> &y, T k,
     const T u = r.mu[j];
     const C<T> old_D = old_A + C<T>(0, k * u) * old_B + k * k * y.Q[j];
     y.Q[j] -= out.alpha + out.beta * u;
+    ++out.nodes_translated;
     const C<T> new_D = y.A + C<T>(0, k * u) * y.B + k * k * y.Q[j];
     out.maximum_node_change =
         std::max(out.maximum_node_change, std::abs(new_D - old_D));
@@ -574,6 +580,33 @@ template <class T> struct State {
   std::array<T, 7> v{};
   std::vector<C<T>> R;
 };
+// Charge actual scalar destinations, including baseline copies. Capacity and
+// allocator padding are not scalar updates. A refusal precedes every write.
+template <class T> std::size_t active_scalars(const State<T> &y) {
+  return y.v.size() + 2 * y.R.size();
+}
+template <class T>
+bool copy_state(State<T> &to, const State<T> &from, Budget &budget) {
+  if (!budget.scalars(active_scalars(from)))
+    return false;
+  to = from;
+  return true;
+}
+template <class T>
+bool resize_residual(State<T> &y, std::size_t nodes, Budget &budget) {
+  const auto added = nodes > y.R.size() ? nodes - y.R.size() : 0;
+  if (!budget.scalars(2 * added))
+    return false;
+  y.R.resize(nodes);
+  return true;
+}
+template <class T, class F>
+bool assign_initial_scalars(State<T> &y, Budget &budget, F write) {
+  if (!budget.scalars(y.v.size()))
+    return false;
+  write(y.v);
+  return true;
+}
 template <class T> T centered_cdm(const State<T> &y) {
   return 3 * y.v[3] + y.v[4] + 3 * y.v[1];
 }
@@ -659,7 +692,11 @@ bool record_stage(Ledger &ledger, Budget &budget, const Controls &control,
        << " original_trace=" << o.original_trace
        << " modified_trace=" << o.modified_trace
        << " correction=" << -control.kappa * o.E << " sN=" << sN
-       << " fE=" << forcingE << " fW=" << forcingW
+       << " forcing_units=d/dN fE_quadrature=" << forcingE
+       << " fW_quadrature=" << forcingW
+       << " fE_Rbg=" << e.background_identity_defect * y.v[2]
+       << " fW_Rbg=" << -e.background_identity_defect * o.psi
+       << " complete_derivative_response_qualified=0"
        << " slip=" << o.slip_residual
        << " continuity=" << o.radiation_conservation
        << " Euler=" << o.radiation_euler << " normalized_E=" << o.E_normalized
@@ -687,6 +724,64 @@ bool record_stage(Ledger &ledger, Budget &budget, const Controls &control,
   return ledger.write(text.str(), budget);
 }
 
+template <class T> struct NodeTranslationWitness {
+  C<T> before{}, after{}, translated_difference{};
+  T scale = 0;
+  C<T> remainder_change{};
+};
+// Every node is checked and retained in bounded blocks. Maxima alone cannot
+// substitute for the original per-node preservation witness. Both raw D
+// subtraction and the small-coordinate translation identity are recorded.
+template <class T, class F>
+bool record_gram_nodes(Ledger &ledger, Budget &budget, const Controls &control,
+                       long double eta, std::size_t nodes, const char *kind,
+                       F witness) {
+  long double maximum_raw = 0, maximum_translated = 0;
+  for (std::size_t first = 0; first < nodes; first += 24) {
+    std::ostringstream record;
+    record << std::setprecision(std::numeric_limits<long double>::max_digits10)
+           << "Gram-node-preservation run=" << control.run_id
+           << " stage=" << budget.attempted_stages << " kind=" << kind
+           << " eta=" << eta << " first=" << first;
+    const auto last = std::min(nodes, first + 24);
+    for (std::size_t j = first; j < last; ++j) {
+      // The callbacks below form 24 active real scalar destinations including
+      // their low-basis/remainder reconstructions, returned tuple, subtraction,
+      // scale and maxima. Immutable input reads and text encoding add no state
+      // updates; encoded bytes have their own independent cap.
+      if (!budget.scalars(24))
+        return false;
+      const auto node = witness(j);
+      const auto raw = node.after - node.before;
+      const T normalized =
+          node.scale > 0 ? std::abs(node.translated_difference) / node.scale
+                         : (node.translated_difference == C<T>{}
+                                ? T(0)
+                                : std::numeric_limits<T>::infinity());
+      maximum_raw =
+          std::max(maximum_raw, static_cast<long double>(std::abs(raw)));
+      maximum_translated =
+          std::max(maximum_translated, static_cast<long double>(normalized));
+      record << " node=" << j << ',' << raw.real() << ',' << raw.imag() << ','
+             << node.translated_difference.real() << ','
+             << node.translated_difference.imag() << ',' << node.scale << ','
+             << normalized << ',' << node.remainder_change.real() << ','
+             << node.remainder_change.imag();
+    }
+    record << " checked=" << last - first << '\n';
+    if (!ledger.write(record.str(), budget))
+      return false;
+  }
+  std::ostringstream summary;
+  summary << std::setprecision(std::numeric_limits<long double>::max_digits10)
+          << "Gram-node-summary run=" << control.run_id
+          << " stage=" << budget.attempted_stages << " kind=" << kind
+          << " eta=" << eta << " checked=" << nodes
+          << " maximum_raw_D_change=" << maximum_raw
+          << " maximum_normalized_translation=" << maximum_translated << '\n';
+  return ledger.write(summary.str(), budget);
+}
+
 template <class T>
 Status rhs(const Background &background, long double radiation,
            long double radiation_error, T k, long double eta, const State<T> &y,
@@ -708,7 +803,11 @@ Status rhs(const Background &background, long double radiation,
     return e.status;
   }
   o = readout(y, r, e, &budget);
-  d.R.resize(r.mu.size());
+  if (!resize_residual(d, r.mu.size(), budget)) {
+    record_stage(ledger, budget, control, eta, y, e, o, 0, 0, 0, budget.status,
+                 "rhs-buffer-refusal", &r);
+    return budget.status;
+  }
   C<T> M{}, odd{};
   for (std::size_t j = 0; j < r.mu.size(); ++j) {
     if (!budget.scalars(4))
@@ -726,6 +825,11 @@ Status rhs(const Background &background, long double radiation,
                2 * T(s_star) * T(e.closure_defect - e.fc - e.fl) +
                6 * T(p) * fr * (am - T(2) / 15) +
                (C<T>(0, 3 * fr * x) * odd).real();
+  if (!budget.scalars(d.v.size())) {
+    record_stage(ledger, budget, control, eta, y, e, o, sN, 0, 0, budget.status,
+                 "rhs-derivative-assignment-refusal", &r);
+    return budget.status;
+  }
   d.v[0] = 1;
   d.v[1] = y.v[2];
   // Stable transcription of ORIGINAL trace, including the actual closure.
@@ -909,21 +1013,41 @@ Result run(const Background &background, long double radiation,
   const T initial_eta = T(age.value + control.age_direction * age.error);
   auto initial =
       initialize(rule, epoch, T(k), initial_eta, T(age.error), &budget);
-  if (budget.status != Status::ok)
+  if (budget.status != Status::ok) {
+    std::ostringstream refused;
+    refused << std::setprecision(std::numeric_limits<long double>::max_digits10)
+            << "initial-Gram-refusal run=" << control.run_id
+            << " status=" << static_cast<int>(budget.status)
+            << " diagnostics_valid=0 alpha_re="
+            << initial.translation.alpha.real()
+            << " alpha_im=" << initial.translation.alpha.imag()
+            << " beta_re=" << initial.translation.beta.real()
+            << " beta_im=" << initial.translation.beta.imag()
+            << " nodes_translated=" << initial.translation.nodes_translated
+            << " scalars=" << budget.scalar_updates << '\n';
+    ledger.write(refused.str(), budget);
+    return finish(budget.status);
+  }
+  // State construction writes seven active zeros, then the source assignments
+  // and vector value initialization are separately charged actual writes.
+  if (!budget.scalars(7))
     return finish(budget.status);
   State<T> y;
-  y.R.resize(rule.mu.size());
-  y.v[0] = std::log(T(start));
-  y.v[1] = 0;
-  y.v[2] = initial.Z; // frozen source initializer, NOT a new momentum reset
-  y.v[3] = initial.ideal.Delta / 3;
-  y.v[4] = 0;
-  // Exact coordinate identities of the same translated primitive witness.
-  // Retain deterministic tiny projected velocity without O(1) subtraction.
-  y.v[5] = T(k * k) * initial.translation.alpha.real() -
-           4 * (initial.actual.psi - initial.ideal.psi);
-  y.v[6] = -4 * initial.ideal.Delta / 3 -
-           (C<T>(0, T(k * epoch.hcal)) * initial.translation.beta).real();
+  if (!resize_residual(y, rule.mu.size(), budget) ||
+      !assign_initial_scalars(y, budget, [&](auto &v) {
+        v[0] = std::log(T(start));
+        v[1] = 0;
+        v[2] = initial.Z; // ORIGINAL source Z, never a momentum reset
+        v[3] = initial.ideal.Delta / 3;
+        v[4] = 0;
+        // Exact identities of the same translated primitive witness. Retain
+        // the tiny projected velocity without an O(1) subtraction.
+        v[5] = T(k * k) * initial.translation.alpha.real() -
+               4 * (initial.actual.psi - initial.ideal.psi);
+        v[6] = -4 * initial.ideal.Delta / 3 -
+               (C<T>(0, T(k * epoch.hcal)) * initial.translation.beta).real();
+      }))
+    return finish(budget.status);
   const T H2 = T(epoch.hcal) * T(epoch.hcal);
   for (std::size_t j = 0; j < y.R.size(); ++j) {
     if (!budget.scalars(2))
@@ -965,10 +1089,32 @@ Result run(const Background &background, long double radiation,
           << " age_direction=" << control.age_direction << '\n';
   if (!ledger.write(witness.str(), budget))
     return finish(budget.status);
+  if (!record_gram_nodes<T>(
+          ledger, budget, control, initial_eta, rule.mu.size(), "initial",
+          [&](std::size_t j) {
+            const T u = rule.mu[j];
+            const C<T> old_Q =
+                -2 * T(p) * initial_eta * initial_eta * P2(u) / 3;
+            const T old_A = initial.ideal.delta_r + 4 * initial.ideal.psi;
+            const C<T> old_B = -4 * initial.ideal.Vr / initial.ideal.H;
+            const C<T> old_D =
+                old_A + C<T>(0, T(k) * u) * old_B + T(k * k) * old_Q;
+            const C<T> new_D = initial.angular.A +
+                               C<T>(0, T(k) * u) * initial.angular.B +
+                               T(k * k) * initial.angular.Q[j];
+            return NodeTranslationWitness<T>{
+                old_D, new_D,
+                (initial.angular.A - old_A) +
+                    C<T>(0, T(k) * u) * (initial.angular.B - old_B) +
+                    T(k * k) * (initial.angular.Q[j] - old_Q),
+                std::abs(old_A) + std::abs(T(k) * u * old_B) +
+                    std::abs(T(k * k) * old_Q),
+                initial.angular.Q[j] - old_Q};
+          }))
+    return finish(budget.status);
   const auto initial_readout = readout(y, rule, epoch, &budget);
   if (!record_stage(ledger, budget, control, initial_eta, y, epoch,
-                    initial_readout, 0, initial.translation.alpha.real(),
-                    initial.translation.beta.imag(), budget.status,
+                    initial_readout, 0, 0, 0, budget.status,
                     "initial-Gram-readout-originalZ", &rule))
     return finish(budget.status);
   const T target_N = std::log(T(target));
@@ -978,9 +1124,14 @@ Result run(const Background &background, long double radiation,
   reached_state_known = true;
   long double proposed_step = control.maximum_log_step / epoch.hcal;
   const long double epsilon = std::numeric_limits<T>::epsilon();
+  if (!budget.scalars(7 * 7))
+    return finish(budget.status);
   std::array<State<T>, 7> slopes;
   for (auto &slope : slopes)
-    slope.R.resize(rule.mu.size());
+    if (!resize_residual(slope, rule.mu.size(), budget))
+      return finish(budget.status);
+  if (!budget.scalars(2 * active_scalars(y)))
+    return finish(budget.status);
   State<T> trial = y, embedded = y;
   constexpr long double node[7]{0, 1.L / 5, 3.L / 10, 4.L / 5, 8.L / 9, 1, 1};
   constexpr long double a[7][7]{
@@ -998,7 +1149,8 @@ Result run(const Background &background, long double radiation,
       187.L / 2100,   1.L / 40};
   auto combine = [&](State<T> &to, long double h,
                      const long double *coefficients, unsigned count) {
-    to = y;
+    if (!copy_state(to, y, budget))
+      return false;
     for (unsigned l = 0; l < count; ++l) {
       if (coefficients[l] == 0)
         continue;
@@ -1092,7 +1244,11 @@ Result run(const Background &background, long double radiation,
       proposed_step = h * std::max(.1L, .8L * std::pow(error, -.2L));
       continue; // attempted slopes and diagnostics stay recorded/charged
     }
-    y = trial;
+    if (!copy_state(y, trial, budget)) {
+      record_stage(ledger, budget, control, eta, y, epoch, base_readout, 0, 0,
+                   0, budget.status, "accepted-copy-refusal", &rule);
+      return finish(budget.status);
+    }
     eta += h;
     reached_eta = eta;
     reached_N = y.v[0];
@@ -1112,6 +1268,11 @@ Result run(const Background &background, long double radiation,
         q0 += rule.weight[j] * U;
         q1 += rule.weight[j] * rule.mu[j] * U;
       }
+      if (!budget.scalars(9)) {
+        record_stage(ledger, budget, control, eta, y, current, base_readout, 0,
+                     0, 0, budget.status, "Gram-coefficient-refusal", &rule);
+        return finish(budget.status);
+      }
       q0 /= rule.normalization;
       q1 /= rule.normalization;
       const T determinant = rule.m2 - rule.odd_moment * rule.odd_moment;
@@ -1121,18 +1282,51 @@ Result run(const Background &background, long double radiation,
           std::max(out.diagnostics.maximum_subspace_defect,
                    std::max(std::abs(static_cast<long double>(alpha.imag())),
                             std::abs(static_cast<long double>(beta.real()))));
+      const auto before = readout(y, rule, current, &budget);
+      std::ostringstream began;
+      began << std::setprecision(std::numeric_limits<long double>::max_digits10)
+            << "Gram-event-begin run=" << control.run_id
+            << " stage=" << budget.attempted_stages << " eta=" << eta
+            << " N=" << y.v[0]
+            << " coordinates=U,HcalB alpha_re=" << alpha.real()
+            << " alpha_im=" << alpha.imag() << " beta_re=" << beta.real()
+            << " beta_im=" << beta.imag() << " planned_nodes=" << y.R.size()
+            << " E_before=" << before.E << " W_before=" << before.W
+            << " scalars=" << budget.scalar_updates
+            << " status=" << static_cast<int>(budget.status) << '\n';
+      if (!ledger.write(began.str(), budget))
+        return finish(budget.status);
+      if (budget.status != Status::ok)
+        return finish(budget.status);
       if (out.diagnostics.maximum_subspace_defect > 1e-7L)
         return finish(Status::conditioning_budget_exceeded);
-      const auto before = readout(y, rule, current, &budget);
       for (std::size_t j = 0; j < y.R.size(); ++j) {
-        if (!budget.scalars(2))
+        if (!budget.scalars(2)) {
+          std::ostringstream refusal;
+          refusal << "Gram-node-assignment-refusal run=" << control.run_id
+                  << " stage=" << budget.attempted_stages
+                  << " nodes_translated=" << j << " diagnostics_valid=0 status="
+                  << static_cast<int>(budget.status)
+                  << " scalars=" << budget.scalar_updates << '\n';
+          ledger.write(refusal.str(), budget);
           return finish(budget.status);
+        }
         y.R[j] -= alpha + beta * rule.mu[j];
+      }
+      if (!budget.scalars(1)) {
+        record_stage(ledger, budget, control, eta, y, current, before, 0, 0, 0,
+                     budget.status, "Gram-dipole-assignment-refusal", &rule);
+        return finish(budget.status);
       }
       y.v[6] -= (C<T>(0, std::sqrt(T(current.x2))) * beta).real();
       const auto after = readout(y, rule, current, &budget);
       const T delta_correction =
           T(current.x2) * alpha.real() - 4 * (after.psi - before.psi);
+      if (!budget.scalars(1)) {
+        record_stage(ledger, budget, control, eta, y, current, after, 0, 0, 0,
+                     budget.status, "Gram-density-assignment-refusal", &rule);
+        return finish(budget.status);
+      }
       y.v[5] += delta_correction;
       out.diagnostics.maximum_recenter = std::max(
           out.diagnostics.maximum_recenter,
@@ -1141,9 +1335,53 @@ Result run(const Background &background, long double radiation,
                     std::abs(static_cast<long double>(std::sqrt(T(current.x2)) *
                                                       beta.imag()))}));
       auto corrected = readout(y, rule, current, &budget);
+      if (!budget.scalars(6))
+        return finish(budget.status);
+      const T delta_psi = corrected.psi - before.psi;
+      const T delta_b = y.v[6] - trial.v[6];
+      const T delta_Cr = y.v[5] - trial.v[5];
+      const T impulse_E = delta_psi + T(current.fr) * delta_Cr / 2;
+      const T impulse_W = delta_psi + T(current.fr) * delta_b / 2;
+      const T delta_sigma = -T(current.x2) * (corrected.q2 - before.q2) / 2;
+      std::ostringstream event;
+      event << std::setprecision(std::numeric_limits<long double>::max_digits10)
+            << "Gram-event run=" << control.run_id
+            << " stage=" << budget.attempted_stages << " eta=" << eta
+            << " N=" << y.v[0] << " coordinates=U,HcalB"
+            << " alpha_re=" << alpha.real() << " alpha_im=" << alpha.imag()
+            << " beta_re=" << beta.real() << " beta_im=" << beta.imag()
+            << " delta_Cr=" << delta_Cr << " delta_b=" << delta_b
+            << " delta_psi=" << delta_psi << " delta_sigma=" << delta_sigma
+            << " impulse_E=" << impulse_E << " impulse_W=" << impulse_W
+            << " E_subtraction_witness=" << corrected.E - before.E
+            << " W_subtraction_witness=" << corrected.W - before.W
+            << " unchanged_Z=" << y.v[2]
+            << " constraint_reset=0 rhs_forcing=0\n";
+      if (!ledger.write(event.str(), budget) ||
+          !record_gram_nodes<T>(
+              ledger, budget, control, eta, rule.mu.size(), "accepted-event",
+              [&](std::size_t j) {
+                const T u = rule.mu[j], x = std::sqrt(T(current.x2));
+                const C<T> old_U = -2 * T(p) * P2(u) / 3 + trial.R[j];
+                const C<T> new_U = -2 * T(p) * P2(u) / 3 + y.R[j];
+                const C<T> old_D = before.delta_r + 4 * before.psi +
+                                   C<T>(0, x * u) * before.b +
+                                   T(current.x2) * old_U;
+                const C<T> new_D = corrected.delta_r + 4 * corrected.psi +
+                                   C<T>(0, x * u) * corrected.b +
+                                   T(current.x2) * new_U;
+                return NodeTranslationWitness<T>{
+                    old_D, new_D,
+                    delta_Cr + 4 * delta_psi + C<T>(0, x * u) * delta_b +
+                        T(current.x2) * (y.R[j] - trial.R[j]),
+                    std::abs(before.delta_r + 4 * before.psi) +
+                        std::abs(x * u * before.b) +
+                        std::abs(T(current.x2) * old_U),
+                    y.R[j] - trial.R[j]};
+              }))
+        return finish(budget.status);
       if (!record_stage(ledger, budget, control, eta, y, current, corrected, 0,
-                        delta_correction, after.psi - before.psi, budget.status,
-                        "Gram-translation", &rule))
+                        0, 0, budget.status, "Gram-translation", &rule))
         return finish(budget.status);
     }
     if (budget.status != Status::ok)

@@ -377,6 +377,67 @@ std::filesystem::path evidence_directory() {
 
 void resource_controls(const std::filesystem::path &directory) {
   {
+    peer::State<W> source, destination;
+    source.v = {1, 2, 3, 4, 5, 6, 7};
+    source.R = {{.1L, .2L}, {.3L, .4L}, {.5L, .6L}};
+    destination.v = {-1, -2, -3, -4, -5, -6, -7};
+    destination.R = {{-.1L, -.2L}};
+    const auto original = destination;
+    peer::Budget refused;
+    refused.maximum_scalar_updates = peer::active_scalars(source) - 1;
+    need(!peer::copy_state(destination, source, refused) &&
+             refused.status == S::work_limit && refused.scalar_updates == 0 &&
+             destination.v == original.v && destination.R == original.R,
+         "real active-state baseline copy refuses before any destination "
+         "mutation");
+    peer::Budget exact;
+    exact.maximum_scalar_updates = peer::active_scalars(source);
+    need(peer::copy_state(destination, source, exact) &&
+             exact.scalar_updates == source.v.size() + 2 * source.R.size() &&
+             destination.v == source.v && destination.R == source.R,
+         "real active-state copy counts complex components at exact cap");
+  }
+  {
+    peer::State<W> state;
+    state.v = {-1, -2, -3, -4, -5, -6, -7};
+    const auto original = state.v;
+    bool invoked = false;
+    peer::Budget budget;
+    budget.maximum_scalar_updates = 6;
+    need(
+        !peer::assign_initial_scalars(state, budget,
+                                      [&](auto &v) {
+                                        invoked = true;
+                                        v.fill(0);
+                                      }) &&
+            !invoked && state.v == original && budget.scalar_updates == 0 &&
+            budget.status == S::work_limit,
+        "real initializer assignment cap refuses before its writer is invoked");
+    peer::Budget exact;
+    exact.maximum_scalar_updates = 7;
+    need(peer::assign_initial_scalars(
+             state, exact, [&](auto &v) { v = {1, 2, 3, 4, 5, 6, 7}; }) &&
+             exact.scalar_updates == 7 && state.v[6] == 7,
+         "real initializer charges its seven active scalar destinations");
+  }
+  {
+    peer::State<W> state;
+    state.R = {{.1L, .2L}};
+    const auto original = state.R;
+    peer::Budget budget;
+    budget.maximum_scalar_updates = 1;
+    need(!peer::resize_residual(state, 2, budget) && state.R == original &&
+             budget.status == S::work_limit && budget.scalar_updates == 0,
+         "real residual resize refuses before initializing an extra complex "
+         "node");
+    peer::Budget exact;
+    exact.maximum_scalar_updates = 2;
+    need(peer::resize_residual(state, 2, exact) && exact.scalar_updates == 2 &&
+             state.R[0] == original[0] && state.R[1] == C(0),
+         "residual resize charges newly initialized real and imaginary "
+         "components");
+  }
+  {
     peer::Budget budget;
     budget.maximum_rhs = 0;
     need(!budget.stage() && budget.status == S::work_limit && budget.rhs == 0 &&
@@ -767,10 +828,16 @@ void full_trace_controls(const irred::cosmology::ThermalBackground &background,
        "injected controls retain original stage and resource lineage");
 }
 
-void native_comparison(const irred::cosmology::ThermalBackground &background,
-                       const std::filesystem::path &directory,
-                       std::size_t &campaign_bytes) {
+struct ReferencePoint {
+  std::array<W, 3> value{}, error{};
+};
+
+ReferencePoint
+native_comparison(const irred::cosmology::ThermalBackground &background,
+                  const std::filesystem::path &directory,
+                  std::size_t &campaign_bytes) {
   using namespace irred::cosmology;
+  ReferencePoint shared_reference;
   // Exact declared request tuple. This is a synthetic source, not photons,
   // standard Planck species, ordinary sigma8, or a primary CMB calculation.
   need(background.status() == S::ok,
@@ -1083,6 +1150,10 @@ void native_comparison(const irred::cosmology::ThermalBackground &background,
     retain(peer_return);
     need(reference.status == S::ok && budget.status == S::ok,
          "independent angular trace campaign meets original allocation");
+    if (row_index == 1) {
+      shared_reference.value = reference.value;
+      shared_reference.error = reference.error;
+    }
     need(budget.rhs > 0 && budget.scalar_updates > 0 &&
              budget.background_queries > 0 && budget.ledger_bytes > 0 &&
              budget.attempted_stages > 0,
@@ -1161,6 +1232,611 @@ void native_comparison(const irred::cosmology::ThermalBackground &background,
               << " correction=" << reference.diagnostics.maximum_correction
               << '\n';
   }
+  return shared_reference;
+}
+
+using Background = irred::cosmology::ThermalBackground;
+using Model = irred::cosmology::ThermalFlatModel;
+using NativeBatch = irred::cosmology::MasslessFDTransferBatch;
+using NativePolicy = irred::cosmology::MasslessFDTransferPolicy;
+
+// These additional cases keep their own declared original native work cap.
+// They share the campaign's external evidence cap and never retry a refusal.
+NativeBatch retained_native_control(const Background &background,
+                                    const std::filesystem::path &directory,
+                                    std::size_t &campaign_bytes,
+                                    const char *name,
+                                    std::span<const double> waves,
+                                    double target, NativePolicy policy = {}) {
+  using namespace irred::cosmology;
+  peer::Budget record_budget;
+  record_budget.campaign_bytes = &campaign_bytes;
+  peer::Ledger ledger((directory / (std::string(name) + ".txt")).string());
+  auto record = [&](const std::ostringstream &text) {
+    need(ledger.write(text.str(), record_budget),
+         "additional native control record retained before admission check");
+  };
+  auto work = [](std::ostream &out, const MasslessFDTransferWork &count) {
+    out << " rhs=" << count.rhs << " scalars=" << count.scalar_updates
+        << " background=" << count.background_queries
+        << " age_evaluations=" << count.age_quadrature_evaluations
+        << " momentum_callbacks=" << count.momentum_callbacks;
+  };
+  constexpr unsigned outputs = massless_fd_comoving_cdm |
+                               massless_fd_spatial_potential |
+                               massless_fd_lapse_potential;
+  std::ostringstream request;
+  const auto &source = background.source();
+  request << std::setprecision(std::numeric_limits<W>::max_digits10)
+          << "control-request name=" << name
+          << " status=started completion=unobserved "
+             "incomplete_disposition=interrupted"
+          << " actual_counters=unavailable model="
+          << massless_fd_transfer_model_id
+          << " method=" << massless_fd_transfer_method_id
+          << " H0=" << source.h0_km_s_mpc << " gamma=" << source.omega_gamma
+          << " massless_nonphoton=" << source.omega_massless_nonphoton
+          << " baryon=" << source.omega_b << " cdm=" << source.omega_cdm
+          << " initial_a=" << double(1e-14) << " target_a=" << target
+          << " output_mask=" << outputs << " waves_count=" << waves.size()
+          << " absolute=" << policy.absolute_tolerance
+          << " relative=" << policy.relative_tolerance
+          << " maximum_log_step=" << policy.maximum_log_step
+          << " maximum_phase_step=" << policy.maximum_phase_step
+          << " constraint_cap=" << policy.maximum_constraint_residual
+          << " points_cap=" << policy.maximum_points
+          << " rhs_per_point_cap=" << policy.maximum_rhs_per_point
+          << " rhs_total_cap=" << policy.maximum_total_rhs
+          << " scalars_per_point_cap="
+          << policy.maximum_scalar_updates_per_point
+          << " scalars_total_cap=" << policy.maximum_total_scalar_updates
+          << " background_cap=" << policy.maximum_background_queries
+          << " age_cap=" << policy.maximum_age_quadrature_evaluations
+          << " payload_cap=" << policy.maximum_native_bytes
+          << " preparation_callbacks=" << background.preparation_callbacks()
+          << '\n';
+  for (std::size_t j = 0; j < source.species.size(); ++j)
+    request << "source-species index=" << j
+            << " mass=" << source.species[j].mass_ev
+            << " T0=" << source.species[j].temperature_today_ev
+            << " weight=" << source.species[j].statistical_weight << '\n';
+  for (std::size_t j = 0; j < waves.size(); ++j)
+    request << "source-wave index=" << j << " k=" << waves[j] << '\n';
+  record(request);
+  const auto owner = prepare_massless_fd_transfer(background, 1e-14);
+  std::ostringstream prepared;
+  prepared << "control-owner-prepare name=" << name
+           << " status=" << static_cast<int>(owner.status()) << '\n';
+  record(prepared);
+  need(owner.status() == S::ok && owner.background(),
+       "additional case retains admitted source owner");
+  need(owner.background()->source().h0_km_s_mpc == source.h0_km_s_mpc &&
+           owner.background()->source().omega_gamma == source.omega_gamma &&
+           owner.background()->source().omega_massless_nonphoton ==
+               source.omega_massless_nonphoton &&
+           owner.background()->source().omega_b == source.omega_b &&
+           owner.background()->source().omega_cdm == source.omega_cdm &&
+           owner.background()->source().species.size() ==
+               source.species.size() &&
+           owner.background()->momentum_method() ==
+               background.momentum_method(),
+       "additional native owner keeps exact supplied source and momentum "
+       "method");
+  for (std::size_t j = 0; j < source.species.size(); ++j) {
+    const auto &retained = owner.background()->source().species[j];
+    need(retained.mass_ev == source.species[j].mass_ev &&
+             retained.temperature_today_ev ==
+                 source.species[j].temperature_today_ev &&
+             retained.statistical_weight ==
+                 source.species[j].statistical_weight,
+         "additional native owner keeps physical species tuple order");
+  }
+  const auto batch = owner.evaluate(waves, target, outputs, policy);
+  std::ostringstream returned;
+  returned << "control-return name=" << name
+           << " completion=returned status=" << static_cast<int>(batch.status)
+           << " rows=" << batch.rows.size();
+  work(returned, batch.work);
+  returned << '\n';
+  record(returned);
+  for (std::size_t j = 0; j < batch.rows.size(); ++j) {
+    const auto &row = batch.rows[j];
+    std::ostringstream summary;
+    summary << std::setprecision(std::numeric_limits<W>::max_digits10)
+            << "control-row index=" << j << " k=" << row.wavenumber_mpc_inverse
+            << " eta=" << row.conformal_age_mpc
+            << " eta_error=" << row.conformal_age_error_mpc
+            << " constraint=" << row.maximum_constraint_residual
+            << " closure=" << row.maximum_closure_defect
+            << " background_identity=" << row.maximum_background_identity_defect
+            << " attempts=" << row.attempts_recorded;
+    work(summary, row.work);
+    summary << '\n';
+    record(summary);
+    const std::array<const MasslessFDTransferValue *, 3> values{
+        &row.comoving_cdm, &row.spatial_potential, &row.lapse_potential};
+    for (std::size_t field = 0; field < values.size(); ++field) {
+      const auto &value = *values[field];
+      std::ostringstream line;
+      line << std::setprecision(std::numeric_limits<W>::max_digits10)
+           << "control-field row=" << j << " field=" << field
+           << " status=" << static_cast<int>(value.status)
+           << " available=" << bool(value.value);
+      if (value.value)
+        line << " value=" << *value.value;
+      line << " error=" << value.absolute_error_estimate
+           << " time=" << value.time_refinement
+           << " initial=" << value.initial_refinement
+           << " hierarchy=" << value.hierarchy_refinement
+           << " background_age=" << value.background_age_sensitivity
+           << " arithmetic=" << value.arithmetic_cast_sensitivity << '\n';
+      record(line);
+    }
+    for (unsigned trial = 0;
+         trial <
+         std::min<std::size_t>(row.attempts_recorded, row.attempts.size());
+         ++trial) {
+      const auto &a = row.attempts[trial];
+      std::ostringstream line;
+      line << std::setprecision(std::numeric_limits<W>::max_digits10)
+           << "control-attempt row=" << j << " trial=" << trial
+           << " status=" << static_cast<int>(a.status)
+           << " hierarchy_l=" << a.hierarchy_l
+           << " time_divisor=" << a.time_divisor
+           << " control_kind=" << a.control_kind
+           << " control_sign=" << a.control_sign
+           << " endpoint_available=" << a.endpoint_available
+           << " lapse_available=" << a.lapse_available
+           << " endpoint_scale_factor=" << a.endpoint_scale_factor
+           << " metric_epoch_scale_factor=" << a.metric_epoch_scale_factor
+           << " maximum_stage_phase_bound=" << a.maximum_stage_phase_bound
+           << " maximum_phase_increment_upper="
+           << a.maximum_phase_increment_upper;
+      if (a.endpoint_available)
+        line << " Delta=" << a.endpoint[0] << " phi=" << a.endpoint[1]
+             << " endpoint_scaled_shear=" << a.endpoint_scaled_shear;
+      else
+        line << " Delta=unavailable phi=unavailable "
+                "endpoint_scaled_shear=unavailable";
+      if (a.endpoint_available && a.lapse_available)
+        line << " psi=" << a.endpoint[2];
+      else
+        line << " psi=unavailable";
+      line << " initial_status=" << static_cast<int>(a.initial.status);
+      if (a.initial.status == S::invalid_input)
+        line << " initial_fields=unavailable";
+      else
+        line << " initial_fields=available initial_a=" << a.initial.scale_factor
+             << " initial_eta=" << a.initial.eta_mpc
+             << " initial_phi=" << a.initial.projected_phi
+             << " initial_psi=" << a.initial.projected_psi
+             << " initial_Vc=" << a.initial.projected_vc
+             << " initial_Delta=" << a.initial.projected_delta
+             << " initial_Z=" << a.initial.projected_phi_n;
+      work(line, a.work);
+      line << '\n';
+      record(line);
+    }
+  }
+  need(batch.work.rhs <= policy.maximum_total_rhs &&
+           batch.work.scalar_updates <= policy.maximum_total_scalar_updates &&
+           batch.work.background_queries <= policy.maximum_background_queries &&
+           batch.work.age_quadrature_evaluations <=
+               policy.maximum_age_quadrature_evaluations,
+       "additional controls retain original all-attempt batch caps");
+  for (const auto &row : batch.rows)
+    need(row.work.rhs <= policy.maximum_rhs_per_point &&
+             row.work.scalar_updates <= policy.maximum_scalar_updates_per_point,
+         "additional controls retain original all-attempt point caps");
+  return batch;
+}
+
+bool admitted_control_row(const irred::cosmology::MasslessFDTransferRow &row,
+                          bool allow_numerical_refusal,
+                          bool allow_boundary_domain_refusal = false) {
+  using namespace irred::cosmology;
+  const NativePolicy policy;
+  const std::array<const MasslessFDTransferValue *, 3> values{
+      &row.comoving_cdm, &row.spatial_potential, &row.lapse_potential};
+  bool admitted = true;
+  for (const auto *value : values) {
+    if (value->status != S::ok) {
+      need(!value->value && allow_numerical_refusal &&
+               (value->status == S::work_limit ||
+                value->status == S::conditioning_budget_exceeded ||
+                (allow_boundary_domain_refusal &&
+                 value->status == S::outside_domain &&
+                 row.attempts_recorded > 0)),
+           "adversarial numerical refusal retains unqualified status and "
+           "withholds field");
+      admitted = false;
+      continue;
+    }
+    need(value->value && std::isfinite(*value->value),
+         "admitted additional control signed field available");
+    const W epsilon = 1e-7L + 1e-4L * std::abs(W(*value->value));
+    const std::array<W, 5> terms{
+        value->time_refinement, value->initial_refinement,
+        value->hierarchy_refinement, value->background_age_sensitivity,
+        value->arithmetic_cast_sensitivity};
+    W sum = 0;
+    for (W term : terms) {
+      need(std::isfinite(term) && term >= 0 && term <= epsilon / 6,
+           "additional admitted field keeps each original numerical share");
+      sum += term;
+    }
+    need(sum <= 5 * epsilon / 6 &&
+             std::isfinite(value->absolute_error_estimate) &&
+             value->absolute_error_estimate >= 0 &&
+             value->absolute_error_estimate <= 5 * epsilon / 6,
+         "additional admitted field keeps original total allocation");
+    near(value->absolute_error_estimate, sum, 0,
+         8 * std::numeric_limits<double>::epsilon(),
+         "additional admitted error retains all named contributions");
+  }
+  if (!admitted) {
+    std::cout << "UNQUALIFIED additional native control k="
+              << row.wavenumber_mpc_inverse
+              << " status=" << static_cast<int>(row.comoving_cdm.status)
+              << '\n';
+    return false;
+  }
+  need(row.attempts_recorded == row.attempts.size() &&
+           row.maximum_constraint_residual <= 1e-7 &&
+           row.maximum_closure_defect <= 1e-7 &&
+           row.maximum_background_identity_defect <= 1e-7,
+       "additional admitted case retains original trials and "
+       "Einstein/background gates");
+  for (const auto &a : row.attempts)
+    need(a.status == S::ok && a.endpoint_available && a.lapse_available &&
+             a.endpoint_scale_factor == a.metric_epoch_scale_factor &&
+             std::isfinite(a.maximum_stage_phase_bound) &&
+             a.maximum_stage_phase_bound >= 0 &&
+             a.maximum_stage_phase_bound <= W(policy.maximum_phase_step) &&
+             std::isfinite(a.maximum_phase_increment_upper) &&
+             a.maximum_phase_increment_upper >= 0 &&
+             a.maximum_phase_increment_upper <= W(policy.maximum_phase_step),
+         "additional admitted trial phase and metric epoch witnesses remain "
+         "bound");
+  return true;
+}
+
+void compare_reference_point(const irred::cosmology::MasslessFDTransferRow &row,
+                             const ReferencePoint &reference) {
+  const std::array<const irred::cosmology::MasslessFDTransferValue *, 3> values{
+      &row.comoving_cdm, &row.spatial_potential, &row.lapse_potential};
+  for (std::size_t field = 0; field < values.size(); ++field) {
+    const W value = *values[field]->value;
+    const W epsilon = 1e-7L + 1e-4L * std::abs(value);
+    need(std::isfinite(reference.value[field]) &&
+             std::isfinite(reference.error[field]) &&
+             reference.error[field] >= 0 &&
+             reference.error[field] <= epsilon / 6 &&
+             std::abs(value - reference.value[field]) +
+                     reference.error[field] <=
+                 epsilon,
+         "additional native case meets unchanged independent reference "
+         "allocation");
+  }
+}
+
+void species_and_epoch_controls(const Background &baseline,
+                                const ReferencePoint &reference,
+                                const std::filesystem::path &directory,
+                                std::size_t &campaign_bytes) {
+  using namespace irred::cosmology;
+  const std::array<double, 1> wave{.01};
+  peer::Budget identity_budget;
+  identity_budget.campaign_bytes = &campaign_bytes;
+  peer::Ledger identity_record(
+      (directory / "species-identity-setup.txt").string());
+  auto retain_identity = [&](const std::ostringstream &line) {
+    need(identity_record.write(line.str(), identity_budget),
+         "species identity inputs/setup counters retained before checks");
+  };
+  need(identity_budget.charge(identity_budget.background_queries, 1,
+                              identity_budget.maximum_background_queries),
+       "baseline species-identity background query charged");
+  const auto base_radiation = baseline.scaled_expansion(0);
+  identity_budget.momentum_callbacks += base_radiation.callbacks;
+  std::ostringstream base_record;
+  base_record << std::setprecision(std::numeric_limits<W>::max_digits10)
+              << "baseline-radiation status="
+              << static_cast<int>(base_radiation.status)
+              << " P0=" << base_radiation.a4_e2
+              << " error=" << base_radiation.error_estimate
+              << " background=" << identity_budget.background_queries
+              << " momentum_callbacks=" << identity_budget.momentum_callbacks
+              << '\n';
+  retain_identity(base_record);
+  need(base_radiation.status == S::ok,
+       "baseline retained radiation for species identity");
+  auto radiation_weight = [&](const Model &m) {
+    need(identity_budget.scalars(1 + 4 * m.species.size()),
+         "independent species-weight construction charged");
+    W sum = 0;
+    for (const auto &species : m.species) {
+      const W t = species.temperature_today_ev;
+      sum += W(species.statistical_weight) * t * t * t * t;
+    }
+    return sum;
+  };
+  const Model split{70, 0, 0, 0, .3, {{0, .0002, 1}, {0, .0002, 1}}};
+  const Model degenerate{70, 0, 0, 0, .3, {{0, .0002, 1}, {0, .0001, 16}}};
+  Model reversed = degenerate;
+  std::reverse(reversed.species.begin(), reversed.species.end());
+  const std::array<const Model *, 3> models{&split, &degenerate, &reversed};
+  const std::array<const char *, 3> names{
+      "species-split", "species-temperature-weight", "species-reversed"};
+  for (std::size_t variation = 0; variation < models.size(); ++variation) {
+    const auto &model = *models[variation];
+    std::ostringstream input;
+    input << std::setprecision(std::numeric_limits<W>::max_digits10)
+          << "species-case name=" << names[variation]
+          << " status=started completion=unobserved "
+             "incomplete_disposition=interrupted"
+          << " H0=" << model.h0_km_s_mpc << " cdm=" << model.omega_cdm
+          << " initial_a=" << double(1e-14) << " target_a=" << double(1e-4)
+          << " k=" << wave[0] << '\n';
+    for (std::size_t j = 0; j < model.species.size(); ++j)
+      input << "species index=" << j << " mass=" << model.species[j].mass_ev
+            << " T0=" << model.species[j].temperature_today_ev
+            << " weight=" << model.species[j].statistical_weight << '\n';
+    retain_identity(input);
+    near(radiation_weight(model), radiation_weight(baseline.source()), 0,
+         arithmetic, "independent massless g*T0^4 degeneracy");
+    const auto background = prepare_thermal_background(model);
+    identity_budget.momentum_callbacks += background.preparation_callbacks();
+    std::ostringstream prepared;
+    prepared << "species-prepared name=" << names[variation]
+             << " status=" << static_cast<int>(background.status())
+             << " preparation_callbacks=" << background.preparation_callbacks()
+             << '\n';
+    retain_identity(prepared);
+    need(background.status() == S::ok &&
+             background.source().species.size() == 2,
+         "explicit split/temperature-weight source admitted without source "
+         "collapse");
+    for (std::size_t j = 0; j < model.species.size(); ++j)
+      need(background.source().species[j].mass_ev == model.species[j].mass_ev &&
+               background.source().species[j].temperature_today_ev ==
+                   model.species[j].temperature_today_ev &&
+               background.source().species[j].statistical_weight ==
+                   model.species[j].statistical_weight,
+           "thermal owner preserves exact distinct physical tuple order");
+    need(identity_budget.charge(identity_budget.background_queries, 1,
+                                identity_budget.maximum_background_queries),
+         "species identity retained-radiation query charged");
+    const auto radiation = background.scaled_expansion(0);
+    identity_budget.momentum_callbacks += radiation.callbacks;
+    std::ostringstream radiation_record;
+    radiation_record << std::setprecision(std::numeric_limits<W>::max_digits10)
+                     << "species-radiation name=" << names[variation]
+                     << " status=" << static_cast<int>(radiation.status)
+                     << " P0=" << radiation.a4_e2
+                     << " error=" << radiation.error_estimate
+                     << " background=" << identity_budget.background_queries
+                     << " scalars=" << identity_budget.scalar_updates
+                     << " momentum_callbacks="
+                     << identity_budget.momentum_callbacks << '\n';
+    retain_identity(radiation_record);
+    need(radiation.status == S::ok &&
+             std::abs(radiation.a4_e2 - base_radiation.a4_e2) <=
+                 radiation.error_estimate + base_radiation.error_estimate,
+         "retained thermal radiation matches mathematical massless degeneracy");
+    const auto got = retained_native_control(
+        background, directory, campaign_bytes, names[variation], wave, 1e-4);
+    need(got.status == S::ok && got.rows.size() == 1 &&
+             got.rows[0].wavenumber_mpc_inverse == wave[0],
+         "one-k species control preserves ordered required request");
+    need(admitted_control_row(got.rows[0], false),
+         "required species transfer comparison earns numerical admission");
+    // The source algebra fixes the same total radiation. Reuse the existing
+    // baseline angular/TRACE reference rather than repeat its full campaign.
+    compare_reference_point(got.rows[0], reference);
+  }
+  std::ostringstream near_input;
+  near_input << "near-radiation-prepare status=started completion=unobserved"
+             << " incomplete_disposition=interrupted H0=70 gamma=0 "
+                "massless_nonphoton=0"
+             << " baryon=0 cdm=1e-6 species0_mass=0 species0_T0=.0002 "
+                "species0_weight=2\n";
+  retain_identity(near_input);
+  const auto near_radiation =
+      prepare_thermal_background({70, 0, 0, 0, 1e-6, {{0, .0002, 2}}});
+  identity_budget.momentum_callbacks += near_radiation.preparation_callbacks();
+  std::ostringstream near_prepared;
+  near_prepared << "near-radiation-prepared status="
+                << static_cast<int>(near_radiation.status())
+                << " preparation_callbacks="
+                << near_radiation.preparation_callbacks() << '\n';
+  retain_identity(near_prepared);
+  need(near_radiation.status() == S::ok,
+       "positive-CDM near-radiation physical source admitted");
+  const auto got = retained_native_control(
+      near_radiation, directory, campaign_bytes, "near-radiation", wave, 1e-4);
+  need(got.status == S::ok && got.rows.size() == 1 &&
+           admitted_control_row(got.rows[0], false),
+       "required positive-CDM near-radiation transfer earns native admission");
+  peer::Budget budget;
+  budget.campaign_bytes = &campaign_bytes;
+  const auto independent =
+      peer::campaign(near_radiation, wave[0], 1e-14, 1e-4,
+                     (directory / "near-radiation-peer.txt").string(), budget);
+  // Preserve a first failed reference before asserting its numerical status.
+  peer::Budget record_budget;
+  record_budget.campaign_bytes = &campaign_bytes;
+  peer::Ledger record((directory / "near-radiation-peer-return.txt").string());
+  std::ostringstream summary;
+  summary << "near-radiation-peer status="
+          << static_cast<int>(independent.status)
+          << " diagnostics_partial=" << (independent.status == S::ok ? 0 : 1)
+          << " rhs=" << budget.rhs << " scalars=" << budget.scalar_updates
+          << " background=" << budget.background_queries
+          << " age_evaluations=" << budget.age_quadrature_evaluations
+          << " ledger_bytes=" << budget.ledger_bytes
+          << " logging_refusals=" << budget.logging_refusals;
+  for (std::size_t field = 0; field < independent.value.size(); ++field) {
+    if (independent.status == S::ok)
+      summary << " value" << field << '=' << independent.value[field];
+    summary << " diagnostic_error" << field << '=' << independent.error[field];
+    for (std::size_t term = 0; term < independent.contributions[field].size();
+         ++term)
+      summary << " diagnostic_contribution" << field << '_' << term << '='
+              << independent.contributions[field][term];
+  }
+  summary << '\n';
+  need(record.write(summary.str(), record_budget),
+       "near-radiation peer refusal or result retained");
+  need(independent.status == S::ok && budget.status == S::ok,
+       "required near-radiation angular TRACE peer earns admission within "
+       "original caps");
+  const ReferencePoint near_reference{independent.value, independent.error};
+  for (std::size_t field = 0; field < independent.value.size(); ++field) {
+    const auto &row = got.rows[0];
+    const std::array<const MasslessFDTransferValue *, 3> values{
+        &row.comoving_cdm, &row.spatial_potential, &row.lapse_potential};
+    const W epsilon = 1e-7L + 1e-4L * std::abs(W(*values[field]->value));
+    for (W term : independent.contributions[field])
+      need(std::isfinite(term) && term >= 0 && term <= epsilon / 30,
+           "near-radiation peer keeps each original numerical share");
+  }
+  compare_reference_point(got.rows[0], near_reference);
+}
+
+void late_and_phase_controls(const Background &background,
+                             const std::filesystem::path &directory,
+                             std::size_t &campaign_bytes) {
+  using namespace irred::cosmology;
+  // One batch earns an a=1 trial and acquires the native Big-Bang-age witness
+  // on an outside-phase row before any hierarchy trial for that row.
+  const std::array<double, 2> late_waves{1e-7, .01};
+  const auto late = retained_native_control(
+      background, directory, campaign_bytes, "late-inclusive-and-phase-outside",
+      late_waves, 1);
+  need(late.status == S::ok && late.rows.size() == late_waves.size(),
+       "a1 inclusive request retains both original rows");
+  admitted_control_row(late.rows[0], true);
+  const auto &outside = late.rows[1];
+  need(outside.comoving_cdm.status == S::outside_domain &&
+           outside.spatial_potential.status == S::outside_domain &&
+           outside.lapse_potential.status == S::outside_domain &&
+           !outside.comoving_cdm.value && !outside.spatial_potential.value &&
+           !outside.lapse_potential.value && outside.attempts_recorded == 0 &&
+           outside.work.rhs == 0 &&
+           W(late_waves[1]) * (outside.conformal_age_mpc +
+                               outside.conformal_age_error_mpc) >
+               20,
+       "actual outside-phase Big-Bang-age gate refuses before hierarchy "
+       "attempts");
+  const W eta = outside.conformal_age_mpc,
+          error = outside.conformal_age_error_mpc;
+  need(std::isfinite(eta) && std::isfinite(error) && eta > error && error > 0,
+       "actual native phase witness has finite positive age uncertainty");
+  peer::Budget age_budget;
+  age_budget.campaign_bytes = &campaign_bytes;
+  peer::Ledger phase_record(
+      (directory / "phase-construction-and-independent-age.txt").string());
+  std::ostringstream age_request;
+  age_request << "independent-age-request status=started completion=unobserved"
+              << " incomplete_disposition=interrupted "
+                 "actual_counters=unavailable target_a=1"
+              << " background_cap=" << age_budget.maximum_background_queries
+              << " age_cap=" << age_budget.maximum_age_quadrature_evaluations
+              << " scalars_cap=" << age_budget.maximum_scalar_updates << '\n';
+  need(phase_record.write(age_request.str(), age_budget),
+       "independent age pending request retained before setup and evaluation");
+  need(age_budget.charge(age_budget.background_queries, 1,
+                         age_budget.maximum_background_queries),
+       "independent late-age radiation query charged");
+  const auto radiation = background.scaled_expansion(0);
+  age_budget.momentum_callbacks += radiation.callbacks;
+  need(radiation.status == S::ok,
+       "independent late-age retained radiation acquired");
+  const auto independent_age = peer::endpoint_age(
+      background, 1, radiation.a4_e2, radiation.error_estimate, age_budget);
+  std::ostringstream age_record;
+  age_record << std::setprecision(std::numeric_limits<W>::max_digits10)
+             << "independent-age status="
+             << static_cast<int>(independent_age.status)
+             << " background=" << age_budget.background_queries
+             << " age_evaluations=" << age_budget.age_quadrature_evaluations
+             << " scalars=" << age_budget.scalar_updates
+             << " momentum_callbacks=" << age_budget.momentum_callbacks;
+  if (independent_age.status == S::ok)
+    age_record << " eta=" << independent_age.value
+               << " eta_error=" << independent_age.error;
+  else
+    age_record << " eta=unavailable eta_error=unavailable";
+  age_record << '\n';
+  need(phase_record.write(age_record.str(), age_budget),
+       "independent age result/refusal and its actual counters retained");
+  need(independent_age.status == S::ok &&
+           std::abs(independent_age.value - eta) <=
+               independent_age.error + error,
+       "different endpoint-age algorithm agrees within retained age "
+       "diagnostics");
+  need(age_budget.scalars(12),
+       "actual derived phase input construction charged");
+  const double threshold = static_cast<double>(20 / (eta + error));
+  const double inside = static_cast<double>(19 / (eta + error));
+  const double ambiguous_inside = std::nextafter(threshold, 0.0);
+  const double beyond =
+      std::nextafter(threshold, std::numeric_limits<double>::infinity());
+  const double uncertainty_crossing =
+      std::nextafter(static_cast<double>(20 / eta), 0.0);
+  std::ostringstream phase_inputs;
+  phase_inputs
+      << std::setprecision(std::numeric_limits<W>::max_digits10)
+      << "phase-inputs native_eta=" << eta << " native_eta_error=" << error
+      << " target_a=1 original_phase_limit=20\n"
+      << "phase-mode index=0 role=physical-interior-19 k=" << inside << '\n'
+      << "phase-mode index=1 role=central-upper-neighbor-inside-unresolved k="
+      << ambiguous_inside << '\n'
+      << "phase-mode index=2 role=central-upper-neighbor-outside k=" << beyond
+      << '\n'
+      << "phase-mode index=3 role=central-inside-uncertainty-outside k="
+      << uncertainty_crossing << '\n';
+  need(phase_record.write(phase_inputs.str(), age_budget),
+       "each actual phase input and its selection reason retained before "
+       "request");
+  need(inside >= 1e-7 && beyond <= .01 && uncertainty_crossing <= .01 &&
+           W(inside) * (eta + error) <= 20 &&
+           W(ambiguous_inside) * (eta + error) <= 20 &&
+           W(beyond) * (eta + error) > 20 && W(beyond) * error <= 1e-6L &&
+           W(uncertainty_crossing) * eta < 20 &&
+           W(uncertainty_crossing) * (eta + error) > 20,
+       "binary64 adversarial phase controls straddle actual age upper bound");
+  const std::array<double, 4> phases{inside, ambiguous_inside, beyond,
+                                     uncertainty_crossing};
+  const auto boundary =
+      retained_native_control(background, directory, campaign_bytes,
+                              "phase-boundary-and-age-uncertainty", phases, 1);
+  need(boundary.status == S::ok && boundary.rows.size() == phases.size(),
+       "phase controls retain actual original source axis order");
+  admitted_control_row(boundary.rows[0], true);
+  // The neighboring central inside mode can cross a matched input trial's
+  // own uncertainty envelope. Keep that refusal explicitly unqualified.
+  admitted_control_row(boundary.rows[1], true, true);
+  for (std::size_t j : {std::size_t(2), std::size_t(3)}) {
+    const auto &row = boundary.rows[j];
+    need(row.wavenumber_mpc_inverse == phases[j] &&
+             row.attempts_recorded == 0 && row.work.rhs == 0 &&
+             row.comoving_cdm.status == S::outside_domain &&
+             row.spatial_potential.status == S::outside_domain &&
+             row.lapse_potential.status == S::outside_domain &&
+             !row.comoving_cdm.value && !row.spatial_potential.value &&
+             !row.lapse_potential.value,
+         "outside/uncertainty-crossing phase controls refuse with no "
+         "fabricated hierarchy value");
+  }
+  const std::array<double, 1> low_wave{1e-7};
+  const auto too_late = retained_native_control(
+      background, directory, campaign_bytes, "endpoint-above-inclusive-a1",
+      low_wave, std::nextafter(1.0, std::numeric_limits<double>::infinity()));
+  need(too_late.status == S::outside_domain && too_late.rows.empty() &&
+           too_late.work.rhs == 0,
+       "next binary64 endpoint above a1 refuses original physical domain");
 }
 
 } // namespace
@@ -1187,7 +1863,10 @@ int main() {
     resource_controls(evidence);
     eds_equation_controls();
     full_trace_controls(background, evidence, campaign_bytes);
-    native_comparison(background, evidence, campaign_bytes);
+    const auto reference =
+        native_comparison(background, evidence, campaign_bytes);
+    species_and_epoch_controls(background, reference, evidence, campaign_bytes);
+    late_and_phase_controls(background, evidence, campaign_bytes);
     std::cout << "PASS " << checks
               << " massless FD characteristic/nodal/trace controls\n";
   } catch (const std::exception &error) {
