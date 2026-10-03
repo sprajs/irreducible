@@ -109,7 +109,8 @@ void postcheck_exp(const ElementaryLogContext &,const ElementaryWide &argument,
 // False writes integer-only admission receipt; no candidate call is made.
 bool admit_elementary_candidate(ElementaryBudget &,ElementaryRefusal &,
                                ElementaryControlWork &) noexcept;
-// Exact caller widening import is a charged basic/write action, not raw copying.
+// Exact normal-or-zero binary64 widening: selected profile and input guards
+// precede the charged basic/write action. Refusal leaves destination unassigned.
 bool import_elementary_coordinate(const double &,ElementaryWide &,ElementaryBudget &,
                                  ElementaryRefusal &,ElementaryControlWork &) noexcept;
 // One fixed caller output-admission predicate, evaluated only after this charge.

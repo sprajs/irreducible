@@ -27,14 +27,25 @@ enum Count:unsigned { basic,neighbor,scaling,term,library,write,copy,guards,atte
 enum Op:unsigned { add,subtract,multiply,divide,signed_add };
 
 // Admission does not call itself. No floating object is constructed here.
-IRRED_ELEMENTARY_INLINE bool admit(ElementaryBudget &b,ElementaryRefusal &r,ElementaryControlWork &c,
+enum class Admission {ok,invalid,overflow,limited};
+IRRED_ELEMENTARY_INLINE Admission admit(ElementaryBudget &b,ElementaryRefusal &r,ElementaryControlWork &c,
            Stage stage,const Work &delta,std::uint64_t scalar) noexcept {
   ++c.transitions;
+  const auto &v=b.ledger.served.counters;
+  // Integer consistency is part of EVERY transaction before any commit/action.
+  // It is not a recursively admitted floating predicate or an assumed cache.
+  const bool valid=v[basic]<=UINT64_MAX-v[neighbor] &&
+    v[basic]+v[neighbor]<=UINT64_MAX-v[library] &&
+    v[basic]+v[neighbor]+v[library]==b.ledger.scalar_total &&
+    v[scaling]<=v[basic] && v[copy]<=v[write];
+  if(!valid) {
+    r.occurred=true;r.stage=stage;r.requested_increment=delta;
+    return Admission::invalid;
+  }
   bool overflow=false;
   for(unsigned i=0;i<9;++i)
     overflow |= delta.counters[i]>UINT64_MAX-b.ledger.served.counters[i];
   overflow |= scalar>UINT64_MAX-b.ledger.scalar_total;
-  const auto &v=b.ledger.served.counters;
   const bool limited=b.ledger.scalar_total>b.maximum_scalar ||
     v[write]>b.maximum_writes || v[copy]>b.maximum_copies || v[guards]>b.maximum_guards ||
     (!overflow && (scalar>b.maximum_scalar-b.ledger.scalar_total ||
@@ -43,18 +54,20 @@ IRRED_ELEMENTARY_INLINE bool admit(ElementaryBudget &b,ElementaryRefusal &r,Elem
       delta.counters[guards]>b.maximum_guards-v[guards]));
   if(overflow || limited) {
     r.occurred=true; r.stage=stage; r.requested_increment=delta;
-    return false;
+    return overflow?Admission::overflow:Admission::limited;
   }
   for(unsigned i=0;i<9;++i)b.ledger.served.counters[i]+=delta.counters[i];
   b.ledger.scalar_total+=scalar;
-  return true;
+  return Admission::ok;
 }
 IRRED_ELEMENTARY_INLINE void finish_control(ElementaryControlWork &c) noexcept {
   c.integer_operation_upper=128*c.transitions+128*c.predicates+32*c.iterations+512;
 }
 IRRED_ELEMENTARY_INLINE bool profile() noexcept {
-#if defined(__GNUC__) && !defined(__clang__) && defined(__x86_64__) && defined(__linux__) && !defined(__FAST_MATH__)
-  if(CHAR_BIT!=8 || sizeof(void *)!=8 || sizeof(W)!=16 || alignof(W)>16 || LDBL_MANT_DIG!=64 ||
+#if defined(__GNUC__) && !defined(__clang__) && defined(__x86_64__) && defined(__linux__) && !defined(__FAST_MATH__) && (!defined(__FINITE_MATH_ONLY__) || __FINITE_MATH_ONLY__ == 0)
+  if(CHAR_BIT!=8 || sizeof(void *)!=8 || sizeof(double)!=8 ||
+     std::numeric_limits<double>::digits!=53 || !std::numeric_limits<double>::is_iec559 ||
+     sizeof(W)!=16 || alignof(W)>16 || LDBL_MANT_DIG!=64 ||
      LDBL_MIN_EXP!=-16381 || LDBL_MAX_EXP!=16384 ||
      std::endian::native!=std::endian::little || std::fegetround()!=FE_TONEAREST)
     return false;
@@ -93,10 +106,10 @@ struct Engine {
     s.validity.fill(0);
   }
   IRRED_ELEMENTARY_INLINE bool charge(const Work &delta,std::uint64_t scalar=0) noexcept {
-    if(admit(b,refusal,control,stage,delta,scalar))return true;
-    bool overflow=scalar>UINT64_MAX-b.ledger.scalar_total;
-    for(unsigned i=0;i<9;++i)overflow|=delta.counters[i]>UINT64_MAX-b.ledger.served.counters[i];
-    status=overflow?Status::counter_overflow:Status::work_limit;
+    const auto admission=admit(b,refusal,control,stage,delta,scalar);
+    if(admission==Admission::ok)return true;
+    status=admission==Admission::invalid?Status::invalid_input:
+      admission==Admission::overflow?Status::counter_overflow:Status::work_limit;
     return false;
   }
   template<class Predicate> IRRED_ELEMENTARY_INLINE bool decide(bool &answer,Predicate predicate) noexcept {
@@ -114,27 +127,27 @@ struct Engine {
     if(!charge(Work{{0,0,0,0,0,0,0,0,1}}))return false;
     stage=Stage::profile;
     if(!require([]{return profile();},Status::unsupported_arithmetic))return false;
-    if(!require([&]{
-      const auto &v=b.ledger.served.counters;
-      return v[basic]<=UINT64_MAX-v[neighbor] && v[basic]+v[neighbor]<=UINT64_MAX-v[library] &&
-        v[basic]+v[neighbor]+v[library]==b.ledger.scalar_total && v[scaling]<=v[basic] &&
-        v[copy]<=v[write];
-    },Status::invalid_input))return false;
     return require([]{return normal(one)&&normal(two)&&normal(three)&&normal(tail)&&
       normal(range_lower)&&normal(range_upper)&&normal(positive_max)&&normal(negative_max);},
       Status::unsupported_arithmetic);
   }
   IRRED_ELEMENTARY_INLINE bool ownership(const W &x,const W &y,const void *output,std::size_t n,
                  const void *context=nullptr,std::size_t cn=0) noexcept {
+    // Five finite leaves, each <=4 overlap calls (<=8 uintptr destinations).
+    // Do not fold17 calls into the old16-write semantic-leaf reservation.
     return require([&]{
       return !overlap(&x,sizeof(W),&s,sizeof(s)) && !overlap(&y,sizeof(W),&s,sizeof(s)) &&
-        !overlap(&x,sizeof(W),output,n) && !overlap(&y,sizeof(W),output,n) &&
-        (!context || (!overlap(&x,sizeof(W),context,cn)&&!overlap(&y,sizeof(W),context,cn))) &&
-        !overlap(&s,sizeof(s),output,n) && (!context || (!overlap(context,cn,output,n)&&
-          !overlap(context,cn,&s,sizeof(s)))) &&
-        !overlap(&x,sizeof(W),&b,sizeof(b)) && !overlap(&y,sizeof(W),&b,sizeof(b)) &&
-        !overlap(&x,sizeof(W),&b.ledger,sizeof(b.ledger)) && !overlap(&y,sizeof(W),&b.ledger,sizeof(b.ledger)) &&
-        !overlap(&s,sizeof(s),&b,sizeof(b)) && !overlap(&s,sizeof(s),&b.ledger,sizeof(b.ledger)) &&
+        !overlap(&x,sizeof(W),output,n) && !overlap(&y,sizeof(W),output,n);
+    },Status::invalid_ownership) && require([&]{
+      return !context || (!overlap(&x,sizeof(W),context,cn)&&!overlap(&y,sizeof(W),context,cn));
+    },Status::invalid_ownership) && require([&]{
+      return !overlap(&s,sizeof(s),output,n) && (!context || (!overlap(context,cn,output,n)&&
+          !overlap(context,cn,&s,sizeof(s))));
+    },Status::invalid_ownership) && require([&]{
+      return !overlap(&x,sizeof(W),&b,sizeof(b)) && !overlap(&y,sizeof(W),&b,sizeof(b)) &&
+        !overlap(&x,sizeof(W),&b.ledger,sizeof(b.ledger)) && !overlap(&y,sizeof(W),&b.ledger,sizeof(b.ledger));
+    },Status::invalid_ownership) && require([&]{
+      return !overlap(&s,sizeof(s),&b,sizeof(b)) && !overlap(&s,sizeof(s),&b.ledger,sizeof(b.ledger)) &&
         !overlap(output,n,&b,sizeof(b)) && !overlap(output,n,&b.ledger,sizeof(b.ledger));
     },Status::invalid_ownership);
   }
@@ -271,6 +284,7 @@ struct ElementaryImplementation {
   }
   static IRRED_ELEMENTARY_INLINE void prepare(ElementaryLogContext &c,ElementaryBudget &b,ElementaryScratch &s) noexcept {
     const bool unattempted=c.status==Status::unavailable && !c.log2_;
+    c.log2_.reset();c.profile_fingerprint_=0; // Ends prior endpoints; no Wide assignment.
     Engine e(b,s,c.refusal,c.control_work,c.status,c.stage,c.preparation_work);
     if(e.begin() && e.require([&]{return unattempted;},Status::invalid_input)) {
       e.stage=Stage::rational;
@@ -382,25 +396,36 @@ void postcheck_exp(const ElementaryLogContext &c,const W &n,const W &y,Elementar
 }
 bool admit_elementary_candidate(ElementaryBudget &b,ElementaryRefusal &r,ElementaryControlWork &c) noexcept {
   r={};c={};
-  if(!admit(b,r,c,Stage::profile,Work{{0,0,0,0,0,0,0,1,0}},0)) {
+  if(admit(b,r,c,Stage::profile,Work{{0,0,0,0,0,0,0,1,0}},0)!=Admission::ok) {
     finish_control(c);return false;
   }
   ++c.predicates;
   if(!profile()) {
     r.occurred=true;r.stage=Stage::profile;finish_control(c);return false;
   }
-  const bool accepted=admit(b,r,c,Stage::candidate_call,Work{{0,0,0,0,1,1,0,0,0}},1);
+  const bool accepted=admit(b,r,c,Stage::candidate_call,Work{{0,0,0,0,1,1,0,0,0}},1)==Admission::ok;
   finish_control(c);return accepted;
 }
 bool import_elementary_coordinate(const double &x,W &out,ElementaryBudget &b,
                                  ElementaryRefusal &r,ElementaryControlWork &c) noexcept {
-  r={};c={};const bool accepted=admit(b,r,c,Stage::input,Work{{1,0,0,0,0,1,0,0,0}},1);
+  r={};c={};
+  if(admit(b,r,c,Stage::profile,Work{{0,0,0,0,0,0,0,1,0}},0)!=Admission::ok) {
+    finish_control(c);return false;
+  }
+  ++c.predicates;
+  if(!profile()) {r.occurred=true;r.stage=Stage::profile;finish_control(c);return false;}
+  if(admit(b,r,c,Stage::input,Work{{0,0,0,0,0,0,0,1,0}},0)!=Admission::ok) {
+    finish_control(c);return false;
+  }
+  ++c.predicates;
+  if(!(std::isnormal(x)||x==0.0)) {r.occurred=true;r.stage=Stage::input;finish_control(c);return false;}
+  const bool accepted=admit(b,r,c,Stage::input,Work{{1,0,0,0,0,1,0,0,0}},1)==Admission::ok;
   if(accepted)out=static_cast<W>(x);
   finish_control(c);return accepted;
 }
 bool admit_elementary_output_guard(ElementaryBudget &b,ElementaryRefusal &r,
                                   ElementaryControlWork &c) noexcept {
-  r={};c={};const bool accepted=admit(b,r,c,Stage::image,Work{{0,0,0,0,0,0,0,1,0}},0);
+  r={};c={};const bool accepted=admit(b,r,c,Stage::image,Work{{0,0,0,0,0,0,0,1,0}},0)==Admission::ok;
   if(accepted)++c.predicates;
   finish_control(c);return accepted;
 }

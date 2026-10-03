@@ -27,13 +27,20 @@ def frames(path):
 
 
 def run(binary):
-    completed=subprocess.run([str(binary),"--facts"],stdout=subprocess.PIPE,stderr=subprocess.STDOUT)
-    if completed.returncode or len(completed.stdout)>65536:
-        raise RuntimeError(f"native lifetime/frame invocation refused: {completed.stdout!r}")
-    records=[json.loads(line) for line in completed.stdout.splitlines()]
+    process=subprocess.Popen([str(binary),"--facts"],stdout=subprocess.PIPE,stderr=subprocess.STDOUT)
+    output=process.stdout.read(65537)
+    if len(output)>65536:
+        process.kill();process.wait()
+        raise RuntimeError(f"native lifetime/frame byte limit; original prefix={output!r}")
+    if process.wait():
+        raise RuntimeError(f"native lifetime/frame invocation refused: {output!r}")
+    records=[json.loads(line) for line in output.splitlines()]
     if len(records)!=15 or records[-1][0]!="summary":
         raise RuntimeError("complete owning fixture receipt missing")
-    return completed.stdout,records[-1]
+    maxima=records[-1][8]
+    if len(maxima)!=4 or any(not isinstance(v,int) or v<0 or v>cap for v,cap in zip(maxima,(256,1024,4096,512))):
+        raise RuntimeError("complete encoder extrema/branch receipt missing")
+    return output,records[-1]
 
 
 def qualify(build,target,summary):
@@ -69,7 +76,10 @@ def qualify(build,target,summary):
     sizes={method:max([size for name,size in caller if f"Wire::{method}(" in name],default=0) for method in dag}
     def chain(method):
         return sizes[method]+max([chain(child) for child in dag[method]],default=0)
-    encoder=max(chain(method) for method in dag)
+    unmatched_wire=[(name,size) for name,size in caller if "Wire::" in name and
+                    not any(f"Wire::{method}(" in name for method in dag)]
+    # Unknown template/outlining spelling never becomes a free encoder frame.
+    encoder=max(chain(method) for method in dag)+sum(size for _,size in unmatched_wire)
     # Zero-allocation observer and failing assertion/I/O observers are separate
     # validation paths. They cannot qualify a successful fixture via this gate.
     if summary[4] or summary[5]:
@@ -82,6 +92,7 @@ def qualify(build,target,summary):
     receipt={"target":target,"helper_raw":helper,"caller_raw":caller,
              "active_helper_control_copy_frame_upper":active,"native_owned_peak_upper":peak,
              "encoder_literal_DAG_frame_upper":encoder,"conservative_unknown_caller_frames":unknown,
+             "conservative_unmatched_encoder_frames":unmatched_wire,
              "opaque_primitive512_profile_assumption":True,
              "compiler_receipt_sha256":[hashlib.sha256(p.read_bytes()).hexdigest() for p in (helper_path,caller_path)]}
     print(json.dumps(receipt))

@@ -94,17 +94,35 @@ This pure-math fixture retains the source clock lineage; it runs no physical
 background or acoustic model. Its fixed limits are 8192 scalar actions, 16384
 writes, 16384 copies, 65536 semantic guards and 4096 native-owned bytes.
 
-The adversarial native campaign contains 63 distinct requests: the original
+The original adversarial campaign retains all 63 distinct requests: the original
 fixture, 38 named scalar cases, one cap-calibration preparation, 12 cap boundaries,
 two overflow seeds, one inconsistent cache, one missing context, one raw alias and six environment
-controls. Failed requests are never reset. Exact points, dyadics, near-one
+controls. A successor adds 17 requests: nine malformed-ledger caller entries,
+three invalid imports, three exact valid imports, one unsupported import profile
+and one repeated preparation. Its complete inventory is 80 requests. Failed
+requests are never reset. Exact points, dyadics, near-one
 cancellation, a rounded-square trap, wrong candidates, invalid domains/normality,
 nonfinite inputs, exact unserved increments and no-elide ownership are included.
 
+Every begun validation request retains its original caps, seeded ledger and available
+input/candidate, status, stage, absence/refusal and served/unserved prefix.
+Unassigned alias arguments remain unavailable. Checked campaign totals subtract
+original seed counters before summing served work. Environment controls retain
+requested and observed rounding/x87/MXCSR values. Re-preparation ends old endpoints
+before refusing; no failed preparation exposes a retained interval.
+
 The independent test uses Python `Fraction`: alternating log series after a
 different range split, positive exp Taylor bounds followed by seven exact
-squarings/reciprocal, and exact squared sqrt inequalities. Each native invocation
-admits at most 64 records/65536 bytes; bit and exact-operation checks can refuse.
+squarings/reciprocal, and exact squared sqrt inequalities. Each bounded reference
+process admits at most 64 native records/65536 bytes, with one aggregate
+2-million exact-operation allowance across all of that process's objects.
+Bit and exact-operation checks can refuse.
+Each original native record and output digest is preserved before checking it,
+including all 80 requests. Fixture and scalar/prefix/environment/caller groups use
+42 separate sequential reference processes; the largest caller group has exactly 64 records
+including its source header and campaign summary. No record allowance is raised
+for the full campaign. The outer controller performs no rational calculation and
+retains each original bounded-process receipt before checking its completion.
 The complete reference provider's internal operation/32-live-value resource gate
 is explicitly withheld. Exact arithmetic controls do not silently import a full
 reference pipeline or parent error/resource allocation.
@@ -117,3 +135,13 @@ noheap and 4096-byte envelope must be earned without raising a failed cap.
 Default source/flag mutation checks require an isolated checkout and direct
 compiled binaries, with no competing build; ordinary control execution does not
 authorize those mutations.
+
+The serializer uses compiled literal text and fixed block graphs, with separate
+1024-byte-write, 256-byte-read, 4096-integer-operation and 512-source-branch limits
+per completed record. These count source byte assignments and conservative
+integer/control graphs; they are not compiler instruction counts. Native receipts
+emit the largest observed charged blocks. The final summary must itself be
+dominated by those emitted extrema, or the whole protocol refuses. Ledger/cache
+invariants are checked before every admission commit. Normal-or-zero binary64
+imports require the selected profile before conversion. Actual runtime support
+for these source bounds remains pending the five compiled contracts.
