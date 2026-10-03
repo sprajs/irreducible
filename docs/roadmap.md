@@ -301,8 +301,8 @@ Do not automate a paper's credibility from its popularity or outsider status. Ev
 A future bounded run recipe would declare pinned data sources, compiled models, typed steps and resources in one strict JSON graph for serial execution. Start with structural resolution and current requests, then narrow acquisition and retained-data reuse. Validate identities and dependencies before scientific execution. Recipes record changed variants and conditional reproduction status; they do not certify papers. The [run-recipe design](run-recipes.md) explains the proposed contracts and format decision. No recipe runner is implemented.
 
 The scalar proper-Gaussian moment CLI route was merged in [PR44](https://github.com/sprajs/irreducible/pull/44)
-after local integration and all six required PR checks passed. Exact-main CI
-remains pending. Three native and six CLI checks plus 99 heap-allocation fault
+after local integration and all six required PR checks passed. All six checks on
+the exact merged main commit also passed. Three native and six CLI checks plus 99 heap-allocation fault
 sites test the declared synthetic fixed-linear law under an independent proper
 SPD Gaussian parameter prior; they do not qualify released-box or observational
 inference. Continue native-to-CLI access, discovery
