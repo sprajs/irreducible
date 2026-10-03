@@ -264,6 +264,10 @@ bool round_core(State &y, Budget &budget) {
     y[j] = static_cast<double>(y[j]);
   return true;
 }
+W clock_phase_upper(W k, W previous_eta, W next_eta) {
+  return k * (std::abs(next_eta - previous_eta) +
+              64 * eps_w * (std::abs(next_eta) + std::abs(previous_eta)));
+}
 struct Run {
   S status = S::invalid_input;
   State y{};
@@ -272,6 +276,7 @@ struct Run {
   Epoch endpoint_epoch;
   bool state_initialized = false;
   W state_a = 0, metric_a = 0;
+  W maximum_stage_phase = 0, maximum_phase_increment = 0;
   W maximum_constraint = 0, maximum_closure = 0, maximum_background_defect = 0;
   W inherited_age_error = 0;
 };
@@ -369,6 +374,10 @@ Run evolve(const ThermalBackground &b, W k, W start, W target, W radiation,
     // unsafe stage; do not hide it by retrying on an unrecorded finer mesh.
     if (!(y[6] > inherited) || active_step * 129 > q.hcal * (y[6] - inherited))
       return S::conditioning_budget_exceeded;
+    const W stage_phase = active_step * std::sqrt(q.x2);
+    out.maximum_stage_phase = std::max(out.maximum_stage_phase, stage_phase);
+    if (stage_phase > W(budget.policy.maximum_phase_step))
+      return S::conditioning_budget_exceeded;
     if (!budget.scalar(n))
       return S::work_limit;
     const W x = std::sqrt(q.x2), total = q.fc + 4 * q.fr / 3;
@@ -419,7 +428,8 @@ Run evolve(const ThermalBackground &b, W k, W start, W target, W radiation,
     // Every L uses this SAME L128-based complete mesh, then half/quarter.
     const W base_step = std::min(
         {W(budget.policy.maximum_log_step),
-         W(budget.policy.maximum_phase_step) / std::sqrt(e.x2),
+         W(budget.policy.maximum_phase_step) *
+             std::exp(-W(budget.policy.maximum_log_step)) / std::sqrt(e.x2),
          e.hcal * lower / 130}); // margin for the separately checked stages
     const W h = std::min(base_step / divisor, end - N);
     if (!(h > 0) || !(N + h > N)) {
@@ -448,14 +458,27 @@ Run evolve(const ThermalBackground &b, W k, W start, W target, W radiation,
       out.status = S::work_limit;
       return out;
     }
+    const W previous_eta = out.y[6];
     for (unsigned j = 0; j < n; ++j)
       out.y[j] += h * (k1[j] + 2 * k2[j] + 2 * k3[j] + k4[j]) / 6;
+    // The combined vector already belongs to this new epoch. Preserve that
+    // fact before any cast, phase or background admission can fail.
+    N = std::min(N + h, end);
+    out.state_a = N == end ? target : std::exp(N);
+    // Initial-age uncertainty is common to both clocks and cancels from this
+    // increment. Stage H uncertainty has matched +/- input witnesses; this
+    // subtraction/assembly allowance belongs to wide clock arithmetic.
+    const W phase_upper = clock_phase_upper(k, previous_eta, out.y[6]);
+    out.maximum_phase_increment =
+        std::max(out.maximum_phase_increment, phase_upper);
+    if (phase_upper > W(budget.policy.maximum_phase_step)) {
+      out.status = S::conditioning_budget_exceeded;
+      return out;
+    }
     if (control.round_core && !round_core(out.y, budget)) {
       out.status = S::work_limit;
       return out;
     }
-    N = std::min(N + h, end);
-    out.state_a = N == end ? target : std::exp(N);
     e = epoch(b, out.state_a, k, radiation, control, budget);
     if (e.status != S::ok) {
       out.status = e.status;
@@ -517,15 +540,32 @@ void accept(MasslessFDTransferValue &out, W value, std::array<W, 5> errors,
   out.hierarchy_refinement = outward(errors[2]);
   out.background_age_sensitivity = outward(errors[3]);
   out.arithmetic_cast_sensitivity = outward(errors[4]);
-  out.absolute_error_estimate = outward(sum);
+  const std::array<W, 5> published{
+      W(out.time_refinement), W(out.initial_refinement),
+      W(out.hierarchy_refinement), W(out.background_age_sensitivity),
+      W(out.arithmetic_cast_sensitivity)};
+  W published_sum = 0;
+  for (W error : published)
+    if (error > 0)
+      published_sum = std::nextafter(published_sum + error,
+                                     std::numeric_limits<W>::infinity());
+  out.absolute_error_estimate = outward(published_sum);
   if (!std::isfinite(rounded) || (value != 0 && !std::isnormal(rounded)) ||
       !std::isnormal(out.absolute_error_estimate)) {
     out.status = S::outside_domain;
     return;
   }
+  const W published_epsilon =
+      W(policy.absolute_tolerance) +
+      W(policy.relative_tolerance) * std::abs(W(rounded));
   if (sum > 5 * epsilon / 6 ||
       std::any_of(errors.begin(), errors.end(),
-                  [&](W e) { return e > epsilon / 6; })) {
+                  [&](W e) { return e > epsilon / 6; }) ||
+      W(out.absolute_error_estimate) >
+          5 * std::min(epsilon, published_epsilon) / 6 ||
+      std::any_of(published.begin(), published.end(), [&](W e) {
+        return e > std::min(epsilon, published_epsilon) / 6;
+      })) {
     out.status = S::conditioning_budget_exceeded;
     return;
   }
@@ -702,6 +742,8 @@ MasslessFDTransfer::evaluate(std::span<const double> ks, double target,
       witness.metric_epoch_scale_factor = run.metric_a;
       witness.endpoint_scaled_shear = run.y[5];
       witness.endpoint_eta_mpc = run.y[6];
+      witness.maximum_stage_phase_bound = run.maximum_stage_phase;
+      witness.maximum_phase_increment_upper = run.maximum_phase_increment;
       witness.maximum_constraint_residual =
           static_cast<double>(run.maximum_constraint);
       witness.work = difference(row.work, before);

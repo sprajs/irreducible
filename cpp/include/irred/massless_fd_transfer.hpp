@@ -60,6 +60,7 @@ struct MasslessFDRunWitness {
   long double endpoint_scale_factor = 0, metric_epoch_scale_factor = 0;
   long double endpoint_scaled_shear = 0;
   long double endpoint_eta_mpc = 0;
+  long double maximum_stage_phase_bound = 0, maximum_phase_increment_upper = 0;
   double maximum_constraint_residual = 0;
   MasslessFDTransferWork work;
 };

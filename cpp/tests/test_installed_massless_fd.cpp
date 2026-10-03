@@ -42,7 +42,15 @@ int main() {
                 << " a=" << t.endpoint_scale_factor
                 << " metric_a=" << t.metric_epoch_scale_factor
                 << " lapse=" << t.lapse_available << " rhs=" << t.work.rhs
-                << " updates=" << t.work.scalar_updates << '\n';
+                << " updates=" << t.work.scalar_updates
+                << " stage_phase=" << t.maximum_stage_phase_bound
+                << " clock_phase=" << t.maximum_phase_increment_upper << '\n';
+      if (t.status == S::ok &&
+          (!t.lapse_available ||
+           t.endpoint_scale_factor != t.metric_epoch_scale_factor ||
+           t.maximum_stage_phase_bound > static_cast<long double>(.04) ||
+           t.maximum_phase_increment_upper > static_cast<long double>(.04)))
+        return 4;
     }
     if (r.wavenumber_mpc_inverse != k[j] || r.attempts_recorded != 17 ||
         r.maximum_constraint_residual > 1e-7)

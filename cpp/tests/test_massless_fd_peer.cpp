@@ -944,7 +944,11 @@ void native_comparison(const irred::cosmology::ThermalBackground &background,
              << " lapse_available=" << attempt.lapse_available
              << " endpoint_scale_factor=" << attempt.endpoint_scale_factor
              << " metric_epoch_scale_factor="
-             << attempt.metric_epoch_scale_factor;
+             << attempt.metric_epoch_scale_factor
+             << " maximum_stage_phase_bound="
+             << attempt.maximum_stage_phase_bound
+             << " maximum_phase_increment_upper="
+             << attempt.maximum_phase_increment_upper;
       if (attempt.endpoint_available)
         record << " Delta=" << attempt.endpoint[0]
                << " phi=" << attempt.endpoint[1]
@@ -958,29 +962,35 @@ void native_comparison(const irred::cosmology::ThermalBackground &background,
         record << " psi=unavailable";
       record << " eta=" << attempt.endpoint_eta_mpc
              << " constraint=" << attempt.maximum_constraint_residual
-             << " initial_status=" << static_cast<int>(initial_state.status)
-             << " initial_a=" << initial_state.scale_factor
-             << " initial_eta=" << initial_state.eta_mpc
-             << " initial_eta_error=" << initial_state.eta_error_mpc
-             << " initial_H=" << initial_state.hcal_mpc_inverse
-             << " leading_phi=" << initial_state.leading_phi
-             << " leading_psi=" << initial_state.leading_psi
-             << " leading_delta_c=" << initial_state.leading_delta_c
-             << " leading_delta_r=" << initial_state.leading_delta_r
-             << " leading_theta=" << initial_state.leading_theta
-             << " leading_sigma=" << initial_state.leading_sigma
-             << " projected_phi=" << initial_state.projected_phi
-             << " projected_psi=" << initial_state.projected_psi
-             << " projected_Vc=" << initial_state.projected_vc
-             << " projected_Delta=" << initial_state.projected_delta
-             << " projected_Z=" << initial_state.projected_phi_n
-             << " scaled_shear=" << initial_state.scaled_shear
-             << " lapse_correction=" << initial_state.lapse_correction
-             << " velocity_correction=" << initial_state.velocity_correction
-             << " hamiltonian_before=" << initial_state.hamiltonian_before
-             << " hamiltonian_after=" << initial_state.hamiltonian_after
-             << " radiation_fraction=" << initial_state.radiation_fraction
-             << " initial_closure=" << initial_state.closure_defect;
+             << " initial_status=" << static_cast<int>(initial_state.status);
+      // An early refusal leaves the default invalid initializer unpopulated.
+      // A later refusal may retain a populated but unadmitted source witness.
+      if (initial_state.status == S::invalid_input)
+        record << " initial_fields=unavailable";
+      else
+        record << " initial_fields=available"
+               << " initial_a=" << initial_state.scale_factor
+               << " initial_eta=" << initial_state.eta_mpc
+               << " initial_eta_error=" << initial_state.eta_error_mpc
+               << " initial_H=" << initial_state.hcal_mpc_inverse
+               << " leading_phi=" << initial_state.leading_phi
+               << " leading_psi=" << initial_state.leading_psi
+               << " leading_delta_c=" << initial_state.leading_delta_c
+               << " leading_delta_r=" << initial_state.leading_delta_r
+               << " leading_theta=" << initial_state.leading_theta
+               << " leading_sigma=" << initial_state.leading_sigma
+               << " projected_phi=" << initial_state.projected_phi
+               << " projected_psi=" << initial_state.projected_psi
+               << " projected_Vc=" << initial_state.projected_vc
+               << " projected_Delta=" << initial_state.projected_delta
+               << " projected_Z=" << initial_state.projected_phi_n
+               << " scaled_shear=" << initial_state.scaled_shear
+               << " lapse_correction=" << initial_state.lapse_correction
+               << " velocity_correction=" << initial_state.velocity_correction
+               << " hamiltonian_before=" << initial_state.hamiltonian_before
+               << " hamiltonian_after=" << initial_state.hamiltonian_after
+               << " radiation_fraction=" << initial_state.radiation_fraction
+               << " initial_closure=" << initial_state.closure_defect;
       work_record(record, attempt.work);
       record << '\n';
       retain(record);
@@ -1007,11 +1017,25 @@ void native_comparison(const irred::cosmology::ThermalBackground &background,
                  policy.maximum_scalar_updates_per_point &&
              row.attempts_recorded == row.attempts.size(),
          "native original per-point caps and all trial identities retained");
-    for (const auto &attempt : row.attempts)
+    for (const auto &attempt : row.attempts) {
       need(attempt.status == S::ok && attempt.endpoint_available &&
+               attempt.lapse_available &&
+               attempt.endpoint_scale_factor ==
+                   attempt.metric_epoch_scale_factor &&
                attempt.initial.status == S::ok,
            "native accepted row retains every actual trial and source "
            "initializer");
+      need(
+          std::isfinite(attempt.maximum_stage_phase_bound) &&
+              attempt.maximum_stage_phase_bound >= 0 &&
+              attempt.maximum_stage_phase_bound <=
+                  W(policy.maximum_phase_step) &&
+              std::isfinite(attempt.maximum_phase_increment_upper) &&
+              attempt.maximum_phase_increment_upper >= 0 &&
+              attempt.maximum_phase_increment_upper <=
+                  W(policy.maximum_phase_step),
+          "native accepted trial obeys original stage and attained phase caps");
+    }
     peer::Budget budget;
     budget.campaign_bytes = &campaign_bytes;
     const auto reference = peer::campaign(

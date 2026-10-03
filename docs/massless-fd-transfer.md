@@ -90,8 +90,10 @@ work caps cannot be widened through the policy.
 The eight native anchors are finest `(a_i/4,L128,h/4)`, starts a_i and a_i/2
 at finest settings, h and h/2 at finest start/L, L32 and L64 at finest
 start/time, and joint coarse `(a_i,L32,h)`. All levels use the same L128-based
-complete mesh. The conservative mesh uses `min(.04,.04/x,Hcal eta_lower/130)`;
-every attempted RK stage separately checks `129 h <= Hcal eta_lower`. No
+complete mesh. The conservative mesh uses `min(.04,.04 exp(-.04)/x,Hcal eta_lower/130)`;
+every attempted RK stage separately checks `129 h <= Hcal eta_lower` and
+`h x <= .04`. Each combined step also checks its actual conformal-age
+increment plus wide arithmetic allowance against `.04`. No
 unrecorded retry resets a failed stage. The eight numerical-input trials are
 plus/minus radiation normalization, the shared P envelope, the Lambda getter
 cast and initial age, all at the matched finest settings. The final arithmetic
@@ -106,7 +108,7 @@ batch, four million background queries, 200,000 age quadrature evaluations
 and 16 MiB native payload. Failed stages/controls consume their completed
 work. The first cap refusal is evidence; a later method amendment cannot erase
 it. The native 17-attempt witness retains status, initializer, state/metric
-epochs, fields, counters and constraint maximum. If a final background query
+epochs, fields, counters, phase maxima and constraint maximum. If a final background query
 fails, Delta, phi and scaled shear survive, while `lapse_available=false`
 explicitly withholds psi at that state epoch.
 
