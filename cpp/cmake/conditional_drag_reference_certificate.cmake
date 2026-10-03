@@ -30,3 +30,11 @@ target_compile_options(test_conditional_drag_reference_saha PRIVATE
   -Wall -Wextra -Wpedantic -fno-fast-math -ffp-contract=off -fno-elide-constructors)
 add_test(NAME conditional_drag_reference_saha_contract
   COMMAND test_conditional_drag_reference_saha)
+
+add_executable(test_conditional_drag_reference_stage
+  tests/test_conditional_drag_reference_stage.cpp)
+target_link_libraries(test_conditional_drag_reference_stage PRIVATE irred_core)
+target_compile_options(test_conditional_drag_reference_stage PRIVATE
+  -Wall -Wextra -Wpedantic -fno-fast-math -ffp-contract=off -fno-elide-constructors)
+add_test(NAME conditional_drag_reference_stage_contract
+  COMMAND test_conditional_drag_reference_stage)
