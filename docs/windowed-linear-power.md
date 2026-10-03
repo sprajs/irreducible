@@ -127,7 +127,8 @@ The [synthetic SDK example](../cpp/examples/windowed_linear_power.cpp) supplies
 the exact emitted nearly affine table, signed cross-block window and fixed
 geometry. Its reference must use that table's interpolation, rather than
 replace the decimal nodes by an exact untabled affine function. Permanent
-analytic affine controls use dyadic nodes/powers. The selected caller budgets
+analytic affine controls use dyadic nodes/powers, including unequal-column
+cross-block means that challenge window column indexing. The selected caller budgets
 are1e-7Mpc^3 multipole diagnostics and1e-6 output-unit mean diagnostics, a
 synthetic regression resolution rather than an observational error requirement.
 The independent Legendre16/32/64 peer also compares each measured native

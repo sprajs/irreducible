@@ -126,6 +126,19 @@ int main() {
   const auto mixed_zero_f=mixed_owner.evaluate({.32,2,0,1,1},policy());
   REQUIRE(mixed_zero_f.status==p::Status::ok && mixed_zero_f.mean[5].power.value>0);
 
+  // Unequal column powers expose a unilateral W02/W20 column permutation.
+  // The emitted dyadic table is exactly P(k)=4096*k, giving128,256,512.
+  auto affine_cross=fixture();
+  affine_cross.spectrum.power_mpc3={64,1024};
+  affine_cross.window.w02={.125,.5,.25,0,0,0,0,0,0};
+  affine_cross.window.w20={.5,-.25,.125,0,0,0,0,0,0};
+  auto affine_cross_owner=p::prepare(std::move(affine_cross),preparation);
+  const auto affine_cross_result=affine_cross_owner.evaluate(standard,policy());
+  REQUIRE(affine_cross_result.status==p::Status::ok);
+  const long double c0=83.L/15,c2=68.L/21;
+  REQUIRE(close(affine_cross_result.mean[0].power.value,c0*128+c2*272));
+  REQUIRE(close(affine_cross_result.mean[3].power.value,c2*128+c0*64));
+
   auto h_source=fixture();
   constexpr double h=.6711;
   h_source.window.coordinates=p::Coordinates::fixed_h_reference;
