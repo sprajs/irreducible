@@ -81,7 +81,7 @@ dependent amplitudes while retaining attempted work, source identity and the
 completed-cell prefix diagnostics; it is never dropped or renormalized into a
 different source. Inspect result and row status before using optional outputs.
 
-The fresh Release build at `d9cd6e191743a7d74941b25c180f9dc8a2aa72b5`
+The fresh Release build at `aae8bded2f35af171cafb72ba3a078aa49dbbf07`
 passed four native contracts: continuous projection, shared thermal conformal
 epoch, old perfect-fluid transfer and its independent peer. Projection controls
 cover analytic finite boundaries, independent angular Legendre/spin integration
@@ -90,7 +90,10 @@ source-grid refinement, ownership and hostile input refusals. This is scoped
 engineering and synthetic numerical evidence. The separate installed SDK
 consumer checks a constant-monopole \(\ell=1\) finite-boundary integral against
 an independently written trigonometric \(j_0\), masks, lifetime and refusals.
-Its installed execution must be recorded separately from the four native tests.
+Both this installed consumer and the existing broad SDK consumer passed against
+the same fresh installed archive with conservative floating-point flags. The
+four native tests and two installed consumers remain separate execution records;
+all six passed before publication.
 
 Actual same-k CLASS source/transfer matching and support/truncation/precision
 controls remain pending. Complete native photon/species/metric/opacity and
