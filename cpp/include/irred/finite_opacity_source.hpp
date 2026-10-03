@@ -104,6 +104,8 @@ struct FiniteOpacityAttemptReceipt {
   std::vector<FiniteOpacityNode> nodes; // k-major, all explicit indices
   // Full finest reached hierarchy per k, including a refused final prefix.
   std::vector<long double> final_temperature_tail, final_polarization_tail;
+  std::vector<FiniteOpacityCore> final_core;
+  std::vector<long double> final_eta_mpc, final_scale_factor;
   std::size_t attempted_steps = 0, completed_steps = 0;
   std::size_t reached_wavenumbers = 0;
   long double maximum_stage_residual = 0, minimum_scaled_pivot = 1;

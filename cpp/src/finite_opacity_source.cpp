@@ -178,6 +178,7 @@ std::optional<std::size_t> payload(const FiniteOpacitySourceResult &r,const std:
   a.vector(r.attempts);a.vector(r.diagnostics);
   for(const auto &attempt:r.attempts) {
     a.vector(attempt.nodes);a.vector(attempt.final_temperature_tail);a.vector(attempt.final_polarization_tail);
+    a.vector(attempt.final_core);a.vector(attempt.final_eta_mpc);a.vector(attempt.final_scale_factor);
   }
   if(r.source) source_payload(a,*r.source);
   return a.result();
@@ -236,13 +237,15 @@ bool append_node(const FiniteOpacityIdentity &id,std::size_t ki,std::size_t ti,W
 // Slots are acquired once. The mandatory prefix copy after every attempted
 // transport solve has reserved write space before that solve is allowed.
 void save_tail(const f::TransportState &state,FiniteOpacityAttemptReceipt &attempt,
-               unsigned hierarchy,std::size_t ki,f::Ledger &ledger) {
+               unsigned hierarchy,std::size_t ki,W reached_eta,W reached_a,f::Ledger &ledger) {
   const std::size_t offset=ki*(hierarchy-2);
   for(unsigned l=3;l<=hierarchy;++l) {
     attempt.final_temperature_tail[offset+l-3]=state.temperature[l];
     attempt.final_polarization_tail[offset+l-3]=state.polarization[l];
   }
-  ledger.commit_refusal_writes(2*(hierarchy-2));
+  attempt.final_core[ki]=state.core;attempt.final_eta_mpc[ki]=reached_eta;
+  attempt.final_scale_factor[ki]=reached_a;
+  ledger.commit_refusal_writes(2*(hierarchy-2)+13);
 }
 } // namespace
 
@@ -367,16 +370,21 @@ FiniteOpacitySourceResult FiniteOpacitySourceProducer::produce(FiniteOpacityPoli
       attempt.hierarchy=lmax;attempt.time_refinement=refinement;attempt.status=S::ok;
       if(!reserve(attempt.nodes,grid.size()*nk,out,grid,scratch_bytes,policy) ||
          !reserve(attempt.final_temperature_tail,(lmax-2)*nk,out,grid,scratch_bytes,policy) ||
-         !reserve(attempt.final_polarization_tail,(lmax-2)*nk,out,grid,scratch_bytes,policy)){
+         !reserve(attempt.final_polarization_tail,(lmax-2)*nk,out,grid,scratch_bytes,policy) ||
+         !reserve(attempt.final_core,nk,out,grid,scratch_bytes,policy) ||
+         !reserve(attempt.final_eta_mpc,nk,out,grid,scratch_bytes,policy) ||
+         !reserve(attempt.final_scale_factor,nk,out,grid,scratch_bytes,policy)){
         attempt.status=out.status;return out;
       }
       // Initialize all endpoint slots before trajectory work. Mandatory copies
       // reserve separate write space before each full transport solve.
-      if(!ledger.writes(2*(lmax-2)*nk)){
+      if(!ledger.writes((2*(lmax-2)+13)*nk)){
         attempt.status=out.status=ledger.status;return out;
       }
       attempt.final_temperature_tail.resize((lmax-2)*nk);
       attempt.final_polarization_tail.resize((lmax-2)*nk);
+      attempt.final_core.resize(nk);attempt.final_eta_mpc.resize(nk);
+      attempt.final_scale_factor.resize(nk);
       if(!observe_payload(out,grid,scratch_bytes,policy)) {attempt.status=out.status;return out;}
       for(std::size_t ki=0;ki<nk;++ki) {
         const W k=id.original.k_mpc_inverse[ki];W a=id.original.initial_scale_factor,eta_mpc=grid.front();
@@ -387,6 +395,8 @@ FiniteOpacitySourceResult FiniteOpacitySourceProducer::produce(FiniteOpacityPoli
         f::TransportState state;f::TransportScratch scratch;
         attempt.reached_wavenumbers=ki+1;
         for(unsigned j=0;j<11;++j)state.core[j]=id.seeds[ki].emitted_core[j];
+        if(!ledger.reserve_refusal_writes(2*(lmax-2)+13)){attempt.status=out.status=ledger.status;return out;}
+        save_tail(state,attempt,lmax,ki,eta_mpc,a,ledger);
         if(!append_node(id,ki,0,eta_mpc,a,state,attempt,ledger)) {attempt.status=out.status=ledger.status;return out;}
         for(std::size_t ti=1;ti<grid.size();++ti) {
           while(eta_mpc<grid[ti]) {
@@ -401,9 +411,9 @@ FiniteOpacitySourceResult FiniteOpacitySourceProducer::produce(FiniteOpacityPoli
             std::array<detail::ThermalConformalEpoch,2> stages;W next=0;
             if(!clock_step(id,k,h,a,stages,next,ledger,attempt)) {attempt.status=out.status=ledger.status;return out;}
             const f::Pair opacity{opacity_and_tau(o,eta_mpc+h/3).first,opacity_and_tau(o,eta_mpc+h).first};
-            if(!ledger.reserve_refusal_writes(2*(lmax-2))){attempt.status=out.status=ledger.status;return out;}
+            if(!ledger.reserve_refusal_writes(2*(lmax-2)+13)){attempt.status=out.status=ledger.status;return out;}
             const bool solved=f::radau_step(stages,opacity,lmax,eta_mpc,h,k,state,scratch,ledger,attempt);
-            save_tail(state,attempt,lmax,ki,ledger);
+            save_tail(state,attempt,lmax,ki,solved?std::min(W(grid[ti]),eta_mpc+h):eta_mpc,solved?next:a,ledger);
             if(!solved) {
               attempt.status=out.status=ledger.status;return out;
             }

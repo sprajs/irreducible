@@ -16,6 +16,8 @@ they may outlive preparation. Producer moves invalidate prior getters, and
 self move preserves them. A refused evaluation retains the original inputs,
 mapped state, boundary, work and reached prefix. No partial grid is exported as
 a complete `ContinuousCmbSource`.
+The full reached F/G tails keep the matching per-k dimensionless core, eta and
+actual a, including refusals between exported source endpoints.
 
 The physical inputs are H0, physical omega_b/omega_cdm and Tcmb. Additional
 massless density and explicit species must be absent. The existing mapper runs

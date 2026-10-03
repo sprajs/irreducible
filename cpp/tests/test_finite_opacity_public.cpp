@@ -57,6 +57,10 @@ void public_owner() {
        !refused.attempts.empty() && !refused.attempts[0].nodes.empty(),"work refusal preserves original/boundary/prefix");
   need(refused.work.background_clock_calls>=identity->preparation_work.background_clock_calls &&
        refused.work.attempted_steps==1,"original aggregate work is not reset");
+  const auto &prefix=refused.attempts[0];
+  need(prefix.final_core.size()==2 && prefix.final_eta_mpc[0]>=identity->original.opacity.eta_mpc.front() &&
+       prefix.final_scale_factor[0]>=identity->original.initial_scale_factor && prefix.reached_wavenumbers==1,
+       "refusal retains complete reached core/time/scale and both hierarchy tails");
   auto result=moved.produce(trial);
   need(result.status==S::conditioning_budget_exceeded && result.source && !result.source_numerically_admitted,
        "complete raw computed source with admission withheld");
@@ -67,6 +71,9 @@ void public_owner() {
          "all hierarchy/time witnesses retained");
     need(attempt.final_temperature_tail.size()==2*(attempt.hierarchy-2) &&
          attempt.final_polarization_tail.size()==2*(attempt.hierarchy-2),"owned full endpoint hierarchy");
+    need(attempt.final_core.size()==2 && attempt.final_eta_mpc[0]==identity->original.opacity.eta_mpc.back() &&
+         attempt.final_scale_factor[0]>=identity->original.initial_scale_factor,
+         "complete endpoint core and actual clock match retained hierarchy");
   }
   for(const auto &d:result.diagnostics)need(!d.common_background_clock_error && !d.arithmetic_linear_error && !d.source_grid_error,
       "missing integrated errors remain absent");
