@@ -15,9 +15,9 @@ template <size_t N> irred_f64_buffer values(const std::array<double, N> &a) {
           IRRED_ABI_VERSION,
           2,
           0,
-          a.data(),
+          N ? a.data() : nullptr,
           N,
-          sizeof(a)};
+          N * sizeof(double)};
 }
 struct Fixture {
   const std::array<double, 4> C{1, .25, .25, 2}, X{1, 0, 1, 1}, S{2, .5, .5, 1},
