@@ -49,6 +49,45 @@ void alternating_machin_controls() {
   need(owner.served()[unsigned(ref::Counter::iterations)] > 64,
        "actual series and signed-product loops charge iterations");
 }
+void original_atomic_and_absolute_cold_controls() {
+  ref::Owner owner(assumptions);
+  need(owner.admit_arithmetic(), "atomic conditional environment");
+  ref::Arithmetic arithmetic(owner);
+  need(arithmetic.prepare_directions(), "atomic direction source");
+  ref::SourceNumbers numbers(arithmetic);
+  ref::AtomicNumbers constants;
+  need(numbers.atomic(constants), "all original declared source constants acquired");
+  namespace original = hydrogen_helium_history_reference;
+  need(constants.kb.lower <= original::kb && constants.kb.upper >= original::kb &&
+       constants.h.lower <= original::h && constants.h.upper >= original::h &&
+       constants.c.lower == original::c && constants.c.upper == original::c &&
+       constants.ev.lower <= original::ev && constants.ev.upper >= original::ev &&
+       constants.me.lower <= original::me && constants.me.upper >= original::me &&
+       constants.G.lower <= original::G && constants.G.upper >= original::G &&
+       constants.sigma.lower <= original::sigma && constants.sigma.upper >= original::sigma &&
+       constants.chiH.lower <= original::chiH && constants.chiH.upper >= original::chiH &&
+       constants.chiHe.lower <= original::chiHe && constants.chiHe.upper >= original::chiHe,
+       "exact source enclosures cover every unchanged original stored central symbol");
+  ref::Interval argument;
+  ref::ColdImage cold;
+  need(numbers.integer(argument, -90) && numbers.cold_exp(cold, argument) &&
+       cold.value.valid && cold.absolute_cold && cold.value.lower == 0 &&
+       cold.value.upper == 0x1p-128L && cold.value.upper > 0,
+       "absolute cold image retains positive uncertainty and its distinct role");
+
+  ref::Owner mixed_owner(assumptions);
+  need(mixed_owner.admit_arithmetic(), "mixed cold conditional environment");
+  ref::Arithmetic mixed_arithmetic(mixed_owner);
+  need(mixed_arithmetic.prepare_directions(), "mixed cold direction source");
+  ref::SourceNumbers mixed_numbers(mixed_arithmetic);
+  ref::Interval mixed;
+  const ref::W lower = -90, upper = -89.5L;
+  ref::ColdImage refused;
+  need(mixed_arithmetic.enclose(mixed, lower, upper) &&
+       !mixed_numbers.cold_exp(refused, mixed) && !refused.value.valid &&
+       !refused.absolute_cold && mixed_owner.failure().cause == ref::Cause::invalid_input,
+       "central-cold interval crossing the exact certified threshold refuses");
+}
 void domain_and_first_failure_controls() {
   auto one_destination = ref::policy_caps;
   one_destination[unsigned(ref::Counter::destinations)] = 1;
@@ -108,6 +147,7 @@ static_assert(std::is_constructible_v<ref::SourceNumbers, ref::Arithmetic &>);
 int main() {
   rational_decimal_controls(); alternating_machin_controls();
   domain_and_first_failure_controls();
+  original_atomic_and_absolute_cold_controls();
   std::printf("conditional_drag_reference_constants checks=%u failures=%u "
               "complete_arithmetic_qualified=false whole_payload_qualified=false\n",
               checks, failures);

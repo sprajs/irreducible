@@ -5,6 +5,13 @@
 #include "conditional_drag_reference_certificate.hpp"
 
 namespace conditional_drag_reference_certificate {
+struct AtomicNumbers {
+  Interval kb, h, c, ev, me, G, sigma, chiH, chiHe;
+};
+struct ColdImage {
+  Interval value;
+  bool absolute_cold = false;
+};
 class SourceNumbers {
   Owner &owner_;
   Arithmetic &arithmetic_;
@@ -116,6 +123,41 @@ public:
            arithmetic_.multiply(left, sixteen, a5) &&
            arithmetic_.multiply(right, four, a239) &&
            arithmetic_.subtract(out, left, right);
+  }
+  // EXACT original declared central constants, not a newly qualified atomic
+  // measurement/uncertainty law. Nominal ancestor symbols remain unchanged.
+  bool atomic(AtomicNumbers &out) noexcept {
+    Interval chiH_ev, chiHe_ev;
+    return decimal(out.kb, INT64_C(1380649), -29) &&
+           decimal(out.h, INT64_C(662607015), -42) &&
+           integer(out.c, INT64_C(299792458)) &&
+           decimal(out.ev, INT64_C(1602176634), -28) &&
+           decimal(out.me, INT64_C(91093837139), -41) &&
+           decimal(out.G, INT64_C(667430), -16) &&
+           decimal(out.sigma, INT64_C(66524587051), -39) &&
+           decimal(chiH_ev, INT64_C(13598434599702), -12) &&
+           decimal(chiHe_ev, INT64_C(24587389011), -9) &&
+           arithmetic_.multiply(out.chiH, chiH_ev, out.ev) &&
+           arithmetic_.multiply(out.chiHe, chiHe_ev, out.ev);
+  }
+  // exp(-128*7/10)<2^-128 because exp(7/10)>Taylor4(7/10)
+  // =482921/240000>2. A certified upper argument<=EXACT -448/5
+  // therefore has this positive ABSOLUTE enclosure. Lower0 is never a
+  // structural-zero function witness or an ordinary exp postcheck result.
+  bool cold_exp(ColdImage &out, const Interval &argument) noexcept {
+    static_assert(INT64_C(482921) > 2 * INT64_C(240000));
+    if (!owner_.guard()) return false;
+    if (&out.value == &argument) return owner_.fail(Cause::invalid_ownership);
+    out.value.valid = false; out.absolute_cold = false;
+    Interval checked, threshold;
+    if (!arithmetic_.copy(checked, argument) || !rational(threshold, -448, 5) ||
+        !owner_.guard()) return false;
+    if (checked.upper > threshold.lower) return owner_.fail(Cause::invalid_input);
+    if (!owner_.action(Action::floating(2, 0, 2))) return false;
+    W zero, ceiling; zero = 0; ceiling = 0x1p-128L;
+    if (!arithmetic_.enclose(out.value, zero, ceiling)) return false;
+    out.absolute_cold = true;
+    return true;
   }
 };
 } // namespace conditional_drag_reference_certificate
