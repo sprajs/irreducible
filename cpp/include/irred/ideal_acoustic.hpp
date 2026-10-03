@@ -67,6 +67,29 @@ enum class IdealAcousticFailureStage : unsigned {
   rk_combine, endpoint_combine, committed_state, hamiltonian_constraint,
   phase_response, phase_domain, endpoint_storage
 };
+// These identify the six stored evolution coordinates, not requested output
+// IDs. Channel values retain the literal response-vector offsets.
+enum class IdealAcousticStateCoordinate : unsigned {
+  comoving_cdm = 0, cdm_photon_entropy, scaled_common_minus_cdm_velocity,
+  scaled_cdm_velocity, metric_phi, conformal_age
+};
+enum class IdealAcousticRadiusChannel : unsigned {
+  source = 24, arithmetic = 30
+};
+struct IdealAcousticRadiusFailure {
+  IdealAcousticStateCoordinate coordinate = IdealAcousticStateCoordinate::comoving_cdm;
+  IdealAcousticRadiusChannel channel = IdealAcousticRadiusChannel::source;
+  // Borrowed scalars from the failing guard, without a repeat calculation.
+  // Provisional includes the comparison-sum rounding allowance. The local
+  // assembly allowance exists only for ARITHMETIC. Nonfinite scalars are absent;
+  // finite negative/subnormal scalars remain visible for diagnosis.
+  std::optional<long double> provisional_radius;
+  std::optional<long double> local_assembly_allowance;
+  std::optional<long double> completed_radius;
+  numerics::Status arithmetic_status = numerics::Status::invalid_input;
+  bool completed_finite = false, completed_normal_or_zero = false;
+  bool completed_nonnegative = false;
+};
 struct IdealAcousticFailure {
   IdealAcousticFailureStage stage = IdealAcousticFailureStage::initial_age;
   unsigned rk_stage = 0;
@@ -76,6 +99,9 @@ struct IdealAcousticFailure {
   // Existing coefficient/input epoch used by the failing operation; no query
   // is made to fill this witness. Clock/storage-only failures may lack it.
   std::optional<long double> attempted_coefficient_scale_factor;
+  // Present only at the existing completed-radius guard in an RK combination.
+  // Original attempt status and first-refusal stage remain authoritative.
+  std::optional<IdealAcousticRadiusFailure> radius_assembly;
 };
 struct IdealAcousticAttempt {
   numerics::Status status = numerics::Status::invalid_input;

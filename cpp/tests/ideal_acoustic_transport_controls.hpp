@@ -108,6 +108,49 @@ inline void signed_radius_assembly_controls() {
             "produced subnormal signed sum retains domain refusal");
   }
 }
+inline void radius_failure_record_controls() {
+  namespace arithmetic = detail::ideal_acoustic_transport_internal;
+  const W provisional=-.125L, allowance=.0625L, completed=-.0625L;
+  const auto negative=arithmetic::record_radius_failure(
+      2,native::IdealAcousticRadiusChannel::arithmetic,provisional,allowance,
+      completed,S::ok);
+  require(negative.coordinate==native::IdealAcousticStateCoordinate::scaled_common_minus_cdm_velocity &&
+              negative.channel==native::IdealAcousticRadiusChannel::arithmetic &&
+              negative.provisional_radius==provisional &&
+              negative.local_assembly_allowance==allowance &&
+              negative.completed_radius==completed && negative.arithmetic_status==S::ok &&
+              negative.completed_finite && negative.completed_normal_or_zero &&
+              !negative.completed_nonnegative,
+          "failed signed radius and allowance remain literal without clipping");
+  const auto source=arithmetic::record_radius_failure(
+      5,native::IdealAcousticRadiusChannel::source,0,std::nullopt,0,S::outside_domain);
+  require(source.coordinate==native::IdealAcousticStateCoordinate::conformal_age &&
+              source.channel==native::IdealAcousticRadiusChannel::source &&
+              source.provisional_radius==0 && !source.local_assembly_allowance &&
+              source.completed_radius==0 && source.arithmetic_status==S::outside_domain &&
+              source.completed_finite && source.completed_normal_or_zero &&
+              source.completed_nonnegative,
+          "source has no donated assembly allowance and preserves earlier arithmetic status");
+  for (W invalid : {std::numeric_limits<W>::quiet_NaN(),
+                    std::numeric_limits<W>::infinity()}) {
+    const auto nonfinite=arithmetic::record_radius_failure(
+        4,native::IdealAcousticRadiusChannel::arithmetic,invalid,invalid,invalid,S::outside_domain);
+    require(!nonfinite.provisional_radius && !nonfinite.local_assembly_allowance &&
+                !nonfinite.completed_radius && !nonfinite.completed_finite &&
+                !nonfinite.completed_normal_or_zero &&
+                nonfinite.arithmetic_status==S::outside_domain,
+            "nonfinite diagnostic scalars remain absent for portable records");
+  }
+  if (std::numeric_limits<W>::denorm_min()>0) {
+    const W tiny=std::numeric_limits<W>::denorm_min();
+    const auto subnormal=arithmetic::record_radius_failure(
+        1,native::IdealAcousticRadiusChannel::source,tiny,std::nullopt,tiny,S::outside_domain);
+    require(subnormal.provisional_radius==tiny && subnormal.completed_radius==tiny &&
+                subnormal.completed_finite && !subnormal.completed_normal_or_zero &&
+                subnormal.completed_nonnegative,
+            "finite subnormal witness remains visible without admission");
+  }
+}
 
 // Direct fixed-source scalar equations for test comparisons only. They do not
 // replace the retained production H or use its momentum perturbation law.
@@ -459,6 +502,7 @@ inline void endpoint_controls(const detail::IdealAcousticTransportFrame &frame,
 
 inline void controls() {
   signed_radius_assembly_controls();
+  radius_failure_record_controls();
   radiation_source_limit();
   const auto mapping =
       native::map_thermal_physical_model({70, .02, .10, 2.7, 0, {}});

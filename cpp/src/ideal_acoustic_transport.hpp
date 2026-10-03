@@ -1,4 +1,5 @@
 #pragma once
+#include "irred/ideal_acoustic.hpp"
 #include "ideal_acoustic_response.hpp"
 #include <algorithm>
 #include <array>
@@ -76,6 +77,22 @@ inline bool normal_or_zero(W x) noexcept {
   return std::isfinite(x) && (x == 0 || std::isnormal(x));
 }
 inline bool radius(W x) noexcept { return normal_or_zero(x) && x >= 0; }
+inline IdealAcousticRadiusFailure record_radius_failure(
+    unsigned coordinate, IdealAcousticRadiusChannel channel, W provisional,
+    std::optional<W> allowance, W completed, S arithmetic_status) noexcept {
+  IdealAcousticRadiusFailure out;
+  out.coordinate = static_cast<IdealAcousticStateCoordinate>(coordinate);
+  out.channel = channel;
+  if (std::isfinite(provisional)) out.provisional_radius = provisional;
+  if (allowance && std::isfinite(*allowance))
+    out.local_assembly_allowance = *allowance;
+  if (std::isfinite(completed)) out.completed_radius = completed;
+  out.arithmetic_status = arithmetic_status;
+  out.completed_finite = std::isfinite(completed);
+  out.completed_normal_or_zero = normal_or_zero(completed);
+  out.completed_nonnegative = completed >= 0;
+  return out;
+}
 struct Arithmetic {
   S status = S::ok;
   W checked(W x) noexcept {

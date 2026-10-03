@@ -33,6 +33,21 @@ void print_failure(const IdealAcousticAttempt &trial) {
   std::cout<<" coefficient_a=";
   if (f.attempted_coefficient_scale_factor) std::cout<<*f.attempted_coefficient_scale_factor;
   else std::cout<<"null";
+  std::cout<<" radius_assembly=";
+  if (!f.radius_assembly) { std::cout<<"null"; return; }
+  const auto &r=*f.radius_assembly;
+  std::cout<<"coordinate:"<<static_cast<unsigned>(r.coordinate)
+           <<",channel:"<<static_cast<unsigned>(r.channel)
+           <<",arithmetic_status:"<<static_cast<int>(r.arithmetic_status);
+  const auto scalar=[](const char *id,const auto &value) {
+    std::cout<<','<<id<<':';
+    if (value) std::cout<<*value; else std::cout<<"null";
+  };
+  scalar("provisional",r.provisional_radius);
+  scalar("assembly_allowance",r.local_assembly_allowance);
+  scalar("completed",r.completed_radius);
+  std::cout<<",finite:"<<r.completed_finite<<",normal_or_zero:"<<r.completed_normal_or_zero
+           <<",nonnegative:"<<r.completed_nonnegative;
 }
 void failure_witness_limits(const IdealAcousticTransfer &owner) {
   const std::array<double,1> k{1e-4},a{.01};
@@ -45,6 +60,7 @@ void failure_witness_limits(const IdealAcousticTransfer &owner) {
   need(age_trial.failure && age_trial.failure->stage==IdealAcousticFailureStage::initial_age &&
        age_trial.failure->rk_stage==0 && !age_trial.failure->last_committed_scale_factor &&
        !age_trial.failure->attempted_coefficient_scale_factor &&
+       !age_trial.failure->radius_assembly &&
        age_failure.evaluation_work.background_evaluations==0 &&
        age_failure.evaluation_work.rhs_evaluations==0,"unavailable initial epoch stays absent without callbacks");
   IdealAcousticPolicy storage;
@@ -56,6 +72,7 @@ void failure_witness_limits(const IdealAcousticTransfer &owner) {
   need(storage_trial.failure &&
        storage_trial.failure->stage==IdealAcousticFailureStage::initial_state_storage &&
        !storage_trial.failure->last_committed_scale_factor &&
+       !storage_trial.failure->radius_assembly &&
        storage_trial.failure->attempted_coefficient_scale_factor==W(owner.source()->initial_scale_factor) &&
        storage_trial.work.state_element_writes==0 && storage_trial.work.rhs_evaluations==0,
        "storage refusal retains attempted coefficient epoch before a state exists");
@@ -67,6 +84,7 @@ void failure_witness_limits(const IdealAcousticTransfer &owner) {
   const auto &rhs_trial=rhs_failure.trajectories[0].attempts[0];
   need(rhs_trial.failure && rhs_trial.failure->stage==IdealAcousticFailureStage::rk_nominal_rhs &&
        rhs_trial.failure->rk_stage==1 &&
+       !rhs_trial.failure->radius_assembly &&
        rhs_trial.failure->last_committed_scale_factor==W(owner.source()->initial_scale_factor) &&
        rhs_trial.failure->attempted_coefficient_scale_factor==rhs_trial.failure->last_committed_scale_factor &&
        rhs_trial.work.rhs_evaluations==0 && !rhs_failure.rows[0].outputs[0].computed,

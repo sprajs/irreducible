@@ -78,6 +78,24 @@ int main() {
         std::cout<<",\"coefficient_a\":";
         if (failure.attempted_coefficient_scale_factor) std::cout<<*failure.attempted_coefficient_scale_factor;
         else std::cout<<"null";
+        std::cout<<",\"radius_assembly\":";
+        if (!failure.radius_assembly) std::cout<<"null";
+        else {
+          const auto &radius=*failure.radius_assembly;
+          std::cout<<"{\"coordinate\":"<<static_cast<unsigned>(radius.coordinate)
+                   <<",\"channel\":"<<static_cast<unsigned>(radius.channel)
+                   <<",\"arithmetic_status\":"<<static_cast<int>(radius.arithmetic_status);
+          const auto scalar=[](const char *id,const auto &value) {
+            std::cout<<",\""<<id<<"\":";
+            if (value) std::cout<<*value; else std::cout<<"null";
+          };
+          scalar("provisional",radius.provisional_radius);
+          scalar("assembly_allowance",radius.local_assembly_allowance);
+          scalar("completed",radius.completed_radius);
+          std::cout<<",\"finite\":"<<(radius.completed_finite ? "true" : "false")
+                   <<",\"normal_or_zero\":"<<(radius.completed_normal_or_zero ? "true" : "false")
+                   <<",\"nonnegative\":"<<(radius.completed_nonnegative ? "true" : "false")<<'}';
+        }
         std::cout<<'}';
       }
       std::cout<<",\"rhs\":"<<trial.work.rhs_evaluations

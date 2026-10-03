@@ -265,7 +265,8 @@ struct Run {
 S combine(Context &c,const State &base,const Response &base_r,
           const std::array<const State*,4> &slopes,
           const std::array<const Response*,4> &response_slopes,
-          const std::array<W,4> &weights,State &out,Response &out_r) {
+          const std::array<W,4> &weights,State &out,Response &out_r,
+          std::optional<IdealAcousticRadiusFailure> &failure) {
   if (!c.budget.writes(42) || !c.budget.diagnostic()) return S::work_limit;
   RadiusArithmetic a;
   for (unsigned i=0;i<6;++i) {
@@ -294,10 +295,14 @@ S combine(Context &c,const State &base,const Response &base_r,
         const W term=a.mul(weights[s],(*response_slopes[s])[offset+i]);
         radius=a.add(radius,term); rs=a.plus(rs,a.magnitude(term));
       }
-      radius=a.signed_upper(a.add(radius,a.loss(rs)));
-      if (offset==30) radius=a.assemble_signed_radius(radius,assembly);
-      if (!(radius>=0) || !detail::ideal_acoustic_transport_internal::radius(radius))
+      const W provisional=a.signed_upper(a.add(radius,a.loss(rs)));
+      radius=offset==30 ? a.assemble_signed_radius(provisional,assembly) : provisional;
+      if (!(radius>=0) || !detail::ideal_acoustic_transport_internal::radius(radius)) {
+        failure=detail::ideal_acoustic_transport_internal::record_radius_failure(
+            i,static_cast<IdealAcousticRadiusChannel>(offset),provisional,
+            offset==30 ? std::optional<W>{assembly} : std::nullopt,radius,a.status);
         return S::conditioning_budget_exceeded;
+      }
       out_r[offset+i]=radius;
     }
   }
@@ -350,13 +355,14 @@ Run evolve(Context &c,W start,std::span<const double> targets,W step,
   out.attempt.initial_scale_factor=static_cast<double>(start);
   out.attempt.maximum_log_step=static_cast<double>(step);
   std::optional<W> committed_a;
+  std::optional<IdealAcousticRadiusFailure> radius_failure;
   auto finish=[&](S cause,FailureStage stage,unsigned rk_stage=0,
                   std::optional<W> coefficient_a={}) {
     out.status=cause; out.attempt.status=cause;
     out.attempt.work=difference(c.budget.work,before);
     if (cause!=S::ok)
       out.attempt.failure=IdealAcousticFailure{
-          stage,rk_stage,committed_a,coefficient_a};
+          stage,rk_stage,committed_a,coefficient_a,std::move(radius_failure)};
   };
   if (age.status!=S::ok) { finish(age.status,FailureStage::initial_age); return out; }
   auto current=epoch(c,start);
@@ -436,24 +442,24 @@ Run evolve(Context &c,W start,std::span<const double> targets,W step,
       S cause=rhs_at(c,a,current,n,n_radius,y,response,k1,r1,rhs_stage);
       if (cause!=S::ok) { finish(cause,rhs_stage,1,a); return out; }
       cause=combine(c,y,response,{&k1,&k1,&k1,&k1},{&r1,&r1,&r1,&r1},
-                    {h/2,0,0,0},tmp,tmp_r);
+                    {h/2,0,0,0},tmp,tmp_r,radius_failure);
       if (cause!=S::ok) { finish(cause,FailureStage::rk_combine,2,mid_a); return out; }
       cause=rhs_at(c,mid_a,middle,mid_n,mid_radius,tmp,tmp_r,k2,r2,rhs_stage);
       if (cause!=S::ok) { finish(cause,rhs_stage,2,mid_a); return out; }
       cause=combine(c,y,response,{&k2,&k2,&k2,&k2},{&r2,&r2,&r2,&r2},
-                    {h/2,0,0,0},tmp,tmp_r);
+                    {h/2,0,0,0},tmp,tmp_r,radius_failure);
       if (cause!=S::ok) { finish(cause,FailureStage::rk_combine,3,mid_a); return out; }
       cause=rhs_at(c,mid_a,middle,mid_n,mid_radius,tmp,tmp_r,k3,r3,rhs_stage);
       if (cause!=S::ok) { finish(cause,rhs_stage,3,mid_a); return out; }
       cause=combine(c,y,response,{&k3,&k3,&k3,&k3},{&r3,&r3,&r3,&r3},
-                    {h,0,0,0},tmp,tmp_r);
+                    {h,0,0,0},tmp,tmp_r,radius_failure);
       if (cause!=S::ok) { finish(cause,FailureStage::rk_combine,4,next_a); return out; }
       cause=rhs_at(c,next_a,last,next,next_radius,tmp,tmp_r,k4,r4,rhs_stage);
       if (cause!=S::ok) { finish(cause,rhs_stage,4,next_a); return out; }
       if (!c.budget.writes(42)) { finish(S::work_limit,FailureStage::endpoint_combine,0,next_a); return out; }
       const auto old_y=y; const auto old_response=response;
       cause=combine(c,old_y,old_response,{&k1,&k2,&k3,&k4},{&r1,&r2,&r3,&r4},
-                    {h/6,h/3,h/3,h/6},y,response);
+                    {h/6,h/3,h/3,h/6},y,response,radius_failure);
       if (cause!=S::ok) { finish(cause,FailureStage::endpoint_combine,0,next_a); return out; }
       // Commit the epoch with the new state before any subsequent admission.
       n=next; n_radius=next_radius; a=next_a; current=std::move(last);

@@ -39,6 +39,13 @@ The subsequent c22c410 installed diagnostic retained the same refusal and
 counters. Its new witness locates both failed attempts at the first step's
 RK4 combination for input stage4, with the committed state still at a_i.
 It does not identify the internal scalar or arithmetic operation responsible.
+The 47c348f signed-assembly successor passed the fresh strict Release build
+and shared thermal control, then the native consumer refused with
+`conditioning_budget_exceeded` at the same first-step stage4 combinations.
+It retained 52,108 RHS owners, 1,880 background queries and 696,560 state writes.
+All thirty-six requested native fields stayed absent. The signed-radius and
+other controls preceding the consumer assertion completed; the full native
+contract failed, and installation and the SDK caller were not reached.
 
 The declared infinite momentum-coupling limit first sums the photon and baryon
 enthalpy-weighted momentum equations. Their exchange cancels before their common
@@ -145,17 +152,35 @@ Successful attempts have no failure witness. The native and installed callers
 print these records before asserting admission. Recording borrows existing
 epochs without another query, recomputation, state reset or changed budget.
 The added fields count through the actual attempt/trajectory payload layout.
-These diagnostics were compiled and exercised by that installed consumer;
-the expanded native controls remain unexecuted.
+The epoch diagnostics were compiled and exercised by the c22c410 installed
+consumer and the 47c348f native consumer.
+
+The source successor records a bounded radius-assembly witness at the existing
+negative/nonnormal completion guard: stored-state coordinate0..5 in the order
+Delta,S,dV,Vc,phi,eta; channel24 for SOURCE or30 for ARITHMETIC; the signed
+provisional after comparison-sum rounding, an optional local ARITHMETIC
+assembly allowance, the completed radius, and the existing arithmetic status
+and completion predicates. Finite negative/subnormal scalars remain literal;
+nonfinite scalars are absent. SOURCE receives no donated allowance. It borrows
+the same operation's values within its existing diagnostic evaluation and
+counts storage through the actual attempt/run/trajectory layout. It performs
+no new physical query, radius recomputation, state commit or error-budget
+change. The stage4 attempted epoch labels the receiving input at next_a;
+its k3 slope was evaluated at the retained middle epoch. These new fields and
+their record controls are source-only until a fresh execution.
 
 The signed-radius assembly correction completes the provisional ARITHMETIC
 sum with its already-owned nonnegative assembly allowance before applying
 the final nonnegative/normal guard. Negative completed radii still refuse;
 none is clipped or reset. Synthetic controls cover adequate and inadequate
-allowances, cancellation, zero and nonnormal results. This correction has
-source review only and has not yet been compiled or tested. It repairs the
-independent assembly-ordering issue without assigning that issue as the
-cause of the retained RK4 refusal or qualifying the full response method.
+allowances, cancellation, zero and nonnormal results. Those controls completed
+in the 47c348f native process before its later consumer refusal. The correction
+repairs the independent assembly-ordering issue without assigning it as the
+cause of an earlier refusal or qualifying the full response method.
+The continuous cooperative comparison equations preserve positive radii, but
+that theorem alone does not establish positivity of a classical RK4 stage.
+The new witness must first identify the actual failed coordinate and operands
+before selecting a propagation repair; no completed radius is clipped.
 
 An optional MPFR reference target advances a separate conformal-time photon
 oscillator and spatial Einstein trace. It uses the same emitted source and
