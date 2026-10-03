@@ -6,6 +6,13 @@ source-required thermal/ionization/visibility history. The bounded
 [perfect-fluid CDM transfer](linear-transfer.md) excludes the photon hierarchy;
 it supplies neither a temperature transfer nor a CMB spectrum.
 
+A narrower [continuous scalar projector](continuous-cmb-projection.md) now
+integrates supplied finite-support split sources in the C++ library. Its bounded
+analytic/angular controls exercise transfer geometry, including polarization
+sign and regular radial limits. The caller still owns the physical source,
+signed initial mode, normalization and missing history/support errors. This
+prerequisite neither evolves the hierarchy nor integrates a primordial spectrum.
+
 The future first consumer must freeze one gauge and metric convention, scalar
 initial mode, Fourier units and primordial normalization with its hierarchy.
 Species density definitions and distributions must equal the retained thermal

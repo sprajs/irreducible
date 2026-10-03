@@ -539,6 +539,8 @@ include(cmake/linear_transfer.cmake)
 
 # Ideal infinitely coupled photon/baryon acoustic perturbations.
 include(cmake/ideal_acoustic.cmake)
+# Continuous scalar temperature and polarization transfer geometry.
+include(cmake/continuous_cmb_projection.cmake)
 
 # Distinct bounded singlet H/He history with one shared electron density.
 include(cmake/hydrogen_helium_history.cmake)
