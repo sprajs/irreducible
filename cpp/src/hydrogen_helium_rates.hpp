@@ -1,5 +1,6 @@
 #pragma once
 #include "hydrogen_rates.hpp"
+#include "hydrogen_helium_charge.hpp"
 #include "irred/hydrogen_helium_equilibrium.hpp"
 #include <array>
 #include <numbers>
@@ -9,7 +10,7 @@ inline constexpr HHeWide hhe_lya = 121.5682e-9L,
     hhe_hydrogen_two_photon = 8.22458L, hhe_helium_two_photon = 51.3L,
     hhe_helium_2s_inverse_metres = 1.66277434e7L,
     hhe_helium_2p_inverse_metres = 1.71134891e7L,
-    hhe_thomson = 6.6524587051e-29L;
+    hhe_thomson = hhe_thomson_cross_section_si;
 struct HHeRates { HHeWide alpha, beta, photo, alpha_T, beta_T, photo_T; };
 inline HHeRates hhe_rates(HHeWide temperature, bool helium) {
   const HHeWide k = boltzmann_constant_joule_per_kelvin,
@@ -52,7 +53,7 @@ struct HHeRhs {
 inline HHeRhs hhe_rhs(HHeWide hydrogen, HHeWide helium, HHeWide T,
                      HHeWide nH, HHeWide nHe, HHeWide H, HHeWide u) {
   const HHeWide x[]{hydrogen, helium}, n[]{nH, nHe},
-      ne = nH * hydrogen + nHe * helium,
+      ne = hhe_electron_density(nH, hydrogen, nHe, helium),
       delta = planck_constant_joule_second * speed_of_light_m_per_s *
               (hhe_helium_2p_inverse_metres - hhe_helium_2s_inverse_metres),
       k = boltzmann_constant_joule_per_kelvin;

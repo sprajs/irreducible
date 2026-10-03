@@ -72,7 +72,7 @@ struct Evolution {
                     const std::array<W, 2> &x) {
     if (work.total() >= cap) { status = S::work_limit; return {}; }
     ++work.rhs_evaluations;
-    const W ne = c.nH * x[0] + c.nHe * x[1], M = c.nH + c.nHe,
+    const W ne = detail::hhe_electron_density(c.nH, x[0], c.nHe, x[1]), M = c.nH + c.nHe,
         A = c.compton * ne / (M + ne), den = 1 + h * A + 2 * h / c.u,
         T = (previous[2] + h * A * c.Tr) / den;
     const auto f = detail::hhe_rhs(x[0], x[1], T, c.nH, c.nHe, c.H, c.u);
@@ -263,7 +263,7 @@ HydrogenHeliumHistory prepare_hydrogen_helium_history(
       c[i] = {z, u, nH0 * u * u * u, nHe0 * u * u * u, H, s.model.tcmb_kelvin * u,
           8 * detail::hhe_thomson * photon * u * u * u * u /
               (3 * atomic::hydrogen_electron_mass_kg * speed_of_light_m_per_s * H * u),
-          speed_of_light_m_per_s * detail::hhe_thomson / (H * u), he};
+          detail::hhe_opacity_coefficient(H, u), he};
       max_H_error = std::max(max_H_error, he);
     }
     S initialization = S::ok;
@@ -272,7 +272,7 @@ HydrogenHeliumHistory prepare_hydrogen_helium_history(
       out.status_ = initialization == S::ok ? S::conditioning_budget_exceeded : initialization;
       return out;
     }
-    const W initial_log = heiii_log(x0[2], c.front().nH * x0[0] + c.front().nHe * x0[1]);
+    const W initial_log = heiii_log(x0[2], detail::hhe_electron_density(c.front().nH, x0[0], c.front().nHe, x0[1]));
     out.excluded_heiii_activity_ = static_cast<double>(std::exp(initial_log));
     Evolution evolution{S::ok, out.work_, p.maximum_total_work};
     auto mesh = [&](std::size_t stride) {
@@ -344,7 +344,7 @@ HydrogenHeliumHistory prepare_hydrogen_helium_history(
       if (!physical(state) || state[2] > c[i].Tr) {
         out.status_ = S::conditioning_budget_exceeded; return out;
       }
-      const W activity = heiii_log(state[2], c[i].nH * state[0] + c[i].nHe * state[1]);
+      const W activity = heiii_log(state[2], detail::hhe_electron_density(c[i].nH, state[0], c[i].nHe, state[1]));
       maximum_log = std::max(maximum_log, activity);
       out.nodes_[i] = {c[i].z, state[0], state[1], state[2], error[0], error[1], error[2],
                        c[i].opacity, (c[i].H_error + arithmetic_floor) * c[i].opacity};

@@ -1,6 +1,7 @@
 #pragma once
 #include "irred/hydrogen_helium_history.hpp"
 #include "payload_accounting.hpp"
+#include "hydrogen_helium_charge.hpp"
 #include <algorithm>
 #include <cmath>
 #include <limits>
@@ -29,7 +30,7 @@ struct HydrogenHeliumCell {
         eq = blend(helium_error) + curve(1),
         T = blend(temperature), eT = blend(temperature_error) + curve(2),
         u = 1 + z, nH = hydrogen_today * u * u * u,
-        nHe = helium_today * u * u * u, ne = nH * p + nHe * q,
+        nHe = helium_today * u * u * u, ne = hhe_electron_density(nH, p, nHe, q),
         ene = nH * ep + nHe * eq + 128 * std::numeric_limits<double>::epsilon() * ne,
         A = blend(coefficient), eA = blend(coefficient_error) + curve(3);
     return {p, q, T, ep, eq, eT, nH, nHe, ne, ene, A * ne, A * ene + (ne + ene) * eA};
