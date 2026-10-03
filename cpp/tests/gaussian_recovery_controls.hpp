@@ -32,6 +32,26 @@ inline constexpr std::array<long double,2> ladder_future_coverage{0.959168004957
 #include <iostream>
 #include <numbers>
 #include <stdexcept>
+#include <cstdlib>
+#include <new>
+namespace allocation_observation { inline bool active=false; inline size_t calls=0; }
+#ifdef IRRED_RECOVERY_CAPTURE
+#if defined(__GNUC__) || defined(__clang__)
+#define IRRED_RECOVERY_NOINLINE __attribute__((noinline))
+#else
+#define IRRED_RECOVERY_NOINLINE
+#endif
+IRRED_RECOVERY_NOINLINE void *operator new(size_t n) {
+ if(allocation_observation::active)++allocation_observation::calls;
+ if(void *p=std::malloc(n?n:1))return p;
+ throw std::bad_alloc();
+}
+IRRED_RECOVERY_NOINLINE void *operator new[](size_t n){return ::operator new(n);}
+IRRED_RECOVERY_NOINLINE void operator delete(void *p)noexcept{std::free(p);}
+IRRED_RECOVERY_NOINLINE void operator delete[](void *p)noexcept{::operator delete(p);}
+IRRED_RECOVERY_NOINLINE void operator delete(void *p,size_t)noexcept{::operator delete(p);}
+IRRED_RECOVERY_NOINLINE void operator delete[](void *p,size_t)noexcept{::operator delete(p);}
+#endif
 namespace recovery_controls {
 namespace s=irred::statistics;namespace n=irred::numerics;using W=long double;
 inline constexpr size_t attempts=32768,chunk=1024;
@@ -76,7 +96,7 @@ inline void generation_benchmark(const s::Gaussian&g,const s::GeneratingMean&m){
  <<",\"one_vector_payload_bound\":"<<*s::GaussianSimulation::payload_bound(g,m,1,7)<<",\"comparison_retained_outputs_payload_envelope\":"<<1024*(*s::GaussianSimulation::payload_bound(g,m,1,7)-*g.retained_payload_bound())+*s::GaussianSimulation::payload_bound(g,m,1024,7)-*g.retained_payload_bound()<<",\"borrowed_factor_retained_bytes\":"<<*g.retained_payload_bound()<<",\"verification_timed\":false,\"word_value_error_bits_equal\":true}\n";
 }
 inline std::vector<double> observation(const std::vector<double>&design,const std::vector<double>&offset,
- const std::vector<double>&beta,std::span<const double>noise){std::vector<double>y(offset.size());
+ std::span<const double>beta,std::span<const double>noise){std::vector<double>y(offset.size());
  for(size_t i=0;i<y.size();++i){W v=offset[i]+W(noise[i]);for(size_t j=0;j<beta.size();++j)v+=W(design[i*beta.size()+j])*beta[j];y[i]=double(v);
  }return y;}
 inline n::Status observation_status(std::span<const double>y){for(double x:y){if(!std::isfinite(x))return n::Status::overflow;if(x!=0&&!std::isnormal(x))return n::Status::outside_domain;}return n::Status::ok;}
@@ -112,9 +132,26 @@ struct Moments {size_t count=0;std::vector<W>sum,cross;
     need(std::abs(covariance-C[i*d+j])<=allocation,"full empirical covariance discrepancy");}}
  }
 };
+// Missing generated observations are unavailable, never zero-valued controls.
+struct PredictiveInputs {
+ std::vector<double>training,future;
+ std::vector<size_t>position;
+ size_t count=0;
+};
+inline PredictiveInputs available_predictive_inputs(std::span<const double>training,
+ std::span<const double>future,std::span<const n::Status>generation,size_t n,size_t k) {
+ need(n&&k&&training.size()==generation.size()*n&&future.size()==generation.size()*k,"campaign pool axes");
+ PredictiveInputs out;out.position.assign(generation.size(),SIZE_MAX);
+ for(size_t i=0;i<generation.size();++i)if(generation[i]==n::Status::ok) {
+  out.position[i]=out.count++;
+  out.training.insert(out.training.end(),training.begin()+i*n,training.begin()+(i+1)*n);
+  out.future.insert(out.future.end(),future.begin()+i*k,future.begin()+(i+1)*k);
+ }
+ return out;
+}
 struct Reference {std::vector<W>K,V,T,bias,Wcov,Tfuture,bfuture,posterior_probability,future_probability;};
 struct FutureEvaluation {s::DensityStatus status=s::DensityStatus::invalid_input; n::Status numerical_status=n::Status::invalid_input;
- std::vector<double>mean;double quadratic=0;size_t work=0;};
+ std::vector<double>mean,mean_errors;s::GaussianResult density;double quadratic=0;size_t work=0;};
 inline void coverage(size_t hits,W probability){const W actual=W(hits)/attempts;
  const W allowance=6*std::sqrt(probability*(1-probability)/attempts)+6.L/attempts+5e-4L+1e-10L;
  need(std::abs(actual-probability)<=allowance,"empirical ideal-model coverage discrepancy");}
@@ -146,11 +183,11 @@ inline void campaign_identity(std::string_view name,bool fixed,std::uint64_t str
  std::cout<<"{\"role\":\""<<(role==0?"parameter prior":role==1?"training noise":"future noise")<<"\",\"stream_first\":\""<<base<<"\",\"stream_last\":\""<<base+d-1<<"\",\"dimension\":"<<d<<",\"generating_identity\":\""<<g.generating_law_identity<<"\",\"mean_identity\":\""<<g.identity<<"\",\"measure\":\""<<g.coordinate_measure<<"\",\"ordered_ids\":";strings_json(g.ordered_ids);std::cout<<",\"source_table_identity\":\""<<source.table_identity<<"\",\"source_uncertainty_identity\":\""<<source.uncertainty_identity<<"\",\"source_arithmetic\":\""<<source.arithmetic_id<<"\",\"source_semantics\":\""<<source.source_semantics<<"\"";std::cout<<'}';}
  std::cout<<']';
 }
-template<class Condition,class PosteriorDensity,class Predict,class Projection>
+template<class Condition,class PosteriorDensity,class Predict,class BatchPredict,class Projection>
 void campaign(std::string_view name,const s::Gaussian&source,const s::Gaussian&prior_noise,const s::Gaussian&future_noise,
  const std::vector<double>&X,const std::vector<double>&A,const std::vector<double>&o,const std::vector<double>&of,
  const std::vector<double>&m,const std::vector<double>&truth,const std::vector<std::string>&units,
- const Reference&ref,std::uint64_t family,Condition condition,PosteriorDensity posterior_density,Predict predict,Projection projection,bool h0_requested=false){
+ const Reference&ref,std::uint64_t family,Condition condition,PosteriorDensity posterior_density,Predict predict,BatchPredict batch_predict,Projection projection,bool h0_requested=false){
  const size_t p=m.size(),nt=o.size(),k=of.size();need(p<256&&nt<256&&k<256,"global disjoint role ranges");
  // Fixed before draws; verify K/V via separate exact-input finite differences.
  auto y0=observation(X,o,truth,std::vector<double>(nt));auto c0=condition(y0);need(c0.status==s::DensityStatus::finite,"analytic truth mean");
@@ -161,7 +198,7 @@ void campaign(std::string_view name,const s::Gaussian&source,const s::Gaussian&p
  const auto generating_train=generating(source,std::vector<double>(nt),std::vector<std::string>(nt,"mag"),"conditional training noise");
  const auto generating_future=generating(future_noise,std::vector<double>(k),std::vector<std::string>(k,"mag"),"independent conditional future noise");
  for(bool fixed:{false,true}){
-  const auto start_time=std::chrono::steady_clock::now();W predictive_seconds=0;size_t refused=0,joint_hits=0,posterior_joint_hits=0,declared_work=0,actually_attempted=0;
+  const auto start_time=std::chrono::steady_clock::now();W predictive_seconds=0,baseline_seconds=0,preprocessing_seconds=0;size_t preprocessing_allocations=0,common_input_storage_peak=0,retained_allocations=0,baseline_allocations=0;size_t predictive_work=0,baseline_work=0,matched_outputs=0,baseline_storage_peak=0,retained_storage_peak=0;size_t refused=0,joint_hits=0,posterior_joint_hits=0,declared_work=0,actually_attempted=0;
   std::vector<size_t>posterior_hits(p),future_hits(k);Moments posterior_moments(p),future_moments(k);
   const auto stream=family+(fixed?0x10000:0);
   std::cout<<"{\"kind\":\"campaign_address_identity\",";campaign_identity(name,fixed,stream,p,nt,k,generating_prior,generating_train,generating_future,prior_noise,source,future_noise);std::cout<<"}\n";
@@ -171,6 +208,61 @@ void campaign(std::string_view name,const s::Gaussian&source,const s::Gaussian&p
    s::GaussianSimulationBatch bp;if(!fixed)bp=draw(prior_noise,generating_prior,seed,stream,start,chunk);
    auto bt=draw(source,generating_train,seed,stream+0x100,start,chunk),bf=draw(future_noise,generating_future,seed,stream+0x200,start,chunk);
    declared_work+=bp.work_units+bt.work_units+bf.work_units;
+   allocation_observation::calls=0;allocation_observation::active=true;
+   const auto preprocessing_begin=std::chrono::steady_clock::now();
+   std::vector<double>pool_y(chunk*nt),pool_future(chunk*k);
+   std::vector<n::Status>generation_status(chunk);
+   for(size_t i=0;i<chunk;++i) {
+    generation_status[i]=!fixed&&bp.rows[i].status!=n::Status::ok?bp.rows[i].status:bt.rows[i].status!=n::Status::ok?bt.rows[i].status:bf.rows[i].status;
+    if(generation_status[i]!=n::Status::ok)continue;
+    const std::span<const double>beta=fixed?std::span<const double>(truth):std::span<const double>(bp.values.data()+i*p,p);
+    auto y=observation(X,o,beta,std::span(bt.values.data()+i*nt,nt));
+    auto fy=observation(A,of,beta,std::span(bf.values.data()+i*k,k));
+    std::copy(y.begin(),y.end(),pool_y.begin()+i*nt);
+    std::copy(fy.begin(),fy.end(),pool_future.begin()+i*k);
+   }
+   auto inputs=available_predictive_inputs(pool_y,pool_future,generation_status,nt,k);
+   preprocessing_seconds+=std::chrono::duration<W>(std::chrono::steady_clock::now()-preprocessing_begin).count();
+   allocation_observation::active=false;preprocessing_allocations+=allocation_observation::calls;
+   common_input_storage_peak=std::max(common_input_storage_peak,(pool_y.capacity()+pool_future.capacity()+inputs.training.capacity()+inputs.future.capacity())*sizeof(double)+generation_status.capacity()*sizeof(n::Status)+inputs.position.capacity()*sizeof(size_t));
+   allocation_observation::calls=0;allocation_observation::active=true;
+   const auto retained_begin=std::chrono::steady_clock::now();
+   s::PredictiveBatch retained;
+   if(inputs.count)retained=batch_predict(inputs.training,inputs.future,inputs.count);
+   else {retained.status=s::DensityStatus::finite;retained.numerical_status=n::Status::ok;}
+   predictive_seconds+=std::chrono::duration<W>(std::chrono::steady_clock::now()-retained_begin).count();
+   allocation_observation::active=false;retained_allocations+=allocation_observation::calls;
+   need(retained.status==s::DensityStatus::finite,"coarse predictive batch admission");
+   predictive_work+=retained.work_units;
+   retained_storage_peak=std::max(retained_storage_peak,retained.rows.capacity()*sizeof(s::PredictiveRow)+retained.means.capacity()*sizeof(double)+retained.mean_absolute_error_estimates.capacity()*sizeof(double)+retained.densities.capacity()*sizeof(s::GaussianResult));
+   // Capture the same requested outputs for all vectors before comparison.
+   allocation_observation::calls=0;allocation_observation::active=true;
+   const auto baseline_begin=std::chrono::steady_clock::now();
+   std::vector<FutureEvaluation>baseline(inputs.count);
+   for(size_t i=0;i<chunk;++i)if(inputs.position[i]!=SIZE_MAX) {
+    const auto index=inputs.position[i];
+    baseline[index]=predict(std::span<const double>(inputs.training.data()+index*nt,nt),std::span<const double>(inputs.future.data()+index*k,k));baseline_work+=baseline[inputs.position[i]].work;
+   }
+   baseline_seconds+=std::chrono::duration<W>(std::chrono::steady_clock::now()-baseline_begin).count();
+   allocation_observation::active=false;baseline_allocations+=allocation_observation::calls;
+   size_t storage=baseline.capacity()*sizeof(FutureEvaluation);
+   for(const auto&b:baseline)storage+=(b.mean.capacity()+b.mean_errors.capacity())*sizeof(double);
+   baseline_storage_peak=std::max(baseline_storage_peak,storage);
+   for(size_t i=0;i<chunk;++i) {
+    if(inputs.position[i]==SIZE_MAX) {
+     need(generation_status[i]!=n::Status::ok,"unavailable original lane excluded with concrete generating refusal");
+     std::cout<<"{\"kind\":\"predictive_input_unavailable\",\"seed\":\""<<seed<<"\",\"sample\":"<<start+i<<",\"original_observation_available\":false,\"prediction_executed\":false,\"numerical_status\":"<<int(generation_status[i])<<"}\n";
+     continue;
+    }
+    const auto index=inputs.position[i];const auto&row=retained.rows[index];const auto&complete=baseline[index];
+    need(row.status==complete.status&&row.numerical_status==complete.numerical_status,"all available original complete/retained refusal identities");
+    if(row.status==s::DensityStatus::finite) {
+     need(complete.mean.size()==k&&complete.mean_errors.size()==k,"complete arm captures same mean/error outputs");
+     for(size_t j=0;j<k;++j)need(retained.means[index*k+j]==complete.mean[j]&&retained.mean_absolute_error_estimates[index*k+j]==complete.mean_errors[j],"every original complete/retained mean diagnostic equality");
+     const auto&d=retained.densities[index];
+     need(d.density.log_value==complete.density.density.log_value&&d.quadratic==complete.quadratic&&d.log_determinant==complete.density.log_determinant&&d.normalization==complete.density.normalization&&d.backward_residual==complete.density.backward_residual&&d.estimated_forward_sensitivity==complete.density.estimated_forward_sensitivity,"every original complete/retained normalized joint density equality");++matched_outputs;
+    }else need(complete.mean.empty()&&complete.mean_errors.empty(),"refused baseline outputs withheld");
+   }
    for(size_t i=0;i<chunk;++i){++actually_attempted;std::vector<double>beta,y,fy;std::string_view failure="parameter_copy";
     s::DensityStatus failed_status=s::DensityStatus::numerical_failure;n::Status failed_numerical=n::Status::work_limit;
     try {
@@ -178,13 +270,19 @@ void campaign(std::string_view name,const s::Gaussian&source,const s::Gaussian&p
     failure="generation";
     failed_numerical=!fixed&&bp.rows[i].status!=n::Status::ok?bp.rows[i].status:bt.rows[i].status!=n::Status::ok?bt.rows[i].status:bf.rows[i].status;
     if(failed_numerical==n::Status::ok){
-     failure="training_observation";y=observation(X,o,beta,std::span(bt.values.data()+i*nt,nt));
-     failure="future_observation";fy=observation(A,of,beta,std::span(bf.values.data()+i*k,k));
+     failure="training_observation";y.assign(pool_y.begin()+i*nt,pool_y.begin()+(i+1)*nt);
+     failure="future_observation";fy.assign(pool_future.begin()+i*k,pool_future.begin()+(i+1)*k);
      const auto ys=observation_status(y),fs=observation_status(fy);
      if(ys!=n::Status::ok||fs!=n::Status::ok){failure=ys!=n::Status::ok?"training_observation":"future_observation";failed_numerical=ys!=n::Status::ok?ys:fs;}
      else {failure="conditioning";auto c=condition(y);failed_status=c.status;failed_numerical=c.numerical_status;
       if(c.status==s::DensityStatus::finite){failure="posterior_density";auto pd=posterior_density(y,beta);failed_status=pd.density.status;failed_numerical=pd.density.numerical_status;
-       if(pd.density.status==s::DensityStatus::finite){failure="future_prediction_density";const auto begin=std::chrono::steady_clock::now();auto f=predict(y,fy);predictive_seconds+=std::chrono::duration<W>(std::chrono::steady_clock::now()-begin).count();declared_work+=f.work;failed_status=f.status;failed_numerical=f.numerical_status;
+       if(pd.density.status==s::DensityStatus::finite){failure="future_prediction_density";FutureEvaluation f;const auto index=inputs.position[i];
+        need(index!=SIZE_MAX,"only available original observations evaluated");
+        f.status=retained.rows[index].status;f.numerical_status=retained.rows[index].numerical_status;
+        if(f.status==s::DensityStatus::finite){
+         f.mean.assign(retained.means.begin()+index*k,retained.means.begin()+(index+1)*k);f.density=retained.densities[index];f.quadratic=f.density.quadratic;
+        }
+        failed_status=f.status;failed_numerical=f.numerical_status;
         if(f.status==s::DensityStatus::finite){failure="H0_projection";auto h=projection(beta,c,y);failed_status=h.status;failed_numerical=h.numerical_status;
          if(h.status==s::DensityStatus::finite&&h.check){
           std::vector<W>e(p),ef(k);std::vector<bool>ph(p),fh(k);
@@ -207,9 +305,10 @@ void campaign(std::string_view name,const s::Gaussian&source,const s::Gaussian&p
    }
   }
   }catch(const std::exception&){std::cout<<"{\"kind\":\"campaign_aborted\",\"campaign\":\""<<name<<"\",\"planned_count\":"<<attempts<<",\"actually_attempted\":"<<actually_attempted<<",\"refused_attempts\":"<<refused<<"}\n";throw;}
+  std::cout<<std::setprecision(17)<<"{\"kind\":\"matched_predictive_arms\",\"campaign\":\""<<name<<"\",\"ensemble\":\""<<(fixed?"fixed truth":"prior predictive")<<"\",\"attempted\":"<<actually_attempted<<",\"matched_accepted_outputs\":"<<matched_outputs<<",\"baseline_complete_preparation_capture_seconds\":"<<baseline_seconds<<",\"retained_batch_capture_seconds_excluding_shared_setup\":"<<predictive_seconds<<",\"baseline_observed_allocations\":"<<baseline_allocations<<",\"retained_observed_allocations\":"<<retained_allocations<<",\"baseline_work_units\":"<<baseline_work<<",\"retained_work_units\":"<<predictive_work<<",\"baseline_retained_output_payload_peak\":"<<baseline_storage_peak<<",\"retained_output_payload_peak\":"<<retained_storage_peak<<",\"common_input_capture_seconds\":"<<preprocessing_seconds<<",\"common_input_observed_allocations\":"<<preprocessing_allocations<<",\"common_original_and_packed_inputs_payload_peak\":"<<common_input_storage_peak<<",\"verification_in_timed_arms\":false,\"setup_reported_separately\":true,\"resource_threads\":1,\"universal_speed_claim\":false}\n";
   std::cout.flush();const W elapsed=std::chrono::duration<W>(std::chrono::steady_clock::now()-start_time).count();
   std::cout<<std::setprecision(17)<<"{\"kind\":\"empirical_receipt\",\"operation\":\"Gaussian-recovery/ideal-model-comparison/v1\",";campaign_identity(name,fixed,stream,p,nt,k,generating_prior,generating_train,generating_future,prior_noise,source,future_noise);
-  std::cout<<",\"actually_attempted\":"<<actually_attempted<<",\"attempts\":"<<attempts<<",\"refused\":"<<refused<<",\"generator\":\""<<irred::random::generator_id<<"\",\"generation_plus_predictive_preparation_work_units\":"<<declared_work<<",\"total_seconds_including_stage_and_attempt_logging\":"<<elapsed<<",\"prediction_preparation_density_seconds\":"<<predictive_seconds<<",\"posterior_coverage\":[";
+  std::cout<<",\"actually_attempted\":"<<actually_attempted<<",\"attempts\":"<<attempts<<",\"refused\":"<<refused<<",\"generator\":\""<<irred::random::generator_id<<"\",\"generation_work_units\":"<<declared_work<<",\"total_seconds_including_stage_and_attempt_logging\":"<<elapsed<<",\"retained_batch_capture_seconds\":"<<predictive_seconds<<",\"posterior_coverage\":[";
   for(size_t j=0;j<p;++j){if(j)std::cout<<',';std::cout<<"{\"hits\":"<<posterior_hits[j]<<",\"lower\":"<<W(posterior_hits[j])/attempts<<",\"upper\":"<<W(posterior_hits[j]+refused)/attempts<<",\"ideal_reference\":"<<(fixed?ref.posterior_probability[j]:.95L)<<'}';}
   std::cout<<"],\"future_coverage\":[";for(size_t j=0;j<k;++j){if(j)std::cout<<',';std::cout<<"{\"hits\":"<<future_hits[j]<<",\"lower\":"<<W(future_hits[j])/attempts<<",\"upper\":"<<W(future_hits[j]+refused)/attempts<<",\"ideal_reference\":"<<(fixed?ref.future_probability[j]:.95L)<<'}';}
   std::cout<<"],\"posterior_joint_hits\":"<<(fixed?"null":std::to_string(posterior_joint_hits))<<",\"future_joint_hits\":"<<(fixed?"null":std::to_string(joint_hits))<<"}\n";

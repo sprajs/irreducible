@@ -1,3 +1,4 @@
+#define IRRED_RECOVERY_CAPTURE
 #include "gaussian_recovery_controls.hpp"
 #include "irred/calibration_predictive.hpp"
 #include "calibration_predictive_peer_facts.hpp"
@@ -60,18 +61,28 @@ void run(){auto m=model(),fm=model(true);auto l=linearize(m),fl=linearize(fm);ne
  auto S=covariance(LS,8),C=covariance(LC,11),R=covariance(LR,2);
  support(l.design,l.offsets_mag,mean,LS,LC);support(fl.design,fl.offsets_mag,mean,LS,LR);
  support(l.design,l.offsets_mag,truth,std::vector<double>(64),LC);support(fl.design,fl.offsets_mag,truth,std::vector<double>(64),LR);
- auto g=noise(m,C);auto pr=prior(l,mean,S);auto p=LadderPosterior::prepare(std::move(g),m,pr);need(p.status()==s::DensityStatus::finite,"narrow proper ladder preparation");
- auto ng=noise(fm,R),pg=gaussian(S,metadata(pr.ordered_parameter_ids,pr.parameter_measure));auto md=predictive_metadata(p,fl);
- for(size_t i=0;i<64;++i)near(p.posterior().covariance()[i],f::ladder_V[i]);
+ auto g=noise(m,C);auto pr=prior(l,mean,S);auto original_p=LadderPosterior::prepare(std::move(g),m,pr);need(original_p.status()==s::DensityStatus::finite,"narrow proper ladder preparation");
+ auto ng=noise(fm,R),pg=gaussian(S,metadata(pr.ordered_parameter_ids,pr.parameter_measure));auto md=predictive_metadata(original_p,fl);
+ for(size_t i=0;i<64;++i)near(original_p.posterior().covariance()[i],f::ladder_V[i]);
  Reference ref{wide(f::ladder_K),wide(f::ladder_V),wide(f::ladder_fixed_sampling),wide(f::ladder_fixed_bias),wide(f::ladder_W),wide(f::ladder_fixed_future_sampling),wide(f::ladder_fixed_future_bias),wide(f::ladder_posterior_coverage),wide(f::ladder_future_coverage)};
+ allocation_observation::calls=0;allocation_observation::active=true;
+ const auto setup_begin=std::chrono::steady_clock::now();
+ auto retained=LadderPredictiveConditioning::prepare(std::move(original_p),ng,fm,md);
+ const auto setup_seconds=std::chrono::duration<W>(std::chrono::steady_clock::now()-setup_begin).count();
+ allocation_observation::active=false;const auto setup_allocations=allocation_observation::calls;
+ need(retained.status()==s::DensityStatus::finite,"ladder invariant predictive preparation");
+ const auto&p=retained.posterior();
+ for(size_t i=0;i<4;++i)near(retained.covariance()[i],ref.Wcov[i]);
+ std::cout<<std::setprecision(17)<<"{\"kind\":\"retained_predictive_setup\",\"campaign\":\"narrow full correlated proper ladder\",\"seconds\":"<<setup_seconds<<",\"observed_allocations\":"<<setup_allocations<<",\"retained_payload\":"<<*retained.retained_payload_bound()<<",\"maximum_batch_payload\":"<<*retained.batch_payload_bound(chunk)<<",\"same_owner_for_both_ensembles\":true,\"arithmetic\":\"longdouble_cpu_v1\"}\n";
+ auto batch_predict=[&](const auto&y,const auto&fy,size_t count){return retained.evaluate(y,l.ordered_row_ids,fy,fl.ordered_row_ids,count);};
  auto condition=[&](const auto&y){return p.condition(y,l.ordered_row_ids);};auto density=[&](const auto&y,const auto&beta){return p.log_density(y,l.ordered_row_ids,beta,pr.ordered_parameter_ids);};
  auto predict=[&](const auto&y,const auto&fy){auto q=LadderPredictive::prepare(p,y,l.ordered_row_ids,ng,fm,md);FutureEvaluation r;r.status=q.status();r.numerical_status=q.numerical_status();if(r.status!=s::DensityStatus::finite)return r;
- r.work=q.predictive().preparation_work_units();for(size_t i=0;i<4;++i)near(q.covariance()[i],ref.Wcov[i]);r.mean.assign(q.mean().begin(),q.mean().end());auto d=q.log_density(fy,fl.ordered_row_ids);r.status=d.density.status;r.numerical_status=d.density.numerical_status;r.quadratic=d.quadratic;return r;};
+ r.work=q.predictive().preparation_work_units()+64*fm.rows.size()*(mean.size()+1)+32*l.ordered_row_ids.size()+fl.ordered_row_ids.size()+32*fm.rows.size()*fm.rows.size();r.mean.assign(q.mean().begin(),q.mean().end());r.mean_errors.assign(q.mean_absolute_error_estimates().begin(),q.mean_absolute_error_estimates().end());auto d=q.log_density(fy,fl.ordered_row_ids);r.status=d.density.status;r.numerical_status=d.density.numerical_status;r.quadratic=d.quadratic;r.density=d;if(r.status!=s::DensityStatus::finite){r.mean.clear();r.mean_errors.clear();}return r;};
  auto projection=[&](const auto&beta,const auto&c,const auto&y){auto h=p.h0_projection(y,l.ordered_row_ids);if(h.status!=s::DensityStatus::finite)return ProjectionEvaluation{h.status,h.numerical_status,false};near(h.eta_mean,c.value[6]);near(h.eta_variance,ref.V[54]);
  const auto width=z95*std::sqrt(ref.V[54]);const auto low=project_h0(m,double(W(c.value[6])-width)),high=project_h0(m,double(W(c.value[6])+width)),actual=project_h0(m,beta[6]);
  if(!std::isfinite(low)||!std::isfinite(high)||!std::isfinite(actual))return ProjectionEvaluation{s::DensityStatus::numerical_failure,n::Status::overflow,false};
  return ProjectionEvaluation{s::DensityStatus::finite,n::Status::ok,(actual>=low&&actual<=high)==(std::abs(W(c.value[6])-beta[6])<=width)};};
- campaign("narrow full correlated proper ladder",p.posterior().source(),pg,ng,l.design,fl.design,l.offsets_mag,fl.offsets_mag,mean,truth,pr.parameter_units,ref,0x110000,condition,density,predict,projection,true);
+ campaign("narrow full correlated proper ladder",p.posterior().source(),pg,ng,l.design,fl.design,l.offsets_mag,fl.offsets_mag,mean,truth,pr.parameter_units,ref,0x110000,condition,density,predict,batch_predict,projection,true);
  refusal_probe();
 }
 }

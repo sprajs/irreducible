@@ -183,6 +183,14 @@ test the synthetic scope. Disjoint ordered row/event IDs, units and measures are
 explicit declarations. This adds no observational qualification, nonlinear
 prediction, train/future cross-noise covariance or released finite-box inference.
 
+`GaussianPredictiveConditioning` owns the unchanged proper posterior and one
+future covariance factor across coarse pools of original training/future vectors.
+Requested means and whole-vector densities retain ordered per-vector refusals;
+setup, cumulative work and peak payload are bounded. Scalar/rational controls,
+actual factor observations and matched complete-preparation campaign captures
+test this repeated scope. The installed SDK consumer checks independent scalar
+means/densities, masks and source lifetime after setup inputs are destroyed.
+
 The native [proper-prior ladder consumer](calibration-predictive.md) now shares
 the compiled anchor/Cepheid/SN design and offsets with relative recovery. It
 retains a proper Gaussian parameter posterior and a full joint law for disjoint
@@ -191,6 +199,11 @@ H0 projection with numerical diagnostics. Exact rational correlated controls,
 independent prior/noise integration, fixed-truth bias/coverage and conditional
 chi-square ellipsoid mass checks test this scope. It supplies no released-box
 posterior, cross-noise inference or measured-data qualification.
+
+`LadderPredictiveConditioning` supplies the same repeated contract through the
+compiled ladder design/offset owner. Shared calibration covariance and exact
+original-coordinate translation survive across batches. Installed scalar checks
+include nonzero Hubble offsets and a rounded-translation refusal.
 
 Thermal FD consumers can explicitly select nested Clenshaw–Curtis momentum
 integration. The retained owner records that numerical selection and refuses

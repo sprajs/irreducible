@@ -107,7 +107,7 @@ void run(){auto g=source();auto m=mean();const std::array<irred::random::Address
  // Recorder controls are consumers of the same owner used by both campaigns.
  std::ostringstream record;auto*saved=std::cout.rdbuf(record.rdbuf());
  bool stopped=false;try{auto wrong=m;wrong.ordered_ids[0]="wrong";(void)recovery_controls::draw(g,wrong,17,70,9,2);}catch(const std::runtime_error&){stopped=true;}
- auto invalid=recovery_controls::observation({1,0,0,1},{0,0},{std::numeric_limits<double>::quiet_NaN(),2},std::array<double,2>{0,0});
+ auto invalid=recovery_controls::observation({1,0,0,1},{0,0},std::array<double,2>{std::numeric_limits<double>::quiet_NaN(),2},std::array<double,2>{0,0});
  const std::array<double,2>future{std::numeric_limits<double>::infinity(),3};s::GaussianSimulationBatch empty;
  recovery_controls::failed("recorder control",17,9,"training_observation",m.value,invalid,future,empty,empty,empty,0,s::DensityStatus::numerical_failure,recovery_controls::observation_status(invalid));
  std::cout.rdbuf(saved);const auto text=record.str();

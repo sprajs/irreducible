@@ -62,6 +62,11 @@ The product build deliberately reports FITS unavailable. A separate optional nat
 
 `check_install.py` installs to a fresh temporary prefix, rejects the old generic include root, and compiles/runs the durable `test_installed_consumer.cpp` against the installed `libirred_core.a`. It checks independent library usability and cleans its temporary installation.
 
+Retained generic and ladder predictive consumers evaluate multiple original
+vectors after setup inputs are destroyed, checking independently derived scalar
+means, covariance and normalized densities, requested masks and individual
+refusals. Existing one-conditioned-law consumers exercise their separate valid API.
+
 ## Explicit Release profile
 
 Build and test the optimized profile with the same native and Rust cases:
@@ -258,6 +263,9 @@ permutations and unit Jacobians challenge the fixed synthetic contract. Quotas,
 lifetime, all measured allocation sites and independent noise/event declarations
 remain separate gates. See [Gaussian predictive](gaussian-predictive.md); these
 controls do not qualify observational coverage or a released finite-box target.
+Actual predictive factor/whitening/solve observations use forwarding hooks only
+on 64-bit Linux GCC/Clang with GNU-compatible ELF wrapping. Other builds retain
+the unwrapped owner and independent mathematical controls.
 
 ## Addressed Gaussian recovery campaigns
 
@@ -295,3 +303,19 @@ integral; an original growing-mode ODE route provides a distinct physical
 comparison. The density facts use an explicit correlated 3x3 adjugate. These
 are named numerical controls under [the declared model](growth-rsd.md),
 without external data or an mpmath runtime dependency.
+
+## Repeated fixed-design prediction
+
+The existing generic/ladder owner and recovery tests now exercise retained
+`GaussianPredictiveConditioning` and `LadderPredictiveConditioning` batches.
+One-shot and repeated consumers share compiled projection/offset equations; their
+exact equality is a regression check, not independent mathematical evidence.
+Original rational/cofactor, direct density-quadrature and scalar conjugate
+references remain the independent named controls at unchanged allocations.
+Tests challenge masks, original order, rank deficiency, full correlations,
+rounded offsets, cumulative quotas, allocation failures and moved owners.
+A generating refusal never becomes a zero-filled observation sent to prediction.
+On Linux GCC/Clang with a compatible ELF linker, forwarding observation verifies
+one invariant setup factor and no batch refactorization, while counting actual
+training whitenings and density solves. The same original routines and arithmetic
+execute through these hooks; other toolchains retain portable mathematical tests.

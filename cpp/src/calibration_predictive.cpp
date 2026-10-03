@@ -1,4 +1,5 @@
 #include "irred/calibration_predictive.hpp"
+#include "offset_translation.hpp"
 #include "payload_accounting.hpp"
 #include <algorithm>
 #include <cmath>
@@ -55,28 +56,7 @@ bool same_models(const Model &a, const Model &b) {
 bool normal(double x) {
   return std::isfinite(x) && (x == 0 || std::isnormal(x));
 }
-// Exact offset translation is a deliberate domain, not an unreported error.
-N center(std::span<const double> y, std::span<const double> offsets,
-         std::vector<double> &out) {
-  if (y.size() != offsets.size())
-    return N::invalid_input;
-  out.resize(y.size());
-  for (size_t i = 0; i < y.size(); ++i) {
-    if (!normal(y[i]))
-      return N::nonfinite_input;
-    const long double exact = static_cast<long double>(y[i]) - offsets[i];
-    const double rounded = static_cast<double>(exact);
-    if (!normal(rounded) || (exact != 0 && rounded == 0))
-      return N::outside_domain;
-    // TwoSum verifies the subtraction exactly, including beyond wide precision.
-    const double neg = -offsets[i], z = rounded - y[i];
-    const double low = (y[i] - (rounded - z)) + (neg - z);
-    if (low != 0 || static_cast<long double>(rounded) != exact)
-      return N::conditioning_budget_exceeded;
-    out[i] = rounded;
-  }
-  return N::ok;
-}
+using detail::center_exact;
 template <class P> bool valid_policy(const P &p) {
   return p.maximum_elements && p.maximum_payload_bytes &&
          p.maximum_work_units && std::isfinite(p.maximum_forward_sensitivity) &&
@@ -234,7 +214,7 @@ LadderPosterior::condition(std::span<const double> y,
     return mean_fail(D::numerical_failure, N::work_limit);
   try {
     std::vector<double> r;
-    auto ns = center(y, linear_.offsets_mag, r);
+    auto ns = center_exact(y, linear_.offsets_mag, r);
     if (ns != N::ok)
       return mean_fail(D::numerical_failure, ns);
     if (!reserve_work(policy, linear_.offsets_mag.size()))
@@ -260,7 +240,7 @@ statistics::GaussianResult LadderPosterior::log_density(
     return density_fail(D::numerical_failure, N::work_limit);
   try {
     std::vector<double> r;
-    auto ns = center(y, linear_.offsets_mag, r);
+    auto ns = center_exact(y, linear_.offsets_mag, r);
     if (ns != N::ok)
       return density_fail(D::numerical_failure, ns);
     if (!reserve_work(policy, linear_.offsets_mag.size()))
@@ -431,6 +411,14 @@ LadderPredictive LadderPredictive::prepare(
     const LadderPosterior &p, std::span<const double> training,
     std::span<const std::string> rows, const statistics::Gaussian &g, Model m,
     statistics::PredictiveMetadata md, statistics::PredictivePolicy policy) {
+  return prepare_impl(p, training, rows, g, std::move(m), std::move(md), policy,
+                      false);
+}
+LadderPredictive LadderPredictive::prepare_impl(
+    const LadderPosterior &p, std::span<const double> training,
+    std::span<const std::string> rows, const statistics::Gaussian &g, Model m,
+    statistics::PredictiveMetadata md, statistics::PredictivePolicy policy,
+    bool fixed) {
   LadderPredictive out;
   auto fail = [&](D d, N n) {
     out = LadderPredictive{};
@@ -468,36 +456,22 @@ LadderPredictive LadderPredictive::prepare(
         md.conditional_noise_identity != m.conditional_covariance_identity)
       return fail(D::incompatible_metadata, N::invalid_input);
     std::vector<double> r;
-    auto ns = center(training, p.linearization().offsets_mag, r);
-    if (ns != N::ok)
-      return fail(D::numerical_failure, ns);
-    out.predictive_ = statistics::GaussianPredictive::prepare(
-        p.posterior(), r, rows, g, l.design, md, parent_policy);
+    if (!fixed) {
+      const auto ns = center_exact(training, p.linearization().offsets_mag, r);
+      if (ns != N::ok)
+        return fail(D::numerical_failure, ns);
+    }
+    out.predictive_ = statistics::GaussianPredictive::prepare_impl(
+        p.posterior(), r, rows, g, l.design, md, parent_policy, fixed);
     if (out.predictive_.status() != D::finite)
       return fail(out.predictive_.status(), out.predictive_.numerical_status());
-    out.mean_.resize(m.rows.size());
-    out.mean_errors_.resize(m.rows.size());
-    const auto pm = out.predictive_.mean(),
-               pe = out.predictive_.mean_absolute_error_estimates();
-    for (size_t i = 0; i < m.rows.size(); ++i) {
-      const long double wide =
-          static_cast<long double>(pm[i]) + l.offsets_mag[i];
-      const double value = static_cast<double>(wide);
-      const long double err =
-          pe[i] + std::abs(wide - value) +
-          4 * std::numeric_limits<long double>::epsilon() *
-              (std::abs(pm[i]) + std::abs(l.offsets_mag[i]));
-      double stored_error = static_cast<double>(err);
-      if (static_cast<long double>(stored_error) < err)
-        stored_error = std::nextafter(stored_error,
-                                      std::numeric_limits<double>::infinity());
-      if (!normal(value) || (wide != 0 && value == 0) ||
-          !normal(stored_error) || (err > 0 && stored_error == 0))
-        return fail(D::numerical_failure, N::outside_domain);
-      if (err > policy.maximum_forward_sensitivity * (1 + std::abs(wide)))
-        return fail(D::numerical_failure, N::conditioning_budget_exceeded);
-      out.mean_[i] = value;
-      out.mean_errors_[i] = stored_error;
+    if (!fixed) {
+      const auto ns = detail::add_offsets(
+          out.predictive_.mean(),
+          out.predictive_.mean_absolute_error_estimates(), l.offsets_mag,
+          policy.maximum_forward_sensitivity, out.mean_, out.mean_errors_);
+      if (ns != N::ok)
+        return fail(D::numerical_failure, ns);
     }
     out.model_ = std::move(m);
     out.linear_ = std::move(l);
@@ -525,7 +499,7 @@ LadderPredictive::log_density(std::span<const double> y,
     return density_fail(D::numerical_failure, N::work_limit);
   try {
     std::vector<double> r;
-    auto ns = center(y, linear_.offsets_mag, r);
+    auto ns = center_exact(y, linear_.offsets_mag, r);
     if (ns != N::ok)
       return density_fail(D::numerical_failure, ns);
     if (!reserve_work(policy, linear_.offsets_mag.size()))
@@ -534,5 +508,109 @@ LadderPredictive::log_density(std::span<const double> y,
   } catch (const std::bad_alloc &) {
     return density_fail(D::numerical_failure, N::work_limit);
   }
+}
+
+LadderPredictiveConditioning::LadderPredictiveConditioning(
+    LadderPredictiveConditioning &&o) noexcept
+    : posterior_(std::move(o.posterior_)), law_(std::move(o.law_)) {
+  o.posterior_.reset();
+}
+LadderPredictiveConditioning &LadderPredictiveConditioning::operator=(
+    LadderPredictiveConditioning &&o) noexcept {
+  if (this != &o) {
+    this->~LadderPredictiveConditioning();
+    new (this) LadderPredictiveConditioning(std::move(o));
+  }
+  return *this;
+}
+LadderPredictiveConditioning LadderPredictiveConditioning::prepare(
+    LadderPosterior &&p, const statistics::Gaussian &g, Model m,
+    statistics::PredictiveMetadata md, statistics::PredictivePolicy policy) {
+  LadderPredictiveConditioning out;
+  if (p.status() != D::finite || g.status() != D::finite) {
+    out.law_.status_ = p.status() != D::finite ? p.status() : g.status();
+    out.law_.numerical_status_ =
+        p.status() != D::finite ? p.numerical_status() : g.numerical_status();
+    return out;
+  }
+  if (!fits(preparation_payload_bound(p, g, m, md),
+            policy.maximum_payload_bytes)) {
+    out.law_.numerical_status_ = N::work_limit;
+    return out;
+  }
+  out.law_ = LadderPredictive::prepare_impl(
+      p, {}, p.linearization().ordered_row_ids, g, std::move(m), std::move(md),
+      policy, true);
+  if (out.law_.status() == D::finite) {
+    PayloadAccounting b(sizeof(out));
+    b.embedded(p.retained_payload_bound(), sizeof(LadderPosterior));
+    b.embedded(out.law_.retained_payload_bound(), sizeof(LadderPredictive));
+    if (!fits(b.result(), policy.maximum_payload_bytes)) {
+      out.law_ = LadderPredictive{};
+      out.law_.status_ = D::numerical_failure;
+      out.law_.numerical_status_ = N::work_limit;
+    } else
+      out.posterior_ = std::move(p);
+  }
+  return out;
+}
+std::optional<size_t> LadderPredictiveConditioning::preparation_payload_bound(
+    const LadderPosterior &p, const statistics::Gaussian &g, const Model &m,
+    const statistics::PredictiveMetadata &md) noexcept {
+  PayloadAccounting b(sizeof(LadderPredictiveConditioning) -
+                      sizeof(LadderPredictive));
+  b.add(LadderPredictive::preparation_payload_bound(p, g, m, md)
+            .value_or(SIZE_MAX),
+        1);
+  return b.result();
+}
+std::optional<size_t>
+LadderPredictiveConditioning::retained_payload_bound() const noexcept {
+  PayloadAccounting b(sizeof(*this));
+  if (posterior_)
+    b.embedded(posterior_->retained_payload_bound(), sizeof(LadderPosterior));
+  b.embedded(law_.retained_payload_bound(), sizeof(LadderPredictive));
+  return b.result();
+}
+std::optional<size_t> LadderPredictiveConditioning::batch_payload_bound(
+    size_t count, statistics::PredictiveOutputs outputs) const noexcept {
+  if (!posterior_)
+    return {};
+  const auto total = retained_payload_bound(),
+             p = posterior_->posterior().retained_payload_bound(),
+             l = law_.predictive_.retained_payload_bound();
+  if (!total || !p || !l || *p > *total || *l > *total - *p)
+    return {};
+  return law_.predictive_.batch_payload_bound(posterior_->posterior(), count,
+                                              outputs, *total - *p - *l);
+}
+statistics::PredictiveBatch LadderPredictiveConditioning::evaluate(
+    std::span<const double> training, std::span<const std::string> rows,
+    std::span<const double> future, std::span<const std::string> future_rows,
+    size_t count, statistics::PredictiveOutputs outputs,
+    statistics::PredictivePolicy policy) const {
+  if (!posterior_) {
+    statistics::PredictiveBatch out;
+    out.status = status();
+    out.numerical_status = numerical_status();
+    return out;
+  }
+  const auto total = retained_payload_bound(),
+             p = posterior_->posterior().retained_payload_bound(),
+             l = law_.predictive_.retained_payload_bound();
+  if (!total || !p || !l || *p > *total || *l > *total - *p) {
+    statistics::PredictiveBatch out;
+    out.numerical_status = N::work_limit;
+    return out;
+  }
+  if (!valid_policy(policy)) {
+    statistics::PredictiveBatch out;
+    return out;
+  }
+  policy = tighter(policy, law_.policy_);
+  return law_.predictive_.condition_batch(
+      posterior_->posterior(), training, rows, future, future_rows, count,
+      outputs, policy, posterior_->linearization().offsets_mag,
+      law_.linear_.offsets_mag, *total - *p - *l);
 }
 } // namespace irred::calibration
