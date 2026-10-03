@@ -8,9 +8,10 @@ window means. The model is
 It is a conditional forward response. It supplies no observed likelihood,
 nonlinear spectrum, tracer calibration or fitted cosmological input.
 
-The source implementation and permanent controls are present; compilation,
-independent numerical/refinement passage, resource fit and installed-consumer
-validation are separate gates. Executable CLI/ABI discovery has no such route.
+The permanent native controls, independent angular comparison and installed SDK
+example have passed for the small fixed synthetic cases described below.
+Executable CLI/ABI discovery has no such route. Released-window calibration,
+covariance and physical model adequacy remain separate gates.
 
 ## Physical identity and equations
 
@@ -136,6 +137,24 @@ discrepancy with the emitted native combined diagnostic plus that peer's own
 32-to64 change. This is a required empirical consistency control. Neither the
 last refinement change nor its agreement with the native estimator is a proven
 reference enclosure.
+
+The recorded native run used GCC 16.2.1, C++20 Release with `-O3 -DNDEBUG`,
+`-fno-fast-math` and `-ffp-contract=off` for the core and both new controls.
+Both new contracts and the five affected numerics contracts passed. The
+independently written GL peer tested 27 theory queries: three AP/response points
+across constant, dyadic affine and kinked positive tables. Its largest
+native-to-GL64 discrepancy was about 7.73e-11 Mpc^3, with GL32-to-64 change
+below 2.67e-15 Mpc^3; each query also passed the emitted diagnostic consistency
+control. Shared equations/libm remain shared ancestry. The named owning fixtures
+measured 25,552 bytes of requested ordinary C++ heap, with a known payload
+inventory of 3,511 bytes for the reported case. These measurements do not qualify
+every admitted shape, allocator overhead, opaque allocations or whole RSS.
+
+The existing fresh-install check passed its original two consumers and this
+SDK example. A separately retained fresh installation also passed the example
+compiled with the same strict O3/NDEBUG settings against installed headers and
+the Release archive. Installation and numerical agreement do not qualify the
+released LOWZ operator, covariance or likelihood.
 
 ## Source and unassessed model errors
 
