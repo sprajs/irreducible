@@ -213,6 +213,13 @@ void no_species_shadow_diagnostic() {
   need(detail::thermal_conformal_no_species_diagnostics(background, *captured,
            *mapping.scalar_witnesses, .5L, absent) == S::conditioning_budget_exceeded &&
        !absent.forward && !absent.shadow, "missing charged query cannot become a zero envelope");
+  auto zero_k = detail::thermal_conformal_epoch(background, .5L, 0,
+      mapping.model->omega_gamma, ThermalPolicy{});
+  need(zero_k.status == S::ok && zero_k.x2 == 0 &&
+       detail::thermal_conformal_no_species_diagnostics(background, *captured,
+           *mapping.scalar_witnesses, .5L, zero_k) == S::outside_domain &&
+       !zero_k.forward && !zero_k.shadow,
+       "positive-k diagnostic slice refuses zero x2 while old conversion remains available");
   const auto rounding = std::fegetround();
   auto epoch = detail::thermal_conformal_epoch(background, .5L, .01L,
       mapping.model->omega_gamma, ThermalPolicy{});

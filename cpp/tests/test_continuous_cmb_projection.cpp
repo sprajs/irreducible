@@ -228,6 +228,29 @@ void lifetime_and_refusals() {
   cap = accurate(); cap.maximum_depth = 0;
   need(project_continuous_cmb(capped_owner, ell, continuous_temperature, cap).status == S::conditioning_budget_exceeded,
        "unresolved phase refuses original refinement cap");
+  ContinuousCmbSource cancellation = constant_source(0);
+  cancellation.k_mpc_inverse = {1}; cancellation.eta_mpc = {0, 1e-12};
+  cancellation.observer_eta_mpc = 1e-12;
+  cancellation.t0 = {1e12, -1e12}; cancellation.t1 = {0, 0};
+  cancellation.t2 = {0, 0}; cancellation.polarization = {0, 0};
+  auto cancel_owner = prepare_continuous_cmb_projection(std::move(cancellation));
+  const std::array<unsigned, 1> l0{0}, l64{64};
+  cap = accurate(); cap.absolute_tolerance = 1e-20; cap.relative_tolerance = 0;
+  const auto tight = project_continuous_cmb(cancel_owner, l0, continuous_temperature, cap);
+  need(tight.status == S::conditioning_budget_exceeded &&
+       tight.rows[0].temperature_arithmetic_estimate > cap.absolute_tolerance &&
+       !tight.rows[0].temperature,
+       "signed interpolation cancellation cannot erase positive assembly allowance");
+  ContinuousCmbSource underflow = constant_source(0);
+  underflow.k_mpc_inverse = {std::numeric_limits<double>::denorm_min()};
+  underflow.eta_mpc = {0, 1e250}; underflow.observer_eta_mpc = 2e250;
+  underflow.t0 = {1e-300, 1e-300}; underflow.t1 = {0, 0};
+  underflow.t2 = {0, 0}; underflow.polarization = {0, 0};
+  auto tiny_owner = prepare_continuous_cmb_projection(std::move(underflow));
+  const auto tiny = project_continuous_cmb(tiny_owner, l64, continuous_temperature);
+  need(tiny_owner.status() == S::ok && tiny.status == S::outside_domain &&
+       tiny.kernel_evaluations > 0 && !tiny.rows[0].temperature,
+       "nonzero source/radial product underflow refuses instead of exact zero");
 }
 } // namespace
 int main() {

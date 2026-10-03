@@ -83,7 +83,7 @@ Kernel radial(unsigned l, W x) {
   return out;
 }
 struct Integral { S status = S::ok; V value{}, error{}, absolute{}; };
-struct Node { W eta = 0; V value{}; };
+struct Node { W eta = 0; V value{}, absolute{}; };
 struct Frame { Node a, m, b; V coarse{}; W absolute_tolerance = 0; };
 struct Traversal {
   const ContinuousCmbSource &source;
@@ -109,6 +109,7 @@ struct Traversal {
     if (kernel.status != S::ok) { status = kernel.status; return out; }
     const W u = (eta - source.eta_mpc[cell]) /
                 (W(source.eta_mpc[cell + 1]) - source.eta_mpc[cell]);
+    if (!(u >= 0 && u <= 1)) { status = S::outside_domain; return out; }
     const std::size_t ia = cell * source.k_mpc_inverse.size() + k_index;
     const std::size_t ib = ia + source.k_mpc_inverse.size();
     const std::array<const std::vector<double> *, 4> channels{
@@ -117,8 +118,14 @@ struct Traversal {
       if ((n < 3 && !(mask & continuous_temperature)) ||
           (n == 3 && !(mask & continuous_e_mode))) continue;
       const W a = (*channels[n])[ia], b = (*channels[n])[ib];
-      out.value[n] = ((1 - u) * a + u * b) * kernel.value[n];
-      if (!usable(out.value[n])) status = S::outside_domain;
+      const W source_value = (1 - u) * a + u * b;
+      const W source_scale = (1 - u) * std::abs(a) + u * std::abs(b);
+      out.value[n] = source_value * kernel.value[n];
+      out.absolute[n] = source_scale * std::abs(kernel.value[n]);
+      if (!usable(out.value[n]) || !usable(out.absolute[n]) ||
+          (source_value != 0 && kernel.value[n] != 0 && out.value[n] == 0) ||
+          (source_scale != 0 && kernel.value[n] != 0 && out.absolute[n] == 0))
+        status = S::outside_domain;
     }
     return out;
   }
@@ -128,6 +135,12 @@ struct Traversal {
       out[n] = (b.eta - a.eta) * (a.value[n] + 4 * m.value[n] + b.value[n]) / 6;
     return out;
   }
+  static V assembly_scale(const Node &a, const Node &m, const Node &b) {
+    V out{};
+    for (unsigned n = 0; n < 4; ++n)
+      out[n] = (b.eta - a.eta) * (a.absolute[n] + 4 * m.absolute[n] + b.absolute[n]) / 6;
+    return out;
+  }
   Integral visit(const Frame &f, unsigned depth) {
     Integral out;
     if (status != S::ok) { out.status = status; return out; }
@@ -135,15 +148,20 @@ struct Traversal {
     const auto right = node((f.m.eta + f.b.eta) / 2);
     if (status != S::ok) { out.status = status; return out; }
     if (!(left.eta > f.a.eta && left.eta < f.m.eta &&
-          right.eta > f.m.eta && right.eta < f.b.eta)) {
+          right.eta > f.m.eta && right.eta < f.b.eta) ||
+        left.eta - f.a.eta != f.m.eta - left.eta ||
+        right.eta - f.m.eta != f.b.eta - right.eta ||
+        f.m.eta - f.a.eta != f.b.eta - f.m.eta) {
       out.status = S::conditioning_budget_exceeded; return out;
     }
     const V lo = simpson(f.a, left, f.m), hi = simpson(f.m, right, f.b);
+    const V lo_scale = assembly_scale(f.a, left, f.m);
+    const V hi_scale = assembly_scale(f.m, right, f.b);
     W et = 0, ee = 0, vt = 0;
     for (unsigned n = 0; n < 4; ++n) {
       out.value[n] = lo[n] + hi[n];
       out.error[n] = std::abs(out.value[n] - f.coarse[n]) / 15;
-      out.absolute[n] = std::abs(lo[n]) + std::abs(hi[n]);
+      out.absolute[n] = lo_scale[n] + hi_scale[n];
       if (n < 3) { et += out.error[n]; vt += out.value[n]; }
       else ee = out.error[n];
     }
@@ -293,9 +311,13 @@ ContinuousCmbResult project_continuous_cmb(
       auto store = [&](W value, W qe, W norm, std::optional<double> &dest,
                        double &quad, double &arith) {
         const double cast = static_cast<double>(value);
-        const W ae = 128 * eps * norm + std::abs(value - W(cast));
+        // Positive assembly scale survives interpolation/Simpson cancellation.
+        // Actual row calls enter the conservative accumulation allowance.
+        const W ae = (128 + 16 * W(row.kernel_evaluations)) * eps * norm +
+                     std::abs(value - W(cast));
         quad = static_cast<double>(qe); arith = static_cast<double>(ae);
-        if (!usable(value) || !std::isfinite(cast) || !usable(qe) || !usable(ae) ||
+        if (!usable(value) || !std::isfinite(cast) || (value != 0 && cast == 0) ||
+            !usable(qe) || !usable(ae) ||
             !std::isfinite(quad) || !std::isfinite(arith) ||
             (qe > 0 && quad == 0) || (ae > 0 && arith == 0)) { row.status = S::outside_domain; return; }
         if (qe + ae > policy.absolute_tolerance + policy.relative_tolerance * std::abs(value)) {
