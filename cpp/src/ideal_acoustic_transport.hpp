@@ -387,20 +387,6 @@ inline std::array<W, 6> matrix_force(const std::array<W, 6> &coefficient,
                  a.times(a.times(1.5L, coefficient[2]), y[2])),
           0};
 }
-inline std::array<W, 6> comparison(std::span<const W, 6> r,
-                                   const IdealAcousticCoefficients &c,
-                                   Arithmetic &a) noexcept {
-  return {a.plus(a.times(a.magnitude(a.add(-c.x2, 3 * c.acceleration_defect)),
-                         r[3]),
-                 a.times(a.times(4.5L, c.B), r[2])),
-          a.times(c.x2, r[2]),
-          a.add(a.mul(a.sub(c.L, c.loading_over_one_plus_loading), r[2]),
-                a.times(c.sound_speed_squared, a.plus(r[0], r[1]))),
-          a.add(a.mul(a.sub(c.L, 1), r[3]), r[4]),
-          a.add(-r[4], a.plus(a.times(a.times(1.5L, c.F), r[3]),
-                              a.times(a.times(1.5L, c.B), r[2]))),
-          0};
-}
 inline S response_sizes(std::span<const W, 36> r,
                         const IdealAcousticSourceUncertainty &u,
                         std::array<W, 6> &linear, std::array<W, 6> &total,
@@ -429,116 +415,226 @@ inline S response_sizes(std::span<const W, 36> r,
 // Definitions below use caller-owned buffers. Successful status is availability
 // of these response estimates only; full prediction/campaign admission is the
 // caller's distinct fixed shares, refinement, source and clock/output gates.
+// Central/signed RHS only. Fresh literal assembly leaves are returned as
+// tau, then injected at their actual discrete RK4 sites by the local shadow.
+// Inherited coefficient/gradient/clock uncertainty stays in the radius forcing.
 inline numerics::Status ideal_acoustic_transport_rhs(
-    std::span<const long double, 6> y, std::span<const long double, 36> r,
+    std::span<const long double, 6> y, std::span<const long double, 24> z,
     const IdealAcousticTransportFrame &f,
-    const IdealAcousticSourceUncertainty &u, std::span<long double, 36> dr,
+    const IdealAcousticSourceUncertainty &u, std::span<long double, 24> dz,
+    std::span<long double, 6> tau,
     const IdealAcousticTransportAccounting &work) noexcept {
   using namespace ideal_acoustic_transport_internal;
-  if (!valid(f, u))
-    return S::conditioning_budget_exceeded;
-  for (W v : y)
-    if (!normal_or_zero(v))
-      return S::outside_domain;
-  S status = account(work);
-  if (status != S::ok)
-    return status;
+  if (!valid(f, u)) return S::conditioning_budget_exceeded;
+  for (W v : y) if (!normal_or_zero(v)) return S::outside_domain;
+  for (W v : z) if (!normal_or_zero(v)) return S::outside_domain;
+  S status = account(work, 6);
+  if (status != S::ok) return status;
   Arithmetic a;
   Bands b;
   status = bands(f, u, b, a);
-  if (status != S::ok)
-    return status;
-  std::array<W, 6> linear, total, absolute_y, full;
-  status = response_sizes(r, u, linear, total, a);
-  if (status != S::ok)
-    return status;
-  for (std::size_t i = 0; i < 6; ++i) {
-    absolute_y[i] = a.magnitude(y[i]);
-    full[i] = a.plus(absolute_y[i], total[i]);
-  }
-  const auto change_force = matrix_force(b.change, total, a);
-  const auto quotient_force = matrix_force(b.remainder, absolute_y, a);
-  auto arithmetic_force =
-      matrix_force(f.arithmetic.coefficient_radius, full, a);
-  // Actual Rbg is a single nominal-to-smooth-shadow arithmetic term. Every
-  // exact physical source direction has Rbg=0; no second Dp/constraint force.
-  arithmetic_force[0] = a.plus(
-      arithmetic_force[0],
-      a.times(a.times(3, a.magnitude(f.actual.acceleration_defect)), full[3]));
-  arithmetic_force[5] = b.inverse_h_arithmetic;
+  if (status != S::ok) return status;
+  std::array<W, 6> absolute_y;
+  for (std::size_t i = 0; i < 6; ++i) absolute_y[i] = a.magnitude(y[i]);
   const auto nominal_scale = rhs_scale(y, f.actual, b.inverse_h, a);
-  std::array<W, 6> gradient_force{};
-  // Four literal six-vector source sensitivities. The parent counts twelve
-  // added derivative owners (physical+eta for each of four Z, source, arith).
+  for (std::size_t i = 0; i < 6; ++i) tau[i] = a.loss(nominal_scale[i]);
   for (std::size_t j = 0; j < 4; ++j) {
-    const std::span<const W, 6> z(r.data() + 6 * j, 6);
-    if (!work.state_writes(work.context, 5))
-      return S::work_limit;
-    ideal_acoustic_derivative(std::span<const W, 5>(z.data(), 5), f.actual,
-                              std::span<W, 5>(dr.data() + 6 * j, 5));
-    if (!work.state_writes(work.context, 5))
-      return S::work_limit;
+    const std::span<const W, 6> zj(z.data() + 6*j, 6);
+    if (!work.state_writes(work.context, 5)) return S::work_limit;
+    ideal_acoustic_derivative(std::span<const W, 5>(zj.data(), 5), f.actual,
+                              std::span<W, 5>(dz.data() + 6*j, 5));
+    if (!work.state_writes(work.context, 5)) return S::work_limit;
     const auto force = ideal_acoustic_source_force(
         std::span<const W, 5>(y.data(), 5), f.directions.gradient[j]);
-    if (!work.state_writes(work.context, 6))
-      return S::work_limit;
+    if (!work.state_writes(work.context, 6)) return S::work_limit;
     for (std::size_t i = 0; i < 5; ++i)
-      dr[6 * j + i] = a.add(dr[6 * j + i], force[i]);
-    dr[6 * j + 5] =
-        -a.div(a.mul(b.inverse_h, b.pj[j]), a.mul(2, f.center.shadow_p));
-    const auto sensitivity_scale = rhs_scale(z, f.actual, 0, a);
-    const auto gradient_bound =
-        matrix_force(f.arithmetic.gradient_radius[j], absolute_y, a);
+      dz[6*j+i] = a.add(dz[6*j+i], force[i]);
+    dz[6*j+5] = -a.div(a.mul(b.inverse_h, b.pj[j]),
+                        a.mul(2, f.center.shadow_p));
+    const auto sensitivity_scale = rhs_scale(zj, f.actual, 0, a);
     const auto &g = f.directions.gradient[j];
     const std::array<W, 6> absolute_gradient{
-        a.magnitude(g.x2),
-        a.magnitude(g.F),
-        a.magnitude(g.B),
-        a.magnitude(g.L),
-        a.magnitude(g.loading_fraction),
+        a.magnitude(g.x2), a.magnitude(g.F), a.magnitude(g.B),
+        a.magnitude(g.L), a.magnitude(g.loading_fraction),
         a.magnitude(g.sound_speed_squared)};
     auto force_scale = matrix_force(absolute_gradient, absolute_y, a);
-    force_scale[5] = a.magnitude(dr[6 * j + 5]);
-    for (std::size_t i = 0; i < 6; ++i) {
-      const W inherited =
-          i == 5 ? f.arithmetic.eta_gradient_radius[j] : gradient_bound[i];
-      const W assembly = a.loss(a.plus(sensitivity_scale[i], force_scale[i]));
-      gradient_force[i] =
-          a.plus(gradient_force[i],
-                 a.times(b.amplitude[j], a.plus(inherited, assembly)));
+    force_scale[5] = a.magnitude(dz[6*j+5]);
+    if (!work.state_writes(work.context, 6)) return S::work_limit;
+    for (std::size_t i = 0; i < 6; ++i)
+      tau[i] = a.plus(tau[i], a.times(b.amplitude[j],
+          a.loss(a.plus(sensitivity_scale[i], force_scale[i]))));
+  }
+  for (W v : dz) if (!normal_or_zero(v)) return S::outside_domain;
+  for (W v : tau) if (!radius(v)) return S::outside_domain;
+  return a.status;
+}
+
+namespace ideal_acoustic_transport_internal {
+// Kplus is evaluated directly without subtracting a negative drift from a
+// completed derivative. positive[] is the separately earned diagonal bound.
+inline std::array<W,6> positive_comparison(std::span<const W,6> r,
+    const IdealAcousticCoefficients &c, std::span<const W,6> positive,
+    Arithmetic &a) noexcept {
+  const W signed_coefficient = a.add(-c.x2, a.mul(3,c.acceleration_defect));
+  const W coefficient = a.plus(a.magnitude(signed_coefficient),
+      a.loss(a.plus(c.x2,a.times(3,a.magnitude(c.acceleration_defect)))));
+  return {
+      a.plus(a.times(positive[0],r[0]),a.plus(a.times(coefficient,r[3]),
+                                            a.times(a.times(4.5L,c.B),r[2]))),
+      a.plus(a.times(positive[1],r[1]),a.times(c.x2,r[2])),
+      a.plus(a.times(positive[2],r[2]),
+             a.times(c.sound_speed_squared,a.plus(r[0],r[1]))),
+      a.plus(a.times(positive[3],r[3]),r[4]),
+      a.plus(a.times(positive[4],r[4]),
+             a.plus(a.times(a.times(1.5L,c.F),r[3]),
+                    a.times(a.times(1.5L,c.B),r[2]))),
+      a.times(positive[5],r[5])};
+}
+inline std::array<W,6> arithmetic_matrix_force(
+    const IdealAcousticTransportFrame &f,std::span<const W,6> r,
+    Arithmetic &a) noexcept {
+  auto out=matrix_force(f.arithmetic.coefficient_radius,r,a);
+  out[0]=a.plus(out[0],a.times(a.times(3,a.magnitude(f.actual.acceleration_defect)),r[3]));
+  return out;
+}
+} // namespace ideal_acoustic_transport_internal
+
+// Complete nonnegative P in R'=D R+P, with the original inherited forcing and
+// measurement law. Fresh central RHS/combine pulses are owned separately.
+inline numerics::Status ideal_acoustic_transport_forcing(
+    std::span<const long double,6> y,std::span<const long double,36> r,
+    const IdealAcousticTransportFrame &f,const IdealAcousticSourceUncertainty &u,
+    std::span<const long double,6> positive,std::span<long double,12> out,
+    const IdealAcousticTransportAccounting &work) noexcept {
+  using namespace ideal_acoustic_transport_internal;
+  if (!valid(f,u)) return S::conditioning_budget_exceeded;
+  for (W v:y) if (!normal_or_zero(v)) return S::outside_domain;
+  for (W v:positive) if (!radius(v)) return S::outside_domain;
+  S status=account(work,12);
+  if (status!=S::ok) return status;
+  Arithmetic a; Bands b;
+  status=bands(f,u,b,a);
+  if (status!=S::ok) return status;
+  std::array<W,6> linear,total,absolute_y,full;
+  status=response_sizes(r,u,linear,total,a);
+  if (status!=S::ok) return status;
+  for (std::size_t i=0;i<6;++i) {
+    absolute_y[i]=a.magnitude(y[i]);
+    full[i]=a.plus(absolute_y[i],total[i]);
+  }
+  const auto change=matrix_force(b.change,total,a);
+  const auto remainder=matrix_force(b.remainder,absolute_y,a);
+  auto arithmetic=arithmetic_matrix_force(f,full,a);
+  arithmetic[5]=b.inverse_h_arithmetic;
+  std::array<W,6> gradient{};
+  for (std::size_t j=0;j<4;++j) {
+    const auto inherited=matrix_force(f.arithmetic.gradient_radius[j],absolute_y,a);
+    for (std::size_t i=0;i<6;++i)
+      gradient[i]=a.plus(gradient[i],a.times(b.amplitude[j],
+          i==5 ? f.arithmetic.eta_gradient_radius[j] : inherited[i]));
+  }
+  const auto source=positive_comparison(
+      std::span<const W,6>(r.data()+24,6),f.actual,positive,a);
+  const auto rounding=positive_comparison(
+      std::span<const W,6>(r.data()+30,6),f.actual,positive,a);
+  const auto source_scale=rhs_scale(std::span<const W,6>(r.data()+24,6),f.actual,0,a);
+  const auto rounding_scale=rhs_scale(std::span<const W,6>(r.data()+30,6),f.actual,0,a);
+  for (std::size_t i=0;i<6;++i) {
+    const W finite_source=i==5 ? b.eta_remainder : a.plus(change[i],remainder[i]);
+    out[i]=a.plus(source[i],a.plus(finite_source,a.loss(source_scale[i])));
+    out[6+i]=a.plus(rounding[i],a.plus(arithmetic[i],a.plus(gradient[i],
+        a.plus(f.arithmetic.additional_rhs_radius[i],a.loss(rounding_scale[i])))));
+  }
+  for (W v:out) if (!radius(v)) return S::outside_domain;
+  return a.status;
+}
+
+// Coupled12 local shadow: e bounds the SUM of primitive central/signed pulse
+// error and additional arithmetic-response variation. Its SOURCE cross is
+// present at every actual intermediate RK impulse stage. This positive action
+// encloses an exact-real conditional scale law; it is not rounded-map Lipschitz.
+inline numerics::Status ideal_acoustic_transport_local_action(
+    std::span<const long double,12> v,const IdealAcousticTransportFrame &f,
+    const IdealAcousticSourceUncertainty &u,std::span<long double,12> out,
+    const IdealAcousticTransportAccounting &work) noexcept {
+  using namespace ideal_acoustic_transport_internal;
+  if (!valid(f,u)) return S::conditioning_budget_exceeded;
+  for (W x:v) if (!radius(x)) return S::outside_domain;
+  S status=account(work,12);
+  if (status!=S::ok) return status;
+  Arithmetic a; Bands b;
+  status=bands(f,u,b,a);
+  if (status!=S::ok) return status;
+  const std::span<const W,6> c(v.data(),6),e(v.data()+6,6);
+  const auto sc=rhs_scale(c,f.actual,0,a),se=rhs_scale(e,f.actual,0,a);
+  const auto xc=matrix_force(b.change,c,a),xe=matrix_force(b.change,e,a);
+  const auto re=matrix_force(b.remainder,e,a);
+  const auto ac=arithmetic_matrix_force(f,c,a),ae=arithmetic_matrix_force(f,e,a);
+  auto je=se;
+  std::array<W,6> ge{};
+  for (std::size_t j=0;j<4;++j) {
+    const auto &g=f.directions.gradient[j];
+    const std::array<W,6> absolute_gradient{
+        a.magnitude(g.x2),a.magnitude(g.F),a.magnitude(g.B),a.magnitude(g.L),
+        a.magnitude(g.loading_fraction),a.magnitude(g.sound_speed_squared)};
+    const auto central=matrix_force(absolute_gradient,e,a);
+    const auto inherited=matrix_force(f.arithmetic.gradient_radius[j],e,a);
+    for (std::size_t i=0;i<6;++i) {
+      je[i]=a.plus(je[i],a.times(b.amplitude[j],central[i]));
+      ge[i]=a.plus(ge[i],a.times(b.amplitude[j],inherited[i]));
     }
   }
-  const auto source_comparison =
-      comparison(std::span<const W, 6>(r.data() + 24, 6), f.actual, a);
-  const auto arithmetic_comparison =
-      comparison(std::span<const W, 6>(r.data() + 30, 6), f.actual, a);
-  const auto source_comparison_scale =
-      rhs_scale(std::span<const W, 6>(r.data() + 24, 6), f.actual, 0, a);
-  const auto arithmetic_comparison_scale =
-      rhs_scale(std::span<const W, 6>(r.data() + 30, 6), f.actual, 0, a);
-  if (a.status != S::ok)
-    return a.status;
-  if (!work.state_writes(work.context, 12))
-    return S::work_limit;
-  for (std::size_t i = 0; i < 6; ++i) {
-    const W finite_source =
-        i == 5 ? b.eta_remainder : a.plus(change_force[i], quotient_force[i]);
-    // δA times ARITHMETIC state error is deliberately owned by SOURCE here.
-    // Arithmetic therefore does not repeat δA*r_arith. This exact triangular
-    // split is a numerical ownership convention, not statistical independence.
-    dr[24 + i] = a.signed_upper(
-        a.add(source_comparison[i],
-              a.plus(finite_source, a.loss(source_comparison_scale[i]))));
-    const W local = a.plus(f.arithmetic.additional_rhs_radius[i],
-                           a.plus(a.loss(nominal_scale[i]),
-                                  a.loss(arithmetic_comparison_scale[i])));
-    dr[30 + i] = a.signed_upper(
-        a.add(arithmetic_comparison[i],
-              a.plus(arithmetic_force[i], a.plus(gradient_force[i], local))));
+  const W xi=64*std::numeric_limits<W>::epsilon();
+  const W one_xi=a.plus(1,xi),two_xi=a.plus(2,xi);
+  for (std::size_t i=0;i<6;++i) {
+    out[i]=a.plus(a.plus(sc[i],xc[i]),
+        a.plus(a.loss(sc[i]),a.plus(a.times(one_xi,xe[i]),re[i])));
+    out[6+i]=a.plus(je[i],a.plus(ac[i],a.plus(a.times(two_xi,ae[i]),
+        a.plus(ge[i],a.loss(se[i])))));
   }
-  for (W v : dr)
-    if (!normal_or_zero(v))
-      return S::outside_domain;
+  for (W x:out) if (!radius(x)) return S::outside_domain;
+  return a.status;
+}
+
+// Narrow finite PC endpoint-map bridge, distinct from the RK4 pulse gain.
+// q is PURE local Q_E, not flow+Q. Conservative overlap is retained rather
+// than assuming equality. The fixed borrowed frame has no Y/Z clock feedback.
+inline numerics::Status ideal_acoustic_transport_endpoint_bridge(
+    std::span<const long double,6> q,const IdealAcousticTransportFrame &f,
+    const IdealAcousticSourceUncertainty &u,long double h,
+    std::span<const long double,6> mu_lower,std::span<long double,12> out,
+    const IdealAcousticTransportAccounting &work) noexcept {
+  using namespace ideal_acoustic_transport_internal;
+  if (!valid(f,u)) return S::conditioning_budget_exceeded;
+  if (!(h>0) || !radius(h)) return S::invalid_input;
+  for (W v:q) if (!radius(v)) return S::outside_domain;
+  for (W v:mu_lower) if (!radius(v)) return S::outside_domain;
+  S status=account(work,12);
+  if (status!=S::ok) return status;
+  Arithmetic a; Bands b;
+  status=bands(f,u,b,a);
+  if (status!=S::ok) return status;
+  const auto x=matrix_force(b.change,q,a),r=matrix_force(b.remainder,q,a);
+  const auto arithmetic=arithmetic_matrix_force(f,q,a);
+  std::array<W,6> gradient{};
+  for (std::size_t j=0;j<4;++j) {
+    const auto g=matrix_force(f.arithmetic.gradient_radius[j],q,a);
+    for (std::size_t i=0;i<6;++i)
+      gradient[i]=a.plus(gradient[i],a.times(b.amplitude[j],g[i]));
+  }
+  const W xi=64*std::numeric_limits<W>::epsilon();
+  const W one_xi=a.plus(1,xi),two_xi=a.plus(2,xi),half_h=a.div(h,2);
+  for (std::size_t i=0;i<6;++i) {
+    W denominator=1;
+    if (mu_lower[i]!=0)
+      denominator=a.checked(std::nextafter(
+          a.add(1,a.product_lower(half_h,mu_lower[i])),0.L));
+    if (!(denominator>0)) return S::conditioning_budget_exceeded;
+    out[i]=a.over(a.times(half_h,a.plus(a.times(one_xi,x[i]),r[i])),denominator);
+    out[6+i]=a.over(a.times(half_h,
+        a.plus(a.times(two_xi,arithmetic[i]),gradient[i])),denominator);
+  }
+  for (W v:out) if (!radius(v)) return S::outside_domain;
   return a.status;
 }
 

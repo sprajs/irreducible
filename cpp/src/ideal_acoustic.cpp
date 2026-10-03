@@ -3,6 +3,7 @@
 #include "ideal_acoustic_equations.hpp"
 #include "ideal_acoustic_bridge.hpp"
 #include "ideal_acoustic_initial_bounds.hpp"
+#include "ideal_acoustic_positive_radius.hpp"
 #include "thermal_conformal_epoch.hpp"
 #include "thermal_ruler.hpp"
 #include <algorithm>
@@ -18,6 +19,11 @@ using S = numerics::Status;
 using W = long double;
 using State = std::array<W, 6>; // Delta,S,dV,Vc,phi,eta(Mpc).
 using Response = detail::IdealAcousticResponseState;
+using Signed = std::array<W,24>;
+using Radius = detail::IdealAcousticRadiusVector;
+using Diagonal = detail::IdealAcousticRadiusDiagonal;
+constexpr Radius zero_radius{};
+constexpr State zero_pulse{};
 using Frame = detail::IdealAcousticTransportFrame;
 using FailureStage = IdealAcousticFailureStage;
 using RadiusArithmetic = detail::ideal_acoustic_transport_internal::Arithmetic;
@@ -67,9 +73,9 @@ struct Budget {
   bool writes(std::size_t n) noexcept {
     return add(work.state_element_writes,n,p.maximum_state_element_writes);
   }
-  bool rhs(std::size_t owners=14) noexcept {
-    // Nominal physical/eta plus the physical/eta owners of four signed source
-    // responses, one finite-source remainder and one arithmetic radius.
+  bool rhs(std::size_t owners) noexcept {
+    // Explicit physical/eta owners: central10, radius-forcing4, coupled-local4
+    // and endpoint-bridge4. Every attempted owner consumes the original caps.
     if (work.rhs_evaluations-k_rhs_start > p.maximum_rhs_per_wavenumber ||
         p.maximum_rhs_per_wavenumber-(work.rhs_evaluations-k_rhs_start) < owners)
       return false;
@@ -138,23 +144,22 @@ S frame(Context &c,W a,const Epoch &e,
 // Original MB64/67/70 ideal exchange cancellation, transformed into the
 // cancellation-safe comoving variables. The actual supplied-L defect remains.
 S rhs_at(Context &c, W a, const Epoch &e, W n,W n_radius,
-         const State &y,const Response &r, State &dy,Response &dr,
-         FailureStage &failure_stage) {
+         const State &y,std::span<const W,24> z,State &dy,Signed &dz,
+         State &tau,Frame &f,FailureStage &failure_stage) {
   failure_stage=FailureStage::rk_nominal_rhs;
   const auto sound=detail::thermal_baryon_sound(c.loading,a);
   if (sound.status!=S::ok) return sound.status;
-  if (!c.budget.rhs() || !c.budget.writes(dy.size())) return S::work_limit;
+  if (!c.budget.rhs(10) || !c.budget.writes(dy.size())) return S::work_limit;
   const auto actual=coefficients(e,sound);
   detail::ideal_acoustic_derivative(std::span<const W,5>(y.data(),5),actual,
                                    std::span<W,5>(dy.data(),5));
   dy[5]=1/e.hcal;
   for (W value:dy) if (!std::isfinite(value)) return S::overflow;
-  Frame f;
   failure_stage=FailureStage::rk_frame;
   auto status=frame(c,a,e,sound,n,n_radius,f);
   if (status!=S::ok) return status;
   failure_stage=FailureStage::rk_response_rhs;
-  return detail::ideal_acoustic_transport_rhs(y,r,f,c.uncertainty,dr,
+  return detail::ideal_acoustic_transport_rhs(y,z,f,c.uncertainty,dz,tau,
                                              accounting(c.budget));
 }
 struct Residual {
@@ -259,15 +264,13 @@ struct Run {
   IdealAcousticAttempt attempt;
   std::vector<Snapshot> samples;
 };
-// Conditional normal-Wide RK assembly. The stored positive comparison vectors
-// are rounded upward; the nominal and four signed response assembly losses
-// enter ARITHMETIC once. The mesh estimator remains a separate empirical gate.
-S combine(Context &c,const State &base,const Response &base_r,
+// Central RK4 only. Keep nominal/signed operation order; its fresh assembly
+// impulse is returned once, without attempting a signed RK radius completion.
+S combine(Context &c,const State &base,std::span<const W,24> base_z,
           const std::array<const State*,4> &slopes,
-          const std::array<const Response*,4> &response_slopes,
-          const std::array<W,4> &weights,State &out,Response &out_r,
-          std::optional<IdealAcousticRadiusFailure> &failure) {
-  if (!c.budget.writes(42) || !c.budget.diagnostic()) return S::work_limit;
+          const std::array<const Signed*,4> &signed_slopes,
+          const std::array<W,4> &weights,State &out,Signed &out_z,State &pulse) {
+  if (!c.budget.writes(36) || !c.budget.diagnostic()) return S::work_limit;
   RadiusArithmetic a;
   for (unsigned i=0;i<6;++i) {
     W value=base[i],scale=std::abs(base[i]);
@@ -279,32 +282,17 @@ S combine(Context &c,const State &base,const Response &base_r,
     W assembly=a.loss(scale);
     for (unsigned j=0;j<4;++j) {
       const unsigned n=6*j+i;
-      W z=base_r[n],zs=a.magnitude(z);
+      W z=base_z[n],zs=a.magnitude(z);
       for (unsigned s=0;s<4;++s) if (weights[s]!=0) {
-        const W term=a.mul(weights[s],(*response_slopes[s])[n]);
+        const W term=a.mul(weights[s],(*signed_slopes[s])[n]);
         z=a.add(z,term); zs=a.plus(zs,a.magnitude(term));
       }
-      out_r[n]=z;
+      out_z[n]=z;
       const W amplitude=a.plus(a.magnitude(c.uncertainty.signed_shift[j]),
                                 c.uncertainty.operation_radius[j]);
       assembly=a.plus(assembly,a.times(amplitude,a.loss(zs)));
     }
-    for (unsigned offset:{24u,30u}) {
-      W radius=base_r[offset+i],rs=a.magnitude(radius);
-      for (unsigned s=0;s<4;++s) if (weights[s]!=0) {
-        const W term=a.mul(weights[s],(*response_slopes[s])[offset+i]);
-        radius=a.add(radius,term); rs=a.plus(rs,a.magnitude(term));
-      }
-      const W provisional=a.signed_upper(a.add(radius,a.loss(rs)));
-      radius=offset==30 ? a.assemble_signed_radius(provisional,assembly) : provisional;
-      if (!(radius>=0) || !detail::ideal_acoustic_transport_internal::radius(radius)) {
-        failure=detail::ideal_acoustic_transport_internal::record_radius_failure(
-            i,static_cast<IdealAcousticRadiusChannel>(offset),provisional,
-            offset==30 ? std::optional<W>{assembly} : std::nullopt,radius,a.status);
-        return S::conditioning_budget_exceeded;
-      }
-      out_r[offset+i]=radius;
-    }
+    pulse[i]=assembly;
   }
   return a.status;
 }
@@ -435,33 +423,101 @@ Run evolve(Context &c,W start,std::span<const double> targets,W step,
                FailureStage::step_background,middle.status!=S::ok ? 2 : 4,
                middle.status!=S::ok ? mid_a : next_a); return out;
       }
-      if (!c.budget.writes(210)) { finish(S::work_limit,FailureStage::rk_storage); return out; }
-      State k1{},k2{},k3{},k4{},tmp{};
-      Response r1{},r2{},r3{},r4{},tmp_r{};
+      // Fully assigned caller-owned output buffers have no redundant initial
+      // zero state. Helpers charge each actual destination before assignment.
+      State k1,k2,k3,k4,tmp,next_y,tau1,tau2,tau3,tau4,b2,b3,b4,bend;
+      Signed z1,z2,z3,z4,tmp_z,next_z;
+      Frame first_frame,middle_frame,last_frame;
+      Radius f1,f2,f3,f4,v2,v3,v4,p_start,p_end,predictor,flow,q,bridge,next_radius_state;
+      Diagonal first_diagonal,last_diagonal;
+      const std::span<const W,24> base_z(response.data(),24);
       FailureStage rhs_stage=FailureStage::rk_nominal_rhs;
-      S cause=rhs_at(c,a,current,n,n_radius,y,response,k1,r1,rhs_stage);
+      S cause=rhs_at(c,a,current,n,n_radius,y,base_z,k1,z1,tau1,first_frame,rhs_stage);
       if (cause!=S::ok) { finish(cause,rhs_stage,1,a); return out; }
-      cause=combine(c,y,response,{&k1,&k1,&k1,&k1},{&r1,&r1,&r1,&r1},
-                    {h/2,0,0,0},tmp,tmp_r,radius_failure);
+      if (!c.budget.writes(12)) { finish(S::work_limit,FailureStage::radius_local_shadow,1,a); return out; }
+      for (unsigned i=0;i<6;++i) { f1[i]=0; f1[6+i]=tau1[i]; }
+      cause=combine(c,y,base_z,{&k1,&k1,&k1,&k1},{&z1,&z1,&z1,&z1},
+                    {h/2,0,0,0},tmp,tmp_z,b2);
       if (cause!=S::ok) { finish(cause,FailureStage::rk_combine,2,mid_a); return out; }
-      cause=rhs_at(c,mid_a,middle,mid_n,mid_radius,tmp,tmp_r,k2,r2,rhs_stage);
+      cause=detail::ideal_acoustic_radius_stage(f1,b2,h/2,v2,accounting(c.budget));
+      if (cause!=S::ok) { finish(cause,FailureStage::radius_local_shadow,2,mid_a); return out; }
+      cause=rhs_at(c,mid_a,middle,mid_n,mid_radius,tmp,tmp_z,k2,z2,tau2,middle_frame,rhs_stage);
       if (cause!=S::ok) { finish(cause,rhs_stage,2,mid_a); return out; }
-      cause=combine(c,y,response,{&k2,&k2,&k2,&k2},{&r2,&r2,&r2,&r2},
-                    {h/2,0,0,0},tmp,tmp_r,radius_failure);
+      const auto local_force=[&](const Radius &v,const Frame &f,
+                                const State &tau,Radius &force) {
+        if (!c.budget.rhs(4)) return S::work_limit;
+        S status=detail::ideal_acoustic_transport_local_action(
+            v,f,c.uncertainty,force,accounting(c.budget));
+        if (status!=S::ok) return status;
+        if (!c.budget.writes(6)) return S::work_limit;
+        RadiusArithmetic arithmetic;
+        for (unsigned i=0;i<6;++i) force[6+i]=arithmetic.plus(force[6+i],tau[i]);
+        return arithmetic.status;
+      };
+      cause=local_force(v2,middle_frame,tau2,f2);
+      if (cause!=S::ok) { finish(cause,FailureStage::radius_local_shadow,2,mid_a); return out; }
+      cause=combine(c,y,base_z,{&k2,&k2,&k2,&k2},{&z2,&z2,&z2,&z2},
+                    {h/2,0,0,0},tmp,tmp_z,b3);
       if (cause!=S::ok) { finish(cause,FailureStage::rk_combine,3,mid_a); return out; }
-      cause=rhs_at(c,mid_a,middle,mid_n,mid_radius,tmp,tmp_r,k3,r3,rhs_stage);
+      cause=detail::ideal_acoustic_radius_stage(f2,b3,h/2,v3,accounting(c.budget));
+      if (cause!=S::ok) { finish(cause,FailureStage::radius_local_shadow,3,mid_a); return out; }
+      cause=rhs_at(c,mid_a,middle,mid_n,mid_radius,tmp,tmp_z,k3,z3,tau3,middle_frame,rhs_stage);
       if (cause!=S::ok) { finish(cause,rhs_stage,3,mid_a); return out; }
-      cause=combine(c,y,response,{&k3,&k3,&k3,&k3},{&r3,&r3,&r3,&r3},
-                    {h,0,0,0},tmp,tmp_r,radius_failure);
+      cause=local_force(v3,middle_frame,tau3,f3);
+      if (cause!=S::ok) { finish(cause,FailureStage::radius_local_shadow,3,mid_a); return out; }
+      cause=combine(c,y,base_z,{&k3,&k3,&k3,&k3},{&z3,&z3,&z3,&z3},
+                    {h,0,0,0},tmp,tmp_z,b4);
       if (cause!=S::ok) { finish(cause,FailureStage::rk_combine,4,next_a); return out; }
-      cause=rhs_at(c,next_a,last,next,next_radius,tmp,tmp_r,k4,r4,rhs_stage);
+      cause=detail::ideal_acoustic_radius_stage(f3,b4,h,v4,accounting(c.budget));
+      if (cause!=S::ok) { finish(cause,FailureStage::radius_local_shadow,4,next_a); return out; }
+      cause=rhs_at(c,next_a,last,next,next_radius,tmp,tmp_z,k4,z4,tau4,last_frame,rhs_stage);
       if (cause!=S::ok) { finish(cause,rhs_stage,4,next_a); return out; }
-      if (!c.budget.writes(42)) { finish(S::work_limit,FailureStage::endpoint_combine,0,next_a); return out; }
-      const auto old_y=y; const auto old_response=response;
-      cause=combine(c,old_y,old_response,{&k1,&k2,&k3,&k4},{&r1,&r2,&r3,&r4},
-                    {h/6,h/3,h/3,h/6},y,response,radius_failure);
+      cause=local_force(v4,last_frame,tau4,f4);
+      if (cause!=S::ok) { finish(cause,FailureStage::radius_local_shadow,4,next_a); return out; }
+      cause=combine(c,y,base_z,{&k1,&k2,&k3,&k4},{&z1,&z2,&z3,&z4},
+                    {h/6,h/3,h/3,h/6},next_y,next_z,bend);
       if (cause!=S::ok) { finish(cause,FailureStage::endpoint_combine,0,next_a); return out; }
-      // Commit the epoch with the new state before any subsequent admission.
+      cause=detail::ideal_acoustic_radius_diagonal(first_frame.actual,first_diagonal,
+                                                  accounting(c.budget));
+      if (cause==S::ok) cause=detail::ideal_acoustic_radius_diagonal(
+          last_frame.actual,last_diagonal,accounting(c.budget));
+      if (cause!=S::ok) { finish(cause,FailureStage::radius_diagonal,0,next_a); return out; }
+      if (!c.budget.rhs(4)) { finish(S::work_limit,FailureStage::radius_forcing,1,a); return out; }
+      cause=detail::ideal_acoustic_transport_forcing(y,response,first_frame,c.uncertainty,
+          first_diagonal.positive,p_start,accounting(c.budget));
+      if (cause!=S::ok) { finish(cause,FailureStage::radius_forcing,1,a); return out; }
+      const std::span<const W,12> base_radius(response.data()+24,12);
+      cause=detail::ideal_acoustic_radius_predictor(base_radius,p_start,h,
+          first_diagonal,predictor,accounting(c.budget));
+      if (cause!=S::ok) { finish(cause,FailureStage::radius_predictor,0,next_a); return out; }
+      if (!c.budget.writes(36)) { finish(S::work_limit,FailureStage::radius_forcing,0,next_a); return out; }
+      Response endpoint_response;
+      for (unsigned i=0;i<24;++i) endpoint_response[i]=next_z[i];
+      for (unsigned i=0;i<12;++i) endpoint_response[24+i]=predictor[i];
+      if (!c.budget.rhs(4)) { finish(S::work_limit,FailureStage::radius_forcing,0,next_a); return out; }
+      cause=detail::ideal_acoustic_transport_forcing(next_y,endpoint_response,last_frame,
+          c.uncertainty,last_diagonal.positive,p_end,accounting(c.budget));
+      if (cause!=S::ok) { finish(cause,FailureStage::radius_forcing,0,next_a); return out; }
+      cause=detail::ideal_acoustic_radius_corrector(base_radius,p_start,p_end,h,
+          first_diagonal,last_diagonal,flow,accounting(c.budget));
+      if (cause!=S::ok) { finish(cause,FailureStage::radius_corrector,0,next_a); return out; }
+      // Pure Q excludes the PC flow/base radius; its E channel conservatively
+      // encloses the primitive final pulse, including unattenuated final bend.
+      cause=detail::ideal_acoustic_radius_endpoint(zero_radius,{&f1,&f2,&f3,&f4},
+          {h/6,h/3,h/3,h/6},bend,q,accounting(c.budget));
+      if (cause!=S::ok) { finish(cause,FailureStage::radius_endpoint_sum,0,next_a); return out; }
+      if (!c.budget.rhs(4)) { finish(S::work_limit,FailureStage::radius_endpoint_bridge,0,next_a); return out; }
+      cause=detail::ideal_acoustic_transport_endpoint_bridge(
+          std::span<const W,6>(q.data()+6,6),last_frame,c.uncertainty,h,
+          last_diagonal.mu_lower,bridge,accounting(c.budget));
+      if (cause!=S::ok) { finish(cause,FailureStage::radius_endpoint_bridge,0,next_a); return out; }
+      cause=detail::ideal_acoustic_radius_endpoint(flow,{&q,&bridge,&zero_radius,&zero_radius},
+          {1,1,0,0},zero_pulse,next_radius_state,accounting(c.budget));
+      if (cause!=S::ok) { finish(cause,FailureStage::radius_endpoint_sum,0,next_a); return out; }
+      if (!c.budget.writes(42)) { finish(S::work_limit,FailureStage::committed_state,0,next_a); return out; }
+      y=next_y;
+      for (unsigned i=0;i<24;++i) response[i]=next_z[i];
+      for (unsigned i=0;i<12;++i) response[24+i]=next_radius_state[i];
       n=next; n_radius=next_radius; a=next_a; current=std::move(last);
       committed_a=a;
       for (W value:y) if (!std::isfinite(value)) { finish(S::overflow,FailureStage::committed_state,0,a); return out; }

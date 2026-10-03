@@ -3,6 +3,7 @@
 #include "../src/ideal_acoustic_response.hpp"
 #include "../src/ideal_acoustic_transport.hpp"
 #include "ideal_acoustic_transport_controls.hpp"
+#include "ideal_acoustic_positive_radius_controls.hpp"
 #include <array>
 #include <cmath>
 #include <cstdlib>
@@ -164,6 +165,7 @@ int main() {
   equation_limits();
   source_direction_limits();
   ideal_acoustic_transport_test::controls();
+  ideal_acoustic_positive_test::run();
   auto input=fixture();
   auto prepared=prepare_ideal_acoustic(std::move(input));
   need(prepared.status()==S::ok,"actual positive photon/baryon preparation");

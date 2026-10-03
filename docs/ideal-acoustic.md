@@ -2,7 +2,7 @@
 
 The work-branch source implements a distinct ideal photon fluid, cold baryons,
 CDM and smooth nonnegative Lambda. The first GCC Release build and raw analytic,
-ordered-batch and refusal controls passed at e035f10. Independent numerical,
+ordered-batch and refusal controls passed at e035f10. Complete independent numerical,
 installed SDK and source-error admission gates remain pending. It supplies no
 finite opacity, recombination, photon hierarchy, polarization, CMB spectrum or
 ordinary full-support matter amplitude.
@@ -46,6 +46,31 @@ It retained 52,108 RHS owners, 1,880 background queries and 696,560 state writes
 All thirty-six requested native fields stayed absent. The signed-radius and
 other controls preceding the consumer assertion completed; the full native
 contract failed, and installation and the SDK caller were not reached.
+
+The 1f0d797 conditioning-witness trial passed compilation and the shared
+thermal control, then refused the native consumer. Both failed first-step RK4
+combinations retained a finite normal negative ARITHMETIC radius for dV. The
+completed values were about -1.45e-25 at h=.02 and -1.81e-26 at h=.01; their
+local assembly allowances were smaller. All thirty-six native fields remained
+absent. This identifies the negative radius and preserves the original failures.
+
+The current source successor keeps central Y and the four signed sensitivities
+on classical RK4 while SOURCE/ARITHMETIC radii use a separate positive diagonal
+predictor/corrector. Its numerical identity is
+`central-RK4/radius-PC2/coupled-local-RK4-impulses/v2`. Actual retained diagonal
+bounds guard positivity; lower damping determines upper numerator and lower
+denominator bounds. Coupled local RK4 impulse propagation retains each fresh
+RHS/stage/final assembly allowance once and carries its SOURCE cross. A separate
+finite endpoint bridge owns the effect of final central/signed pulses on the
+PC endpoint forcing. Final assembly is added outside the implicit denominator.
+The bridge may conservatively overlap the joint pulse estimate.
+
+This is a conditional empirical estimator with second-order radius propagation;
+pure decay proves that positivity alone does not establish a continuous upper
+envelope. Source and arithmetic radii keep their own original mesh/start
+refinement allowances, all coordinate shares and independent comparison gates.
+No radius is clipped or reset. The new source and analytic/impulse controls have
+not yet run; source selection does not establish numerical passage.
 
 The declared infinite momentum-coupling limit first sums the photon and baryon
 enthalpy-weighted momentum equations. Their exchange cancels before their common
@@ -128,8 +153,12 @@ capture and original mapper witnesses. It advances four signed six-state
 source sensitivities, a finite source remainder and arithmetic radii alongside
 the physical state. The mapper shifts remain correlated through Lambda.
 Same-a source derivatives and whole-family clock changes have separate owners;
-no second H, remap or source reclosure is introduced. All copies, stages and
-fourteen derivative owners consume the original work categories.
+no second H, remap or source reclosure is introduced. All copies and stages consume the original work categories. Each step owns
+forty central physical/eta derivatives, eight start/end radius-forcing owners,
+twelve coupled local impulse owners and four endpoint-bridge owners. Their
+sixty-four total consumes the original RHS ceilings, including zero eta rows.
+Fully assigned caller output buffers need no redundant initial state zeroing;
+each actual destination is charged before assignment.
 
 Its arithmetic identity explicitly assumes the selected normal Wide log/exp
 profile with 64-epsilon bounds. Every initial, stage and N-update ambiguity is
@@ -166,8 +195,8 @@ the same operation's values within its existing diagnostic evaluation and
 counts storage through the actual attempt/run/trajectory layout. It performs
 no new physical query, radius recomputation, state commit or error-budget
 change. The stage4 attempted epoch labels the receiving input at next_a;
-its k3 slope was evaluated at the retained middle epoch. These new fields and
-their record controls are source-only until a fresh execution.
+its k3 slope was evaluated at the retained middle epoch. These fields and their record controls were executed in the 1f0d797 trial,
+which retained the literal negative dV radii above.
 
 The signed-radius assembly correction completes the provisional ARITHMETIC
 sum with its already-owned nonnegative assembly allowance before applying
@@ -179,8 +208,9 @@ repairs the independent assembly-ordering issue without assigning it as the
 cause of an earlier refusal or qualifying the full response method.
 The continuous cooperative comparison equations preserve positive radii, but
 that theorem alone does not establish positivity of a classical RK4 stage.
-The new witness must first identify the actual failed coordinate and operands
-before selecting a propagation repair; no completed radius is clipped.
+The 1f0d797 witness identified dV and its finite negative completed operands.
+The selected positive-propagation successor above still needs numerical checks;
+no completed radius is clipped.
 
 An optional MPFR reference target advances a separate conformal-time photon
 oscillator and spatial Einstein trace. It uses the same emitted source and

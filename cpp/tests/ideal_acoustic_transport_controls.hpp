@@ -1,6 +1,7 @@
 #pragma once
 #include "../src/ideal_acoustic_bridge.hpp"
 #include "../src/ideal_acoustic_initial_bounds.hpp"
+#include "../src/ideal_acoustic_positive_radius.hpp"
 #include <array>
 #include <cmath>
 #include <cstdlib>
@@ -500,6 +501,65 @@ inline void endpoint_controls(const detail::IdealAcousticTransportFrame &frame,
           "absent endpoint support cannot become zero error");
 }
 
+inline void positive_transport_controls(
+    const detail::IdealAcousticTransportFrame &frame,
+    const detail::IdealAcousticSourceUncertainty &u,Counters &counter) {
+  const std::array<W,6> y{.125L,.0625L,.03125L,.25L,.5L,1};
+  detail::IdealAcousticResponseState response{};
+  for (unsigned i=0;i<6;++i) { response[24+i]=1e-6L; response[30+i]=1e-12L; }
+  detail::IdealAcousticRadiusDiagonal diagonal;
+  require(detail::ideal_acoustic_radius_diagonal(frame.actual,diagonal,
+              counter.accounting())==S::ok,"actual borrowed radius diagonal");
+  detail::IdealAcousticRadiusVector p0,p1,bridge,action;
+  require(detail::ideal_acoustic_transport_forcing(y,response,frame,u,
+              diagonal.positive,p0,counter.accounting())==S::ok,
+          "complete positive forcing retains inherited and affine owners");
+  require(p0[5]>0 && p0[11]>0,"global source and arithmetic eta forces remain positive");
+  constexpr W bend=.125L,h=.01L;
+  std::array<W,6> q{};
+  q[3]=bend;
+  auto final_y=y;
+  final_y[3]+=bend; // Exact binary addition: only FINAL central assembly changes.
+  require(detail::ideal_acoustic_transport_forcing(final_y,response,frame,u,
+              diagonal.positive,p1,counter.accounting())==S::ok,
+          "matching endpoint forcing observes final central pulse");
+  require(detail::ideal_acoustic_transport_endpoint_bridge(q,frame,u,h,
+              diagonal.mu_lower,bridge,counter.accounting())==S::ok,
+          "finite PC endpoint source bridge has its own actual denominator");
+  // phi diagonal is exactly -1. The independent endpoint partial difference
+  // is scaled by h/2/(1+h/2); no full-step continuous-bound claim is made.
+  const W direct=(h/2)*std::abs(p1[4]-p0[4])/(1+h/2);
+  require(direct>0 && bridge[4]>0,
+          "final bend changes endpoint SOURCE; omitted bridge returns zero");
+  enclosed(0,direct,bridge[4],"PC endpoint source partial is enclosed by owned bridge");
+  detail::IdealAcousticRadiusVector pure_q{};
+  pure_q[9]=bend;
+  require(detail::ideal_acoustic_transport_local_action(pure_q,frame,u,action,
+              counter.accounting())==S::ok && action[4]>0 && action[10]>0,
+          "SOURCE cross sees an intermediate fresh arithmetic pulse");
+  require(action[5]==0 && action[11]==0 && bridge[5]==0 && bridge[11]==0,
+          "fixed-frame eta has zero local gain without removing affine forcing");
+  std::array<W,6> zero{};
+  require(detail::ideal_acoustic_transport_endpoint_bridge(zero,frame,u,h,
+              diagonal.mu_lower,bridge,counter.accounting())==S::ok,
+          "exact zero pulse has no endpoint bridge");
+  for (W v:bridge) require(v==0,"zero bridge stays exact zero");
+  detail::IdealAcousticRadiusVector output{};
+  output.fill(7);
+  auto untouched=output;
+  q[3]=std::numeric_limits<W>::quiet_NaN();
+  require(detail::ideal_acoustic_transport_endpoint_bridge(q,frame,u,h,
+              diagonal.mu_lower,output,counter.accounting())==S::outside_domain &&
+              output==untouched,"invalid pulse refuses before output mutation");
+  q[3]=bend;
+  Counters denied;
+  denied.writes=4096;
+  require(detail::ideal_acoustic_transport_endpoint_bridge(q,frame,u,h,
+              diagonal.mu_lower,output,denied.accounting())==S::work_limit &&
+              output==untouched && denied.writes==4096,
+          "bridge output reservation refuses without hidden writes");
+}
+
 inline void controls() {
   signed_radius_assembly_controls();
   radius_failure_record_controls();
@@ -696,6 +756,7 @@ inline void controls() {
                                      broad_clock.accumulated_N_absolute_radius,
                                      counter);
       endpoint_controls(broad,family,counter);
+      positive_transport_controls(broad,family,counter);
     }
   }
   require(counter.diagnostics > 0 && counter.writes > 0,

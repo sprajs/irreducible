@@ -65,7 +65,9 @@ enum class IdealAcousticFailureStage : unsigned {
   initial_source_bounds, initial_response, sample_storage, step_clock,
   step_background, rk_storage, rk_nominal_rhs, rk_frame, rk_response_rhs,
   rk_combine, endpoint_combine, committed_state, hamiltonian_constraint,
-  phase_response, phase_domain, endpoint_storage
+  phase_response, phase_domain, endpoint_storage, radius_diagonal,
+  radius_forcing, radius_predictor, radius_local_shadow, radius_corrector,
+  radius_endpoint_bridge, radius_endpoint_sum
 };
 // These identify the six stored evolution coordinates, not requested output
 // IDs. Channel values retain the literal response-vector offsets.
@@ -190,7 +192,7 @@ IdealAcousticTransfer prepare_ideal_acoustic(IdealAcousticRequest &&,
 inline constexpr std::string_view ideal_acoustic_model_id =
     "GR/flat-ideal-infinite-coupling-photon-cold-baryon-CDM-smooth-Lambda-unit-zeta/v1";
 inline constexpr std::string_view ideal_acoustic_method_id =
-    "retained-background-defect-aware-RK4-correlated-six-state-response-ordered-epoch-grid/v2";
+    "central-RK4/radius-PC2/coupled-local-RK4-impulses/v2";
 inline constexpr std::string_view ideal_acoustic_arithmetic_id =
     "strict-wide-conditional-64eps-clock-common-thermal-state-nine-signed-readouts/v2";
 } // namespace irred::cosmology
