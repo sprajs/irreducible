@@ -214,7 +214,7 @@ inline numerics::Status thermal_conformal_no_species_diagnostics(
     return S::conditioning_budget_exceeded;
   if (!source.species.empty() || source.omega_massless_nonphoton != 0 ||
       retained.omega_species_today != 0 || retained.species_normalization_error != 0 ||
-      epoch.fr != epoch.fg || !(epoch.x2 > 0))
+      epoch.fr != epoch.fg || !(epoch.x2 >= std::numeric_limits<W>::min()))
     return S::outside_domain;
   const auto normal = [](W v) {
     return std::isfinite(v) && (v == 0 || std::abs(v) >= std::numeric_limits<W>::min());
