@@ -41,6 +41,7 @@ Read [AGENTS.md](../AGENTS.md) first, then choose a guide:
 | Prepare pure-H ionization/temperature and finite-endpoint optical histories | [Recombination and drag](recombination-drag.md) |
 | Prepare a bounded conditional H/He singlet history with shared electrons | [Hydrogen–helium history](hydrogen-helium-history.md) |
 | Predict a synthetic SIS point-source image, delay and Gaussian PSF pixels in C++ | [SIS thin lens](sis-thin-lens.md) |
+| Predict synthetic extended-source pixels through two softened elliptical potentials | [Two-deflector forward model](two-deflector-forward.md) |
 | Check scientific assumptions | [Scientific contracts](scientific-contracts.md) |
 | Profile an ordered multi-column Gaussian model in C++ | [Gaussian design](gaussian-design.md) |
 | Normalize a broad finite uniform-box Gaussian target and bound one coordinate quantile | [Gaussian box](gaussian-box.md) |
