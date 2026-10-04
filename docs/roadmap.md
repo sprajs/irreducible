@@ -37,6 +37,113 @@ accept both joint log-likelihood error and resulting parameter shifts.
 
 ## Next bounded choices
 
+### Safe stop and landing point: 2026-10-04
+
+The owner requested a safe stop after the runnable-reference milestone. New
+feature work, source refinements, acquisition and scientific runs are stopped;
+resume only on a new owner instruction. This section is the latest landing
+point for the execution history below. All nineteen full scopes remain open,
+and this document remains the sole active plan.
+
+The merged checkpoints are Irreducible `7a006f81a36a70cdcd3187a1298a8a1ea2cf3f39`,
+Reproducible `6c2aa04c946052db4a39c05c3edb15d56b94ce26` and Prospector
+`88b260709a24e855a44d34582e497dc86360ec47`. Their exact main CI checks passed;
+the clean primary checkouts were updated without discarding work. Keep all
+unfinished worktrees and ignored evidence. The original ALL19 recovery directory
+`evidence/project-review/handover/20261002-all19-restart/` is preserved.
+All implementation workers and the three repository owners reached idle
+checkpoints, with all four local compute slots released. Historical failed
+systemd units remain as evidence with no live main process or cgroup. Remote
+PR CI is separate from local compute and may complete after the stop; recheck
+its actual latest head before any publication decision.
+
+The runnable external reference now generates full-state CLASS CMB spectra,
+matter power, distances and thermal tables, evaluates the selected official
+conditional Planck components, and exposes separate DESI BAO and symmetric
+Pantheon+SH0ES working-profile scores. Native covariance arithmetic is used in
+the BAO/SN adapters. The original asymmetric SN covariance and its refusal are
+retained. These are fixed-point/scan and conditional-score capabilities; a
+qualified joint target or posterior has not been admitted.
+
+Merged native additions include supplied continuous T/E projection and its
+independent angular regression, conditional windowed linear Kaiser/AP means,
+the distinct effective-fluid background/ruler, a synthetic two-deflector
+extended-source pixel mean, and the finite-opacity source producer plus its
+one-move source-grid example. These retain their own physical identities.
+The short grid's identical time-step schedules do not establish time error;
+the missing continuous/source-grid/radial/full-species and measured-instrument
+closures remain open.
+
+The acoustic consumer is pushed in draft [PR #57](https://github.com/sprajs/irreducible/pull/57),
+head `c50590c2d7f2c44de5473a40ceac1ea76c9f729f` against the merged main above.
+Its predecessor `930adccdb72f792be229d60a5d80317c45b560ed` passed 36 native and
+18 installed-SDK fields in the original bounded 102.42-second trial after
+removing actual duplicate signed-RHS writes. Complete source review passed;
+the PR is left open at the stop. Its final integrated run `37162445426` passed
+five checks but failed C++ Clang: `ideal_acoustic_contract` timed out at
+240.10 seconds (134 of 135 tests passed). Preserve the original full failed log
+in the stop inventory, SHA256
+`9f66465d0652202db04e3601228d962f93b8cc59c672f5a3ba8e2327ad2f24a4`.
+Investigate this exact compiler/head failure before publication; no timeout or
+scientific budget has been relaxed, and no repair/rerun began after the stop.
+Historical trial/source admission and current integrated CI are distinct.
+The original 100M-write independent-reference
+refusal and separate 400M diagnostic remain distinct; the proposed DP5 high-only
+reference is private, unfinished and unexecuted.
+
+The finite-opacity full L=192 interval reference is source-reviewed, clean and
+pushed on `codex/finite-opacity-full-reference` at
+`cd4c1a280bba7408b5d75640cc659e6d2d01d661`. Its sole test translation unit has
+SHA256 `a9b704126a4d95c3cf9a8e78a0cbf00fb0474cab1a9c4bbee73c9dec6d1ed99f`.
+It has never been compiled or run. On resume, first recheck the frozen source,
+peer reports and backend pins, then bind one bounded compile/run against the
+original installed 043 archive (SHA256
+`436b3bba88bcb2b39d7ba55696d85bffc6b2ae58328d8bf1e915b10bc2718067`).
+Runtime/layout, complete enclosure/refinement, resource and native-comparison
+gates remain unearned; do not infer them from source review.
+
+The helium reference repair stopped with an unfinished header on
+`codex/helium-escape-history` at `1636def8d853d912dfedf57fd24a23b45a454f87`.
+The unchanged peer still uses its old result field, so the partial edit is
+explicitly unvalidated and was not committed as a coherent implementation.
+Its immutable local handoff is
+`evidence/next15-reference-ledger-SAFE-STOP-unvalidated-v1-20261004/handoff.json`
+in that worktree (SHA256
+`f11581096c4d87d5ce2df43df76bcc89b8b1df2c9c8c8ab1ac9234d2eaf51e51`).
+The original two refused trajectories, anchored-clock/residual method and
+accepted absolute-slope amendment are preserved.
+
+The isolated `codex/homogeneous-cosine-scalar` worktree retains only source
+proposals at base `7a006f8`. The independent 2018 n=3 model has a private
+Prospector source guard, separate from the blocked 2019 modified-CLASS identity;
+native history/error/event/ruler implementation and numerical acceptance remain
+pending. B1608 Paper I's printed lens-map/Fermat sign conflict is preserved.
+The immediate measured-image blocker is PSF-C's exact identity and mapping into
+the retained chip/WCS; approximate offsets cannot supply a crop.
+
+Resume the existing runnable-reference execution order below. The next major
+demonstration is a concise conditional mean using one same-run CLASS spectrum
+and the complete original ordered clustering window, alongside the separate
+probe scores. Reproducible's private NEXT-13 native/reference/controller drafts
+are unexecuted and still need source/resource closure within the unchanged
+public-size cap. Advance the pending native source/reference closures as
+dependencies permit; do not reopen deferred numerical/framework branches
+without a precise missing output. Reinspect live repositories, PR/CI, dirty
+worktrees and build identities before dispatch, retaining one integration owner
+per repository and the shared four-job allowance.
+
+Exact local stop pointers are retained in the existing worktrees: Reproducible's
+`a4f7/reproducible/.work/resumed-team-20261002/STOPPED-20261004.md`, Prospector's
+`b7d9/prospector/.work/independent-n3-scalar-guard-20261004/safe-stop-checkpoint-final-v1.json`,
+the acoustic worktree's `evidence/ideal-acoustic-reference-safe-stop-20261004/handover.json`
+and `all19-box/irreducible/evidence/scalar-n3-source-owner-proposal-20261004/safe-stop-custody-v1.json`.
+These paths are relative to the managed worktree root where applicable. They
+bind unfinished sources and earlier reviews; private ignored artifacts are
+preserved locally, not claimed as Git-backed. The cross-project stop inventory
+is `evidence/project-review/handover/20261004-safe-stop/` in the primary
+Irreducible checkout. Branches and worktrees are intentionally retained;
+publication and cleanup are deferred to resume.
+
 ### Current execution order: a runnable reference experiment
 
 The 2026-10-03 priority is an executable path toward the common-theory fit.
