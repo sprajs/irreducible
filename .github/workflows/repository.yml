@@ -53,6 +53,8 @@ jobs:
           persist-credentials: false
       - name: Prepare declared build tools
         run: |
+          rustup toolchain install 1.98.0 --profile minimal --component rustfmt
+          rustup default 1.98.0
           python3 -m venv .build-tools
           .build-tools/bin/python -m pip install cmake==4.1.3
       - name: Build and test native library independently
@@ -137,6 +139,10 @@ jobs:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           persist-credentials: false
+      - name: Prepare ABI formatter
+        run: |
+          rustup toolchain install 1.98.0 --profile minimal --component rustfmt
+          rustup default 1.98.0
       - name: Check identity helper contracts
         run: |
           python3 tools/test_ci_identity.py
