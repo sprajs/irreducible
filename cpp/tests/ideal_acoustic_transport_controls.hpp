@@ -3,6 +3,7 @@
 #include "../src/ideal_acoustic_initial_bounds.hpp"
 #include "../src/ideal_acoustic_positive_radius.hpp"
 #include <array>
+#include <cfenv>
 #include <cmath>
 #include <cstdlib>
 #include <iostream>
@@ -57,6 +58,40 @@ struct Counters {
     return {this, write, diagnostic};
   }
 };
+
+inline void scalar_classification_controls() {
+  std::fenv_t original;
+  require(std::fegetenv(&original) == 0, "capture scalar-control environment");
+  const auto check = [](W x) {
+    const int category = std::fpclassify(x);
+    const bool expected = category == FP_ZERO || category == FP_NORMAL;
+    require(detail::ideal_acoustic_transport_internal::normal_or_zero(x) == expected,
+            "range admission agrees with independent scalar classification");
+    require(detail::ideal_acoustic_transport_internal::radius(x) ==
+                (expected && x >= 0),
+            "positive range admission preserves signed-zero and radius domain");
+  };
+  for (W x : {W(0), -W(0), W(1), -W(1),
+              std::numeric_limits<W>::min(),
+              std::nextafter(std::numeric_limits<W>::min(), W(0)),
+              std::nextafter(std::numeric_limits<W>::min(), W(1)),
+              std::numeric_limits<W>::denorm_min(),
+              std::numeric_limits<W>::max(),
+              std::nextafter(std::numeric_limits<W>::max(), W(0)),
+              std::numeric_limits<W>::infinity(),
+              std::numeric_limits<W>::quiet_NaN()}) {
+    check(x);
+    check(-x);
+  }
+  // Every normal exponent bin contributes a signed power-of-two witness.
+  for (int exponent = std::numeric_limits<W>::min_exponent - 1;
+       exponent < std::numeric_limits<W>::max_exponent; ++exponent) {
+    const W x = std::ldexp(W(1), exponent);
+    check(x);
+    check(-x);
+  }
+  require(std::fesetenv(&original) == 0, "restore scalar-control environment");
+}
 
 inline void signed_rhs_fusion_controls(
     const detail::IdealAcousticTransportFrame &frame,
@@ -660,6 +695,7 @@ inline void positive_transport_controls(
 }
 
 inline void controls() {
+  scalar_classification_controls();
   signed_radius_assembly_controls();
   radius_failure_record_controls();
   radiation_source_limit();

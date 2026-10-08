@@ -73,10 +73,21 @@ struct IdealAcousticTransportInitialBounds {
 namespace ideal_acoustic_transport_internal {
 using W = long double;
 using S = numerics::Status;
-inline bool normal_or_zero(W x) noexcept {
-  return std::isfinite(x) && (x == 0 || std::isnormal(x));
+[[gnu::always_inline]] inline bool normal_or_zero(W x) noexcept {
+  // Exact represented range comparisons preserve the finite-normal-or-zero
+  // admission law while avoiding two general classification calls in each
+  // checked scalar operation. NaN, infinity and nonzero subnormal fail.
+  constexpr W minimum = std::numeric_limits<W>::min();
+  constexpr W maximum = std::numeric_limits<W>::max();
+  if (x == 0) return true;
+  const W magnitude = x < 0 ? -x : x;
+  return magnitude >= minimum && magnitude <= maximum;
 }
-inline bool radius(W x) noexcept { return normal_or_zero(x) && x >= 0; }
+[[gnu::always_inline]] inline bool radius(W x) noexcept {
+  constexpr W minimum = std::numeric_limits<W>::min();
+  constexpr W maximum = std::numeric_limits<W>::max();
+  return x == 0 || (x >= minimum && x <= maximum);
+}
 inline IdealAcousticRadiusFailure record_radius_failure(
     unsigned coordinate, IdealAcousticRadiusChannel channel, W provisional,
     std::optional<W> allowance, W completed, S arithmetic_status) noexcept {
@@ -95,20 +106,22 @@ inline IdealAcousticRadiusFailure record_radius_failure(
 }
 struct Arithmetic {
   S status = S::ok;
-  W checked(W x) noexcept {
+  // Keep these scalar admission/operation wrappers inlined in Debug as well.
+  // Their expressions, checks and association remain literal; no fast math.
+  [[gnu::always_inline]] W checked(W x) noexcept {
     if (!normal_or_zero(x))
       status = S::outside_domain;
     return x;
   }
-  W add(W a, W b) noexcept { return checked(a + b); }
-  W sub(W a, W b) noexcept { return checked(a - b); }
-  W mul(W a, W b) noexcept {
+  [[gnu::always_inline]] W add(W a, W b) noexcept { return checked(a + b); }
+  [[gnu::always_inline]] W sub(W a, W b) noexcept { return checked(a - b); }
+  [[gnu::always_inline]] W mul(W a, W b) noexcept {
     const W r = a * b;
     if (a != 0 && b != 0 && r == 0)
       status = S::outside_domain;
     return checked(r);
   }
-  W div(W a, W b) noexcept {
+  [[gnu::always_inline]] W div(W a, W b) noexcept {
     if (b == 0) {
       status = S::conditioning_budget_exceeded;
       return 0;
@@ -118,8 +131,8 @@ struct Arithmetic {
       status = S::outside_domain;
     return checked(r);
   }
-  W magnitude(W a) noexcept { return checked(std::abs(a)); }
-  W up(W a) noexcept {
+  [[gnu::always_inline]] W magnitude(W a) noexcept { return checked(std::abs(a)); }
+  [[gnu::always_inline]] W up(W a) noexcept {
     if (!radius(a)) {
       status = S::outside_domain;
       return 0;

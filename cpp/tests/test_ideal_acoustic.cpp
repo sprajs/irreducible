@@ -241,7 +241,7 @@ int main() {
            <<" P="<<batch.evaluation_work.background_evaluations
            <<" age="<<batch.evaluation_work.age_evaluations
            <<" writes="<<batch.evaluation_work.state_element_writes
-           <<" diagnostics="<<batch.evaluation_work.diagnostic_evaluations<<'\n';
+           <<" diagnostics="<<batch.evaluation_work.diagnostic_evaluations<<'\n'<<std::flush;
   if (batch.status!=S::ok) {
     for (const auto &trajectory:batch.trajectories)
       for (std::size_t r=0;r<trajectory.attempts_started;++r) {
@@ -324,7 +324,7 @@ int main() {
                <<" Hcal="<<row.epoch.hcal_mpc_inverse
                <<" eta="<<row.epoch.conformal_age_mpc;
       for (const auto &value:row.outputs) std::cout<<' '<<*value.computed;
-      std::cout<<'\n';
+      std::cout<<'\n'<<std::flush;
       // No missing common-source diagnostic may become an accepted zero.
       if (batch.shared_dependency_status!=S::ok)
         for (const auto &value:row.outputs)

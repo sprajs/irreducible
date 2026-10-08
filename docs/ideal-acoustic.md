@@ -279,3 +279,17 @@ optional diagnostics, readout temporaries and caller metadata; it does not
 replace those named owners or establish a process RSS/allocator bound. The
 16 MiB ceiling is unchanged. A permanent zero-age control checks the owner
 subtotal and exact payload admission boundary without a physical query.
+
+The 2026-10-08 Debug repair uses exact represented normal/zero and positive-radius
+range checks and inlines the small private scalar wrappers on GCC/Clang. Their
+expressions, refusal checks, associations, five attempts and all original limits
+remain unchanged. Independent `fpclassify` controls challenge signed zeros,
+subnormal/normal boundaries, nonfinite inputs and every normal exponent bin.
+The original Clang19 trial and two intermediate repairs each retained the
+240.10-second timeout. The final strict Clang19 Debug trial passed the complete
+native contract in 203.08 seconds and the portable peer in 7.08 seconds; its
+36 fields, ten attempts and resource diagnostics are byte-identical to the
+original GCC14 receipt. These are scoped engineering checks, not a portable
+speed claim or full independent-reference qualification. The original 100M
+reference refusal remains open. Raw batch/field output is now flushed to retain
+the completed prefix if a later control times out.
