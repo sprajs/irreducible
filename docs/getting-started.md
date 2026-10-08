@@ -55,12 +55,13 @@ The quantity example preserves source metadata and converts metre values to kilo
 ## Verify the build
 
 ```sh
-.build-tools/bin/ctest --test-dir build/native --output-on-failure
-cargo test --locked --offline -j4
+python3 tools/ci.py native --compiler gcc --suite fast
+python3 tools/ci.py rust-unit
+python3 tools/ci.py cli --suite fast
 python3 tools/check_docs.py
 ```
 
-The source/flag mutation test is ignored by ordinary Cargo test runs and has a separate exclusive procedure in [testing](testing.md). Coordinate shared builds; do not run a second build or a source-mutation test in an active build tree.
+These engineering checks need no acquired data. Complete native/scientific regression commands are explicit in [testing](testing.md). The source/flag mutation test is ignored by ordinary Cargo test runs and has a separate exclusive procedure in [testing](testing.md). Coordinate shared builds; do not run a second build or a source-mutation test in an active build tree.
 
 `build/`, `target/`, `.build-tools/` and `runs/` are generated locally.
 
