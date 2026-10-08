@@ -54,9 +54,9 @@ request/model/build identity. Original inputs and historical receipts stay intac
 Install AWS CLI v2 and Python 3.11+. Credentials come from the restricted local
 `research` profile or the runtime's standard AWS environment/role chain. A clone
 contains public settings only. Never use root or copy local credentials to a
-cloud runtime. The cloud identity currently reads `shared/`, `prospector/` and
-`reproducible/`, and writes `reproducible/`; it cannot publish engine evidence or
-the shared catalog. Use its own restricted identity, not the local key.
+cloud runtime. The cloud identity reads `shared/`, `prospector/`, `irreducible/` and
+`reproducible/`, and writes only `reproducible/`; it cannot publish engine evidence
+or the shared catalog. Use its own restricted identity, not the local key.
 
 ```sh
 python scripts/research_storage.py status
