@@ -1,0 +1,21 @@
+{
+  "schema": "research-storage-layout/v1",
+  "bucket": "research-data-436908790672-eu-west-2",
+  "region": "eu-west-2",
+  "account_id": "436908790672",
+  "local_profile": "research",
+  "catalog_pointer": "shared/catalogs/research-data.json",
+  "roots": {
+    "shared_inputs": "shared/datasets/<dataset>/<version>/",
+    "experiments": "reproducible/experiments/<experiment>/attempts/<original-attempt>/",
+    "papers": "prospector/papers/<versioned-id>/",
+    "reviews": "prospector/reviews/<batch>/",
+    "engine_evidence": "irreducible/evidence/<component>/<attempt>/",
+    "preservation": "shared/archives/<descriptive-name>/"
+  },
+  "canonical_implementation": "sprajs/reproducible:scripts/research_storage.py",
+  "identity_policy": "Pin manifest URI, SHA256 and exact VersionId. Discovery pointer is mutable and is never a scientific pin.",
+  "retention_policy": "Create-only objects, manifest last after full exact-version byte checks; no deletion or completed-object expiry.",
+  "sharing_policy": "Owner-authorized private preservation does not approve redistribution; honor source restrictions and retain notices. Credentials are forbidden.",
+  "source_policy": "Git commit/path for source, reviews, candidate designs, configs and concise findings. Pinned acquisition/reconstruction recipes for disposable copies."
+}

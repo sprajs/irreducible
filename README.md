@@ -110,3 +110,7 @@ If you use Irreducible in research, please cite it and include the commit or rel
   url = {https://github.com/sprajs/irreducible}
 }
 ```
+
+Shared datasets and private evidence use the [common storage layout](docs/shared-data.md).
+Read the [cloud startup guide](https://github.com/sprajs/reproducible/blob/main/docs/cloud-startup.md)
+for the bounded shared-catalog readiness check; Reproducible owns the startup script.
