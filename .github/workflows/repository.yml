@@ -27,6 +27,7 @@ permissions:
 jobs:
   apple-arithmetic:
     name: Apple Silicon arithmetic contract
+    timeout-minutes: 5
     runs-on: macos-15
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
@@ -42,6 +43,7 @@ jobs:
           build/apple-arithmetic/test_arithmetic_profile --expect-binary64-long-double
   native:
     name: C++ tests (${{ matrix.compiler }})
+    timeout-minutes: ${{ inputs.full_regression && 90 || 5 }}
     runs-on: ubuntu-24.04
     strategy:
       fail-fast: false
@@ -61,6 +63,7 @@ jobs:
         run: python3 tools/ci.py native --compiler ${{ matrix.compiler }} --suite ${{ inputs.full_regression && 'full' || 'fast' }}
   rust-unit:
     name: Rust unit tests
+    timeout-minutes: 5
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
@@ -79,6 +82,7 @@ jobs:
         run: python3 tools/ci.py rust-unit
   cli:
     name: CLI integration tests
+    timeout-minutes: ${{ inputs.full_regression && 90 || 8 }}
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
@@ -97,6 +101,7 @@ jobs:
         run: python3 tools/ci.py cli --profile ${{ inputs.full_regression && 'debug' || 'release' }} --suite ${{ inputs.full_regression && 'full' || 'fast' }}
   release:
     name: Release application and package
+    timeout-minutes: ${{ inputs.full_regression && 90 || 8 }}
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
@@ -134,6 +139,7 @@ jobs:
           retention-days: 14
   contracts:
     name: Documentation and generated contracts
+    timeout-minutes: 3
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4

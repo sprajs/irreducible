@@ -6,7 +6,7 @@ records, Rust module tests, a fresh installed ABI consumer, and Release packagin
 The reviewed membership is in `tools/ci_suites.py`. Native jobs print the actual
 registered test inventory and classify every remaining test as full-only. New
 scientific tests stay in the full suite until deliberately reviewed for routine CI.
-Routine CLI CI uses Release to avoid repeatedly hashing the large Debug executable in immutable receipts; Debug CLI regressions remain in manual full mode. Routine passes do not claim scientific or data qualification.
+Routine CLI CI uses Release to avoid repeatedly hashing the large Debug executable in immutable receipts; Debug CLI regressions remain in manual full mode. Routine job limits are five minutes for native/Rust unit/Apple checks, eight minutes for CLI/Release build and packaging, and three minutes for contracts. Manual full native/CLI/Release jobs allow 90 minutes; individual scientific test limits remain unchanged. Routine passes do not claim scientific or data qualification.
 
 `python3 tools/build.py` builds only `irred_core` and the Rust application. It does
 not compile all native test binaries. Use these explicit engineering checks:
