@@ -14,6 +14,10 @@ source references, immutable acquisition/reconstruction pins and exact manifest
 URI/SHA256/VersionId. Preserve failures, originals and historical receipts; the
 catalog discovery pointer is not a scientific pin. Respect third-party copying
 restrictions and keep credentials out of all selections.
+At startup for data/evidence work, read the canonical
+[cloud startup guide](https://github.com/sprajs/reproducible/blob/main/docs/cloud-startup.md)
+and run Reproducible's `scripts/storage_startup.py` with the runtime's restricted
+identity. Keep its verified catalog pin; explicit failure is not readiness.
 
 ## Lasting design rules
 
