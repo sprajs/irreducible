@@ -40,9 +40,10 @@ def main():
         compiler = shutil.which("g++" if args.compiler == "gcc" else "clang++")
         if not compiler:
             raise SystemExit("declared native compiler unavailable")
-        build = f"build/ci-native-{args.compiler}"
+        build_type = "Release" if args.profile == "release" else "Debug"
+        build = f"build/ci-native-{args.compiler}" + ("-release" if args.profile == "release" else "")
         run("python3", "tools/generate_abi.py")
-        run(cmake, "-S", "cpp", "-B", build, "-DCMAKE_BUILD_TYPE=Debug",
+        run(cmake, "-S", "cpp", "-B", build, f"-DCMAKE_BUILD_TYPE={build_type}",
             f"-DCMAKE_CXX_COMPILER={compiler}", "-DCMAKE_CXX_FLAGS=",
             "-DIRRED_TEST_CFITSIO=OFF", "-DIRRED_REFERENCE_GMP_MPFR=OFF")
         inventory = json.loads(subprocess.check_output(

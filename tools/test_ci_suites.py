@@ -87,6 +87,32 @@ class SuitesTests(unittest.TestCase):
                 self.assertNotIn('--target', build)
                 self.assertNotIn('-R', ctest)
 
+    def test_actual_native_dispatch_preserves_requested_profile_and_isolates_builds(self):
+        inventory = {'tests': [{'name': n} for n in (*NATIVE_FAST, 'ideal_acoustic_contract')]}
+        for compiler in ('gcc', 'clang'):
+            for profile, build_type, suffix in (('debug', 'Debug', ''), ('release', 'Release', '-release')):
+                with self.subTest(compiler=compiler, profile=profile):
+                    with patch.object(sys, 'argv', ['ci.py', 'native', '--compiler', compiler,
+                                                    '--profile', profile, '--suite', 'fast']), \
+                         patch.object(ci.shutil, 'which', return_value=f'/usr/bin/{compiler}++'), \
+                         patch.object(ci.subprocess, 'check_output', return_value=json.dumps(inventory)) as inventory_read, \
+                         patch.object(ci, 'run') as run, patch('builtins.print'):
+                        ci.main()
+                    calls = [call.args for call in run.call_args_list]
+                    configure = next(c for c in calls if '-S' in c)
+                    build = next(c for c in calls if '--build' in c)
+                    ctest = calls[-1]
+                    directory = f'build/ci-native-{compiler}{suffix}'
+                    self.assertIn(f'-DCMAKE_BUILD_TYPE={build_type}', configure)
+                    self.assertEqual(configure[configure.index('-B') + 1], directory)
+                    self.assertEqual(build[build.index('--build') + 1], directory)
+                    self.assertEqual(ctest[ctest.index('--test-dir') + 1], directory)
+                    query = inventory_read.call_args.args[0]
+                    self.assertEqual(query[query.index('--test-dir') + 1], directory)
+                    self.assertIn('test_abi', build)
+                    self.assertNotIn('test_ideal_acoustic', build)
+                    self.assertIn('-R', ctest)
+
     def test_actual_cli_dispatch_preserves_full_and_release(self):
         metadata = [{'name': n, 'kind': ['test']} for n in (*CLI_FAST, 'sound_horizon_cli')]
         for suite in ('fast', 'full'):
