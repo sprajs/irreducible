@@ -56,6 +56,16 @@ failures. It runs in the documentation/contracts CI check.
 
 ## Fixture ancestry
 
+`arithmetic_profile_contract` challenges the public native SPD owner with the
+exact solution `(1/2,-1)` of a dyadic two-row system. It exercises the admitted
+wide path and unsupported-rounding refusal where the host has extended
+`long double`, or the unsupported-representation refusal where it does not.
+The separate Apple Silicon CI check compiles the same test and production
+`numerics.cpp` with strict floating-point flags, records the Apple toolchain,
+and requires the binary64 `long double` representation. It checks arithmetic
+admission only; full macOS application packaging and wide scientific arithmetic
+remain unsupported by this check. See [getting started](getting-started.md).
+
 [Native fixture provenance](../cpp/tests/fixtures/README.md) records the essential constants, derivations and budgets. Keep small explicit expected values and independent algorithms with the tests. Preserve the distinction between exact algebra, high-precision comparisons and shared-library checks.
 
 Full external-tool output and development receipts stay local. Once a comparison becomes a durable regression, routine tests should not require rerunning the external software. Do not delete original historical research or accepted records merely to make the public tree smaller.
