@@ -7,6 +7,9 @@ import tempfile
 import unittest
 from ci_suites import NATIVE_FAST, CLI_FAST, native_build_targets, classify_native, native_regex, cli_targets
 import re
+import sys
+from unittest.mock import patch
+import ci
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -37,6 +40,42 @@ class SuitesTests(unittest.TestCase):
         self.assertIn('future_scientific_cli', cli_targets(available, 'full'))
         with self.assertRaises(ValueError):
             cli_targets([], 'fast')
+
+    def test_actual_native_dispatch_selects_targets_and_ctest_filter(self):
+        inventory = {'tests': [{'name': n} for n in (*NATIVE_FAST, 'ideal_acoustic_contract')]}
+        for suite in ('fast', 'full'):
+            with patch.object(sys, 'argv', ['ci.py', 'native', '--suite', suite]), \
+                 patch.object(ci.shutil, 'which', return_value='/usr/bin/g++'), \
+                 patch.object(ci.subprocess, 'check_output', return_value=json.dumps(inventory)), \
+                 patch.object(ci, 'run') as run, patch('builtins.print'):
+                ci.main()
+            calls = [call.args for call in run.call_args_list]
+            build = next(c for c in calls if '--build' in c)
+            ctest = calls[-1]
+            self.assertIn('--no-tests=error', ctest)
+            if suite == 'fast':
+                self.assertIn('--target', build)
+                self.assertIn('test_abi', build)
+                self.assertNotIn('test_ideal_acoustic', build)
+                self.assertIn('-R', ctest)
+                self.assertIsNone(re.fullmatch(ctest[-1], 'ideal_acoustic_contract'))
+            else:
+                self.assertNotIn('--target', build)
+                self.assertNotIn('-R', ctest)
+
+    def test_actual_cli_dispatch_preserves_full_and_release(self):
+        metadata = [{'name': n, 'kind': ['test']} for n in (*CLI_FAST, 'sound_horizon_cli')]
+        for suite in ('fast', 'full'):
+            with patch.object(sys, 'argv', ['ci.py', 'cli', '--suite', suite, '--profile', 'release']), \
+                 patch.object(ci, 'targets', return_value=metadata), \
+                 patch.object(ci, 'run') as run, patch('builtins.print'):
+                ci.main()
+            command = run.call_args.args
+            self.assertIn('--release', command)
+            self.assertIn('--locked', command)
+            self.assertIn('--offline', command)
+            self.assertEqual('sound_horizon_cli' in command, suite == 'full')
+            self.assertIn('cli', command)
 
     def test_selected_targets_are_actual_registered_commands(self):
         # Configure only: no compilation or science execution. Catch target/name

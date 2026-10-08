@@ -6,7 +6,7 @@ records, Rust module tests, a fresh installed ABI consumer, and Release packagin
 The reviewed membership is in `tools/ci_suites.py`. Native jobs print the actual
 registered test inventory and classify every remaining test as full-only. New
 scientific tests stay in the full suite until deliberately reviewed for routine CI.
-Routine passes do not claim scientific or data qualification.
+Routine CLI CI uses Release to avoid repeatedly hashing the large Debug executable in immutable receipts; Debug CLI regressions remain in manual full mode. Routine passes do not claim scientific or data qualification.
 
 `python3 tools/build.py` builds only `irred_core` and the Rust application. It does
 not compile all native test binaries. Use these explicit engineering checks:
@@ -122,7 +122,7 @@ Ordinary native tests include immutable observation ownership, exact masks/row o
 
 The product build deliberately reports FITS unavailable. A separate optional native codec profile requires installed CFITSIO and can be tested with `-DIRRED_TEST_CFITSIO=ON` in a separate CMake build directory. It covers one handcrafted synthetic BINTABLE profile, not universal FITS support. The wrapper resets this test-only option to OFF for its supported product build. CFITSIO is file-format infrastructure; its installed version/library identity and NASA permissive notice must be reviewed for any enabled deployment.
 
-`check_install.py` installs to a fresh temporary prefix, rejects the old generic include root, and compiles/runs the durable `test_installed_consumer.cpp` against the installed `libirred_core.a`. It checks independent library usability and cleans its temporary installation.
+`check_install.py --suite full` installs to a fresh temporary prefix, rejects the old generic include root, and compiles/runs the durable `test_installed_consumer.cpp` against the installed `libirred_core.a`. It checks independent library usability and cleans its temporary installation.
 
 Retained generic and ladder predictive consumers evaluate multiple original
 vectors after setup inputs are destroyed, checking independently derived scalar
@@ -134,7 +134,7 @@ refusals. Existing one-conditioned-law consumers exercise their separate valid A
 Build and test the optimized profile with the same native and Rust cases:
 
 ```sh
-python3 tools/build.py --profile release
+python3 tools/build.py --profile release --native-tests full
 .build-tools/bin/ctest --test-dir build/native-release --output-on-failure
 cargo test --release --locked --offline -j4
 target/release/irred describe --json
@@ -188,7 +188,7 @@ cargo test --release --locked --offline -j2 --test bao_reference released_assets
 
 The guard requires all24 distinct point records and a zero-failure directed suite marker. Independent references and original-input comparisons establish named numerical evidence; they supply no posterior, joint-probe or parameter-campaign qualification.
 
-Use `python3 tools/check_install.py --profile release` for a fresh installed consumer against the chosen Release build. The helper never chooses a profile merely because its files exist.
+Use `python3 tools/check_install.py --profile release --suite full` for the full fresh installed consumer against the chosen Release build. The helper never chooses a profile merely because its files exist.
 
 ## Durable comparison coverage
 

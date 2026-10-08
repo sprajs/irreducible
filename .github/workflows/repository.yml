@@ -90,9 +90,9 @@ jobs:
           .build-tools/bin/python -m pip install cmake==4.1.3
           cargo fetch --locked
       - name: Build application and linked test baseline
-        run: python3 tools/build.py --jobs 2
+        run: python3 tools/build.py --jobs 2 --profile ${{ inputs.full_regression && 'debug' || 'release' }}
       - name: Run selected engineering integration targets (all on manual opt-in)
-        run: python3 tools/ci.py cli --suite ${{ inputs.full_regression && 'full' || 'fast' }}
+        run: python3 tools/ci.py cli --profile ${{ inputs.full_regression && 'debug' || 'release' }} --suite ${{ inputs.full_regression && 'full' || 'fast' }}
   release:
     name: Release application and package
     runs-on: ubuntu-24.04
