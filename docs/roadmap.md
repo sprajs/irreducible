@@ -46,14 +46,27 @@ gates. Its local artifact paths describe the earlier environment; they do not
 establish that ignored evidence was transferred to a new checkout. Preserve
 unmerged work and original failure records when resuming.
 
-Live main remains `7a006f81a36a70cdcd3187a1298a8a1ea2cf3f39`, with its
-post-merge CI passing. The draft acoustic [PR #57](https://github.com/sprajs/irreducible/pull/57)
-at `c50590c2d7f2c44de5473a40ceac1ea76c9f729f` still has five passing checks
-and failed Clang CI. The historical stop records a 240.10-second
-`ideal_acoustic_contract` timeout; the current job metadata confirms the failed
-compiler/head, while the original raw log remains separately identified in
-the stop checkpoint. Investigate the original test without increasing its
-timeout or scientific budgets before publication.
+At the initial 2026-10-08 inspection, main was
+`7a006f81a36a70cdcd3187a1298a8a1ea2cf3f39`, with its post-merge CI passing.
+The draft acoustic [PR #57](https://github.com/sprajs/irreducible/pull/57) at
+`c50590c2d7f2c44de5473a40ceac1ea76c9f729f` had five passing checks and failed
+Clang CI. The historical stop records a 240.10-second
+`ideal_acoustic_contract` timeout; live job metadata confirmed that failed
+compiler/head. The original raw log remains separately identified in the stop
+checkpoint.
+
+The resumed strict Clang19 Debug trial reproduced that original timeout;
+two intermediate classifier repairs also timed out and remain preserved.
+The final reviewed repair uses exact scalar range admission and inlines small
+private wrappers without changing equations, associations, attempts, counters,
+scientific budgets or the 240-second timeout. Its complete native and portable
+peer contracts passed in 203.08 and 7.08 seconds. All 36 primary fields, ten
+attempts and resource diagnostics are byte-identical to the original GCC14
+receipt. The merged Apple arithmetic checkpoint is main
+`f89838e30f1e81d729a63a4002d4698284b8178b`; the acoustic candidate integrates
+that base. Require passing CI on the final integrated head before publication.
+These scoped engineering passes do not close the original 100M independent
+reference refusal or promote the separate 400M diagnostic.
 
 Continue the pinned CLASS reference and separate probe-score pipeline while
 native closure develops. Existing compiled Gaussian ownership serves the
@@ -61,6 +74,13 @@ conditional BAO scan. The Apple Silicon arithmetic check explicitly tests the
 binary64 owner and refusal of unsupported wide arithmetic; it does not qualify
 the full macOS application or replace the native extended-precision identity.
 Keep joint inference and unsupported observable closures withheld.
+
+Use Reproducible's pinned [run recipe](https://github.com/sprajs/reproducible/tree/9937dc0de5429826d074b4d440d59ad96f0cc1f1/experiments/observational-cosmology)
+and shared [archive workflow](https://github.com/sprajs/reproducible/blob/9937dc0de5429826d074b4d440d59ad96f0cc1f1/docs/archive.md).
+Select original inputs and accepted or failed scientific receipts deliberately;
+compiled binaries and cheap rebuildable outputs are excluded from the default
+archive selection. Keep original hashes and failure histories when selecting
+records; use the shared helper rather than another repository implementation.
 
 ### Current execution order: a runnable reference experiment
 
