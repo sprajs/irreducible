@@ -8,6 +8,7 @@ import unittest
 from ci_suites import NATIVE_FAST, CLI_FAST, native_build_targets, classify_native, native_regex, cli_targets
 import re
 import sys
+import runpy
 from unittest.mock import patch
 import ci
 
@@ -40,6 +41,29 @@ class SuitesTests(unittest.TestCase):
         self.assertIn('future_scientific_cli', cli_targets(available, 'full'))
         with self.assertRaises(ValueError):
             cli_targets([], 'fast')
+
+    def test_actual_install_dispatch_keeps_full_consumers_opt_in(self):
+        for suite in ('fast', 'full'):
+            with tempfile.TemporaryDirectory() as scratch:
+                def execute(command, **kwargs):
+                    if '--install' in command:
+                        prefix = Path(command[command.index('--prefix') + 1])
+                        (prefix / 'include/irred').mkdir(parents=True)
+                        (prefix / 'include/irred/numerics.hpp').touch()
+                with patch.object(sys, 'argv', ['check_install.py', '--suite', suite]), \
+                     patch('tempfile.TemporaryDirectory') as directory, \
+                     patch('subprocess.run', side_effect=execute) as run, \
+                     patch('builtins.print'):
+                    directory.return_value.__enter__.return_value = scratch
+                    runpy.run_path(str(ROOT / 'tools/check_install.py'), run_name='__main__')
+                compilations = [call.args[0] for call in run.call_args_list if '-std=c++20' in call.args[0]]
+                self.assertEqual(len(compilations), 1 if suite == 'fast' else 7)
+                names = [next(str(x) for x in command if str(x).endswith('.cpp')) for command in compilations]
+                self.assertEqual(any(n.endswith('test_installed_ideal_acoustic.cpp') for n in names), suite == 'full')
+                for command in compilations:
+                    self.assertIn(str(Path(scratch) / 'prefix/include'), command)
+                    self.assertIn(str(Path(scratch) / 'prefix/lib/libirred_core.a'), command)
+                    self.assertNotIn(str(ROOT / 'cpp/include'), command)
 
     def test_actual_native_dispatch_selects_targets_and_ctest_filter(self):
         inventory = {'tests': [{'name': n} for n in (*NATIVE_FAST, 'ideal_acoustic_contract')]}

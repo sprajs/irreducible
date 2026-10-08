@@ -16,7 +16,6 @@ NATIVE_FAST = {
         'observation_ownership', 'observation_ownership_hostile')},
     'fits_codec_disabled_contract': 'test_fits_reader_disabled',
     'lifetime_scale_hostile': 'test_lifetime_scale_hostile',
-    'consumer_controls': 'test_consumer_controls',
 }
 # Immutable records/fault transport, decimal JSON, quantities, scalar algebra,
 # synthetic ingestion, operation-owned outcomes and duplicate-key/session refusal.
@@ -54,3 +53,18 @@ def cli_targets(available, suite):
     if missing:
         raise ValueError(f'routine CLI targets missing: {sorted(missing)}')
     return sorted(available if suite == 'full' else CLI_FAST)
+
+
+def installed_sources(root, suite):
+    if suite == 'fast':
+        return [root / 'cpp/tests/test_abi.cpp']
+    if suite == 'full':
+        return [root / name for name in (
+            'cpp/tests/test_installed_consumer.cpp',
+            'cpp/tests/test_installed_continuous_cmb_projection.cpp',
+            'cpp/examples/windowed_linear_power.cpp',
+            'cpp/tests/test_effective_fluid_installed.cpp',
+            'cpp/tests/test_two_deflector_forward_installed.cpp',
+            'cpp/tests/test_installed_finite_opacity_source.cpp',
+            'cpp/tests/test_installed_ideal_acoustic.cpp')]
+    raise ValueError(f'unknown installed suite: {suite}')
