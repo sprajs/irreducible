@@ -32,6 +32,10 @@ add_executable(test_numerics tests/test_numerics.cpp)
 target_link_libraries(test_numerics PRIVATE irred_core)
 add_test(NAME numerics_contract COMMAND test_numerics)
 
+add_executable(test_arithmetic_profile tests/test_arithmetic_profile.cpp)
+target_link_libraries(test_arithmetic_profile PRIVATE irred_core)
+add_test(NAME arithmetic_profile_contract COMMAND test_arithmetic_profile)
+
 add_executable(test_numerics_hostile tests/test_numerics_hostile.cpp)
 target_link_libraries(test_numerics_hostile PRIVATE irred_core)
 add_test(NAME numerics_hostile_contract COMMAND test_numerics_hostile)

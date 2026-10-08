@@ -2,6 +2,22 @@
 
 Irreducible is currently built from source. The executable is `irred`; there is no packaged release or supported installer yet.
 
+## Arithmetic on Apple Silicon
+
+Apple Silicon uses binary64 for both `double` and `long double`. The existing
+`F02/longdouble-cpu/v1` owner requires at least 64 mantissa bits and a wider
+exponent range, so that owner refuses on this representation. The distinct
+binary64 owner remains available; changing arithmetic is a new calculation
+identity, not an automatic substitute for the qualified wide calculation.
+The draft ideal acoustic model also requires wide arithmetic.
+
+The Apple Silicon CI check records its actual Apple Clang version and
+architecture, compiles the production numerical owner, tests an exact analytic
+SPD solve with binary64, and verifies that unsupported wide preparation refuses.
+It is an engineering arithmetic check, not a full macOS CLI/SDK build, a
+MacBook execution receipt, or scientific qualification of binary64 consumers.
+The same test runs in the ordinary Linux native suite.
+
 ## Prepare a Linux checkout
 
 You need Git, Python 3.11 or newer with `venv`, Rust/Cargo with Rust 2024 edition support and the `rustfmt` component, and a C++20 compiler/linker. The locally tested development environment uses Rust/Cargo 1.98.0, GCC 16.2.1 and CMake 4.1.3 on 64-bit Linux. The qualified wide-arithmetic suites require long double with at least 64 mantissa bits; targets where long double equals double are not qualified by these gates. Ubuntu CI is a separate engineering portability check, not inherited scientific validation. Other toolchains require their own validation; these versions describe the tested host, not a proven minimum-version matrix.
