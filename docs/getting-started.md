@@ -9,7 +9,7 @@ Apple Silicon uses binary64 for both `double` and `long double`. The existing
 exponent range, so that owner refuses on this representation. The distinct
 binary64 owner remains available; changing arithmetic is a new calculation
 identity, not an automatic substitute for the qualified wide calculation.
-The ideal acoustic model also requires wide arithmetic.
+The draft ideal acoustic model also requires wide arithmetic.
 
 The Apple Silicon CI check records its actual Apple Clang version and
 architecture, compiles the production numerical owner, tests an exact analytic
