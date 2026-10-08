@@ -110,3 +110,5 @@ If you use Irreducible in research, please cite it and include the commit or rel
   url = {https://github.com/sprajs/irreducible}
 }
 ```
+
+Shared datasets and private evidence use the [common storage layout](docs/shared-data.md).

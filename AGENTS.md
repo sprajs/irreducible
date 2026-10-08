@@ -6,6 +6,15 @@ Rust handles non-interactive configuration, data acquisition, structural parsing
 
 Use the single active [roadmap](docs/roadmap.md), [gaps](docs/gaps.md), [docs/README.md](docs/README.md), [capabilities](docs/capabilities.md) and the relevant guide when their context helps; inspect actual built discovery/code before claiming implementation. Local planning/history is context, not a feature checklist. Preserve unrelated work and original inputs.
 
+## Shared research storage
+
+Use [shared data](docs/shared-data.md), `storage-layout.json` and
+`scripts/research_storage.py` for named shared datasets and evidence. Keep Git
+source references, immutable acquisition/reconstruction pins and exact manifest
+URI/SHA256/VersionId. Preserve failures, originals and historical receipts; the
+catalog discovery pointer is not a scientific pin. Respect third-party copying
+restrictions and keep credentials out of all selections.
+
 ## Lasting design rules
 
 Keep each shared equation and convention in one place. Add models in compiled source, not expressions from data or a runtime plugin framework. Physical models, geometry, observed data and source effects are distinct. Build the smallest useful consumer of qualified prerequisites.

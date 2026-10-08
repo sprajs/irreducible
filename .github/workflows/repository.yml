@@ -139,6 +139,7 @@ jobs:
         run: |
           python3 tools/test_ci_identity.py
           python3 tools/test_build_files.py
+          python3 -m unittest discover -s tests -p test_research_storage.py -v
       - name: Regenerate and reject drift
         run: |
           python3 tools/generate_abi.py
