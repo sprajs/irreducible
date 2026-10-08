@@ -7,6 +7,14 @@ on:
   push:
     branches: [main]
   workflow_dispatch:
+    inputs:
+      full_regression:
+        description: 'Opt in to all native/CLI regressions and installed scientific consumers (slow; not scientific qualification)'
+        type: boolean
+        default: false
+
+# Routine CI checks engineering contracts only. Scientific/data qualification is
+# deliberate work; full_regression preserves the complete existing test suites.
 
 # Only superseded PR revisions are cancelled; each main/manual run is retained.
 concurrency:
@@ -19,6 +27,7 @@ permissions:
 jobs:
   apple-arithmetic:
     name: Apple Silicon arithmetic contract
+    timeout-minutes: 5
     runs-on: macos-15
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
@@ -34,6 +43,7 @@ jobs:
           build/apple-arithmetic/test_arithmetic_profile --expect-binary64-long-double
   native:
     name: C++ tests (${{ matrix.compiler }})
+    timeout-minutes: ${{ inputs.full_regression && 90 || 5 }}
     runs-on: ubuntu-24.04
     strategy:
       fail-fast: false
@@ -49,11 +59,11 @@ jobs:
           rustup default 1.98.0
           python3 -m venv .build-tools
           .build-tools/bin/python -m pip install cmake==4.1.3
-          cargo fetch --locked
       - name: Build and test native library independently
-        run: python3 tools/ci.py native --compiler ${{ matrix.compiler }}
+        run: python3 tools/ci.py native --compiler ${{ matrix.compiler }} --suite ${{ inputs.full_regression && 'full' || 'fast' }}
   rust-unit:
     name: Rust unit tests
+    timeout-minutes: 5
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
@@ -72,6 +82,7 @@ jobs:
         run: python3 tools/ci.py rust-unit
   cli:
     name: CLI integration tests
+    timeout-minutes: ${{ inputs.full_regression && 90 || 8 }}
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
@@ -85,11 +96,12 @@ jobs:
           .build-tools/bin/python -m pip install cmake==4.1.3
           cargo fetch --locked
       - name: Build application and linked test baseline
-        run: python3 tools/build.py --jobs 2
-      - name: Run every ordinary integration target
-        run: python3 tools/ci.py cli
+        run: python3 tools/build.py --jobs 2 --profile ${{ inputs.full_regression && 'debug' || 'release' }}
+      - name: Run selected engineering integration targets (all on manual opt-in)
+        run: python3 tools/ci.py cli --profile ${{ inputs.full_regression && 'debug' || 'release' }} --suite ${{ inputs.full_regression && 'full' || 'fast' }}
   release:
     name: Release application and package
+    timeout-minutes: ${{ inputs.full_regression && 90 || 8 }}
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
@@ -105,12 +117,16 @@ jobs:
       - name: Install pinned Rust library notices
         run: rustup component add rust-docs --toolchain 1.98.0
       - name: Build release application
-        run: python3 tools/build.py --profile release --jobs 2
+        run: python3 tools/build.py --profile release --jobs 2 --native-tests ${{ inputs.full_regression && 'full' || 'fast' }}
       - name: Verify optimized native checks and standalone installation
         run: |
-          .build-tools/bin/ctest --test-dir build/native-release --output-on-failure --no-tests=error -j1
-          python3 tools/check_install.py --profile release
-          python3 tools/ci.py cli --profile release
+          if [ "${{ inputs.full_regression }}" = "true" ]; then
+            .build-tools/bin/ctest --test-dir build/native-release --output-on-failure --no-tests=error -j1
+          else
+            .build-tools/bin/ctest --test-dir build/native-release --output-on-failure --no-tests=error -j1 -R "$(python3 -c 'import sys; sys.path.insert(0, "tools"); from ci_suites import native_regex; print(native_regex())')"
+          fi
+          python3 tools/check_install.py --profile release --suite ${{ inputs.full_regression && 'full' || 'fast' }}
+          python3 tools/ci.py cli --profile release --suite ${{ inputs.full_regression && 'full' || 'fast' }}
       - name: Package scoped executable and native SDK
         run: python3 tools/ci.py package
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
@@ -123,22 +139,21 @@ jobs:
           retention-days: 14
   contracts:
     name: Documentation and generated contracts
+    timeout-minutes: 3
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           persist-credentials: false
-      - name: Prepare declared build tools
+      - name: Prepare ABI formatter
         run: |
           rustup toolchain install 1.98.0 --profile minimal --component rustfmt
           rustup default 1.98.0
-          python3 -m venv .build-tools
-          .build-tools/bin/python -m pip install cmake==4.1.3
-          cargo fetch --locked
       - name: Check identity helper contracts
         run: |
           python3 tools/test_ci_identity.py
           python3 tools/test_build_files.py
+          python3 tools/test_ci_suites.py
       - name: Regenerate and reject drift
         run: |
           python3 tools/generate_abi.py
