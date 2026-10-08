@@ -3,9 +3,11 @@
 import argparse,hashlib,json,pathlib,subprocess,os,shutil
 from ci_identity import source_version
 from build_files import write_if_changed
+from ci_suites import native_build_targets
 parser=argparse.ArgumentParser(description=__doc__)
 parser.add_argument("--profile",choices=["debug","release"],default="debug")
 parser.add_argument("--jobs",type=int,choices=range(1,5),default=4)
+parser.add_argument("--native-tests",choices=["core","fast","full"],default="core",help="core builds the application library only; fast/full explicitly build native tests")
 arguments=parser.parse_args()
 profile=arguments.profile
 jobs=arguments.jobs
@@ -29,11 +31,12 @@ if not (root/'Cargo.lock').exists(): run('cargo','generate-lockfile','--offline'
 cmake=str(root/'.build-tools/bin/cmake'); compiler=str(pathlib.Path(shutil.which('c++')).resolve())
 run(cmake,'-S','cpp','-B',native_dir,f'-DCMAKE_BUILD_TYPE={cmake_profile}',f'-DCMAKE_CXX_COMPILER={compiler}','-DCMAKE_CXX_FLAGS=',f'-DCMAKE_CXX_FLAGS_{cmake_profile.upper()}={profile_flags}','-DCMAKE_EXE_LINKER_FLAGS=','-DCMAKE_STATIC_LINKER_FLAGS=','-DIRRED_TEST_CFITSIO=OFF','-DIRRED_REFERENCE_GMP_MPFR=OFF')
 paths=sorted([*root.glob('src/**/*.rs'),*root.glob('tests/**/*.rs'),*root.glob('cpp/**/*.cpp'),*root.glob('cpp/**/*.h'),*root.glob('cpp/**/*.hpp'),*root.glob('cpp/**/*.inc'),*root.glob('cpp/**/*.cmake'),*root.glob('schema/*.json'),*root.glob('tools/*.py')]+[root/'Cargo.toml',root/'Cargo.lock',root/'build.rs',root/'cpp/CMakeLists.txt'])
-manifest={'schema_version':1,'source_version':source_version(root),'sources':{str(p.relative_to(root)):digest(p) for p in paths},'tools':{t:subprocess.check_output([t,'--version'],text=True).splitlines()[0] for t in ['rustc','cargo',compiler,cmake]},'compiler_executable_digest':digest(pathlib.Path(compiler)),'profile':profile,'flags':[f'CMAKE_BUILD_TYPE={cmake_profile}',*profile_flags.split(),'-std=c++20','-Wall','-Wextra','-Wpedantic','-fno-fast-math','-ffp-contract=off'],'native_compile_commands':json.loads((root/native_dir/'compile_commands.json').read_text()),'rust_flags':(['dev','opt-level=0','debuginfo=2','panic=unwind'] if profile=='debug' else ['release','opt-level=3','debuginfo=0','panic=unwind','lto=false','codegen-units=16','overflow-checks=false','incremental=false']),'target':subprocess.check_output(['rustc','-vV'],text=True),'linker':subprocess.check_output(['ld','--version'],text=True).splitlines()[0],'standard_library':subprocess.check_output([compiler,'-print-file-name=libstdc++.so'],text=True).strip(),'standard_library_digest':digest(pathlib.Path(subprocess.check_output([compiler,'-print-file-name=libstdc++.so'],text=True).strip()).resolve()),'tool_executable_digests':{t:digest(pathlib.Path(shutil.which(t)).resolve()) for t in ['rustc','cargo']},'jobs':jobs,'backend':'portable_cpu','panic':'unwind','git_head':subprocess.run(['git','rev-parse','HEAD'],capture_output=True,text=True).stdout.strip() or None}
+manifest={'schema_version':1,'source_version':source_version(root),'sources':{str(p.relative_to(root)):digest(p) for p in paths},'tools':{t:subprocess.check_output([t,'--version'],text=True).splitlines()[0] for t in ['rustc','cargo',compiler,cmake]},'compiler_executable_digest':digest(pathlib.Path(compiler)),'profile':profile,'flags':[f'CMAKE_BUILD_TYPE={cmake_profile}',*profile_flags.split(),'-std=c++20','-Wall','-Wextra','-Wpedantic','-fno-fast-math','-ffp-contract=off'],'native_compile_commands':json.loads((root/native_dir/'compile_commands.json').read_text()),'rust_flags':(['dev','opt-level=0','debuginfo=2','panic=unwind'] if profile=='debug' else ['release','opt-level=3','debuginfo=0','panic=unwind','lto=false','codegen-units=16','overflow-checks=false','incremental=false']),'target':subprocess.check_output(['rustc','-vV'],text=True),'linker':subprocess.check_output(['ld','--version'],text=True).splitlines()[0],'standard_library':subprocess.check_output([compiler,'-print-file-name=libstdc++.so'],text=True).strip(),'standard_library_digest':digest(pathlib.Path(subprocess.check_output([compiler,'-print-file-name=libstdc++.so'],text=True).strip()).resolve()),'tool_executable_digests':{t:digest(pathlib.Path(shutil.which(t)).resolve()) for t in ['rustc','cargo']},'jobs':jobs,'native_test_suite':arguments.native_tests,'backend':'portable_cpu','panic':'unwind','git_head':subprocess.run(['git','rev-parse','HEAD'],capture_output=True,text=True).stdout.strip() or None}
 revision=manifest.pop('git_head')
 manifest['build_id']=hashlib.sha256(json.dumps(manifest,sort_keys=True,separators=(',',':')).encode()).hexdigest()
 manifest['git_head']=revision
 manifest['git_status']=subprocess.check_output(['git','status','--porcelain'],text=True)
 (root/'build').mkdir(exist_ok=True); write_if_changed(root/manifest_file,json.dumps(manifest,sort_keys=True,indent=2)+'\n')
-run(cmake,'--build',native_dir,'--parallel',str(jobs))
+selected=native_build_targets(arguments.native_tests)
+run(cmake,'--build',native_dir,'--parallel',str(jobs),*(['--target',*selected] if selected else []))
 run('cargo','build','--locked','--offline','-j',str(jobs),*(['--release'] if profile=='release' else []))

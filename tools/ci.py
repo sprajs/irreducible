@@ -9,6 +9,7 @@ import subprocess
 import tarfile
 from ci_identity import digest, source_version, write_metadata
 from package_notices import collect
+from ci_suites import native_build_targets, classify_native, native_regex, cli_targets
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -30,6 +31,9 @@ def main():
     parser.add_argument("action", choices=["native", "rust-unit", "cli", "package"])
     parser.add_argument("--profile", choices=["debug", "release"], default="debug")
     parser.add_argument("--compiler", choices=["gcc", "clang"], default="gcc")
+    parser.add_argument("--suite", choices=["fast", "full"], default="fast",
+                        help="fast engineering checks; full includes scientific regressions")
+    parser.add_argument("--jobs", type=int, choices=range(1, 5), default=2)
     args = parser.parse_args()
     cmake = str(ROOT / ".build-tools/bin/cmake")
     if args.action == "native":
@@ -41,9 +45,15 @@ def main():
         run(cmake, "-S", "cpp", "-B", build, "-DCMAKE_BUILD_TYPE=Debug",
             f"-DCMAKE_CXX_COMPILER={compiler}", "-DCMAKE_CXX_FLAGS=",
             "-DIRRED_TEST_CFITSIO=OFF", "-DIRRED_REFERENCE_GMP_MPFR=OFF")
-        run(cmake, "--build", build, "--parallel", "2")
+        inventory = json.loads(subprocess.check_output(
+            [str(ROOT / ".build-tools/bin/ctest"), "--test-dir", build, "--show-only=json-v1"], text=True))
+        print("Native suite inventory:", json.dumps(classify_native(inventory), sort_keys=True), flush=True)
+        selected = native_build_targets(args.suite)
+        run(cmake, "--build", build, "--parallel", str(args.jobs),
+            *(["--target", *selected] if selected else []))
         run(str(ROOT / ".build-tools/bin/ctest"), "--test-dir", build,
-            "--output-on-failure", "--no-tests=error", "-j1")
+            "--output-on-failure", "--no-tests=error", "-j1",
+            *(["-R", native_regex()] if args.suite == "fast" else []))
     elif args.action == "rust-unit":
         unit_flags = [item for t in targets() if "bin" in t["kind"] for item in ("--bin", t["name"])]
         has_library = any("lib" in t["kind"] for t in targets())
@@ -51,17 +61,20 @@ def main():
             unit_flags.append("--lib")
         if not unit_flags:
             raise SystemExit("no unit-test targets found")
-        run("cargo", "test", "--locked", "--offline", "-j2", *unit_flags,
+        run("cargo", "test", "--locked", "--offline", f"-j{args.jobs}",
+            *(["--release"] if args.profile == "release" else []), *unit_flags,
             "--", "--test-threads=1")
         if has_library:
-            run("cargo", "test", "--locked", "--offline", "-j2", "--doc",
+            run("cargo", "test", "--locked", "--offline", f"-j{args.jobs}",
+                *(["--release"] if args.profile == "release" else []), "--doc",
                 "--", "--test-threads=1")
     elif args.action == "cli":
         integration_targets = sorted(t["name"] for t in targets() if "test" in t["kind"])
         if not integration_targets:
             raise SystemExit("no integration targets found")
-        print("Integration targets:", ", ".join(integration_targets), flush=True)
-        run("cargo", "test", "--locked", "--offline", "-j2",
+        integration_targets = cli_targets(integration_targets, args.suite)
+        print(f"Integration suite {args.suite} targets:", ", ".join(integration_targets), flush=True)
+        run("cargo", "test", "--locked", "--offline", f"-j{args.jobs}",
             *(["--release"] if args.profile == "release" else []),
             *[item for name in integration_targets for item in ("--test", name)],
             "--", "--test-threads=1")

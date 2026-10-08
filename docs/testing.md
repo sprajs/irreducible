@@ -1,3 +1,47 @@
+# Routine CI and explicit regression suites
+
+Routine pull-request and main CI checks engineering behavior: ABI and ownership
+boundaries, arithmetic admission, small algebra, parser/transport refusals, immutable
+records, Rust module tests, a fresh installed ABI consumer, and Release packaging.
+The reviewed membership is in `tools/ci_suites.py`. Native jobs print the actual
+registered test inventory and classify every remaining test as full-only. New
+scientific tests stay in the full suite until deliberately reviewed for routine CI.
+Routine passes do not claim scientific or data qualification.
+
+`python3 tools/build.py` builds only `irred_core` and the Rust application. It does
+not compile all native test binaries. Use these explicit engineering checks:
+
+```sh
+python3 tools/build.py --jobs 2
+python3 tools/ci.py native --compiler gcc --suite fast
+python3 tools/ci.py rust-unit
+python3 tools/ci.py cli --suite fast
+python3 tools/check_install.py --suite fast
+```
+
+The CI workflow's **Run workflow** input `full_regression=true` runs all registered
+native tests in GCC/Clang Debug and Release, every ordinary Rust integration target,
+and all seven installed scientific consumers. Default dispatch, PR and main runs
+use the fast engineering suite. No reference test, numerical budget or solver
+refusal is removed or relaxed. Full regression passes also do not establish
+scientific qualification; acquired-data and independent source/reference audits
+remain separate explicit work as described below.
+
+For the complete local regression route:
+
+```sh
+python3 tools/build.py --native-tests full --jobs 2
+.build-tools/bin/ctest --test-dir build/native --output-on-failure --no-tests=error -j1
+python3 tools/ci.py cli --suite full
+python3 tools/check_install.py --suite full
+python3 tools/ci.py native --compiler clang --suite full
+python3 tools/build.py --profile release --native-tests full --jobs 2
+.build-tools/bin/ctest --test-dir build/native-release --output-on-failure --no-tests=error -j1
+python3 tools/ci.py rust-unit --profile release
+python3 tools/ci.py cli --profile release --suite full
+python3 tools/check_install.py --profile release --suite full
+```
+
 # Testing
 
 The native tests run from a source checkout using the fixtures included in the repository. External comparison software is not required.
@@ -21,7 +65,7 @@ The executable target is excluded from the default build, so build it explicitly
 After [dependency preparation](getting-started.md), run:
 
 ```sh
-python3 tools/build.py
+python3 tools/build.py --native-tests full
 .build-tools/bin/ctest --test-dir build/native --output-on-failure
 cargo test --locked --offline -j4
 python3 tools/check_docs.py
