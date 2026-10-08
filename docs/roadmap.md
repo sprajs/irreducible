@@ -37,6 +37,31 @@ accept both joint log-likelihood error and resulting parameter shifts.
 
 ## Next bounded choices
 
+### Resumed pipeline checkpoint: 2026-10-08
+
+The owner has resumed work after the 2026-10-04 safe stop. The original
+[safe-stop checkpoint](https://github.com/sprajs/irreducible/commit/835169ee50b593255c1ad6158254ba53bb5e02c7)
+retains the full historical landing point, unfinished branch custody and failed
+gates. Its local artifact paths describe the earlier environment; they do not
+establish that ignored evidence was transferred to a new checkout. Preserve
+unmerged work and original failure records when resuming.
+
+Live main remains `7a006f81a36a70cdcd3187a1298a8a1ea2cf3f39`, with its
+post-merge CI passing. The draft acoustic [PR #57](https://github.com/sprajs/irreducible/pull/57)
+at `c50590c2d7f2c44de5473a40ceac1ea76c9f729f` still has five passing checks
+and failed Clang CI. The historical stop records a 240.10-second
+`ideal_acoustic_contract` timeout; the current job metadata confirms the failed
+compiler/head, while the original raw log remains separately identified in
+the stop checkpoint. Investigate the original test without increasing its
+timeout or scientific budgets before publication.
+
+Continue the pinned CLASS reference and separate probe-score pipeline while
+native closure develops. Existing compiled Gaussian ownership serves the
+conditional BAO scan. The Apple Silicon arithmetic check explicitly tests the
+binary64 owner and refusal of unsupported wide arithmetic; it does not qualify
+the full macOS application or replace the native extended-precision identity.
+Keep joint inference and unsupported observable closures withheld.
+
 ### Current execution order: a runnable reference experiment
 
 The 2026-10-03 priority is an executable path toward the common-theory fit.
