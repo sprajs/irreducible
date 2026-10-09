@@ -342,4 +342,3 @@ density, mass, potential, acceleration, circular speed and potential curvature
 from an explicitly declared profile; original-paper equation access remains
 unverified and is distinguished from the independent Newtonian derivation. Full coupled perturbations,
 measured halo inference and joint likelihood qualification remain separate work.
-
