@@ -587,3 +587,12 @@ include(cmake/bianchi_i.cmake)
 
 include(cmake/chaplygin.cmake)
 include(cmake/plummer_population.cmake)
+
+# Effective thermal-Neff closure and same-state GR acceleration consumer.
+target_sources(irred_core PRIVATE src/effective_neutrino.cpp)
+foreach(stress_test IN ITEMS thermal_stress effective_neutrino effective_neutrino_installed)
+  add_executable(test_${stress_test} tests/test_${stress_test}.cpp)
+  target_link_libraries(test_${stress_test} PRIVATE irred_core)
+  target_compile_options(test_${stress_test} PRIVATE -Wall -Wextra -Wpedantic -fno-fast-math -ffp-contract=off)
+  add_test(NAME ${stress_test}_contract COMMAND test_${stress_test})
+endforeach()

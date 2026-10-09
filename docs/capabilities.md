@@ -96,6 +96,16 @@ reference controls supply named numerical evidence. Fixed physical densities
 do not imply H0 cancellation. Released compression validity and observational
 qualification remain separate; the massless conditional model keeps its identity.
 
+The native [effective thermal neutrino closure](effective-neutrino.md) now
+partitions supplied total early Neff into explicit thermal species and remaining
+massless radiation, retaining the actual mapped source, derived present relic
+density and Lambda. Its same-state scaled stress-energy batch returns total and
+per-species density/pressure, w and GR deceleration through the existing FD
+momentum owner. Numerical/source-conversion diagnostics and failed rows remain
+explicit. It adds no CLI/C ABI operation, exact CAMB/nonthermal convention,
+BBN, physical drag, perturbations or CMB prediction. Existing explicit-species
+thermal APIs keep their independent source identity.
+
 The C++ [declared effective-fluid background](effective-fluid.md) retains that
 thermal species state and adds one compiled compensated density law, with E/H
 batches and a matched finite-endpoint ruler. Zero-amplitude parity, conservation,

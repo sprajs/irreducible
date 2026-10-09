@@ -99,6 +99,41 @@ struct ThermalBackgroundBatch {
   std::vector<ThermalBackgroundRow> rows;
   std::size_t callbacks = 0;
 };
+// Same retained flat state, now including pressure and the GR acceleration.
+// At a=0 these are analytic scaled radiation limits, never finite rho or H.
+struct ThermalStressSpecies {
+  long double scaled_density = 0, scaled_pressure = 0;
+  long double density_error_estimate = 0, pressure_error_estimate = 0;
+};
+struct ThermalStressRow {
+  double scale_factor = 0;
+  numerics::Status status = numerics::Status::invalid_input;
+  long double scaled_density = 0, scaled_pressure = 0;
+  long double density_error_estimate = 0, pressure_error_estimate = 0;
+  ThermalBackgroundValue equation_of_state, deceleration;
+  std::vector<ThermalStressSpecies> species;
+  std::size_t callbacks = 0;
+};
+// Optional deterministic source-conversion estimate, not input uncertainty.
+// relative_component_estimate bounds the mapped nonnegative component centers;
+// radiation_absolute_estimate separately retains cancellation in Neff partition.
+struct ThermalStressSourceEstimate {
+  long double relative_component_estimate = 0;
+  long double radiation_absolute_estimate = 0;
+};
+struct ThermalStressPolicy {
+  double absolute_tolerance = 2e-10, relative_tolerance = 2e-10;
+  ThermalPolicy thermal;
+};
+struct ThermalStressBatch {
+  numerics::Status status = numerics::Status::invalid_input;
+  std::vector<ThermalStressRow> rows;
+  std::size_t callbacks = 0;
+};
+std::optional<std::size_t> thermal_stress_payload_bound(
+    std::size_t points, std::size_t species) noexcept;
+inline constexpr std::string_view thermal_stress_equation_id =
+    "flat-thermal-FD-scaled-stress-energy-GR-acceleration/v1";
 namespace detail {
 struct ThermalRetainedCoefficientAccess;
 }
@@ -122,6 +157,9 @@ public:
   ThermalBackgroundBatch evaluate(std::span<const double> scale_factors,
                                   unsigned requested_outputs,
                                   ThermalPolicy = {}) const;
+  ThermalStressBatch evaluate_stress_energy(
+      std::span<const double> scale_factors, ThermalStressPolicy = {},
+      ThermalStressSourceEstimate = {}) const;
 
 private:
   numerics::Status status_ = numerics::Status::invalid_input;

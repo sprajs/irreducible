@@ -511,4 +511,116 @@ ThermalBackgroundBatch ThermalBackground::evaluate(
   }
   return out;
 }
+std::optional<std::size_t> thermal_stress_payload_bound(
+    std::size_t points, std::size_t count) noexcept {
+  irred::detail::PayloadAccounting bytes(sizeof(ThermalStressBatch));
+  bytes.add(points, 2*sizeof(ThermalStressRow));
+  if (count && points > std::numeric_limits<std::size_t>::max()/count) return {};
+  bytes.add(points*count, 2*sizeof(ThermalStressSpecies));
+  const auto background=thermal_background_payload_bound(0,count);
+  if (!background) return {};
+  bytes.add(1,*background);
+  return bytes.result();
+}
+ThermalStressBatch ThermalBackground::evaluate_stress_energy(
+    std::span<const double> factors, ThermalStressPolicy p,
+    ThermalStressSourceEstimate source_error) const {
+  ThermalStressBatch out;
+  if (!arithmetic_supported() || !valid_policy(p.thermal) ||
+      !std::isfinite(p.absolute_tolerance) || !std::isfinite(p.relative_tolerance) ||
+      p.absolute_tolerance<0 || p.relative_tolerance<0 ||
+      !(p.absolute_tolerance>0 || p.relative_tolerance>0) ||
+      !std::isfinite(source_error.relative_component_estimate) ||
+      !std::isfinite(source_error.radiation_absolute_estimate) ||
+      source_error.relative_component_estimate<0 ||
+      source_error.radiation_absolute_estimate<0 || factors.size()>65536) return out;
+  if (status_!=S::ok) { out.status=status_; return out; }
+  if (p.thermal.momentum_method!=method_) return out;
+  const auto bytes=thermal_stress_payload_bound(factors.size(),source_.species.size());
+  if (!bytes) return out;
+  if (factors.size()>p.thermal.maximum_points ||
+      source_.species.size()>p.thermal.maximum_species ||
+      *bytes>p.thermal.maximum_native_bytes) { out.status=S::work_limit; return out; }
+  out.rows.reserve(factors.size()); out.status=S::ok;
+  for (double a:factors) {
+    out.rows.emplace_back(); auto &row=out.rows.back(); row.scale_factor=a;
+    auto fail=[&](S status) {
+      row.status=status; row.equation_of_state.status=status;
+      row.deceleration.status=status;
+    };
+    if (!std::isfinite(a)) { fail(S::nonfinite_input); continue; }
+    if (a<0 || a>1) { fail(S::outside_domain); continue; }
+    row.species.reserve(source_.species.size());
+    const long double aa=a, a2=aa*aa, a4=a2*a2;
+    const long double radiation=source_.omega_gamma+
+        static_cast<long double>(source_.omega_massless_nonphoton);
+    const long double matter=source_.omega_b+static_cast<long double>(source_.omega_cdm);
+    long double density=radiation+matter*aa+lambda_*a4;
+    long double pressure=radiation/3-lambda_*a4;
+    long double density_error=normalization_error_*a4;
+    long double pressure_error=normalization_error_*a4;
+    long double pressure_scale=radiation/3+lambda_*a4;
+    bool failed=false;
+    for (const auto &species:source_.species) {
+      const long double temperature=species.temperature_today_ev, t2=temperature*temperature;
+      const auto moment=moments(static_cast<long double>(species.mass_ev)*aa/temperature,
+          p.thermal,p.thermal.maximum_total_callbacks-out.callbacks,true);
+      row.callbacks+=moment.callbacks; out.callbacks+=moment.callbacks;
+      if (moment.status!=S::ok) { fail(moment.status); failed=true; break; }
+      const long double factor=species.statistical_weight*t2*t2/(2*pi*pi*critical_ev4_);
+      ThermalStressSpecies component{factor*moment.rho,factor*moment.pressure,
+          factor*moment.rho_error,factor*moment.pressure_error};
+      component.density_error_estimate+=source_error.relative_component_estimate*
+          component.scaled_density;
+      component.pressure_error_estimate+=source_error.relative_component_estimate*
+          component.scaled_pressure;
+      if (!std::isfinite(component.scaled_density) || !std::isfinite(component.scaled_pressure) ||
+          !(component.scaled_density>=std::numeric_limits<long double>::min()) ||
+          !(component.scaled_pressure>=std::numeric_limits<long double>::min()) ||
+          !(component.density_error_estimate>=std::numeric_limits<long double>::min()) ||
+          !(component.pressure_error_estimate>=std::numeric_limits<long double>::min())) {
+        fail(S::outside_domain); failed=true; break;
+      }
+      row.species.push_back(component);
+      density+=component.scaled_density; pressure+=component.scaled_pressure;
+      density_error+=component.density_error_estimate;
+      pressure_error+=component.pressure_error_estimate;
+      pressure_scale+=component.scaled_pressure;
+    }
+    if (failed) continue;
+    // Source directions also move flat Lambda through today's normalization.
+    const long double lambda_source=source_error.relative_component_estimate*
+        (radiation+matter+omega_species_)+source_error.radiation_absolute_estimate;
+    density_error+=source_error.relative_component_estimate*(radiation+matter*aa)+
+        source_error.radiation_absolute_estimate+lambda_source*a4+arithmetic_relative*density;
+    pressure_error+=source_error.relative_component_estimate*radiation/3+
+        source_error.radiation_absolute_estimate/3+lambda_source*a4+arithmetic_relative*pressure_scale;
+    row.scaled_density=density; row.scaled_pressure=pressure;
+    row.density_error_estimate=density_error; row.pressure_error_estimate=pressure_error;
+    // No density-zero endpoint ratio is invented, and cancellation in Q gets
+    // an absolute allocation based on the sum of positive pressure centers.
+    if (!(density>density_error) || !std::isfinite(density) || !std::isfinite(pressure) ||
+        !std::isfinite(density_error) || !std::isfinite(pressure_error)) {
+      fail(S::conditioning_budget_exceeded); continue;
+    }
+    row.status=S::ok;
+    const long double w=pressure/density;
+    const long double werror=(pressure_error+std::abs(w)*density_error)/(density-density_error)+
+        arithmetic_relative*std::abs(w);
+    auto emit=[&](ThermalBackgroundValue &result,long double value,long double error) {
+      const double stored=static_cast<double>(value);
+      error+=std::abs(value-static_cast<long double>(stored));
+      if (!std::isfinite(stored) || !std::isfinite(error) ||
+          (value!=0 && !normal_positive(std::abs(value))) ||
+          (error!=0 && !normal_positive(error))) { result.status=S::outside_domain; return; }
+      if (error>p.absolute_tolerance+p.relative_tolerance*std::abs(value)) {
+        result.status=S::conditioning_budget_exceeded; return;
+      }
+      result={S::ok,stored,static_cast<double>(error)};
+    };
+    emit(row.equation_of_state,w,werror);
+    emit(row.deceleration,(1+3*w)/2,1.5L*werror+arithmetic_relative*(1+3*std::abs(w))/2);
+  }
+  return out;
+}
 } // namespace irred::cosmology
