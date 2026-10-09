@@ -1,0 +1,8 @@
+target_sources(irred_core PRIVATE src/chaplygin.cpp)
+add_executable(test_chaplygin tests/test_chaplygin.cpp)
+target_link_libraries(test_chaplygin PRIVATE irred_core)
+target_compile_options(test_chaplygin PRIVATE -Wall -Wextra -Wpedantic -fno-fast-math -ffp-contract=off)
+add_test(NAME chaplygin_contract COMMAND test_chaplygin)
+add_executable(example_chaplygin examples/chaplygin.cpp)
+target_link_libraries(example_chaplygin PRIVATE irred_core)
+add_test(NAME chaplygin_sdk_example COMMAND example_chaplygin)
