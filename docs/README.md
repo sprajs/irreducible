@@ -48,6 +48,7 @@ Read [AGENTS.md](../AGENTS.md) first, then choose a guide:
 | Propagate a supplied joint abundance/mass/temperature law | [Finite abundance law](baryon-abundance-law.md) |
 | Prepare pure-H ionization/temperature and finite-endpoint optical histories | [Recombination and drag](recombination-drag.md) |
 | Prepare a bounded conditional H/He singlet history with shared electrons | [Hydrogen–helium history](hydrogen-helium-history.md) |
+| Compute retained two-epoch lens distances, physical critical density and time-delay geometry in C++ | [Thin-lens geometry](thin-lens-geometry.md) |
 | Predict a synthetic SIS point-source image, delay and Gaussian PSF pixels in C++ | [SIS thin lens](sis-thin-lens.md) |
 | Predict synthetic extended-source pixels through two softened elliptical potentials | [Two-deflector forward model](two-deflector-forward.md) |
 | Check scientific assumptions | [Scientific contracts](scientific-contracts.md) |

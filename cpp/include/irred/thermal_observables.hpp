@@ -32,6 +32,10 @@ struct ThermalObservableBatch {
   std::vector<EarlyLateRow> rows;
   std::size_t callbacks = 0, outer_callbacks = 0, momentum_callbacks = 0;
 };
+struct ThermalRadialInterval {
+  ThermalBackgroundValue distance_mpc;
+  std::size_t callbacks=0, outer_callbacks=0, momentum_callbacks=0;
+};
 class ThermalObservables {
 public:
   ThermalObservables() = default;
@@ -45,6 +49,8 @@ public:
   ThermalObservableBatch evaluate(std::span<const double> redshifts,
                                   unsigned requested_outputs,
                                   ThermalObservablePolicy = {}) const;
+  ThermalRadialInterval radial_distance_between(double lower_redshift,
+      double upper_redshift, ThermalObservablePolicy={}) const;
 
 private:
   numerics::Status status_ = numerics::Status::invalid_input;

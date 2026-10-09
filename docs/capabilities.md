@@ -407,3 +407,13 @@ population independently. Unresolved escape-support signs are explicit
 refusals. This is a Newtonian self-gravitating mass-traces-tracer model; measured
 stellar kinematics, anisotropic/multiple tracers and a full projected velocity
 PDF require further contracts.
+
+
+The standalone C++ [two-epoch thin-lens geometry](thin-lens-geometry.md) retains
+one typed flat thermal or nonflat conserved-fluid provider. A direct interval
+supplies D_ls, physical SI critical surface density and time-delay distance;
+ordered masks, positive-distance/refusal diagnostics and bounded callbacks
+remain explicit. Closed signed branches and conjugate-point admission are
+retained. Independent analytic/high-precision/refined CLASS controls cover named
+cases; SI Plummer composition is a library consumer. A measured lens needs its
+own mass/source/environment/likelihood contracts. No CLI/C ABI operation is added.

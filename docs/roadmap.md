@@ -55,3 +55,10 @@ For every package, freeze equations/domain/required outputs and independent acce
 | Ignored local plans and unfinished branches | Preserve originals/failed attempts/unique source and verify S3 recovery/custody. Resume only after live-state inspection and an owned M0–M6 package; never delete as roadmap cleanup |
 
 No equations or numerical/scientific gates are changed by this reset. Publication and integration follow [development](development.md): coherent reviewed PRs, complete final-diff review and required CI on the integrated head/exact main. Persistent storage follows [shared data](shared-data.md); discovery pointers do not replace immutable scientific pins.
+
+
+The [retained two-epoch lens geometry](thin-lens-geometry.md) is a bounded M3/M4
+prerequisite: source-compatible thermal or conserved-fluid distances now feed
+physical-SI critical density and time-delay geometry through a direct radial
+interval. Its finite analytic/FD/nonflat/CLASS controls and Plummer composition
+do not close NEXT-18 mass/source/environment/measurement/likelihood admission.

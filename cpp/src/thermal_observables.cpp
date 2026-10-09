@@ -60,7 +60,7 @@ struct Context {
   const ThermalObservablePolicy &policy;
   CallbackWork &work;
   std::size_t start;
-  long double xmax = 0, dependency_relative = 0;
+  long double xmax = 0, dependency_relative = 0, xlower = 0;
   S status = S::ok;
   ThermalScaledExpansion expansion(long double a) {
     ThermalScaledExpansion out;
@@ -88,8 +88,13 @@ struct Context {
     if (status == S::ok) {
       // Positive inverse-square-root interval. Maximum sampled dependency is
       // an empirical admission diagnostic, not a continuous certified bound.
-      const long double radius =
-          std::sqrt(out.a4_e2 / (out.a4_e2 - out.error_estimate)) - 1;
+      if(!(out.a4_e2>out.error_estimate)) {
+        status=out.status=S::conditioning_budget_exceeded;
+        return out;
+      }
+      const long double lower=out.a4_e2-out.error_estimate;
+      const long double radius=out.error_estimate/
+          (std::sqrt(lower)*(std::sqrt(out.a4_e2)+std::sqrt(lower)));
       dependency_relative = std::max(dependency_relative, radius);
     }
     return out;
@@ -105,7 +110,7 @@ double integrand(double t, const void *ptr) {
     return std::numeric_limits<double>::quiet_NaN();
   }
   ++c.work.outer;
-  const long double a = std::exp(-c.xmax * t);
+  const long double a = std::exp(-(c.xlower+c.xmax*t));
   const auto q = c.expansion(a);
   if (q.status != S::ok)
     return std::numeric_limits<double>::quiet_NaN();
@@ -421,4 +426,40 @@ ThermalObservables::evaluate(std::span<const double> zs, unsigned mask,
   out.callbacks = work.total();
   return out;
 }
+ThermalRadialInterval ThermalObservables::radial_distance_between(double lower,
+    double upper,ThermalObservablePolicy policy) const {
+  ThermalRadialInterval result;
+  if(!policy_valid(policy)||policy.thermal.momentum_method!=background_.momentum_method())return result;
+  if(status_!=S::ok) { result.distance_mpc.status=status_;return result; }
+  if(!std::isfinite(lower)||!std::isfinite(upper)) {
+    result.distance_mpc.status=S::nonfinite_input;return result;
+  }
+  if(lower<0||upper<lower) { result.distance_mpc.status=S::outside_domain;return result; }
+  std::size_t origins=0;
+  if(!irred::detail::checked_payload_add(origins,source_.source_origin.size(),1)||
+      !irred::detail::checked_payload_add(origins,source_.drag_origin.size(),1)||
+      !irred::detail::checked_payload_add(origins,2,1))return result;
+  const auto bytes=thermal_observables_payload_bound(0,source_.model.species.size(),origins);
+  if(!bytes)return result;
+  if(policy.maximum_points<1||*bytes>policy.maximum_native_bytes||
+      source_.model.species.size()>policy.thermal.maximum_species) {
+    result.distance_mpc.status=S::work_limit;return result;
+  }
+  if(lower==upper) { result.distance_mpc={S::ok,0,0};return result; }
+  CallbackWork work;Context context{background_,policy,work,0};
+  context.xlower=std::log1p(static_cast<long double>(lower));
+  // Stable tiny separation; subtracting two large log(1+z) values loses it.
+  context.xmax=std::log1p((static_cast<long double>(upper)-lower)/(1+static_cast<long double>(lower)));
+  const long double scale=detail::prepare_flat_scale(source_.model.h0_km_s_mpc).distance_mpc*context.xmax;
+  const auto integral=integrate(context,scale,1);
+  result.distance_mpc.status=integral.status;
+  if(integral.status==S::ok) {
+    EarlyLateValue value;
+    admit(value,integral.value,integral.error,policy.absolute_tolerance_mpc,policy.relative_tolerance);
+    result.distance_mpc={value.status,value.value,value.error_estimate};
+  }
+  result.outer_callbacks=work.outer;result.momentum_callbacks=work.momentum;
+  result.callbacks=work.total();return result;
+}
+
 } // namespace irred::cosmology
