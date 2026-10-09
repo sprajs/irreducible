@@ -153,8 +153,10 @@ fit. A population admission-budget change does not increase arithmetic precision
 The original quick001 native science completed, but the Python caller exited 1
 because an empty list was passed to SystemExit. Its full original attempt is
 retained. Only that exit dispatch was corrected before fresh quick002/broader001;
-no grids, native laws or numerical allowances changed. Native physics remains in
-C++; Python binds identities, validates outputs and displays retained values.
+no grids, native laws or numerical allowances changed. PR30 merged at
+`bc5de0da41e8136dfe9b4852f3a792692d556e73`; exact-main run37879974623
+passed on Python3.11 and3.13, and all334 repository tests passed locally.
+Native physics remains in C++; Python binds identities, validates outputs and displays retained values.
 The prior six-model experiment below keeps its rejected/incomplete status and
 original scientific SDK source pin775.
 
@@ -271,9 +273,24 @@ plots and the caller failure. All 68 files were freshly restored with matching l
 independently checked by the coordinator. Both corrected PNGs were rerendered
 from the restored native JSON and plotting source and match byte for byte. The separate source metadata selection has five files, 10353
 bytes, and was already freshly restored with matching hashes; its exact pins
-are in Prospector PR40. Raw rights-unverified papers remain excluded and local.
+are in Prospector PR40, merged at
+`a3b3a3ac141638959e289c92c20c85fb19679224` with exact-main CI37877832108
+passing. Raw rights-unverified papers remain excluded and local.
 Credentials, profiles, proxies, TLS and historical scientific/runtime/input
 pins are unchanged.
+
+### Publication/restoration custody proof
+
+A separate owned metadata selection preserves the exact publication receipts,
+full fresh-restore comparisons, PNG byte replay proof, reconstruction helper and
+engine exact-main landing facts. All 13 files (47098 bytes) were restored into
+another fresh directory and matched byte for byte. It contains no duplicate
+scientific bulk, binaries, credentials or raw papers.
+
+- Manifest: `s3://research-data-436908790672-eu-west-2/reproducible/handoffs/irreducible/native-round2-custody-proof-20261009t0335z/versions/6b79ad0471bcf428b2b90185b769fd70ada904d3dd1716d2787f1164f8dedd35/manifest.json`
+- SHA256: `391e0a38f95214da25541650d145356174b5c2a8f070ceec5d91f5bb26e3956a`
+- VersionId: `5lldTThy12_Q6W1xstx5s0x4tnhjnmDY`
+- Format: `research-named-manifest/v1`.
 
 ### Demonstrated commands
 
