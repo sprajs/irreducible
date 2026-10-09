@@ -110,35 +110,54 @@ full-paper stage or theory-viability promotion. Its exact source metadata S3
 pins and fresh readback proof are recorded in its dossier; raw papers were
 excluded from publication while rights remain unresolved.
 
-## Bulk evidence custody: unpreserved transport blocker
+## Persistent evidence after transport recovery
 
 Storage startup passed with the prepared verified AWS CLI2.37.11 and current
-restricted identity. Subsequent transport calls intermittently fail with upstream
-tunnel errors or HTTP503; an actual create-only PUT diagnostic returned503.
-Identity/read readiness does not establish write readiness. The historical setup
-identity failure is distinct from this runtime's passing startup and later
-transport failures. Credentials, profiles, proxies and TLS settings were unchanged.
+restricted identity. Subsequent upstream tunnel errors and actual create-only
+PUT HTTP503 failures were preserved. After transport recovered, the unchanged
+immutable engine selections were uploaded with exact-version object readback
+and manifest-last completion. Both were restored into fresh directories and
+compared with the originals: 119 files, 1295061 bytes, zero hash differences.
+Credentials, profiles, proxies and TLS settings were unchanged. The historical
+setup identity failure remains distinct from this runtime's passing startup and
+later temporary transport failure.
 
-Full owned completed/failed/partial scientific evidence was inventoried and
-retained without eviction. The first six-model sealed selection has 54 files,
-437754 bytes, selection SHA256
+The first six-model selection has 54 files, 437754 bytes, selection SHA256
 `214412ea7d7b6c4bbc55d27b0664dfb5069f5bdd555018999c5a45c569f9dd1b`.
 The Plummer/Bianchi followup has 65 files, 857307 bytes, selection SHA256
 `db6cfad31d16dc0d1fd973ff246b91d94c156aa89814f2f9f99db7a5c2855265`.
-The compiled sweep selection has 92 files, about 10.55 MB, with its custody
-record in the experiment README. Original logs/receipts, failed controls, exact
-build identities, source pins and acquisition-failure metadata are retained;
-reconstructable binaries and rights-unverified raw papers are excluded. The
-entire first evidence-stage version remains preserved beside its corrected
-successor. Failed upload attempts and any partial remote objects were retained.
+They retain original worker/integration logs and receipts, failed controls,
+corrected independent high-precision fixtures, exact build/installed identities,
+source-access failures and publication diagnostics. Reconstructable binaries
+and rights-unverified raw papers are excluded. The original first-stage version
+and failed attempts/partial remote objects remain preserved; no eviction was used.
 
-The deliberately selected engine collections are
-`reproducible/handoffs/irreducible/native-models-20261009t0200z` and
-`reproducible/handoffs/irreducible/native-model-followups-20261009t0220z`.
-No verified completed bulk manifest URI/SHA256/VersionId is available for these attempts,
-so this report makes **no S3 preservation claim** for their full bytes. They are
-an explicit unpreserved blocker; original local selections must remain until
-a future exact-version upload/readback and fresh-directory restoration succeed.
-Use the named collection list when checking for completed uncataloged uploads.
-The separately completed Prospector source-metadata handoffs retain their own
-immutable pins and verified status.
+These are exact scientific evidence pins, distinct from a mutable catalog:
+
+### First six models
+
+- Manifest: `s3://research-data-436908790672-eu-west-2/reproducible/handoffs/irreducible/native-models-20261009t0200z/versions/0204af3da5360005c628ea8025f6353092e0adf93f29f9f32dd3f217cbbbd41e/manifest.json`
+- SHA256: `c0d130ffd7f793036b02ecf1aeb22faff3cb73117a64624949d6fb877b32cbb7`
+- VersionId: `gK0arALOqaEZWSB9TdYkSjOEKlYjkaKe`
+- Format: `research-named-manifest/v1`.
+
+### Plummer and Bianchi I
+
+- Manifest: `s3://research-data-436908790672-eu-west-2/reproducible/handoffs/irreducible/native-model-followups-20261009t0220z/versions/2eb1873ad6abf0baea2520adf35d8da24fc3bc77cf112fa4bad2d8fc32bbda32/manifest.json`
+- SHA256: `235d631696d68da99c370570ea57b34fd9438bc8aced5985e3937c88c9678684`
+- VersionId: `JFqnoXUZA9.YYcFl2t2CvTxibrqvRiYR`
+- Format: `research-named-manifest/v1`.
+
+Restore with the named transport's exact manifest URI, SHA256 and VersionId
+into a new directory. Use `list --collection` for completed uncataloged uploads.
+The separately published Prospector source metadata and Reproducible compiled
+sweep keep their own immutable pins and verified custody. The source-paper
+copying limitations remain unchanged. Historical science/runtime/input pins
+are not replaced by this new model campaign.
+
+The code merges passed CI on their exact main commits: PR65
+`95f9b1f3d933132b7fb82c031b38b37d6ee116a2` (run37872807287), PR66
+`2545550781ee97d1eb3cfa6fc23c235a26ea269f` (run37873470252), and PR67
+`36c942601a590ede6a4cc2fbd0cc8b01eb2e91c1` (run37874008720). Prospector
+PR39 and Reproducible PR28 also passed exact-main CI. Bulk preservation does not
+promote the numerical sweep's rejected/incomplete qualification.
