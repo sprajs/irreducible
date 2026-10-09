@@ -111,6 +111,9 @@ If you use Irreducible in research, please cite it and include the commit or rel
 }
 ```
 
-Shared datasets and private evidence use the [common storage layout](docs/shared-data.md).
+S3 is the persistent store for useful bulk data, private evidence and unfinished
+cross-run handoffs. Local ignored directories are temporary scratch/cache.
+Use the [common storage layout](docs/shared-data.md), publish and pin before
+ending work, and evict local copies only after exact-version byte verification.
 Read the [cloud startup guide](https://github.com/sprajs/reproducible/blob/main/docs/cloud-startup.md)
 for the bounded shared-catalog readiness check; Reproducible owns the startup script.
