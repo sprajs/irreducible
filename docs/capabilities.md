@@ -343,3 +343,13 @@ from an explicitly declared profile; original-paper equation access remains
 unverified and is distinguished from the independent Newtonian derivation. Full coupled perturbations,
 measured halo inference and joint likelihood qualification remain separate work.
 
+## Finite-core Plummer model
+
+The native [Plummer sphere](plummer-sphere.md) adds a distinct finite-core,
+finite-mass SI model: density, enclosed mass, potential, acceleration, circular
+speed and potential Hessian, plus analytic projected mass/density and conditional
+thin-lens observables from supplied geometry. Its center is regular, unlike the
+NFW and Hernquist cusp models. Independent shell/line-of-sight quadratures,
+high-precision fixtures, Poisson and derivative controls test the declared
+profile. Original-paper equation access remains unverified; no measured lens
+inference, stellar distribution function or certified global error bound follows.
