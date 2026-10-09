@@ -48,7 +48,7 @@ int main(int argc,char **argv) {
     if(background_at_z(&ba,pair[0],long_info,inter_normal,&last,lens.data())==_FAILURE_||
        background_at_z(&ba,pair[1],long_info,inter_normal,&last,source.data())==_FAILURE_)return 3;
     const long double dl=lens[ba.index_bg_ang_distance],ds=source[ba.index_bg_ang_distance];
-    const long double radial=lens[ba.index_bg_conf_distance]-source[ba.index_bg_conf_distance];
+    const long double radial=source[ba.index_bg_conf_distance]-lens[ba.index_bg_conf_distance];
     // Independent background ODE/interpolation witness; moderate separated
     // epochs only. This CLASS table difference is not the production API.
     long double dls=radial/(1+pair[1]);
