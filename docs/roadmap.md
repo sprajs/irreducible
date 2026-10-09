@@ -26,6 +26,11 @@ M0–M6 name the same outcomes in all three repositories. Horizons express readi
 
 First resolve M0 target/parameter/probe contracts with Prospector and Reproducible, then reproduce and qualify M1 across the admitted LCDM domain. A conditional H0 scan does not satisfy a six-parameter fit. Scope the external numerical sensitivity blocker to the actual admitted fit domain and preserve the failed extension witness.
 
+The native [effective thermal neutrino closure](effective-neutrino.md) supplies
+a new explicit total-Neff partition and same-state pressure/acceleration
+consumer. It closes that bounded source mapping, while BBN, physical drag,
+full-species perturbations and native primary CMB retain their own open gates.
+
 In parallel, pick one dependency-ready M3 closure from an accepted consumer discrepancy, not from the number of unfinished branches. A useful native sequence is (a) physical thermal/input/opacity endpoint, (b) regular full-species transfer and amplitude, (c) qualified source/projection/Cl. Existing bounded H/He, acoustic, supplied-source projection and perfect-fluid laws retain their identities. A complete computed raw grid with absent required errors remains refused. Standard physical drag/visibility must not be inferred from a truncated root or renormalized boundary mass.
 
 Select one M4 dataset with actual source, calibrated measurements and identifiable nuisance/selection laws before broadening raw-measurement simulation. Native photometry alone predicts neither intrinsic stellar/SN spectral evolution nor a measured camera response. A named lens needs mass/source/line-of-sight/kinematics; a spherical profile and supplied geometry are prerequisites. Retain this work alongside the baseline, without making every modality a fit prerequisite.

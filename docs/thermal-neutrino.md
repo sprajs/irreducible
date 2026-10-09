@@ -4,7 +4,11 @@ The standalone C++20 `irred/thermal_neutrino.hpp` API calculates the energy
 density and pressure of explicit decoupled zero-chemical-potential Fermi–Dirac
 species, then prepares a flat photon, massless-radiation, baryon, CDM, relic and
 Lambda background. It supplies E(a) and H(a), with no CLI or C ABI route.
-This remains the background prerequisite. The separate
+The same retained background now also provides scaled total/per-species
+stress-energy, w and GR deceleration batches; the separate
+[effective thermal neutrino closure](effective-neutrino.md) owns an explicit
+total-Neff partition source. These additions preserve this API's explicit
+species identity. This remains the background prerequisite. The separate
 [thermal observables](thermal-observables.md) consumer now uses this same retained
 state for distances and a supplied-drag ruler. Neither provider supplies
 recombination, ionization, drag prediction, perturbations, growth or CMB spectra.
