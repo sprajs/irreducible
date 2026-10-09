@@ -40,7 +40,8 @@ struct DecayingMatterRow {
   // Relative algebraic continuity residual (transfer cancels between species).
   long double continuity_residual = 0;
   // Accumulated local step-doubling estimates, not rigorous error bounds.
-  long double elapsed_time_estimate = 0, comoving_daughter_estimate = 0;
+  // Estimates are in dimensionless tau and R, not elapsed seconds.
+  long double elapsed_initial_hubble_time_estimate = 0, comoving_daughter_estimate = 0;
   long double expansion_relative_estimate = 0;
 };
 struct DecayingMatterTrajectory {

@@ -85,7 +85,7 @@ struct Solver {
     const W transfer=m.decay_rate_over_initial_hubble*d[1]/e;
     const W derivative=-3*d[0]+(-3*d[1]-transfer)+(-4*d[2]+transfer);
     r.continuity_residual=(derivative+3*(d[0]+d[1])+4*d[2])/total;
-    r.elapsed_time_estimate=error[0]; r.comoving_daughter_estimate=error[1];
+    r.elapsed_initial_hubble_time_estimate=error[0]; r.comoving_daughter_estimate=error[1];
     r.expansion_relative_estimate=(m.decay_rate_over_initial_hubble*d[1]*error[0]+
         std::exp(-4*x)*error[1])/(2*total)+32*std::numeric_limits<W>::epsilon();
     out.rows.push_back(r); return true;
