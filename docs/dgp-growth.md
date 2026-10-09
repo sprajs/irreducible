@@ -55,6 +55,10 @@ and early g/f coefficients. Adversarial controls cover unsupported parameters,
 nonfinite/mixed points, invalid/empty masks, quotas, impossible tolerances,
 rounding and copy/move ownership. These are synthetic mathematical controls.
 
+Supported arithmetic requires round-to-nearest and at least 64 long-double
+mantissa bits; unsupported host arithmetic refuses rather than silently using
+a different numerical profile.
+
 Hard ceilings before allocation: 65536 points, 1 GiB row payload, 200000 step
 trials per point and 4000000 total. Defaults: 4096 points, 16 MiB, 20000 point
 trials and 200000 total. Rejected trials count; callbacks and trial diagnostics
@@ -67,3 +71,8 @@ quasistatic assumptions; original PDF SHA256
 Ghost caveat source v1 PDF SHA256
 `f32ad9d3beb5e38ca98a5eb1098f01b7293273f4a980e2e03837cbea594a9bc7`.
 These targeted equation/abstract checks do not imply full-paper qualification.
+
+A changed H0 at fixed Omega_m0 scales H only: E, Omega_m, mu, D and f remain
+unchanged. These are fractional-density inputs; fixed physical matter density
+would instead require changing Omega_m0. No fixed-density cosmological fit is
+implied by this native control.
