@@ -26,7 +26,13 @@ double cylinder(double x,int n) {
     double fraction=1/(std::cosh(u)*std::cosh(u)*(1+t));
     double v=r*r*t*fraction/std::pow(1+r,2);
     sum+=(i==0||i==n?1:i%2?4:2)*v;}
-  double interior=std::log1p(x)-x/(1+x);
+  // Direct interior radial integral with r=expm1(u), no mass formula.
+  double radial_sum=0, radial_step=std::log1p(x)/n;
+  for(int i=0;i<=n;++i) {
+    double u=i*radial_step, v=-std::expm1(-u);
+    radial_sum+=(i==0||i==n?1:i%2?4:2)*v;
+  }
+  double interior=radial_sum*radial_step/3;
   return 4*(interior+sum*step/3)/(x*x);
 }
 int main() {
@@ -62,6 +68,8 @@ int main() {
     auto p=nfw_projection(h,v.x); assert(p.status==S::ok);
     close(p.surface_density.value,v.sigma,1e-13);
     close(p.mean_surface_density.value,v.mean,1e-13);
+    assert(std::abs(p.surface_density.value-v.sigma)<=p.surface_density.error_estimate+2*std::numeric_limits<double>::epsilon()*std::abs(v.sigma));
+    assert(std::abs(p.mean_surface_density.value-v.mean)<=p.mean_surface_density.error_estimate+2*std::numeric_limits<double>::epsilon()*std::abs(v.mean));
   }
   auto tiny=nfw_projection(h,1e-8); assert(tiny.status==S::ok);
   close(tiny.excess_surface_density.value,1.0,1e-13);
