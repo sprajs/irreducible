@@ -2,6 +2,8 @@
 
 Start with [AGENTS.md](../AGENTS.md), [architecture](architecture.md) and [scientific contracts](scientific-contracts.md). Use [getting started](getting-started.md) to prepare the toolchain.
 
+Current work follows the sole active [roadmap](roadmap.md) and factual [gap register](gaps.md); historical proposals and unfinished branches do not define another queue.
+
 ## Build for a scientific use
 
 Start with a calculation an agent needs. Add a physical model, reader or numerical operation with explicit inputs and machine-readable results. Keep repeated work in compiled batches. External fitters and samplers can call the tool; implement internal fitting only for a named consumer that needs it. A broad roadmap does not require implementing every analysis method.

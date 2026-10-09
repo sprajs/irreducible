@@ -1,5 +1,9 @@
 # Documentation
 
+The sole active [roadmap](roadmap.md) coordinates M0–M6 across the three repositories. [Gaps](gaps.md) records evidence and closure acceptance; historical guides and proposals do not schedule work.
+
+The [2026-10-09 research review](research-review-2026-10-09.md) records the three-repository audit and the requested Astra scientific assessment behind this reset.
+
 Irreducible is being built to follow a scientific idea all the way to what an instrument would observe. Shared physics should connect simulations of sources and populations to light propagation, spectra, images and catalogue predictions, then support joint fitting when the necessary models and data are ready.
 
 Today there is a smaller compiled engine you can use through a non-interactive CLI or the C++ library. These guides separate those available calculations from the planned engine. Agents can add a model or reader in source, test it and rebuild; external fitting and plotting tools remain useful consumers.
