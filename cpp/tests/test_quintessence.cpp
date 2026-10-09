@@ -59,6 +59,8 @@ int main(){try {
  auto limited=QuintessencePolicy{};limited.maximum_total_callbacks=12;auto fail=owner.evaluate(axes,true,limited);need(fail.status==S::work_limit&&fail.callbacks<=12&&fail.rows.size()==4,"all rows retained at cap");need(fail.rows[0].e.value&&fail.rows[1].e.status==S::work_limit,"partial rows preserved");
  limited=QuintessencePolicy{};limited.maximum_native_bytes=1;need(owner.evaluate(axes,false,limited).status==S::work_limit,"payload refusal");need(!quintessence_payload_bound(std::numeric_limits<size_t>::max()),"payload overflow");
  const double bad[]{0,std::numeric_limits<double>::quiet_NaN(),1};auto mixed=owner.evaluate(bad);need(mixed.rows[0].status==S::outside_domain&&mixed.rows[1].status==S::nonfinite_input&&mixed.rows[2].e.value,"invalid axes preserve valid row");
+ auto tiny=prepare_quintessence({0,std::numeric_limits<double>::denorm_min(),1,0,0});
+ auto underflow=tiny.evaluate(std::span(axes).last(1));need(underflow.rows[0].h_km_s_mpc.status==S::outside_domain&&!underflow.rows[0].h_km_s_mpc.value&&underflow.rows[0].e.value,"H underflow retains dimensionless E");
  auto impossible=QuintessencePolicy{};impossible.absolute_tolerance=1e-30;impossible.relative_tolerance=0;impossible.maximum_halvings=2;need(owner.evaluate(std::span(axes).subspan(1,1),false,impossible).status==S::conditioning_budget_exceeded,"arithmetic impossible policy refused");
  std::fesetround(FE_DOWNWARD);need(owner.evaluate(axes).status==S::invalid_input,"rounding refusal");std::fesetround(FE_TONEAREST);
  std::cout<<checks<<" quintessence checks passed\n";
