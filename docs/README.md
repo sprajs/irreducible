@@ -62,6 +62,7 @@ Read [AGENTS.md](../AGENTS.md) first, then choose a guide:
 | Curved dust/radiation/Lambda FLRW distances | [Curved model](curved-flrw.md) |
 | Evaluate a finite-mass Newtonian sphere with supplied SI coupling | [Hernquist sphere](hernquist-sphere.md) |
 | Evaluate finite-core spherical dynamics and conditional lens projection | [Plummer sphere](plummer-sphere.md) |
+| Evolve homogeneous anisotropic GR and directional photon redshift | [Bianchi I](bianchi-i.md) |
 | Run tests or add a fixture | [Testing](testing.md) and [fixture provenance](../cpp/tests/fixtures/README.md) |
 | Maintain these docs | [Maintenance](maintenance.md) |
 
