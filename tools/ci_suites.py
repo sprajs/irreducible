@@ -66,5 +66,10 @@ def installed_sources(root, suite):
             'cpp/tests/test_effective_fluid_installed.cpp',
             'cpp/tests/test_two_deflector_forward_installed.cpp',
             'cpp/tests/test_installed_finite_opacity_source.cpp',
-            'cpp/tests/test_installed_ideal_acoustic.cpp')]
+            'cpp/tests/test_installed_ideal_acoustic.cpp',
+            'cpp/examples/quintessence.cpp',
+            'cpp/tests/test_dgp_growth_installed.cpp',
+            'cpp/tests/test_nfw_halo_installed.cpp',
+            'cpp/examples/decaying_matter.cpp',
+            'cpp/tests/test_curved_flrw_sdk.cpp')]
     raise ValueError(f'unknown installed suite: {suite}')

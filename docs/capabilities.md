@@ -320,3 +320,22 @@ predictions survive density refusal. Independent original ODE, high-precision
 integration and cofactor controls test named cases. This supplies neither a
 transfer-derived sigma8, radiation/relic perturbations, survey/AP/window
 mapping, released-compression validity nor a CLI/ABI operation.
+
+
+## New compiled model families
+
+The C++ SDK also supplies five distinct physical models: [canonical exponential
+quintessence](quintessence.md), [self-accelerating flat DGP growth](dgp-growth.md),
+[spherical NFW halo and lensing](nfw-halo.md), [decaying matter to massless
+radiation](decaying-matter.md), and [curved FLRW geometry](curved-flrw.md).
+Each owns its equations, supplied parameters, bounded domain and retained batch.
+Analytic limits, independent formulations or quadrature, refinement and hostile
+inputs test the declared contracts. Adaptive error estimates are empirical local
+diagnostics rather than certified global accuracy bounds. These models are native
+SDK calculations; no new CLI operations or observed-data fits are claimed.
+Quintessence and decaying matter currently supply homogeneous backgrounds, DGP
+growth assumes pressureless quasistatic perturbations on its self-accelerating
+branch, NFW lensing conditions on supplied physical lens geometry, and curved
+FLRW assumes conserved dust/radiation and Lambda. Full coupled perturbations,
+measured halo inference and joint likelihood qualification remain separate work.
+

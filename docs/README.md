@@ -55,6 +55,11 @@ Read [AGENTS.md](../AGENTS.md) first, then choose a guide:
 | Condition a proper synthetic ladder prior and predict joint held-out rows | [Ladder predictive](calibration-predictive.md) |
 | Generate addressed full-covariance Gaussian vectors and run synthetic recovery campaigns | [Gaussian simulation](gaussian-simulation.md) |
 | Predict and recover a synthetic anchor/Cepheid/SN ladder in C++ | [Calibration ladder](calibration-ladder.md) |
+| Canonical exponential scalar with separately conserved dust/radiation | [Canonical model](quintessence.md) |
+| Self-accelerating flat DGP dust background and quasistatic growth | [Self-accelerating model](dgp-growth.md) |
+| Spherical NFW enclosed mass and conditional thin-lens observables | [Spherical model](nfw-halo.md) |
+| Finite-anchor decaying matter to massless daughter radiation | [Finite-anchor model](decaying-matter.md) |
+| Curved dust/radiation/Lambda FLRW distances | [Curved model](curved-flrw.md) |
 | Run tests or add a fixture | [Testing](testing.md) and [fixture provenance](../cpp/tests/fixtures/README.md) |
 | Maintain these docs | [Maintenance](maintenance.md) |
 
