@@ -161,3 +161,13 @@ The code merges passed CI on their exact main commits: PR65
 `36c942601a590ede6a4cc2fbd0cc8b01eb2e91c1` (run37874008720). Prospector
 PR39 and Reproducible PR28 also passed exact-main CI. Bulk preservation does not
 promote the numerical sweep's rejected/incomplete qualification.
+
+A final 16-file, 61351-byte custody-metadata capsule remains local after two
+failed upload attempts and a repeated upstream tunnel failure. It contains
+restoration proof, retry diagnostics and unique superseded first-stage metadata.
+The expected collection is
+`reproducible/handoffs/irreducible/native-model-custody-20261009t0230z`; no
+verified completed manifest pin is available. This is an explicit unpreserved
+metadata blocker: retain its local originals until publication/readback succeeds.
+It does not change the already verified 119 engine evidence files or the
+Reproducible campaign/recovery archives. No local original was removed.
