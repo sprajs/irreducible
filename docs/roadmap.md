@@ -601,3 +601,14 @@ Before changing a calculation, declare its equation, domain, consumer error budg
 Migrate the smallest sufficient licensed comparison facts and reconstructible derivations into permanent C++ mathematical/scientific tests and Rust boundary/record tests. Routine CI must not require the historical Python tree, an external reference engine or a temporary comparison environment. If an optional oracle is needed for a stronger certificate, its dependency, input identities and unavailable status remain explicit; it does not replace portable regressions.
 
 After the migrated tests pass and their owners release the artifacts, delete only inventoried disposable comparison scripts, environments and duplicate outputs. Preserve originals, source identities, reference uncertainty/derivations, reconstruction facts and immutable failed/accepted scientific receipts. Test migration and cleanup are part of completing a capability, not a reason to erase inconvenient history.
+
+## Finite-core Plummer model
+
+The native [Plummer sphere](plummer-sphere.md) adds a distinct finite-core,
+finite-mass SI model: density, enclosed mass, potential, acceleration, circular
+speed and potential Hessian, plus analytic projected mass/density and conditional
+thin-lens observables from supplied geometry. Its center is regular, unlike the
+NFW and Hernquist cusp models. Independent shell/line-of-sight quadratures,
+high-precision fixtures, Poisson and derivative controls test the declared
+profile. Original-paper equation access remains unverified; no measured lens
+inference, stellar distribution function or certified global error bound follows.
