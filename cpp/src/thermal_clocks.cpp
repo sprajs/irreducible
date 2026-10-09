@@ -38,7 +38,7 @@ W source_radius(W d,W a,W lambda,W today,ThermalStressSourceEstimate p) {
   return p.relative_component_estimate*(std::max(0.L,d-lambda*a4)+today*a4)+
       p.radiation_absolute_estimate*(1+a4);
 }
-struct Work {
+struct ClockWork {
   std::size_t outer=0,momentum=0;
   std::size_t total() const { return outer+momentum; }
 };
@@ -47,10 +47,10 @@ struct Context {
   const ThermalClockPolicy &policy;
   ThermalStressSourceEstimate source;
   W lambda,today;
-  Work &work;
+  ClockWork &work;
   std::size_t start;
   W lower=0,upper=0,dependency=0,cast_fraction=0;
-  bool age=false,dust=false;
+  bool age=false,dust=false,squared=false;
   S status=S::ok;
   bool available() {
     if(work.total()>=policy.maximum_total_callbacks||
@@ -103,9 +103,11 @@ double integrand(double parameter,const void *pointer) {
     c.dependency=std::max(c.dependency,error/(std::sqrt(lo)*(std::sqrt(denominator)+std::sqrt(lo))));
     value=2*(c.age?u2:1)/std::sqrt(denominator);
   } else {
-    const auto d=c.expansion(coordinate);
+    const W a=c.squared?coordinate*coordinate:coordinate;
+    const auto d=c.expansion(a);
     if(d.status!=S::ok) return std::numeric_limits<double>::quiet_NaN();
-    value=(c.age?coordinate:1)/std::sqrt(d.a4_e2);
+    value=(c.age?a:1)/std::sqrt(d.a4_e2);
+    if(c.squared)value*=2*coordinate;
   }
   value*=c.upper-c.lower;
   const double stored=static_cast<double>(value);
@@ -206,7 +208,7 @@ ThermalClockBatch ThermalClocks::evaluate(std::span<const double> factors,unsign
   const auto &source=background_.source();
   const W matter=source.omega_b+static_cast<W>(source.omega_cdm);
   const W today=source.omega_gamma+static_cast<W>(source.omega_massless_nonphoton)+matter+omega_species_today_;
-  Work work;result.rows.reserve(factors.size());result.requested_outputs=requested;result.status=S::ok;
+  ClockWork work;result.rows.reserve(factors.size());result.requested_outputs=requested;result.status=S::ok;
   for(double a:factors) {
     result.rows.emplace_back();auto &row=result.rows.back();row.scale_factor=a;
     const auto start=work.total(),outer_start=work.outer,momentum_start=work.momentum;
@@ -263,7 +265,8 @@ ThermalClockBatch ThermalClocks::evaluate(std::span<const double> factors,unsign
         else {
           auto remaining_integral=[&](bool proper_age,W absolute,W scale) {
             Context interval{background_,policy,source_estimate_,lambda_,today,work,start};
-            interval.age=proper_age;interval.lower=endpoint;interval.upper=a;
+            interval.age=proper_age;interval.squared=true;
+            interval.lower=std::sqrt(endpoint);interval.upper=std::sqrt(static_cast<W>(a));
             return integrate(interval,absolute,scale);
           };
           if(need_age) {

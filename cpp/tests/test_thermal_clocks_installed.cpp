@@ -12,7 +12,15 @@ int main(int argc,char **) {
   const auto result=clocks.evaluate(a,(1u<<thermal_clock_output_count)-1);
   if(source.status()!=irred::numerics::Status::ok||clocks.status()!=irred::numerics::Status::ok||result.rows.size()!=6)return 1;
   for(const auto &row:result.rows) {
-    for(const auto &out:row.outputs)if(out.status!=irred::numerics::Status::ok||!out.value)return 2;
+    for(unsigned i=0;i<row.outputs.size();++i) {
+      const auto &out=row.outputs[i];
+      if(out.status!=irred::numerics::Status::ok||!out.value) {
+        std::cerr<<"clock refusal a="<<row.scale_factor<<" output="<<i
+                 <<" status="<<static_cast<unsigned>(out.status)<<" callbacks="<<row.callbacks
+                 <<" outer="<<row.outer_callbacks<<" momentum="<<row.momentum_callbacks<<'\n';
+        return 2;
+      }
+    }
     if(argc>1) {
       std::cout<<std::setprecision(17)<<row.scale_factor;
       for(const auto &out:row.outputs)std::cout<<' '<<*out.value<<' '<<out.error_estimate;

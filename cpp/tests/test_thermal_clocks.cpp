@@ -69,7 +69,13 @@ void controls() {
   auto result=owner.evaluate(factors,all);
   need(result.status==S::ok,"FD batch admission");
   for(const auto &row:result.rows) {
-    for(auto &value:row.outputs)need(value.status==S::ok&&value.value,"FD clock output admission");
+    for(unsigned i=0;i<row.outputs.size();++i) {
+      const auto &value=row.outputs[i];
+      if(value.status!=S::ok||!value.value)std::cerr<<"FD refusal a="<<row.scale_factor
+          <<" output="<<i<<" status="<<static_cast<unsigned>(value.status)
+          <<" callbacks="<<row.callbacks<<" outer="<<row.outer_callbacks<<" momentum="<<row.momentum_callbacks<<'\n';
+      need(value.status==S::ok&&value.value,"FD clock output admission");
+    }
     need(row.age_tail&&row.conformal_tail&&row.age_tail->midpoint>0&&row.conformal_tail->midpoint>0,"positive early support retained");
     need(row.callbacks==row.outer_callbacks+row.momentum_callbacks&&row.callbacks>0,"all FD and tail work counted");
     near(row.outputs[3],W(row.scale_factor)**row.outputs[2].value,false,"proper-comoving horizon identity");

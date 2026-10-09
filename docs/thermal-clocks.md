@@ -52,7 +52,7 @@ Endpoint numerical estimates enter as D(ae)+eD(ae) for the lower endpoint and
 D0-eD0 for the upper endpoint; require positive denominator intervals. Retain
 the midpoint and half-width of each early contribution. Halve ae until each
 requested tail consumes at most one eighth of its own allocation, retaining
-all endpoint/refinement work and failures. Integrate the remaining interval;
+all endpoint/refinement work and failures. Integrate the remaining interval with a squared coordinate (a=u^2);
 no early support is dropped or renormalized. The estimates inherited from D
 are empirical, so these numerical brackets are not continuous certified bounds.
 
@@ -114,3 +114,22 @@ Five-point log-a derivative diagnostics have separate empirical allocations:
 **2e-4 Mpc + 2e-7 relative** for comoving-horizon derivatives. Step-halving
 refinement must occupy <=5% of that derivative allocation. These diagnostics
 are consistency checks, not the independent 1e-8 clock/horizon references.
+
+The proper/conformal relation follows from the homogeneous limit of
+Ma & Bertschinger, [astro-ph/9506072v1](https://arxiv.org/abs/astro-ph/9506072),
+metric equations (1)--(2): dt=a*d tau. The radial null relation gives
+chi=c*integral(dt/a); integrating from the declared formal origin defines
+the particle horizon. This horizon extrapolation is a model interpretation,
+not an observational measurement. The declared Julian-year unit is exactly
+31,557,600 seconds; the SI/IAU Mpc convention comes from the existing units owner.
+No claim that a particular IAU resolution defines the year is needed.
+
+The independent CLASS runtime locator is source/background.c at source commit
+`0ceb7a9a4c1e444ef5d5d56a8328a0640be91b18`, SHA-256
+`00275b2c1e864571353745932384aeaa4fb7bf982e786d1aeb9a272cbf3b79df`:
+lines 2616--2620 implement dt/dlog(a)=1/H and d tau/dlog(a)=1/(aH);
+lines 2315--2320 initialize radiation-dominated clocks at finite a.
+The validation driver converts CLASS's proper-time Mpc/c output using the
+project's explicit Gyr convention, and bounds that finite-start approximation
+against the full-support source. These code locators are implementation
+conventions, independently distinct from the metric source.
