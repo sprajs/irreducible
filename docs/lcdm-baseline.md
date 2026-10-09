@@ -156,7 +156,7 @@ The native early/late, thermal-observable and conditional-density interfaces hav
 or C ABI route. A bounded experiment-specific installed SDK consumer is a real
 execution path, not an implemented general paper runner. Verify its archive,
 headers, build manifest, compiler, consumer source and executable; bind the
-actual input and output statuses. CLI discovery continues to describe its ten
+actual input and output statuses. CLI discovery continues to describe its eleven
 implemented operations.
 
 Public packets and source tests stay small. Bulk third-party inputs, papers and

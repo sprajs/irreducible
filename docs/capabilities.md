@@ -10,6 +10,7 @@ Use the executable's `describe --json` output for its exact build, ABI revision 
 | `cosmology.sound_horizon` | Conditional comoving sound horizon | Supplied drag redshift; flat pressureless matter + massless radiation + Lambda |
 | `background.evaluate` | Requested flat-FLRW expansion and projections | LCDM, constant q, CPL or fixed five-bin q |
 | `observations.prepare` | Immutable typed source preparation | Structural checks; no probability or lineage upgrade |
+| `statistics.gaussian_posterior` | Fixed-design proper Gaussian posterior means and covariance | Strict inline synthetic controls; independent proper SPD prior and fixed noise/design |
 | `statistics.gaussian` | Normalized Gaussian density, offset profile or proper latent prior | Explicit ordered residuals and nuisance assumptions |
 | `supernova.profile` | Conditional single-offset magnitude profile | Same expansion types, with no source effect or an explicit grey magnitude effect |
 | `bao.density` | Conditional normalized free-ruler Gaussian density | Same expansion types and explicit H0rd |
