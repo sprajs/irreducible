@@ -16,6 +16,7 @@ scientific calculation and does not change a historical source or SDK pin.
 | Original review and acquisition evidence | `prospector/reviews/<batch>/` |
 | Engine comparison/build evidence | `irreducible/evidence/<component>/<attempt>/` |
 | Selected historical or unfinished material | `shared/archives/<descriptive-name>/` |
+| Cross-run work from any repo using the restricted cloud identity | `reproducible/handoffs/<owner-repository>/<descriptive-name>/` |
 
 Choose a meaningful dataset/release/experiment name. Keep the original attempt
 identity in provenance; a readable name cannot relabel a failed attempt. Immutable
@@ -89,6 +90,11 @@ scientific pin, and it does not qualify the result.
 
 ```sh
 python scripts/research_storage.py list --collection shared/archives/my-handoff
+# In cloud, use the restricted ambient identity and a writable named handoff:
+python scripts/research_storage.py --ambient-credentials push .work/partial-read \
+  --collection reproducible/handoffs/prospector/partial-read-01 \
+  --role source-review --rights private-preservation-unreviewed \
+  --provenance .work/read-provenance.json --evict-local
 python scripts/research_storage.py push .work/my-handoff \
   --collection shared/archives/my-handoff --role mixed-evidence --rights owned \
   --provenance .work/handoff-provenance.json --evict-local
@@ -104,7 +110,12 @@ Install AWS CLI v2 and Python 3.11+. Credentials come from the restricted local
 contains public settings only. Never use root or copy local credentials to a
 cloud runtime. The cloud identity reads `shared/`, `prospector/`, `irreducible/` and
 `reproducible/`, and writes only `reproducible/`; it cannot publish engine evidence
-or the shared catalog. Use its own restricted identity, not the local key.
+or the shared catalog. Use its own restricted identity, not the local key. Cloud work from any repo can
+persist eligible unfinished state under `reproducible/handoffs/<owner>/<name>`;
+owner is `irreducible`, `prospector` or `reproducible`. Preserve the actual owning
+repo/source/role in provenance. This is a handoff, not an experiment, accepted
+dataset or engine-evidence promotion. An authorized integration owner can later
+curate the exact manifest into the catalog or canonical collection. IAM is unchanged.
 
 ```sh
 python scripts/research_storage.py status

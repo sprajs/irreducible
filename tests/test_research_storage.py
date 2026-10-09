@@ -77,6 +77,9 @@ class StorageTests(unittest.TestCase):
         with self.assertRaises(ValueError):s.strict_json('{"x":1,"x":2}')
         with self.assertRaises(ValueError):s.collection('reproducible/snapshots/x')
         with self.assertRaises(ValueError):s.collection('shared/datasets/x')
+        self.assertEqual(s.collection('reproducible/handoffs/prospector/partial-read-01'),
+                         'reproducible/handoffs/prospector/partial-read-01')
+        with self.assertRaises(ValueError):s.collection('reproducible/handoffs/unknown/partial-read-01')
 
     def test_restore_corruption_and_existing_destination_refused(self):
         f = Fake()

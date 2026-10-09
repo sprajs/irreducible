@@ -11,7 +11,8 @@
     "papers": "prospector/papers/<versioned-id>/",
     "reviews": "prospector/reviews/<batch>/",
     "engine_evidence": "irreducible/evidence/<component>/<attempt>/",
-    "preservation": "shared/archives/<descriptive-name>/"
+    "preservation": "shared/archives/<descriptive-name>/",
+    "cloud_handoffs": "reproducible/handoffs/<owner-repository>/<descriptive-name>/"
   },
   "canonical_implementation": "sprajs/reproducible:scripts/research_storage.py",
   "identity_policy": "Pin manifest URI, SHA256 and exact VersionId. Discovery pointer is mutable and is never a scientific pin.",
