@@ -30,7 +30,9 @@ into a run's provenance. Never pin a mutable `latest`/discovery pointer. Catalog
 entries can reference Git, acquisition recipes, old snapshots, exact-version
 approved evidence, or private preservation bundles; use their declared route.
 An old UUID snapshot is a historical directory copy. Its receipt and bytes remain
-intact while readable catalog entries provide navigation. Local eviction requires exact-version readback and an unchanged-file inventory; remote history is never deleted. Completed objects and old versions have no automatic expiry.
+intact while readable catalog entries provide navigation. Local eviction requires
+exact-version readback and an unchanged-file inventory; remote history is never
+deleted. Completed objects and old versions have no automatic expiry.
 
 ## Keep source and working copies small
 
@@ -46,7 +48,9 @@ Local `data/`, `downloads/`, `results/`, `runs/`, `papers/` and `.work/` remain
 ignored working storage according to each repo's ignore rules. Restore into a new
 directory, verify bytes, then pass explicit local paths to the current controller
 or reader. No controller downloads from a mutable catalog or silently changes its
-request/model/build identity. Exact original inputs and historical receipts stay intact in Git or verified S3 custody; local copies are disposable only after the matching recovery route passes byte checks.
+request/model/build identity. Exact original inputs and historical receipts stay
+intact in Git or verified S3 custody; local copies are disposable only after the
+matching recovery route passes byte checks.
 
 ## S3 is the persistent data store
 

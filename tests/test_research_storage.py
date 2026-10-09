@@ -137,6 +137,14 @@ class StorageTests(unittest.TestCase):
                 s.push(f, self.source, 'shared/archives/test', 'mixed-evidence', 'owned', self.provenance, False, True)
         self.assertEqual(f.events, [])
 
+    def test_environment_root_and_unknown_git_ownership_refused(self):
+        blocked = self.root / '.aws'; blocked.mkdir(); (blocked / 'config').write_text('metadata')
+        with self.assertRaises(ValueError):s.inventory(blocked)
+        with patch.object(s.subprocess, 'run') as run:
+            run.return_value.returncode = 128; run.return_value.stdout = b''
+            run.return_value.stderr = b'fatal: detected dubious ownership'
+            with self.assertRaises(ValueError):s.tracked_selection(self.source)
+
     def test_listing_excludes_partial_objects_and_reports_pagination(self):
         f = Fake(); name = 'shared/archives/test'; release = 'a' * 64
         key = name + '/versions/' + release + '/manifest.json'

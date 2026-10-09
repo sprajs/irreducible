@@ -52,7 +52,8 @@ def identity(row):
 
 
 def inventory(root):
-    if root.is_symlink() or not root.is_dir():
+    if (root.is_symlink() or not root.is_dir() or BLOCKED.intersection(root.absolute().parts)
+            or root.name == '.env' or root.name.startswith('.env.')):
         raise ValueError('Selection must be a real directory')
     rows = []
     for p in sorted(root.rglob('*')):
@@ -231,7 +232,9 @@ def tracked_selection(source):
                             capture_output=True, timeout=60)
     if result.returncode == 0 and result.stdout:
         raise ValueError('Git-tracked material cannot be evicted')
-    if result.returncode not in (0, 128):
+    if (result.returncode not in (0, 128) or result.returncode == 128 and (
+            b'not a git repository' not in result.stderr
+            or any((parent / '.git').exists() for parent in [source, *source.parents]))):
         raise ValueError('Cannot establish Git ownership')
 
 
