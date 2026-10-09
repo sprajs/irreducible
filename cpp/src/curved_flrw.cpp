@@ -13,7 +13,7 @@ constexpr long double c=299792.458L;
 bool arithmetic(){return std::fegetround()==FE_TONEAREST && std::numeric_limits<long double>::digits>=64;}
 struct Context {
   CurvedFLRWSpec s; long double k;
-  mutable long double dependency=0,cast_fraction=0;
+  mutable long double dependency=0,cast_fraction=0,coordinate_lower=0,coordinate_width=1;
   mutable S status=S::ok;
 };
 long double square(const Context& p,long double u){return ((p.s.omega_r*u+p.s.omega_m)*u+p.k)*u*u+p.s.omega_lambda;}
@@ -32,8 +32,9 @@ bool positive_path(const Context& p,long double end){
 double inverse_e(double z,const void* raw) {
   const auto &p=*static_cast<const Context*>(raw);
   if(p.status!=S::ok)return std::numeric_limits<double>::quiet_NaN();
-  const long double q=square(p,1.L+z);
-  const long double error=128*std::numeric_limits<double>::epsilon()*scale(p,1.L+z);
+  const long double physical_z=p.coordinate_lower+p.coordinate_width*z;
+  const long double q=square(p,1.L+physical_z);
+  const long double error=128*std::numeric_limits<double>::epsilon()*scale(p,1.L+physical_z);
   if(!(q>error)) {
     p.status=S::conditioning_budget_exceeded;return std::numeric_limits<double>::quiet_NaN();
   }
@@ -50,12 +51,21 @@ numerics::ScalarResult integrate_radial(const Context &ctx,double lower,double u
                                        const CurvedFLRWPolicy &policy,std::size_t remaining) {
   const long double unit=c/ctx.s.h0_km_s_mpc;
   ctx.status=S::ok;ctx.dependency=0;ctx.cast_fraction=0;
-  auto result=numerics::integrate(inverse_e,&ctx,lower,upper,
-      {static_cast<double>(policy.absolute_tolerance_mpc/unit/32),
+  // Keep the historical observer z mesh. A two-epoch interval instead uses
+  // unit support and a wide physical coordinate, including adjacent doubles.
+  // No large-distance subtraction or collapsed physical subdivision occurs.
+  const bool interval=lower>0;
+  ctx.coordinate_lower=interval?lower:0;
+  ctx.coordinate_width=interval?static_cast<long double>(upper)-lower:1;
+  auto result=numerics::integrate(inverse_e,&ctx,interval?0:lower,interval?1:upper,
+      {static_cast<double>(std::min(static_cast<long double>(policy.absolute_tolerance_mpc)/unit/32/
+          ctx.coordinate_width,static_cast<long double>(std::numeric_limits<double>::max()))),
        policy.relative_tolerance/32,std::min(remaining,policy.maximum_callbacks_per_point),
        policy.maximum_depth});
   if(ctx.status!=S::ok)result.status=ctx.status;
   if(result.status==S::ok) {
+    result.value=static_cast<double>(static_cast<long double>(result.value)*ctx.coordinate_width);
+    result.error_estimate=static_cast<double>(static_cast<long double>(result.error_estimate)*ctx.coordinate_width);
     const long double response=(std::abs(static_cast<long double>(result.value))+
         result.error_estimate)/(1-ctx.cast_fraction);
     result.error_estimate=static_cast<double>(result.error_estimate+
