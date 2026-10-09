@@ -1,4 +1,7 @@
 #include "irred/nfw_halo.hpp"
+#ifdef NDEBUG
+#undef NDEBUG
+#endif
 #include <cassert>
 #include <cmath>
 #include <cfenv>
