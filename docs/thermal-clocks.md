@@ -3,8 +3,8 @@
 Implementation contract for the stacked native clock package, based on
 verified Irreducible main `79e71ab9edee2b15c9d01830d2c86434748eabce`
 (PR #72 head `5ef0a1627983f1b15199d768bc45b4328702e5ff`). The compiled
-interface and tests in this branch are preparation work; no build, numerical
-qualification or completed consumer is claimed before its allocated validation.
+interface and allocated scientific controls now pass the scoped clock gates;
+complete engineering integration and publication remain separately recorded.
 
 A retained `ThermalBackground` supplies the same photon, dust, explicitly
 massless radiation, zero-chemical-potential FD relic and nonnegative flat Lambda
@@ -81,7 +81,7 @@ work count against the original limits; no implicit larger cap is installed.
 Copies own independently retained state, moves invalidate the old owner, and
 method/rounding admission remains consistent with the retained thermal owner.
 
-## Planned independent controls and acceptance
+## Independent controls and acceptance
 
 Pure radiation, Einstein--de Sitter and flat dust+Lambda proper age provide
 analytic controls. The latter uses
@@ -89,11 +89,11 @@ analytic controls. The latter uses
     H0*t(a)=2/(3sqrt(OmegaLambda))
              *asinh(sqrt(OmegaLambda/Omega_m)*a^(3/2)),
 
-with the exact zero-Lambda limit handled independently. Tests will retain
+with the exact zero-Lambda limit handled independently. Tests retain
 endpoint/divergence distinctions, signed input/resource/copy/move refusals,
 requested-output omission, near-one direct lookback and tail/callback accounting.
 Separate high-precision/refined FD clock integrals and matched-constant CLASS
-age/conformal-time witnesses are required before qualification. Differential
+age/conformal-time witnesses passed the unchanged declared allocations. Differential
 clock identities use a separate finite-difference allocation and refinement;
 they do not replace the independent clock references. The relation
 chi(a)=c*(eta(1)-eta(a)) against existing distance outputs is a valuable
@@ -133,3 +133,27 @@ The validation driver converts CLASS's proper-time Mpc/c output using the
 project's explicit Gyr convention, and bounds that finite-start approximation
 against the full-support source. These code locators are implementation
 conventions, independently distinct from the metric source.
+
+The 80/100-digit reference, momentum orders 160/240 and full-support outer
+orders 256/384, passed with maximum refinement fraction 0.000063894
+(required <=0.05). The first 50/80-digit, 80/160-momentum, 128/256-outer
+attempt missed that reference gate at 0.053875758 and remains preserved.
+Native/reference residuals occupy at most 0.001032 of the allocations.
+Matched CLASS 4096/8192-momentum and 10000/20000-background refinement occupies
+at most 0.002116, with CLASS/high-precision residual at most 0.027456.
+No numerical admission budget or work cap was weakened after the failures.
+
+CLASS starts at a_i=1e-16 with the lower radiation approximation already
+present in its clocks. For this flat nonnegative source, the FD inequality
+I_rho(M*a)-I_rho(0)<=a*I_rho(M) and nonnegative closure imply
+0<=D(a_i)-D0<=a_i. With D0>1e-5, the difference between that lower radiation
+tail and full support is below 1e-20 Mpc for conformal length and 1e-30 Gyr
+for proper age. Those conservative finite-start allowances are included in
+reference qualification, rather than claiming exact infinite-past CLASS clocks.
+
+The retained library is available through `irred/thermal_clocks.hpp`; the
+separately compiled installed consumer requests an effective source's actual
+background and `diagnostics().stress_source_estimate`. Supply that estimate
+when composing a physically mapped source so its deterministic conversion
+directions remain part of clock admission. Raw fractional backgrounds retain
+their explicitly supplied identity. CLI and C ABI discovery are unchanged.

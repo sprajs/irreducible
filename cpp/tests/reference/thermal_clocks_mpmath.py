@@ -4,7 +4,7 @@ import mpmath as mp,json,sys
 from pathlib import Path
 out=Path(sys.argv[1] if len(sys.argv)>1 else ".");out.mkdir(parents=True,exist_ok=True)
 results={}
-for digits,nq,na in ((50,80,128),(80,160,256)):
+for digits,nq,na in ((80,160,256),(100,240,384)):
  mp.mp.dps=digits
  qnodes,qweights=mp.gauss_quadrature(nq,'legendre')
  anodes,aweights=mp.gauss_quadrature(na,'legendre')
@@ -52,9 +52,9 @@ for digits,nq,na in ((50,80,128),(80,160,256)):
 open(out/'clock-reference.json','w').write(json.dumps(results,indent=2)+'\n')
 # Allocation refinement gate separate from comparison against native output.
 worst=mp.mpf(0)
-for low,high in zip(results['50']['values'],results['80']['values']):
+for low,high in zip(results['80']['values'],results['100']['values']):
  for key in ('age_gyr','lookback_gyr','comoving_particle_horizon_mpc','proper_particle_horizon_mpc'):
-  v=mp.mpf(high[key]);e=abs(v-mp.mpf(low[key]))+abs(v)*mp.mpf(results['80']['uniform_inverse_sqrt_momentum_tail_relative_bound'])
+  v=mp.mpf(high[key]);e=abs(v-mp.mpf(low[key]))+abs(v)*mp.mpf(results['100']['uniform_inverse_sqrt_momentum_tail_relative_bound'])
   fraction=e/(mp.mpf('1e-8')+mp.mpf('2e-10')*abs(v));worst=max(worst,fraction)
 open(out/'clock-reference-refinement.json','w').write(json.dumps({'max_fraction':str(worst),'required_max_fraction':.05,'passed':bool(worst<=.05)},indent=2)+'\n')
 print('maximum reference refinement fraction',mp.nstr(worst,10),flush=True)
