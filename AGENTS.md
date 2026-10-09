@@ -4,7 +4,7 @@ Irreducible is building a shared physics engine that takes a scientific idea thr
 
 Rust handles non-interactive configuration, data acquisition, structural parsing and records. C++20 handles physical models, shared equations, numerical kernels and statistical calculations. The library remains useful independently of the CLI. External fitting, orchestration and plotting tools are welcome consumers.
 
-Use the single active [roadmap](docs/roadmap.md), [gaps](docs/gaps.md), [docs/README.md](docs/README.md), [capabilities](docs/capabilities.md) and the relevant guide when their context helps; inspect actual built discovery/code before claiming implementation. Local planning/history is context, not a feature checklist. Preserve unrelated work and original inputs.
+Use the sole active [roadmap](docs/roadmap.md) for coordinated M0–M6 work. [Gaps](docs/gaps.md) is a factual register, not a second priority queue; use [docs/README.md](docs/README.md), [capabilities](docs/capabilities.md) and the relevant guide when their context helps; inspect actual built discovery/code before claiming implementation. Local planning/history is context, not a feature checklist. Preserve unrelated work and original inputs.
 
 ## Shared research storage
 

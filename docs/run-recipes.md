@@ -1,5 +1,7 @@
 # Run recipes (proposed)
 
+This is an unimplemented design option. Its former first-implementation and initial-executor recommendations are superseded by the sole active [roadmap](roadmap.md); no recipe work is scheduled by this proposal.
+
 A run recipe would preconfigure a bounded sequence of data acquisition, preparation and compiled calculations. A person or agent could review it, rerun the same paper comparison, or create an explicitly changed variant without reconstructing a conversation. This is proposed work: the current [CLI](cli.md) accepts individual requests and retained-session commands, not recipe files. No recipe schema or runner is implemented.
 
 Use **strict JSON as the single canonical recipe format**. It matches the existing JSON requests, records and [request schema](../schema/run.schema.json), and fits schema-constrained agent tools. This is a project integration decision, not a claim that JSON is universally easiest, fastest or most accurate for language models. Keep explanatory `description` fields and surrounding Markdown for human commentary.
@@ -59,7 +61,7 @@ Before acquisition, validate the entire structural graph: unique IDs, existing r
 
 Acquisition needs explicit allowed schemes/hosts, redirect count and cross-origin credential policy, timeouts, concurrency, download and decoded-size bounds, and license/access disposition. Credentials are references to an external credential provider, never secret values in recipes or receipts. Record actual origin and redirects without credential-bearing URLs. An unresolved license may block redistribution even if local access is allowed. An unknown hash permits discovery only under an explicitly separate admission policy; it cannot silently become a pinned repeatable input.
 
-The initial executor should be a serial local bounded runner over existing typed operations and retained owners. No scheduler, server or distributed checkpoint service is required. Define cancellation at safe boundaries, release all owners, preserve an incomplete attempt, and publish no false completed result. Failed required outputs fail their step; downstream dependencies are blocked. Independent successful outputs remain inspectable as partial results, never silently accepted as the full recipe. No retry may change assets, tolerances, rows or models without a new identified variant.
+The proposed initial executor would be a serial local bounded runner over existing typed operations and retained owners. No scheduler, server or distributed checkpoint service is required. Define cancellation at safe boundaries, release all owners, preserve an incomplete attempt, and publish no false completed result. Failed required outputs fail their step; downstream dependencies are blocked. Independent successful outputs remain inspectable as partial results, never silently accepted as the full recipe. No retry may change assets, tolerances, rows or models without a new identified variant.
 
 Reuse within a run is explicit ownership reuse. Omit automatic cross-run cache/resume initially. Any later reuse must verify asset hashes, model/source-effect code, selection/covariance, numerical contract and applicable build/backend identity; a matching filename or old handle is insufficient. Recipe steps do not turn current immutable run stores into an implemented cache.
 
@@ -71,9 +73,9 @@ Keep execution, numerical, inference and interpretation states distinct, followi
 
 For a paper workflow, identify paper/version, equations, data release, preprocessing, nuisance measure and the exact tested claim. Preserve faithful transcription separately from repaired or extended models. Declare exact, approximate, conditional or blocked reproduction with reasons. Model-dependent calibration, reconstruction and selection must be recomputed or justified under the new theory. A joint comparison requires repeated-object/shared-calibrator identities and overlap/cross-covariance; unknown dependence is not independence. A list of separate likelihood steps is not a qualified joint fit.
 
-## Small first implementation and its gate
+## Proposed bounded implementation and its gate
 
-First implement structural validation and resolution for a small acyclic recipe, pinned local artifacts and existing compiled requests. Add a bounded acquisition step for one narrow supported adapter, then in-process preparation reuse. Keep all scientific calculations in their current owners. Multi-paper search, automatic fitting, remote scheduling and distributed restart are later concrete consumers, not prerequisites.
+If a real consumer justifies this route under the active roadmap, a bounded candidate would validate and resolve a small acyclic recipe, pinned local artifacts and existing compiled requests, followed by one narrow acquisition adapter and in-process preparation reuse. Keep all scientific calculations in their current owners. Multi-paper search, automatic fitting, remote scheduling and distributed restart are later concrete consumers, not prerequisites.
 
 Freeze acceptance cases and consumer error allocations before candidate outputs: duplicate/unknown fields, cycles, wrong reference types/order, unsupported capabilities, hash/build mismatch, missing assets, acquisition quota/redirect failures, cancellation, partial failures and owner cleanup. Assert one-shot versus recipe numeric/source identity at the same policy, and scientific identity stability across ephemeral handles. Challenge stale reuse explicitly. Existing mathematical oracles and tolerances remain unchanged; orchestration agreement is transport evidence, not an independent scientific algorithm. Test each new stochastic/backend claim with its own reproducibility and downstream allocation.
 

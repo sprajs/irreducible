@@ -322,18 +322,19 @@ The named transport `push --dry-run`, `push` and exact URI/SHA256/VersionId
 `pull` were exercised on the recorded selections; metadata records preserve
 full original argv and results.
 
-### Remaining scientific gaps and executable next work
+### Remaining scientific gaps (historical campaign assessment)
 
-| Capability | Observed limit or prerequisite | Owner | Next action |
+| Capability | Observed limit or prerequisite | Owner | Closure requirement |
 | --- | --- | --- | --- |
 | Chaplygin full cosmological prediction | Background only; formal dp/de is not a perturbation/propagation closure | Irreducible | Specify source-compatible perturbations before spectrum/CMB use |
 | Measured Plummer stellar kinematics | One-component mass-traces-tracer law; no aperture/PSF/selection or calibrated stellar inputs | Reproducible | Acquire a licensed resolved velocity/tracer dataset with units and covariance before fitting |
 | Broader tracer populations | Isotropic self-gravitating Plummer only | Irreducible | Define anisotropic or independent tracer/potential contracts as new models |
 | Primary historical source review | Plummer/Hernquist/Jacobs/Eddington originals were inaccessible; own derivations remain distinct | Prospector | Obtain lawful original source access and complete selected-equation checks |
-| Original six-model numerical sweep | Scalar-diagnostic allowance and refined NFW projected/lens refusals remain | Irreducible | Investigate the retained failures in the later direct-improvement pass without weakening budgets |
+| Original six-model numerical sweep | Scalar-diagnostic allowance and refined NFW projected/lens refusals remain | Irreducible | Explain retained refusals and earn unchanged-budget acceptance for the declared domain |
 
-The next executable calculation is the pinned compiled Chaplygin/Plummer
-quick/broader response experiment, or the native population example for a new
-supplied SI mass/scale/radius/speed grid. Observational fitting needs the separate
-calibrated data and physical contracts above. Passing new-model controls does
-not promote the older incomplete sweep or historical conditional H0 work.
+The former preference for a Chaplygin/Plummer response experiment is superseded
+by the sole active [roadmap](roadmap.md). Those demonstrated consumers remain
+available within their declared scope. Observational fitting needs the separate
+calibrated data and physical contracts above; the current [gap register](gaps.md)
+records them. Passing new-model controls does not promote the older incomplete
+sweep or historical conditional H0 work.

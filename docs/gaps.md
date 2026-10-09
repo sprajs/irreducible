@@ -1,308 +1,71 @@
-# Capability and data gaps
+# Current capability and gap register
 
-This assessment separates the current numerical engine from the proposed [roadmap](roadmap.md). It does not qualify a cosmological interpretation, claim that historical analyses were rerun, or treat a file's presence as a valid likelihood. Use [capabilities](capabilities.md) and actual executable discovery for the implemented interface.
+This register describes main at `179304bcb007a71744bb1882049d9bdef541b88a`, audited on 2026-10-09. The [roadmap](roadmap.md) alone assigns work and order. [Capabilities](capabilities.md), public headers, compiled source, executable discovery and named regressions define what exists. This reset changes no equations, assets, numerical budgets or qualification status. No fresh scientific campaign was run for the inventory.
 
+Implemented calculations can be conditional, numerically refused or observationally unqualified. A passing named control applies to its recorded inputs, source/build/domain and allocation. CLI discovery exposes eleven operations and no scientific qualifications (`src/cli.rs`, lines 53–72). Most advanced physical/statistical operators and all ten new models are SDK capabilities. A work branch or acquired file is not an implemented main capability.
 
-## New compiled model families
+## Existing foundations and boundaries
 
-The C++ SDK also supplies six distinct physical models: [canonical exponential
-quintessence](quintessence.md), [self-accelerating flat DGP growth](dgp-growth.md),
-[spherical NFW halo and lensing](nfw-halo.md), [decaying matter to massless
-radiation](decaying-matter.md), and [curved FLRW geometry](curved-flrw.md), and the [finite-mass Newtonian
-Hernquist sphere](hernquist-sphere.md).
-Each owns its equations, supplied parameters, bounded domain and outputs.
-Analytic limits, independent formulations or quadrature, refinement and hostile
-inputs test the declared contracts. Numerical diagnostics are empirical rather than certified global accuracy
-bounds; each guide defines its estimator scope. These models are native
-SDK calculations; no new CLI operations or observed-data fits are claimed.
-Quintessence and decaying matter currently supply homogeneous backgrounds, DGP
-growth assumes pressureless quasistatic perturbations on its self-accelerating
-branch, NFW lensing conditions on supplied physical lens geometry, and curved
-FLRW assumes conserved dust/radiation and Lambda. Hernquist supplies SI
-density, mass, potential, acceleration, circular speed and potential curvature
-from an explicitly declared profile; original-paper equation access remains
-unverified and is distinguished from the independent Newtonian derivation. Full coupled perturbations,
-measured halo inference and joint likelihood qualification remain separate work.
-
-
-## What exists
-
-The current engine exposes eleven operations: exact integer addition, typed physical conversion, scalar numerical methods, immutable observation preparation, requested flat-FLRW background outputs, Gaussian calculations and fixed-design synthetic Gaussian posterior batches, conditional SN magnitude profiles and conditional free-ruler BAO densities, deterministic rectangular or sampled-passband photometry, and a conditional supplied-drag sound horizon. The late-time backgrounds are LCDM, constant q, CPL and fixed five-bin q. They are bounded CPU calculations with explicit source, arithmetic, numerical and execution contracts. Named wide-arithmetic gates use Linux/GCC long double with at least 64 mantissa bits; hosts where long double equals double are not covered, and Ubuntu CI is a separate engineering check. The early ruler separately assumes flat pressureless matter, massless radiation and Lambda; photon/baryon fractions and drag redshift are supplied, not inferred, and no physical-ruler BAO qualification follows. Gaussian nuisance elimination through the CLI supports a scalar offset. The standalone C++ [multi-column design profile](gaussian-design.md) supplies a bounded linear prerequisite; its relative score is separate from the native synthetic ladder and proper correlated calibration density described below.
-
-No current runtime request receives a named scientific qualification. Passing the default numerical_contract means that required numerical checks passed; it is not inference or interpretation qualification. Named comparison evidence applies to its recorded inputs/build/domain, not automatically to a new request.
-
-Shared source ownership and retained factors support repeated evaluations. Named original-input SN and BAO comparisons and analytic/adversarial controls provide evidence for stated cases. They do not establish all-domain accuracy, physical completeness, a joint fit or a new H₀ measurement. The current SN free-offset profile does not retain absolute calibration information; free H₀r_d BAO does not identify H₀ or r_d independently. A supplied dimensional H₀ in a background projection is an input, not a measured result.
-
-The main missing capability is a coherent forward physical state with qualified observational consumers: source populations/templates and instrument/selection laws; an observationally qualified absolute distance-ladder calibration model; complete thermal/perturbation evolution; measured lens systems; nonlinear initial conditions/dynamics/light cones; and qualified GPU/distributed execution. Bounded sampled/temporal, detector and thermal operators below do not complete those consumers. Current historical performance evidence does not benchmark the consolidated interface or future workloads. A new benchmark must measure representative phases, setup/memory and matched scientific quality.
-
-Engineering remains serial CPU execution with bounded dense matrices and narrow source-specific ASCII adapters. General survey image/spectrum ingestion is absent; the optional FITS codec has test-only synthetic BINTABLE coverage and is unavailable in the product. The native detector has an addressed generator and bounded replay controls; full simulation-workload RNG, distributed restart/sharding and device execution remain unqualified. There is no consolidated-interface throughput benchmark. Native SDK consumers can compose compiled models; adding a CLI route also requires coordinated Rust descriptors, schema, ABI, discovery and records. Centralize structural descriptors where useful; keep equations in compiled scientific owners.
-
-## Standard-model diagnostic gaps
-
-The [bounded LambdaCDM baseline](lcdm-baseline.md) distinguishes full Planck base
-LCDM from the current supported approximation. The native shared early/late
-state treats radiation as massless and matter as pressureless at every epoch.
-The separate native [thermal-neutrino provider](thermal-neutrino.md) now
-supplies explicit relic density/pressure and flat E/H with a mass transition,
-independent high-precision and matched CLASS controls. The native
-[thermal distance/ruler consumer](thermal-observables.md) now maps supplied
-physical densities and explicit temperatures/species and retains one state for
-distances and the conditional supplied-drag ruler. It preserves the massless
-model as a distinct physical identity. The native [thermal BAO density](bao-thermal.md)
-now composes these predictions with retained ordered covariance and density-level
-projection checks. Released compression validity remains unqualified. A native
-conditional pure-H history is described below; full thermal/ionization and
-physical drag prediction remain open. There is no implicit Neff/mass hierarchy. The CLI late LCDM background omits radiation and has a
-different physical identity; native early/late and conditional BAO currently
-require a C++ SDK consumer rather than a CLI/C ABI request.
-
-The historical released-ladder admission failure at source 99ce262 remains
-preserved. The native retained whitened pivoted QR at source f844080 now admits
-the exact same 3492-row/47-column compact products with both covariance arithmetic
-profiles and unchanged budgets. All coefficients and the objective agree with
-independent LAPACK QR/SVD references; q=3552.759330295523. This closes the named
-numerical admission blocker. The complete physical parameter dictionary, released
-calibration assumptions and observational H0 reconstruction
-still need separate qualification. Native QR contrast variance and a synthetic
-ladder H0 sampling law now supply conditional uncertainty under fixed Gaussian
-observation noise and an explicitly assumed generating mean. Named synthetic
-checks do not qualify released-data parameter mapping or coverage. The relative
-profile is not a normalized posterior. A native [proper Gaussian parameter
-posterior](gaussian-posterior.md) now supplies fixed-linear conditioning under
-an explicitly independent SPD Gaussian prior; it does not normalize the
-released finite-box target or reproduce an observational posterior. Source review now identifies original
-column 46 as 5 log10(H0 in km/s/Mpc); its formal contrast variance on the same
-3492x47 products agrees with independent SVD/QR. A later [Reproducible source audit](https://github.com/sprajs/reproducible/tree/main/experiments/released-ladder)
-now joins all 2150 initial Cepheid rows to the pinned primary table and identifies
-all 37 host columns. Period/metallicity and the H0 contrast are corroborated;
-six later source-supported anchor/nuisance coordinates are now identified, while
-original axis 44 has an unresolved physical label and literal fixed zero support.
-The audit preserves the paper/release N1365 count discrepancy and four original
-table joins that remain unresolved. Reproducible now pins the 46-dimensional
-released box target with axis 44 fixed, preserving all 3492 rows and full covariance;
-its unboxed fixed-coordinate profile is distinct from box-supported inference.
-Three source constraint-mean sensitivity pairs at fixed design/covariance are
-recorded. They do not normalize the box posterior, supply a full systematic
-uncertainty or qualify observational held-out predictions.
-The native [Gaussian predictive](gaussian-predictive.md) prerequisite now retains
-a normalized joint future distribution for fixed synthetic linear responses
-under the proper Gaussian parameter prior and declared independent future noise.
-It propagates shared parameter covariance without treating the predictive law
-as another measurement. Native [addressed Gaussian generation and bounded
-recovery campaigns](gaussian-simulation.md) now test distinct fixed-truth and
-prior-predictive laws, retaining covariance, random identities and every refusal.
-The generic and ladder repeated-conditioning owners now retain the invariant
-future response/covariance factor across pooled original training vectors.
-Matched complete-preparation comparisons retain original inputs and per-vector
-statuses, including unavailable upstream vectors; independent scalar controls
-and actual factor observations check this bounded synthetic scope. Setup, output
-capture, allocations and common input storage remain explicit in the campaign
-diagnostics. Seeded agreement does not prove RNG independence or a universal
-performance gain. Observational held-out qualification still requires
-resolved object/calibration/selection dependence, and the released finite-box
-target remains a separate measure and normalization problem.
-See [Gaussian design](gaussian-design.md).
-
-The native [hydrogen equilibrium](hydrogen-equilibrium.md) model now supplies
-separate ground-state pure-H fractions under supplied temperature/density.
-The [H/He mixture equilibrium](hydrogen-helium-equilibrium.md) now supplies
-shared-electron ground-state LTE fractions for independently supplied nuclei
-densities. [Supplied baryon abundance](baryon-abundance.md) now maps explicit
-physical density, He4 mass fraction and neutral effective masses into that LTE
-consumer. The native [finite joint abundance law](baryon-abundance-law.md)
-propagates supplied correlated density/mass/temperature states into full
-population moments, with separate numerical diagnostics and truthful required
-state refusals. The law itself needs source qualification; G and atomic-asset
-uncertainty remain excluded. Abundance prediction and a qualified physical
-input law remain open. The distinct [bounded H/He history](hydrogen-helium-history.md)
-now advances supplied-density singlet kinetics with shared charge and coupled
-temperature. Its artificial start, omitted HeIII, low-temperature fit
-extrapolation and literal-paper/code differences remain explicit; original
-atomic-source serialization and physical atomic/rate uncertainty are separate
-qualification gaps. It does not establish full cosmic recombination or the
-positive late-opacity tail required for a physical drag epoch. LTE supplies
-only the declared initialization. The
-[conditional history](recombination-drag.md) advances a bounded effective
-three-level model with the shared thermal background and explicit choice of
-prescribed Tm=Tr or coupled Compton/adiabatic matter temperature. The coupled
-variant supplies Thomson depth, per-redshift scattering rate and unnormalized
-finite-endpoint visibility with boundary survival. Both integrate drag optical
-depth from an explicit late endpoint. Its unit-depth
-root depends on that endpoint and physical approximation; it is not a qualified
-cosmological drag epoch. Bounded positive-mass relics now feed the same retained
-H source, with direct momentum costs charged. An explicit nested CC momentum route
-now has the same consumer allocations and independent comparisons; direct
-remains the default, and matched workload evidence governs promotion. No hierarchy/Neff mapping or helium
-kinetics is added by that pure-H relic route. Full helium dynamics, multilevel rates, atomic/model uncertainty,
-qualified full optical-depth endpoints and reionization remain prerequisites
-before physical-ruler or CMB coupling. Finite-endpoint visibility does not
-predict the present-day last-scattering distribution or CMB spectra.
-
-The native [GR growth](gr-growth.md) operator supplies a bounded radiation-free
-pressureless growing mode. The [conditional amplitude/RSD consumer](growth-rsd.md)
-now adds supplied-reference sigma8/f*sigma8 and a retained full-covariance
-synthetic density. Source amplitude and survey-estimator/AP/window validity
-remain explicit prerequisites for measured RSD. The native
-[perfect-fluid transfer](linear-transfer.md) now supplies an explicitly restricted
-self-interacting radiation/CDM/Lambda scalar transfer and primordial finite-band
-variance. Its source and numerical controls do not qualify standard baryon/relic
-matter transfer, ordinary full-support sigma8 or an observed RSD amplitude.
-The [primary CMB contract](primary-cmb-projection.md) remains open without photon
-transport and a qualified complete visibility state. General lensing potentials
-and propagation, CMB spectra, stellar/source populations, measured detector and
-selection laws and survey recovery remain separate gaps. A known cosmology makes these missing
-sectors concrete; an H(z) or distance match does not supply them. Use the
-[roadmap](roadmap.md) to choose the next qualified prerequisite after the
-experiment identifies a blocker.
-
-The [Reproducible observer/passband packet](https://github.com/sprajs/reproducible/tree/main/experiments/sn-observer-passband)
-now passes 6093 conditional comparisons on 321 released SDSS redshift pairs/twins
-and a pinned historical 910-knot optical response. Coasting and chosen
-radiation-free LCDM geometry use independent analytic/refined references.
-Unresolved sky/frame/velocity lineage and calibrated PHOT units/time/error law
-block an observational SN fit. A fitted 102-coordinate zero-point covariance and
-nine systematic template variants do not provide a measured optical-state law;
-the 102-versus-105 calibration mapping and joint probability masses remain open.
-
-The native [synthetic SIS slice](sis-thin-lens.md) now supplies one bounded
-point-source image/delay and Gaussian-PSF pixel calculation using compatible
-massless-radiation distances. Its synthetic mass-sheet/H0 controls demonstrate
-remaining degeneracies. Actual system images, PSF/noise, source variability,
-mass/environment constraints and kinematics have not been qualified; neither
-these synthetic controls nor background distances determine a lens mass.
-General or multi-plane propagation and cosmological/CMB lensing remain separate
-physics consumers.
-
-## Data products are not interchangeable
-
-The historical research collection contains several levels of information:
-
-| Role | Located examples | Assumptions that remain attached |
+| Area | Implemented foundation | Remaining boundary |
 | --- | --- | --- |
-| Detector data | Selected HST raw dark frames | Detector calibration, reference validity, noise and observing configuration; these are not a complete raw SN survey |
-| Calibrated images/flux | HST FLTs and flat/PAM assets; DES flux/error/time/filter/flag tables; RAISIN photometry | Instrument response, zero points, extraction, resampling, masking and selection |
-| Fitted summaries | Pantheon corrected magnitudes/distance columns and covariance; RAISIN systematic distance variants; host ages; compressed BAO means/covariance | Light-curve training, bias corrections, peculiar velocity/extinction/population assumptions, covariance construction and compression validity |
-| Empirical/calibration assets | SALT3 templates and colour dispersion, passbands/SEDs, calibration operators | Training sample, conventions, uncertainty and range of validity |
-| Synthetic controls | SNANA/BBC simulation and FITRES products, mocks, operator experiments | Chosen source population, selection, nuisance model, random streams and simulator closure |
-| Reference results | Historical chains, posterior summaries, model predictions and validation records | Original theory, priors, assets, preprocessing and numerical settings; they are not independent observations |
+| Numerical/observation core | Typed units, scalar methods, dense Gaussian covariance/precision, immutable ordered observation objects, coarse retained factors and strict records | Serial CPU; narrow ASCII adapters. Optional FITS BINTABLE tests do not enable product science-image/spectrum ingestion. No consolidated matched-quality throughput benchmark |
+| CLI cosmology | Radiation-free flat LCDM, constant-q, CPL, fixed-q5; SN single-offset profiles; free-H0rd BAO; supplied-drag sound ruler | Late LCDM differs from native massless early/late and thermal states. Free SN offset loses absolute calibration; free H0rd does not identify H0 or rd |
+| Thermal backgrounds | Explicit FD masses/temperatures/weights, physical-density mapping, retained E/H/distances/supplied-drag BAO; nested CC/direct fallback | No implicit Neff/hierarchy mapping, physical drag prediction or perturbations; compression applicability open |
+| Atomic/thermal prerequisites | H/shared-electron H/He LTE, supplied abundance/mass mapping and joint-state moments, pure-H prescribed/coupled history and bounded HII/HeII singlet history | Artificial starts/finite endpoints; HeIII/multilevel/reionization/physical tail and atomic/rate/input-law uncertainty open; defaults may refuse trace He/expensive relics |
+| Growth/linear power | Radiation-free GR growth; supplied sigma8/RSD; distinct perfect-fluid transfer/finite-band variance; supplied-spectrum Kaiser/AP/window mean | No standard full-species transfer-derived sigma8, qualified historical nonlinear estimator or released covariance score |
+| CMB prerequisites | Ideal acoustic fields; finite-opacity raw producer; finite supplied-source T/E projector/independent angular regression | Original independent 100M reference refused. Finite-opacity admission explicitly false with absent integrated errors. Projection ell≤64/phase≤512 lacks grid/radial/support bounds; no native Cl/lensing/full primary observable |
+| Statistics/calibration | Multi-column QR/contrast variance, synthetic ladder, proper correlated calibration, Gaussian posterior/predictive/repeated conditioning, addressed simulation, uniform-box owner | Proper Gaussian, relative profile and released box are distinct measures; actual released box independent acceptance refused. Source/reduction/dependence and observed H0 qualification open |
+| Photometry/detector | Pooled sampled CLI, temporal source/exposure SDK, supplied finite passband law, Poisson/QE/read-noise censoring/shared optical mixture | Synthetic supplied source/calibration/noise; trained measured source/population, camera law and astrophysical recovery absent |
+| Lenses | Synthetic SIS/mass sheet and two-softened-deflector pixels; NFW/Plummer supplied-geometry lensing | No qualified named mass/source/environment/instrument/delay/kinematic chain or general weak/CMB lensing |
+| Ten new models | Quintessence, DGP, NFW, decaying matter, curved FLRW, Hernquist, Plummer sphere, Bianchi I, Chaplygin, Plummer population | Bounded native laws with registered controls; broader perturbation/propagation/tracer/measured closure remains model-specific |
+| External reference | Reproducible pinned CLASS3.3.0 full-state cases, official PLC3.01 conditional primary scores, separate BAO/SN comparisons using native statistical owners | External capability is not native closure; fixed-state/H0-only cases are not six-parameter or joint posteriors |
 
-The [Pantheon+ release paper](https://arxiv.org/abs/2112.03863) distinguishes light-curve release from subsequent distance/bias and cosmological inference, while its [calibration analysis](https://arxiv.org/abs/2112.03864) describes retraining and calibration covariance. DESI's [clustering products](https://data.desi.lbl.gov/doc/releases/dr1/vac/full-shape-bao-clustering/) include windows, mocks, covariance and processed likelihoods. Neither release supplies universally assumption-free reduced data.
+Implementation evidence is in `cpp/include/irred/`, corresponding `cpp/src/` owners and `cpp/CMakeLists.txt`/`cpp/cmake/` test registrations; Rust discovery/model/session/record code and authoritative `schema/abi.json`. `cpp/src/lcdm_state.hpp` owns the radiation-free equation, `thermal_neutrino.hpp` declares explicit species without an Neff map, and `cpp/src/finite_opacity_source.cpp` explicitly withholds complete source admission. The [ten-model campaign](native-model-campaign.md) retains controls, resource/performance evidence, failures and custody.
 
-A theory change must identify which reduction assumptions remain valid. It may require lower-level observations or re-running affected calibration, selection, coordinate mapping, reconstruction or estimator response. Keep original measurements and all transformations; do not silently reinterpret fitted quantities as raw physical observations.
+## Owned gaps and closure acceptance
 
-## Concrete availability and missing inputs
+**I** owns compiled physics/numerics/permanent regressions (Irreducible); **P** owns source claims/faithful identities/compatibility (Prospector); **R** owns acquisition/preparation, pinned experiments, external reference, inference/plots and durable evidence (Reproducible). First owner is accountable. IDs identify gaps, not priority. Legacy NEXT IDs remain for source-contract/history joins. Current source availability and ignored work-branch custody must be inspected before resuming historical work.
 
-The following is a targeted inventory, not a claim that every listed product was decoded or scientifically validated. ACT version wording comes from its sampled README. Planck product labels come from filesystem paths and provenance/configuration records; this audit did not validate their binary contents, completeness, likelihood version or scientific usability.
+| ID | Observed gap and impact | Owner and prerequisites | Acceptance |
+| --- | --- | --- | --- |
+| IR-BASE-01 | Faithful fully varied six-parameter reference fit absent | R/P; exact CLASS/official target | Freeze source-defined cosmological coordinates/species/neutrino 0.06 eV convention, primordial pivot/modes, helium/BBN and recombination/reionization; exact components/multipoles/units/lensing, calibration/nuisance/prior terms. Independent fixed-point checks and converged fully varied target-specific fit. Commander+SimAll+Plik-lite primary target remains distinct from full Plik+reconstruction Table 2; fixed YHe point is not BBN-consistent variation |
+| IR-BASE-02 | External numerical sensitivity gap can bias inference | R/I; immutable default/refined receipts | Preserve fixed-w H0=75 +0.2996 logL versus 0.2gate failure. Qualify the selected LCDM fit's own domain with solver/grid/interpolation/likelihood allocations; excluded alternatives do not block it, but extensions close their own gates. Retain every old failure and budget |
+| IR-BASE-03 | Probe physical-state/parameter identities differ | P/I/R; source baseline and consumer domain | Explicit physical/fractional-density, species/temperature/helium/primordial/observer/drag/nuisance mapping; incompatible late/massless/thermal/external states refuse |
+| IR-JOINT-01 | Joint target/dependence not admitted | P/R/I; qualified individual probes | Resolve shared objects/calibration/training, BAO/RSD and primary/lensing overlap, covariance and prior duplication. Source-justified negligible-dependence approximation needs sensitivity evidence. Correlated mocks, leave-one-probe-out, prior checks and joint likelihood/parameter-shift gates |
+| NEXT-01 | Predictive SDK exists; general transport/observational design absent | I/P/R; real repeated consumer/fixed proper prior | Required coarse CLI/ABI parity, pooled allocation/lifetime/refusals and independent comparison; measured use resolves train/future noise, calibration and selection |
+| NEXT-02 | Released fixed44 box native completion lacks independent acceptance | R/I/P; original 3492 rows/full covariance/46 active coordinates | Distinct actual-target integration/refinement and runtime/error/resource gates pass unchanged totals; preserve point-mass axis44 outside 46-dimensional measure and refused reference; no Gaussian/unboxed substitute |
+| NEXT-03 | Synthetic optical/detector mixture passes; measured composition unqualified | R/P/I; NEXT-07–10 | Independent mixture/count/read-noise/selection law with all states/refusals and measured source/calibration/selection support |
+| NEXT-04 | Ladder reduction/constraint dictionary and physical axis44 unresolved | P/R; original primary/released sources | Source-backed 47 axes/units/measure and exact row/calibration/reduction joins; preserve four failed joins, nine literal conflicts and count/naming differences; repaired targets distinct |
+| NEXT-05 | Held-out/model-variant interpretation/cross-noise consumer incomplete | R/I/P; NEXT-02/04 and full joint covariance | Full-joint/Schur, normalization/removal/refit/capture checks; retain training-derived box/preprocessing leakage and author measure; scalar dx does not resolve physical unit |
+| NEXT-06 | SDSS physical-event/frame/velocity lineage unqualified | P/R; ordered HEAD/update/override products | Original serialization and physical correction ancestry; preserve ten sky-rounding discrepancies; CID uniqueness is not independence |
+| NEXT-07 | Measured light curve lacks physical exposure/calibration/time/error adapter | R/P/I; NEXT-06 and matched exposure assets | Join CID6057's 115 points including 15 negative fluxes; distinguish legacy 5.04 microJy/asinh from later FLUXCAL; actual exposure/filter/clock/units/error and independent dimensional projection; header/ordinal join insufficient |
+| NEXT-08 |102/105 calibration map and measured optical-state law absent | P/R/I; primary calibration/passbands | Complete coordinates/filter mapping and normalized measured law/cross-band dependence/refinement; preserve aliases/asymmetry/retraining ancestry |
+| NEXT-09 | Trained temporal source/generating law and uncertainty unqualified | P/R/I; source grids/training and NEXT-07/08 | Faithful support/units/colour/error/interpolation/normalization and luminosity mapping, training covariance/overlap, exposure-level time/frequency checks |
+| NEXT-10 | Measured detector/extraction/selection law missing | R/P/I; matched pixels/masks/PSF/calibration | Validate arrivals/dark/background/read-noise/extraction/saturation/digitization/censoring; optical transmission→QE→gain distinct; preserve unit/product holes; HST cannot substitute SDSS |
+| NEXT-11 | Thermal supplied-drag BAO exists; compression/main transport unqualified | P/R/I; original DESI rows/covariance/domain | Source-backed reconstruction/fiducial/model applicability, unchanged ratio/density and transport/resource parity; physical ruler requires NEXT-16 |
+| NEXT-12 | Supplied abundance/mass/T joint law not cosmologically qualified | P/R/I; source law/mass convention/kinetics | Complete states/cross-row covariance/refusals, supplied Tm versus evolved Tm/photon-T distinction, appropriate mapping/atomic/G uncertainty; BBN network separate |
+| NEXT-13 | Historical RSD/AP/window/mocks/covariance unresolved; candidate diagonal agreed 6/106 rows | P/R/I; exact code/products/axes | Faithful units/epoch/AP/shot-noise/mask/window/cuts, mock finite-sample covariance; supplied-spectrum mean remains separate from nonlinear/FoG likelihood; overlap before joint use |
+| NEXT-14 | Full-species transfer/full-support sigma8 absent; reference/resource gaps open | I/P/R; thermal state/regular modes/species/external reference | Photon/baryon/CDM/metric/relic equations and full start/time/hierarchy/angular/background/cast allocation, independent traces/refinement/full-k support; preserve original 100M reference refusal versus separate 400M diagnostic |
+| NEXT-15 | Physical H/He recombination incomplete | I/P/R; primary rates/input/atomic law | Source-supported HeIII/multilevel/temperature evolution and initial conditions, independent stiff/refined checks and model/rate uncertainty; singlet colder extrapolation explicitly qualified or replaced |
+| NEXT-16 | Physical complete drag/visibility endpoint absent | I/P/R; NEXT-12/15 and positive late-opacity/reionization | Complete optical-depth support/tail/root/ruler allocation in same thermal state; retain boundary survival, independent source-defined epoch; no renormalization of missing mass |
+| NEXT-17 | Measured selected source population absent | P/R/I; trained population/NEXT-07–10 | Declared generating/selection/dependence law, all nondetections/refusals, independent normalized controls then measured held-out recovery/covariance |
+| NEXT-18 | Named strong-lens likelihood unqualified | P/R/I; mass/source/environment/images/PSF/noise/delays/kinematics | Source-compatible propagation/mass law, measured camera/delay law, anisotropy/line-of-sight sensitivity, degeneracy and independent pixel/density gates; profile velocity not stellar measurement |
+| NEXT-19 | Native full primary CMB absent | I/P/R; NEXT-14–16/primordial/external target | Admit clock/background/arithmetic/grid/radial/support/k-integration errors; resolve direct-q CLASS differences; full physical source/visibility, Cl/needed lensing and likelihood/parameter-shift comparison. Native replacement does not block external M1 |
+| IR-MODEL-01 | New background models lack broader perturbation/propagation | I/P/R; selected equations/modes/observer contract | Independent source-compatible closure; Chaplygin derivative not rest-frame perturbation law, DGP quasistatic growth not full dynamics, Bianchi directional redshift not optical distance/collisionless radiation; retain DGP self-accelerating ghost concern |
+| IR-MODEL-02 | Measured NFW/Hernquist/Plummer tracer/kinematic use absent | I/P/R; actual licensed tracer/velocity and instrument laws | DF/Jeans/LOS/PDF/anisotropy/multiple-tracer/aperture/PSF/selection validation; adding NFW/Hernquist potential invalidates self-gravitating Plummer DF and requires new law |
+| IR-MODEL-03 | Primary Plummer/Hernquist/Jacobs/Eddington access failed | P; lawful originals | Selected equation/version checks with differences; independently derived contracts/access failures remain distinct |
+| IR-MODEL-04 | Original six-model sweep retains scalar/NFW projection-lens refusals | I/R; original input/build/budget | Explain each failure, pass same-quality/resource gate or explicitly narrow domain; later ten-model passes do not rewrite it |
+| IR-ENG-01 | General recipe/advanced consumer routes absent | I/R; recurring real SDK consumer | Minimal typed coarse route/resolver with strict schema/discovery/records, factor reuse/lifetime/resource/parity; no duplicate physics or speculative framework |
+| IR-ENG-02 | Product science-image/spectrum structural ingestion absent | R/I; representative licensed products | Rust acquisition/structural decoding and native scientific semantic owner; actual units/axes/masks/calibration and malformed/resource/throughput tests |
+| IR-PERF-01 | Consolidated matched-quality performance evidence absent | I/R; qualified representative workload | Setup/preparation/factorization, repeated eval/capture, peak memory/accepted throughput at fixed observable/likelihood accuracy/limits; independent result checks |
+| IR-PERF-02 | Product GPU/distributed/restart/shard/RNG qualification absent | I/R; measured bottleneck | Host/device/batch/shard ownership, bounded memory/reductions/arithmetic, streams/checkpoints/restart/reproducibility and matched-quality total-cost gain |
+| IR-SCOPE-01 | Nonlinear light cones, weak/CMB lensing and further modalities absent | P/I/R; specific data/observable | Theory-consistent initial/force/ray or waveform/nuclear/stellar/gas/radiation closures and actual selection/calibration/covariance; conservation/refinement/independent controls |
+| IR-EVID-01 | Catalog metadata/local presence not immutable available evidence | R/P/I; shared startup and terms | Exact manifest URI/SHA256/VersionId plus source/input/build/attempt reconstruction and fresh byte verification; preserve failures/originals/unique unfinished state, no credentials or unlicensed copying |
 
-| Modality | Products identified in the historical collection | Next data/physics requirement |
-| --- | --- | --- |
-| Optical/NIR SN | Pantheon table/covariance; DES calibrated fluxes and fitted predictions/masks; RAISIN photometry/distances; Dovekie reference declarations | Complete event/calibration/selection linkage for a chosen forward experiment; actual templates, uncertainties and independent calibration data |
-| Images/instruments | Selected HST science FLTs, raw/calibrated darks, flats/PAM and operator arrays | Specific raw-science exposure coverage, PSF/background/extraction model, valid reference files and pixel-level verification |
-| Cepheids/anchors | Released ladder design, data and covariance FITS, period/metallicity table, overlap records; correlated 37-host compression | Anchor/Cepheid/SN identities, shared calibration covariance, extinction/crowding/selection contract and absolute forward model |
-| BAO/LSS | Thirteen-row compressed BAO inputs; external BAO packages and DESI reference configurations/chains; Lyα/full-shape lineage/material | Actual catalogue/estimator/window/reconstruction identities and theory compatibility; physical ruler or explicitly free ruler, perturbations/bias/RSD |
-| CMB primary/lensing | ACT DR6 v1.2 README and likelihood-data paths; Planck-labelled primary/native-likelihood files and ACT/Planck/SPT/MUSE-related reference material | Complete pinned likelihood assets, thermal/perturbation predictions, foreground/instrument/estimator assumptions and shared covariance |
-| Specific strong lenses | No complete named-system image/time-delay/kinematics dataset verified by this inventory | Lens/source/line-of-sight boundaries, images/PSF, delays, kinematics and degeneracy-breaking observations |
-| TRGB, masers, sirens | No dedicated raw dataset verified by this inventory | Identified source products and instrument/calibration/selection covariance; appropriate stellar, geometric or waveform forward models |
-| Chronometers, BBN, 21 cm, clusters | Host-age summaries exist, but no complete dedicated measurement chain for these modalities was verified | Actual measurements and population/nuclear/radiation/gas/selection models; age-labelled rows are not direct chronometers |
+## Preserved source roles and findings
 
-“Not verified” is not proof of absence: binary containers and many archives remain unread. Filename searches also have false positives. A future acquisition task must identify the exact scientifically usable product, version, role, units, selection and uncertainty, not merely add a folder.
+Raw pixels, calibrated flux/images, trained assets, fitted summaries, mocks and posterior/reference summaries retain distinct roles. A theory change may require lower-level data or a separately identified calibration/reconstruction/window/selection reduction. Posterior summaries are not additional measurements; unknown dependence stays unknown.
 
-### A useful conditional ladder reference
+The [previous gap inventory](https://github.com/sprajs/irreducible/blob/179304bcb007a71744bb1882049d9bdef541b88a/docs/gaps.md) retains historical acquisition/licensing coverage, the 245,904-file/108.3 GB traversal and 90-asset documentary ledger. Those describe historical coverage, not fresh cloud payload readiness. “Not verified” is not global absence.
 
-A historical study records an SN-free Gaussian ladder compression with 3,138 rows, 45 parameters, 37 correlated host-distance parameters and eight nuisance coordinates. It removes 354 SN rows and the SN absolute-magnitude/H₀ columns. The full host covariance is retained rather than replacing it with independent host errors.
-
-This is a possible reconstruction/compression fixture, not raw photometry, an independent H₀ prior or normalized evidence under improper nuisance priors. It remains conditional on released Cepheid selection, Wesenheit law, metallicities, photometric corrections, anchors and covariance. Its host labels and overlap must be checked before reuse, and the same calibration information cannot appear twice in a joint likelihood. The [primary ladder measurement](https://arxiv.org/abs/2112.04510) provides the relevant measurement and sensitivity context.
-
-## Theory closure and inference gaps
-
-Background expansion is only one part of a theory. Growth/RSD need matter and velocity perturbations; lensing needs metric potentials and propagation; CMB needs thermal/ionization and radiation/metric perturbations, primordial modes and projection. Nonlinear simulations need theory-consistent initial conditions, force/field evolution, constraints, boundaries and declared baryonic/subgrid closure. The [upstream CLASS source](https://github.com/lesgourg/class_public/blob/master/source/perturbations.c) illustrates distinct dependencies; copying a reference engine would not resolve scientific assumptions automatically.
-
-Timescape's averaged geometry and clock/observer mapping cannot be replaced by flat-FLRW distances with a new H(z). Its [original formulation](https://arxiv.org/abs/gr-qc/0702082) and [observable paper](https://arxiv.org/abs/0909.0749) require bare/dressed definitions and supported observer quantities. Missing perturbation or other closure must stay explicit. Modified gravity likewise needs more than a background function; the [Bellini–Sawicki linear scalar-tensor formulation](https://arxiv.org/abs/1404.3713) is one scoped example, not a universal closure.
-
-A particular lens requires actual mass/source/environment and instrument constraints; [mass-sheet degeneracy](https://arxiv.org/abs/2011.06002) limits time-delay inference. A siren distance depends on waveform, detector, orientation and selection; [GW170817](https://arxiv.org/abs/1710.05835) does not remove those assumptions. Alternative gravity may change waveform or propagation, so inherited GR likelihoods need an explicit compatibility decision.
-
-Joint fitting is currently missing, but it is not postponed until every modality is complete. A qualified Cepheid/anchor/SN subset can support its own joint calibration fit. Every subset needs shared nuisance parameters, repeated-object/calibrator identities, survey overlap and relevant cross-covariance. Unknown dependence is not independence. Tests of multiple theories need complexity/prior sensitivity, held-out or posterior-predictive checks and search-multiplicity controls; lowest χ² is not a theory verdict.
-
-## Historical code and licensing
-
-Historical studies cover expansion, selection/censoring, population inference, host ages, dust, spectral/light-curve fitting, passbands, detector geometry, calibration, infrared observations and joint cosmology. These can supply source-linked mathematical controls, discrepancy witnesses and independent comparison algorithms. They are not automatic production implementations or qualified posterior results. Some historical joint analyses explicitly record higher-accuracy likelihood sensitivity beyond their allocation; their posterior summaries must not be adopted as unquestioned expected truth.
-
-Provenance manifests record source origins, extracted symbols, pinned identities and adaptations. Review those records before selecting a small reusable fixture. Preserve original equations and separately identify repaired variants. Keep legacy Python/reference engines outside production and isolate external comparisons with their exact code, assets, flags and licence conditions.
-
-The sampled licence manifest declares MIT for MC-Age and BSD-2-Clause for ACT lenslike, but leaves many Pantheon/Dovekie/DES/SNANA/BAO/SFD entries undeclared and Cobaya labelled Other/NOASSERTION. These are historical declarations, not a current legal determination. Inspect exact pinned per-file notices and dataset terms before copying or redistribution. Public availability does not imply public-domain status, and a code licence does not necessarily cover observational assets.
-
-## Inventory coverage and limits
-
-A read-only filesystem traversal of the historical research root recorded 245,904 file entries and about 108.3 GB of logical file sizes. About 102.8 GB lies in its work area, including simulations, dependencies, copied reference engines, chains and real scientific assets. The curated data directory is about 765 MB. Counts include duplicates and may include symlinks; volume is not independent information or scientific coverage.
-
-The provenance manifests enumerate 391 curated inputs, 4,211 study-source records and 2,926 restoration inputs. Their declarations were structurally inspected, not all rehashed or revalidated. Initial targeted content inspection covered 17 named text/source/manifest files and 189 first-line or FITS-header samples. A subsequent full read covered 11 key authored shared/ladder modules and 29 foundation, scientific, data, execution, agent-interface, reproduction and validation owner plans. These counts describe content coverage, not validation of every equation or the 4,211 source records. No whole-archive binary decoding, posterior rerun or 102-GB scientific reanalysis was performed. Large images/spectra, chains, most source bodies and many containers remain unread. Dependency/cache code was not counted as authored research. The detailed inventory remains a local review artifact rather than a large public path catalogue.
-
-The analytic one-passband experiment, native synthetic shared-calibration ladder and conditional sound-horizon integral with supplied drag epoch now supply bounded executable foundations in the roadmap. Predicting that epoch adds an explicit thermal/ionization/drag contract; full perturbation and CMB work are separate later dependencies.
-
-The next useful work is to choose an actual vertical from the [roadmap](roadmap.md), pin its inputs and forward assumptions, and qualify its own observable and downstream error. Neither broad inventory completion nor a successful numerical call closes these physical and data gaps.
-
-Deterministic photometry predicts three radiometric outputs for a finite constant rest spectrum and supplied distance through the CLI. The standalone C++ sampled operator extends this to declared piecewise-linear wavelength spectra and optical passbands. Pooled sampled CLI/ABI ingestion is implemented. The native [temporal photometry](temporal-photometry.md) consumer adds declared spectral-time grids and observer exposures. Native [detector and censoring](detector-selection.md) now adds a bounded declared Poisson/Gaussian measurement law, addressed simulation and a threshold likelihood with synthetic recovery. Measured instrument laws, source populations and astrophysical recovery remain open. The native [finite calibration law](photometry-calibration.md) propagates a declared shared passband ensemble. Its [joint detector composition](optical-detector.md) now marginalizes every state's conditional count/censoring law and retains the shared all-band selection denominator; moments alone cannot replace that law. Acquiring and qualifying an actual calibration distribution remains separate.
-
-The native [synthetic ladder](calibration-ladder.md) implements an empirical supplied-shape joint relative fit with anchors, Cepheids, calibrator/Hubble-flow SNe and one shared calibration coordinate. That relative fit has no posterior measure. The separate [proper-prior consumer](calibration-predictive.md) supplies normalized Gaussian conditioning and joint future prediction for declared synthetic inputs. The native [uniform-box consumer](gaussian-box.md) now retains broad-box normalization and one coordinate quantile with conditional arithmetic/truncation enclosures and staged refusals. Independent qualification against the original released covariance/design, actual source/selection/calibration reconstruction and an observed H0 result remain separate gates.
-
-The native early/late operator now shares the sound-horizon model's matter/radiation and flat geometry identity with distance and conditional BAO-ratio predictions. The native [conditional BAO density](bao-conditional.md) composes those predictions with a retained ordered ratio covariance. Its supplied drag epoch, fixed matter content and named numerical controls do not establish a predicted thermal history, physical validity of a released compression or perturbation/CMB closure; see [early and late expansion](early-late.md).
-
-The native [correlated proper calibration](correlated-calibration.md) calculation supplies normalized observed-residual densities for fixed response and an explicitly independent proper latent prior. It closes this statistical prerequisite for named synthetic controls; response construction, calibrated-data dependencies, posterior inference and propagation through a physical observation model remain separate work.
-
-Synthetic proper-prior ladder conditioning and joint future prediction are now
-implemented in the [native consumer](calibration-predictive.md). The exact
-linear controls distinguish fixed-truth sampling coverage from a conditional
-prior-predictive law. [Seeded synthetic recovery](gaussian-simulation.md) now
-tests both ensembles with full error covariance and separately targeted coverage,
-preserving every attempt and the finite emitted-law approximation. A released
-box-supported target, observational held-out event/calibration dependence and
-source-supported relation/selection variants remain separate work.
-Repeated synthetic conditioning is implemented with one retained covariance
-factor and shared compiled offsets; source-supported held-out validity is open.
-
-## Finite-core Plummer model
-
-The native [Plummer sphere](plummer-sphere.md) adds a distinct finite-core,
-finite-mass SI model: density, enclosed mass, potential, acceleration, circular
-speed and potential Hessian, plus analytic projected mass/density and conditional
-thin-lens observables from supplied geometry. Its center is regular, unlike the
-NFW and Hernquist cusp models. Independent shell/line-of-sight quadratures,
-high-precision fixtures, Poisson and derivative controls test the declared
-profile. Original-paper equation access remains unverified; no measured lens
-inference or certified global error bound follows. The separate
-[isotropic population](plummer-population.md) now supplies a qualified-prerequisite
-phase-space consumer; the static sphere itself does not own that distribution.
-
-## Anisotropic Bianchi I model
-
-The native [Bianchi I background](bianchi-i.md) adds homogeneous anisotropic GR
-with conserved isotropic perfect-fluid dust/radiation, Lambda and shear. Supplied
-two-axis shear determines the trace-free third axis; one retained trajectory
-provides mean and signed directional expansion, anisotropy, shear fraction and
-conserved-photon-momentum directional redshift. Contracting axes and directional
-blueshifts remain valid. Exact isotropic FLRW/Kasner limits, independent
-proper-time evolution and Gauss quadrature/refinement test this declared model.
-Perfect-fluid radiation is not a collisionless anisotropic radiation treatment;
-optical distances, complete perturbations and observed-data fits remain absent.
-The historical citation's original equations remain unread after source-access
-failure; the guide states its independently checked Einstein/shear derivation.
-
-## Generalized Chaplygin fluid and Plummer population
-
-The native [Chaplygin background](chaplygin.md) adds a unified barotropic fluid
-with separately conserved ordinary dust/radiation in flat GR. Its retained
-state provides expansion, composition, EOS, a formal barotropic derivative and
-optional past-anchor flat distances. Exact dust/vacuum and alpha=0
-Lambda-plus-dust limits, independent continuity ODE/Gauss distances and
-high-precision near-endpoint fixtures test the declared background. The formal
-derivative does not qualify a rest-frame propagation law, perturbations or CMB.
-
-The [isotropic Plummer population](plummer-population.md) adds stationary
-collisionless phase-space and local speed/vector probability densities, escape
-diagnostics, one-axis velocity variance and projected mass-weighted LOS
-variance. It reuses the existing compiled Plummer gravity/density/projection
-owner. Density and velocity-moment integrals, Jeans and LOS quadratures test the
-population independently. Unresolved escape-support signs are explicit
-refusals. This is a Newtonian self-gravitating mass-traces-tracer model; measured
-stellar kinematics, anisotropic/multiple tracers and a full projected velocity
-PDF require further contracts.
+The [previous roadmap](https://github.com/sprajs/irreducible/blob/179304bcb007a71744bb1882049d9bdef541b88a/docs/roadmap.md) retains all 19 NEXT source/experiment pins, safe-stop/unfinished custody, original covariance/resource refusals and accepted controls. Its execution instructions are superseded. The scientific guides and [baseline](lcdm-baseline.md) continue to own equations, conventions and named results; this reset does not require repeating passing history.

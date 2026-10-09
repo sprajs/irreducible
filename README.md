@@ -71,12 +71,12 @@ bounded pooled batch, preserving declared input roles and calibration limits.
 calibration prerequisite. A [proper Gaussian parameter posterior](docs/gaussian-posterior.md)
 adds normalized fixed-linear conditioning under a declared Gaussian prior. These native calculations are available through the
 C++ SDK; their guides distinguish tested controls from observational inference.
-The [next bounded choices](docs/roadmap.md#next-bounded-choices) cover statistical,
-photometric, thermal, growth and lensing work with separate prerequisites and gates.
+The sole active [roadmap](docs/roadmap.md) coordinates the reference baseline, joint
+fits, native closures and measured verticals; [gaps](docs/gaps.md) records current blockers.
 
 ## Repeat a paper’s calculation
 
-A planned recipe format would keep a calculation's data sources, model choices and steps in one file, so another person or agent could repeat it and inspect its assumptions. The [run-recipe proposal](docs/run-recipes.md) compares JSON, TOML and YAML and defines the intended first step; the runner does not exist yet. New physics will still be added as tested compiled code, reviewed through a pull request—not as equations executed from a configuration file.
+A planned recipe format would keep a calculation's data sources, model choices and steps in one file, so another person or agent could repeat it and inspect its assumptions. The [run-recipe proposal](docs/run-recipes.md) compares JSON, TOML and YAML as a design option governed by the active roadmap; the runner does not exist yet. New physics will still be added as tested compiled code, reviewed through a pull request—not as equations executed from a configuration file.
 
 ## Try it
 

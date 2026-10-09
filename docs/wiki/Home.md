@@ -14,6 +14,8 @@ The [proper Gaussian posterior](https://github.com/sprajs/irreducible/blob/main/
 
 A future recipe format would put the data sources, model choices and calculation steps in one file, so another person or agent could repeat a paper test and see its assumptions. There is no recipe runner yet. New equations belong in compiled code with tests and review.
 
+The sole active [roadmap](https://github.com/sprajs/irreducible/blob/main/docs/roadmap.md) coordinates M0–M6: a fully varied source-defined external LCDM baseline, an admitted joint subset, parallel native closure and measured verticals, compatible theories and measured scaling. [Gaps](https://github.com/sprajs/irreducible/blob/main/docs/gaps.md) records current blockers; historical evidence and design proposals do not schedule work.
+
 ## Try, explore or contribute
 
 - [Build and run an example](https://github.com/sprajs/irreducible/blob/main/docs/getting-started.md), then browse [what works today](https://github.com/sprajs/irreducible/blob/main/docs/capabilities.md) and the [CLI guide](https://github.com/sprajs/irreducible/blob/main/docs/cli.md).
