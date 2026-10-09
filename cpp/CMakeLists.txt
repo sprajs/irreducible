@@ -584,3 +584,6 @@ include(cmake/curved_flrw.cmake)
 include(cmake/hernquist_sphere.cmake)
 include(cmake/plummer_sphere.cmake)
 include(cmake/bianchi_i.cmake)
+
+include(cmake/chaplygin.cmake)
+include(cmake/plummer_population.cmake)
