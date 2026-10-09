@@ -127,6 +127,9 @@ QuintessenceBatch QuintessenceBackground::evaluate(std::span<const double> a,boo
     r.status=S::ok;
     W e=std::exp(s[4]),ee=e*std::expm1(errors[4]);
     set(r.e,e,ee);set(r.h_km_s_mpc,e*source_.h_anchor_km_s_mpc,ee*source_.h_anchor_km_s_mpc);
+    if(r.h_km_s_mpc.value && *r.h_km_s_mpc.value<=0) {
+      r.h_km_s_mpc.value.reset();r.h_km_s_mpc.status=S::outside_domain;
+    }
     set(r.omega_phi,phi,ephi);set(r.omega_m,s[2],errors[2]);set(r.omega_r,s[3],errors[3]);
     if(phi>ephi) set(r.w_phi,(kinetic-pot)/phi,2*ephi/(phi-ephi));
     else r.w_phi.status=S::singular;
