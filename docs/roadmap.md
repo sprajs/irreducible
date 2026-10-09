@@ -41,10 +41,10 @@ The C++ SDK also supplies five distinct physical models: [canonical exponential
 quintessence](quintessence.md), [self-accelerating flat DGP growth](dgp-growth.md),
 [spherical NFW halo and lensing](nfw-halo.md), [decaying matter to massless
 radiation](decaying-matter.md), and [curved FLRW geometry](curved-flrw.md).
-Each owns its equations, supplied parameters, bounded domain and retained batch.
+Each owns its equations, supplied parameters, bounded domain and outputs.
 Analytic limits, independent formulations or quadrature, refinement and hostile
-inputs test the declared contracts. Adaptive error estimates are empirical local
-diagnostics rather than certified global accuracy bounds. These models are native
+inputs test the declared contracts. Numerical diagnostics are empirical rather than certified global accuracy
+bounds; each guide defines its estimator scope. These models are native
 SDK calculations; no new CLI operations or observed-data fits are claimed.
 Quintessence and decaying matter currently supply homogeneous backgrounds, DGP
 growth assumes pressureless quasistatic perturbations on its self-accelerating
