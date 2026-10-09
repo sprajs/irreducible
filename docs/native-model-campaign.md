@@ -100,7 +100,7 @@ The original mislabeled Hessians, corrected new attempts, dirty-source refusal
 and successful model predictions are retained. Six-panel plots label the failed
 qualification prominently. This is a parameter-response experiment, with no
 observations, likelihood or inferred cosmological constraints. The historical
-CLASS/runtime/scientific pins and this campaign's original SDK775 pin remain
+CLASS/runtime/scientific pins and this campaign's original SDK source pin775 remain
 unchanged.
 
 [Prospector PR39](https://github.com/sprajs/prospector/pull/39) records targeted
@@ -125,7 +125,7 @@ retained without eviction. The first six-model sealed selection has 54 files,
 `214412ea7d7b6c4bbc55d27b0664dfb5069f5bdd555018999c5a45c569f9dd1b`.
 The Plummer/Bianchi followup has 65 files, 857307 bytes, selection SHA256
 `db6cfad31d16dc0d1fd973ff246b91d94c156aa89814f2f9f99db7a5c2855265`.
-The compiled sweep selection has 92 files, about10.55MB, with its custody
+The compiled sweep selection has 92 files, about 10.55 MB, with its custody
 record in the experiment README. Original logs/receipts, failed controls, exact
 build identities, source pins and acquisition-failure metadata are retained;
 reconstructable binaries and rights-unverified raw papers are excluded. The
@@ -135,7 +135,7 @@ successor. Failed upload attempts and any partial remote objects were retained.
 The deliberately selected engine collections are
 `reproducible/handoffs/irreducible/native-models-20261009t0200z` and
 `reproducible/handoffs/irreducible/native-model-followups-20261009t0220z`.
-No completed bulk manifest URI/SHA256/VersionId exists for these failed attempts,
+No verified completed bulk manifest URI/SHA256/VersionId is available for these attempts,
 so this report makes **no S3 preservation claim** for their full bytes. They are
 an explicit unpreserved blocker; original local selections must remain until
 a future exact-version upload/readback and fresh-directory restoration succeed.
