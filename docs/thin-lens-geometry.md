@@ -1,8 +1,7 @@
 # Retained two-epoch thin-lens geometry
 
 Implementation contract frozen before reference execution, 2026-10-09.
-The initial source checkpoint has no numerical qualification claim. The
-compiled public interface is `irred/thin_lens_geometry.hpp`; source review and
+The compiled public interface is `irred/thin_lens_geometry.hpp`; source review and
 numerical acceptance remain distinct.
 
 Existing owners: CurvedFLRW supplies observer radial/transverse/DA/DL, but its
@@ -143,3 +142,29 @@ matched physical coefficients; table subtraction is used only for its moderate
 separated-epoch witness. Production always integrates the interval directly.
 The nextafter-close analytic/reference witness never uses table subtraction.
 These sources are original validation drivers, not a Python production API.
+
+
+The permanent `thin_lens_geometry_reference_contract` retains 204 comparisons:
+150 high-precision outputs across 25 EdS/Milne/open/closed/closed-dust/FD pairs,
+and 54 matched CLASS outputs across nine separated FD/open/closed pairs.
+The independent reference refinement occupied at most3.238e-10 of each final
+allocation; native versus high precision at most2.010e-6. Refined CLASS
+uncertainty occupied at most0.0001245 (below0.05), and CLASS versus high
+precision with refinement at most0.007830 (below1). These are finite empirical
+controls, not whole-domain certification or observational qualification.
+
+The first native attempt refused adjacent-double curved epochs because the
+original double-z quadrature could not subdivide their support; the failure,
+callbacks and original witness are preserved. The direct two-epoch helper now
+uses t=0..1, wide z=zl+(zs-zl)t, and multiplies both integral and error by
+zs-zl. Observer integrations keep their existing z mesh. Thermal intervals
+use log1p((zs-zl)/(1+zl)) rather than subtracting large logarithms. No budgets
+or quotas were weakened. The shared curvature series remainder for |K X²|<1e-4
+is below the retained128-binary64-epsilon arithmetic allocation.
+
+The existing thermal provider owns the mapped physical state and its empirical
+numerical estimates. This consumer inherits that exact emitted state; it does
+not add physical-input, G, redshift or source-conversion uncertainty, or certify
+an upstream convention against a released lens system. Such uncertainties need
+a separately declared source law. The independent physical-source calculations
+also test mapping/cast differences under the final numerical allocations.

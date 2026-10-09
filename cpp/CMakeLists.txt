@@ -607,7 +607,7 @@ foreach(clock_test IN ITEMS thermal_clocks thermal_clocks_installed thermal_cloc
 endforeach()
 
 target_sources(irred_core PRIVATE src/thin_lens_geometry.cpp)
-foreach(lens_geometry_test IN ITEMS thin_lens_geometry thin_lens_geometry_installed)
+foreach(lens_geometry_test IN ITEMS thin_lens_geometry thin_lens_geometry_installed thin_lens_geometry_reference)
   add_executable(test_${lens_geometry_test} tests/test_${lens_geometry_test}.cpp)
   target_link_libraries(test_${lens_geometry_test} PRIVATE irred_core)
   target_compile_options(test_${lens_geometry_test} PRIVATE -Wall -Wextra -Wpedantic -fno-fast-math -ffp-contract=off)
