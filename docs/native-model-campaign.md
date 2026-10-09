@@ -292,6 +292,16 @@ scientific bulk, binaries, credentials or raw papers.
 - VersionId: `5lldTThy12_Q6W1xstx5s0x4tnhjnmDY`
 - Format: `research-named-manifest/v1`.
 
+The final Reproducible handoff, 334-test log and canonical restore receipt have
+their own small closure, with five files (9359 bytes), exact-version publication
+and an independently verified fresh byte-identical restoration. This preserves
+the last unique experiment metadata without repeating tests or scientific bulk.
+
+- Manifest: `s3://research-data-436908790672-eu-west-2/reproducible/handoffs/reproducible/native-round2-final-closure-20261009t033952z-59dde23f9f1a/versions/a4cf39fe3dd83d2a42681eff44950b42ae683fe93ab3e4c2503ba96b342b3a60/manifest.json`
+- SHA256: `498e5cc484fd311c55d74cfe826e2097e62b7376d26dbcdb55ad892279a349eb`
+- VersionId: `Tftfh7lXqNlisZal.dDq6XLvGjxi6JEK`
+- Format: `research-named-manifest/v1`.
+
 ### Demonstrated commands
 
 The complete production archive used the canonical build entry point:
