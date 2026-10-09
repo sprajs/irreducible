@@ -96,6 +96,14 @@ reference controls supply named numerical evidence. Fixed physical densities
 do not imply H0 cancellation. Released compression validity and observational
 qualification remain separate; the massless conditional model keeps its identity.
 
+The standalone C++ [thermal cosmic clocks](thermal-clocks.md) retain an explicit
+thermal background and add proper age, direct lookback and comoving/proper
+particle horizon. They preserve the formal fixed-species early extrapolation,
+full early-tail estimates, pure-Lambda divergence and mapped-source diagnostics.
+Independent FD and matched-constant CLASS clock controls qualify the declared
+model; changing early thermal content and observed-age interpretation remain
+separate. No CLI/C ABI route is added.
+
 The native [effective thermal neutrino closure](effective-neutrino.md) now
 partitions supplied total early Neff into explicit thermal species and remaining
 massless radiation, retaining the actual mapped source, derived present relic

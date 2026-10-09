@@ -29,6 +29,7 @@ Read [AGENTS.md](../AGENTS.md) first, then choose a guide:
 | Use one early/late state for distances and conditional ruler ratios in C++ | [Early and late expansion](early-late.md) |
 | Evaluate explicit thermal relic density, pressure and flat E/H in C++ | [Thermal neutrino background](thermal-neutrino.md) |
 | Partition explicit thermal species from total Neff and evaluate same-state stress/acceleration | [Effective thermal neutrino closure](effective-neutrino.md) |
+| Evaluate proper age, direct lookback and full-support particle horizons of an explicit thermal state | [Thermal cosmic clocks](thermal-clocks.md) |
 | Map physical densities/temperatures and evaluate thermal distances/ruler ratios | [Thermal observables](thermal-observables.md) |
 | Evaluate a declared compensated fluid background and matched finite ruler | [Effective fluid](effective-fluid.md) |
 | Evaluate a supplied-drag BAO density with a retained ordered covariance in C++ | [Massless conditional BAO](bao-conditional.md) or [thermal conditional BAO](bao-thermal.md) |
