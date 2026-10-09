@@ -1,0 +1,8 @@
+target_sources(irred_core PRIVATE src/decaying_matter.cpp)
+add_executable(test_decaying_matter tests/test_decaying_matter.cpp)
+target_link_libraries(test_decaying_matter PRIVATE irred_core)
+target_compile_options(test_decaying_matter PRIVATE -Wall -Wextra -Wpedantic -fno-fast-math -ffp-contract=off)
+add_test(NAME decaying_matter_contract COMMAND test_decaying_matter)
+add_executable(example_decaying_matter examples/decaying_matter.cpp)
+target_link_libraries(example_decaying_matter PRIVATE irred_core)
+add_test(NAME decaying_matter_sdk_example COMMAND example_decaying_matter)

@@ -1,0 +1,8 @@
+target_sources(irred_core PRIVATE src/quintessence.cpp)
+add_executable(test_quintessence tests/test_quintessence.cpp)
+target_link_libraries(test_quintessence PRIVATE irred_core)
+target_compile_options(test_quintessence PRIVATE -Wall -Wextra -Wpedantic -fno-fast-math -ffp-contract=off)
+add_test(NAME quintessence_contract COMMAND test_quintessence)
+add_executable(example_quintessence examples/quintessence.cpp)
+target_link_libraries(example_quintessence PRIVATE irred_core)
+add_test(NAME quintessence_sdk_example COMMAND example_quintessence)

@@ -574,3 +574,11 @@ add_executable(test_gaussian_posterior_abi tests/test_gaussian_posterior_abi.cpp
 target_link_libraries(test_gaussian_posterior_abi PRIVATE irred_core)
 target_compile_options(test_gaussian_posterior_abi PRIVATE -Wall -Wextra -Wpedantic -fno-fast-math -ffp-contract=off)
 add_test(NAME gaussian_posterior_abi_contract COMMAND test_gaussian_posterior_abi)
+
+# Independently scoped compiled cosmological and halo models.
+include(cmake/quintessence.cmake)
+include(cmake/dgp_growth.cmake)
+include(cmake/nfw_halo.cmake)
+include(cmake/decaying_matter.cmake)
+include(cmake/curved_flrw.cmake)
+include(cmake/hernquist_sphere.cmake)

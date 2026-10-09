@@ -57,9 +57,11 @@ class SuitesTests(unittest.TestCase):
                     directory.return_value.__enter__.return_value = scratch
                     runpy.run_path(str(ROOT / 'tools/check_install.py'), run_name='__main__')
                 compilations = [call.args[0] for call in run.call_args_list if '-std=c++20' in call.args[0]]
-                self.assertEqual(len(compilations), 1 if suite == 'fast' else 7)
+                self.assertEqual(len(compilations), 1 if suite == 'fast' else 13)
                 names = [next(str(x) for x in command if str(x).endswith('.cpp')) for command in compilations]
                 self.assertEqual(any(n.endswith('test_installed_ideal_acoustic.cpp') for n in names), suite == 'full')
+                for model in ('quintessence.cpp', 'test_dgp_growth_installed.cpp', 'test_nfw_halo_installed.cpp', 'decaying_matter.cpp', 'test_curved_flrw_sdk.cpp', 'test_hernquist_sphere_installed.cpp'):
+                    self.assertEqual(any(n.endswith('/' + model) for n in names), suite == 'full')
                 for command in compilations:
                     self.assertIn(str(Path(scratch) / 'prefix/include'), command)
                     self.assertIn(str(Path(scratch) / 'prefix/lib/libirred_core.a'), command)

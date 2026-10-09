@@ -35,6 +35,27 @@ fit. A useful qualified joint subset may precede all four probes. Test correlate
 synthetic/mock recovery, leave-one-probe-out and prior sensitivity; allocate and
 accept both joint log-likelihood error and resulting parameter shifts.
 
+## New compiled model families
+
+The C++ SDK also supplies six distinct physical models: [canonical exponential
+quintessence](quintessence.md), [self-accelerating flat DGP growth](dgp-growth.md),
+[spherical NFW halo and lensing](nfw-halo.md), [decaying matter to massless
+radiation](decaying-matter.md), and [curved FLRW geometry](curved-flrw.md), and the [finite-mass Newtonian
+Hernquist sphere](hernquist-sphere.md).
+Each owns its equations, supplied parameters, bounded domain and outputs.
+Analytic limits, independent formulations or quadrature, refinement and hostile
+inputs test the declared contracts. Numerical diagnostics are empirical rather than certified global accuracy
+bounds; each guide defines its estimator scope. These models are native
+SDK calculations; no new CLI operations or observed-data fits are claimed.
+Quintessence and decaying matter currently supply homogeneous backgrounds, DGP
+growth assumes pressureless quasistatic perturbations on its self-accelerating
+branch, NFW lensing conditions on supplied physical lens geometry, and curved
+FLRW assumes conserved dust/radiation and Lambda. Hernquist supplies SI
+density, mass, potential, acceleration, circular speed and potential curvature
+from an explicitly declared profile; original-paper equation access remains
+unverified and is distinguished from the independent Newtonian derivation. Full coupled perturbations,
+measured halo inference and joint likelihood qualification remain separate work.
+
 ## Next bounded choices
 
 ### Resumed pipeline checkpoint: 2026-10-08
