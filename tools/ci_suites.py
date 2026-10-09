@@ -71,5 +71,6 @@ def installed_sources(root, suite):
             'cpp/tests/test_dgp_growth_installed.cpp',
             'cpp/tests/test_nfw_halo_installed.cpp',
             'cpp/examples/decaying_matter.cpp',
-            'cpp/tests/test_curved_flrw_sdk.cpp')]
+            'cpp/tests/test_curved_flrw_sdk.cpp',
+            'cpp/tests/test_hernquist_sphere_installed.cpp')]
     raise ValueError(f'unknown installed suite: {suite}')

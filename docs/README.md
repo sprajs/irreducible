@@ -60,6 +60,7 @@ Read [AGENTS.md](../AGENTS.md) first, then choose a guide:
 | Spherical NFW enclosed mass and conditional thin-lens observables | [Spherical model](nfw-halo.md) |
 | Finite-anchor decaying matter to massless daughter radiation | [Finite-anchor model](decaying-matter.md) |
 | Curved dust/radiation/Lambda FLRW distances | [Curved model](curved-flrw.md) |
+| Evaluate a finite-mass Newtonian sphere with supplied SI coupling | [Hernquist sphere](hernquist-sphere.md) |
 | Run tests or add a fixture | [Testing](testing.md) and [fixture provenance](../cpp/tests/fixtures/README.md) |
 | Maintain these docs | [Maintenance](maintenance.md) |
 
