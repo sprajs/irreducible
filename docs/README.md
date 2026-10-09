@@ -63,7 +63,9 @@ Read [AGENTS.md](../AGENTS.md) first, then choose a guide:
 | Evaluate a finite-mass Newtonian sphere with supplied SI coupling | [Hernquist sphere](hernquist-sphere.md) |
 | Evaluate finite-core spherical dynamics and conditional lens projection | [Plummer sphere](plummer-sphere.md) |
 | Evolve homogeneous anisotropic GR and directional photon redshift | [Bianchi I](bianchi-i.md) |
-| Inspect the eight-model production SDK campaign and evidence custody | [Native model campaign](native-model-campaign.md) |
+| Inspect the native-model production SDK campaign and evidence custody | [Native model campaign](native-model-campaign.md) |
+| Evolve a unified barotropic fluid with ordinary dust/radiation | [Chaplygin background](chaplygin.md) |
+| Evaluate isotropic collisionless stellar phase-space and moments | [Plummer population](plummer-population.md) |
 | Run tests or add a fixture | [Testing](testing.md) and [fixture provenance](../cpp/tests/fixtures/README.md) |
 | Maintain these docs | [Maintenance](maintenance.md) |
 
