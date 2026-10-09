@@ -1,0 +1,8 @@
+target_sources(irred_core PRIVATE src/bianchi_i.cpp)
+add_executable(test_bianchi_i tests/test_bianchi_i.cpp)
+target_link_libraries(test_bianchi_i PRIVATE irred_core)
+target_compile_options(test_bianchi_i PRIVATE -Wall -Wextra -Wpedantic -fno-fast-math -ffp-contract=off)
+add_test(NAME bianchi_i_contract COMMAND test_bianchi_i)
+add_executable(example_bianchi_i examples/bianchi_i.cpp)
+target_link_libraries(example_bianchi_i PRIVATE irred_core)
+add_test(NAME bianchi_i_sdk_example COMMAND example_bianchi_i)
