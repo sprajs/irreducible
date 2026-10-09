@@ -1,6 +1,7 @@
 // Independent installed C++ SDK use; synthetic mathematical consumer only.
 #include <array>
 #include <cmath>
+#include <iomanip>
 #include <iostream>
 #include <irred/dgp_growth.hpp>
 int main() {
@@ -11,6 +12,7 @@ int main() {
       model.evaluate(a, dgp_e | dgp_h | dgp_omega_m | dgp_mu | dgp_d | dgp_f);
   if (result.status != irred::numerics::Status::ok || result.rows.size() != 3)
     return 1;
+  std::cout << std::setprecision(17);
   std::cout << "{\"model\":\"" << dgp_growth_id << "\",\"rows\":[";
   for (size_t i = 0; i < a.size(); ++i) {
     const auto &r = result.rows[i];

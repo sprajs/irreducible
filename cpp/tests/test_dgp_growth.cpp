@@ -115,6 +115,21 @@ int main() {
              "early f coefficient");
       }
     }
+    auto fixed_fraction = prepare_dgp_growth({.3, 85});
+    const double comparison_scales[]{.5, 1};
+    auto fixed_values = fixed_fraction.evaluate(comparison_scales, 63);
+    auto normal_values =
+        prepare_dgp_growth({.3, 70}).evaluate(comparison_scales, 63);
+    need(*fixed_values.rows[0].d.value == *normal_values.rows[0].d.value &&
+             *fixed_values.rows[0].f.value == *normal_values.rows[0].f.value &&
+             *fixed_values.rows[0].e.value == *normal_values.rows[0].e.value,
+         "fractional-density H0 conditioning preserves dimensionless physics");
+    near(*fixed_values.rows[0].h.value / *normal_values.rows[0].h.value,
+         85.L / 70, 2e-15,
+         "changed H0 scales H only at fixed fractional density");
+    need(*normal_values.rows[0].e.value > std::sqrt(.3 / (.5 * .5 * .5) + .7) &&
+             *normal_values.rows[0].mu.value < 1,
+         "DGP background and effective gravity differ from GR LCDM");
     auto owner = prepare_dgp_growth({.3, 70});
     const double mixed[]{.5,   -1,   std::numeric_limits<double>::quiet_NaN(),
                          1e-5, 1.01, .5};
