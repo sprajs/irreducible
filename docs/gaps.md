@@ -270,3 +270,17 @@ NFW and Hernquist cusp models. Independent shell/line-of-sight quadratures,
 high-precision fixtures, Poisson and derivative controls test the declared
 profile. Original-paper equation access remains unverified; no measured lens
 inference, stellar distribution function or certified global error bound follows.
+
+## Anisotropic Bianchi I model
+
+The native [Bianchi I background](bianchi-i.md) adds homogeneous anisotropic GR
+with conserved isotropic perfect-fluid dust/radiation, Lambda and shear. Supplied
+two-axis shear determines the trace-free third axis; one retained trajectory
+provides mean and signed directional expansion, anisotropy, shear fraction and
+conserved-photon-momentum directional redshift. Contracting axes and directional
+blueshifts remain valid. Exact isotropic FLRW/Kasner limits, independent
+proper-time evolution and Gauss quadrature/refinement test this declared model.
+Perfect-fluid radiation is not a collisionless anisotropic radiation treatment;
+optical distances, complete perturbations and observed-data fits remain absent.
+The historical citation's original equations remain unread after source-access
+failure; the guide states its independently checked Einstein/shear derivation.

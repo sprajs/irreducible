@@ -73,5 +73,6 @@ def installed_sources(root, suite):
             'cpp/examples/decaying_matter.cpp',
             'cpp/tests/test_curved_flrw_sdk.cpp',
             'cpp/tests/test_hernquist_sphere_installed.cpp',
-            'cpp/tests/test_plummer_sphere_installed.cpp')]
+            'cpp/tests/test_plummer_sphere_installed.cpp',
+            'cpp/examples/bianchi_i.cpp')]
     raise ValueError(f'unknown installed suite: {suite}')
