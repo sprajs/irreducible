@@ -31,6 +31,11 @@ a new explicit total-Neff partition and same-state pressure/acceleration
 consumer. It closes that bounded source mapping, while BBN, physical drag,
 full-species perturbations and native primary CMB retain their own open gates.
 
+The same retained state now supplies [proper age, direct lookback and particle
+horizons](thermal-clocks.md), with a formal fixed-species origin, retained full
+early support and independent FD/CLASS clock controls. This observable consumer
+does not close changing early thermal content, BBN, drag or perturbations.
+
 In parallel, pick one dependency-ready M3 closure from an accepted consumer discrepancy, not from the number of unfinished branches. A useful native sequence is (a) physical thermal/input/opacity endpoint, (b) regular full-species transfer and amplitude, (c) qualified source/projection/Cl. Existing bounded H/He, acoustic, supplied-source projection and perfect-fluid laws retain their identities. A complete computed raw grid with absent required errors remains refused. Standard physical drag/visibility must not be inferred from a truncated root or renormalized boundary mass.
 
 Select one M4 dataset with actual source, calibrated measurements and identifiable nuisance/selection laws before broadening raw-measurement simulation. Native photometry alone predicts neither intrinsic stellar/SN spectral evolution nor a measured camera response. A named lens needs mass/source/line-of-sight/kinematics; a spherical profile and supplied geometry are prerequisites. Retain this work alongside the baseline, without making every modality a fit prerequisite.
