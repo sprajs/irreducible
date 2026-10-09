@@ -154,7 +154,8 @@ def collection(name):
         raise ValueError('Use readable lowercase names')
     patterns = (r'shared/datasets/[^/]+/[^/]+', r'shared/archives/[^/]+',
                 r'reproducible/experiments/[^/]+/attempts/[^/]+', r'prospector/papers/[^/]+',
-                r'prospector/reviews/[^/]+', r'irreducible/evidence/[^/]+/[^/]+')
+                r'prospector/reviews/[^/]+', r'irreducible/evidence/[^/]+/[^/]+',
+                r'reproducible/handoffs/(?:irreducible|prospector|reproducible)/[^/]+')
     if not any(re.fullmatch(p, name) for p in patterns):
         raise ValueError('Collection must follow storage-layout.json roots')
     return name
