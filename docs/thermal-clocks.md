@@ -117,7 +117,8 @@ are consistency checks, not the independent 1e-8 clock/horizon references.
 
 The proper/conformal relation follows from the homogeneous limit of
 Ma & Bertschinger, [astro-ph/9506072v1](https://arxiv.org/abs/astro-ph/9506072),
-metric equations (1)--(2): dt=a*d tau. The radial null relation gives
+homogeneous metric equation (1); section 2 (PDF page 6) explicitly states
+d tau=dt/a with c=1. Restoring c, the radial null relation gives
 chi=c*integral(dt/a); integrating from the declared formal origin defines
 the particle horizon. This horizon extrapolation is a model interpretation,
 not an observational measurement. The declared Julian-year unit is exactly
@@ -157,3 +158,10 @@ background and `diagnostics().stress_source_estimate`. Supply that estimate
 when composing a physically mapped source so its deterministic conversion
 directions remain part of clock admission. Raw fractional backgrounds retain
 their explicitly supplied identity. CLI and C ABI discovery are unchanged.
+
+The source locator receipt also verifies CLASS include/background.h,
+lines 587--588, which describes Julian years of 365.25 days but uses a rounded
+`_Gyr_over_Mpc_` conversion. The clock reference driver therefore converts
+proper-time Mpc/c with explicit SI constants and 31,557,600 seconds per year.
+Ma & Bertschinger's conformal Newtonian metric is equation (5), not (2);
+equation (2) concerns tensor decomposition and is not the clock source.
