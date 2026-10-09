@@ -1,9 +1,9 @@
-# Eight new native models, 2026-10-09
+# Ten new native models, 2026-10-09
 
-This campaign adds eight distinct compiled physical models. The first six share
+This campaign adds ten distinct compiled physical models. The first six share
 the original scientific build below; Plummer and Bianchi I have separate later
-build identities. It advances new model
-coverage rather than changing historical cosmology runs or their source/runtime
+build identities. The final Chaplygin/population build adds two more physical
+models. It advances new model coverage rather than changing historical cosmology runs or their source/runtime
 pins. Each guide declares its own assumptions and domain:
 
 | Model | Native outputs and physical scope |
@@ -16,6 +16,8 @@ pins. Each guide declares its own assumptions and domain:
 | [Hernquist sphere](hernquist-sphere.md) | Finite-mass SI density, mass, Newtonian potential, acceleration, circular speed and potential Hessian |
 | [Plummer sphere](plummer-sphere.md) | Finite-core SI dynamics, projected mass/density and conditional thin-lens observables |
 | [Bianchi I](bianchi-i.md) | Anisotropic perfect-fluid GR expansion, signed axis rates, shear and directional photon redshift |
+| [Chaplygin fluid](chaplygin.md) | Unified barotropic fluid plus ordinary dust/radiation, flat GR expansion, EOS and optional distances |
+| [Plummer population](plummer-population.md) | Self-gravitating isotropic collisionless DF, local velocity laws and projected mass-weighted LOS variance |
 
 The numerical diagnostics are empirical, with their precise estimator scope in
 each guide. A passing synthetic control does not certify global accuracy or an
@@ -66,8 +68,9 @@ After the first six-model merge, Plummer and Bianchi I were independently
 implemented and reviewed. Bianchi I passed 701 strict Release checks and
 ASan/UBSan; Plummer passed strict Release, sanitizer, shell/line-of-sight and
 high-precision fixture controls. Original source-access failures remain explicit
-in their guides. These do not establish optical distances for Bianchi I or a
-stellar distribution function for Plummer.
+in their guides. The eight-model build does not establish optical distances for Bianchi I or a
+stellar distribution function for Plummer; the population is a separate later
+model below.
 
 The final clean scientific source is
 `980252384b7999333626b39b5ade6d7e670b802f`. Its complete native/Rust Release
@@ -85,6 +88,77 @@ the full installed suite contains 15 consumers. Routine membership is unchanged.
   [PR66](https://github.com/sprajs/irreducible/pull/66) and
   [PR67](https://github.com/sprajs/irreducible/pull/67), after independent complete
   diff review and seven passing required checks on each exact candidate.
+
+## Final ten-model production build
+
+[PR69](https://github.com/sprajs/irreducible/pull/69) adds a generalized Chaplygin
+background and an isotropic collisionless Plummer population. They are new
+physical models, with permanent independent mathematical controls. Chaplygin
+passed 702 strict checks and the same ASan/UBSan controls; continuity evolution,
+Gauss distances and 100/160-digit endpoint fixtures are separate references.
+Plummer population passed strict and sanitizer controls, independent DF density,
+normalization, second/fourth velocity moments, LOS quadratures, native-mass Jeans
+and 70/90-digit Beta/shell/LOS fixtures. It reuses the existing compiled static
+Plummer prerequisite. Ambiguous escape support is withheld with diagnostics.
+Both component installations and the complete 20-file integrated diff passed
+separate scientific/code review. Source equations and explicit primary-source
+access limitations are recorded in
+[Prospector PR40](https://github.com/sprajs/prospector/pull/40).
+
+The final clean scientific source is
+`9f51b53ded88230192f6b4298e6fe57e3b879a7b`, built from fresh native and Rust
+directories in portable Release with two jobs, within the four-job shared cap.
+All 20 campaign scientific/example contracts passed against the complete
+archive. Ten actual external consumers compiled and ran using only the newly
+installed headers and complete archive. The inventory contains 156 native tests;
+the 20 campaign tests remain full-only. The full installed suite contains 17
+consumers, with routine membership unchanged. Inventory is not a claim that all
+156 tests were run locally. Seven dispatch tests and docs/public-tree checks
+also passed.
+
+- Complete installed archive SHA256:
+  `787471bf09704cac18dd252765eb65eccce9be955ee029b593d6082296630ee2`.
+- Build-manifest SHA256:
+  `bbb5356dfe872e27d5639c9af67f4776a3f711043067a6608c0ba795bd0e0bcd`.
+- Build ID:
+  `4cbfac4bb440942529878d057d1e1c603e41a0b9d3669c226660653b05bb9b54`.
+- PR69 merged at `e58fcd5bd9f16d4a99bbd24b0e6766f96812d889`; all seven
+  candidate checks passed (run37878802472), then exact-main CI passed
+  (run37879123266). Clean main was fetched/pruned and fast-forwarded; active
+  scientific worktree branches remain retained.
+
+Original enthalpy-sign and binary64 closure test assumptions, the population
+example initializer typo and both root installation-admission failures are
+retained. No scientific allowance or physical row selection was weakened. An
+untracked retained Rust backup caused the first receipt refusal; it was moved
+intact outside checkout, and the canonical same-source build driver produced a
+clean receipt with identical build ID/archive. A later dispatcher refused an
+existing empty attempt directory; a fresh directory passed. The provisional
+SDK remains explicitly separate from final scientific acceptance.
+
+### Actual new-model response experiment
+
+[Reproducible PR30](https://github.com/sprajs/reproducible/pull/30) supplies a
+compiled consumer, pinned controller, actual predictions and six-panel plots
+for these two models. Each profile has 32 default/refined synthetic case
+records (16 physical parameter states). Quick has 512 rows, 56 prepared radius
+states and 1540 comparisons; broader has 1608 rows, 112 prepared radius states
+and 4088 comparisons. Both have zero admitted-grid comparison failures and all
+11 endpoint/refusal controls pass. Quick retains 28 boundary pairs (56 raw
+ambiguous rows); broader 56 pairs (112 rows). Their interval/support/status
+contract is checked, while velocity accuracy at that boundary remains explicitly
+unassessed. These finite checks do not certify the domain or an observed-data
+fit. A population admission-budget change does not increase arithmetic precision.
+
+The original quick001 native science completed, but the Python caller exited 1
+because an empty list was passed to SystemExit. Its full original attempt is
+retained. Only that exit dispatch was corrected before fresh quick002/broader001;
+no grids, native laws or numerical allowances changed. PR30 merged at
+`bc5de0da41e8136dfe9b4852f3a792692d556e73`; exact-main run37879974623
+passed on Python3.11 and3.13, and all334 repository tests passed locally.
+Native physics remains in C++; Python binds identities, validates outputs and displays retained values.
+The prior six-model experiment below keeps its rejected/incomplete status and
+original scientific SDK source pin775.
 
 ## Actual compiled parameter sweeps
 
@@ -162,12 +236,104 @@ The code merges passed CI on their exact main commits: PR65
 PR39 and Reproducible PR28 also passed exact-main CI. Bulk preservation does not
 promote the numerical sweep's rejected/incomplete qualification.
 
-A final 16-file, 61351-byte custody-metadata capsule remains local after two
-failed upload attempts and a repeated upstream tunnel failure. It contains
-restoration proof, retry diagnostics and unique superseded first-stage metadata.
-The expected collection is
-`reproducible/handoffs/irreducible/native-model-custody-20261009t0230z`; no
-verified completed manifest pin is available. This is an explicit unpreserved
-metadata blocker: retain its local originals until publication/readback succeeds.
-It does not change the already verified 119 engine evidence files or the
-Reproducible campaign/recovery archives. No local original was removed.
+## Final expansion evidence and custody recovery
+
+The earlier 16-file, 61351-byte custody capsule had three failed publication
+attempts. Its exact original bytes, including unique superseded first-stage
+metadata and original transport observations, are now included in the new
+106-file engine selection. This does not invent a completed manifest for its
+old collection. Original selections and failed partial objects remain intact.
+
+The new engine selection has 106 files, 1313968 bytes, selection SHA256
+`de667e53fe16f74b352106737fc698409f6261266cdc790a8a7198f0aa712978`.
+It includes complete eligible worker/root evidence, provisional and final build
+identities, successful/failed controls, independent oracle ancestry and actual
+installed consumers. The uploader performed exact-version object readback and
+published the completion manifest last. A separate empty directory restored all 106 files; every length and SHA256
+matched. The 16 original custody files also independently match their untouched
+local originals, closing that earlier unpreserved-metadata blocker.
+
+### Final engine evidence
+
+- Manifest: `s3://research-data-436908790672-eu-west-2/reproducible/handoffs/irreducible/native-model-round2-20261009t0322z/versions/c420a8468d5cb5008646525397dc8bc223a037684f928649fa2bf891f77f5197/manifest.json`
+- SHA256: `e335dfec9a30ed28b453931803dca36251555480512b37e1a51798f5856b9fb7`
+- VersionId: `TbFarSl.nz_RTznwXaz1rUG1ByfDUkmr`
+- Format: `research-named-manifest/v1`.
+
+### New-model experiment evidence
+
+- Manifest: `s3://research-data-436908790672-eu-west-2/reproducible/experiments/native-fluid-population/attempts/20261009t032441z-51fcfc5ec757/versions/6072deea7003a53d2f1c7b8cb3fd419c98b20aa313da9e69759e0c44469665f7/manifest.json`
+- SHA256: `51ac32c39d4bee3474067dc6a0563fdbbe68b69c4c2aabdeb08921272523bf12`
+- VersionId: `O4MiKsebFLFqXr0_IxeAHoZ1g8DSNCKj`
+- Format: `research-named-manifest/v1`.
+
+The experiment selection has 68 files, 10072916 bytes, including original
+attempts, actual native JSON, build/source/input hashes, qualification tables,
+plots and the caller failure. All 68 files were freshly restored with matching lengths/SHA256, also
+independently checked by the coordinator. Both corrected PNGs were rerendered
+from the restored native JSON and plotting source and match byte for byte. The separate source metadata selection has five files, 10353
+bytes, and was already freshly restored with matching hashes; its exact pins
+are in Prospector PR40, merged at
+`a3b3a3ac141638959e289c92c20c85fb19679224` with exact-main CI37877832108
+passing. Raw rights-unverified papers remain excluded and local.
+Credentials, profiles, proxies, TLS and historical scientific/runtime/input
+pins are unchanged.
+
+### Publication/restoration custody proof
+
+A separate owned metadata selection preserves the exact publication receipts,
+full fresh-restore comparisons, PNG byte replay proof, reconstruction helper and
+engine exact-main landing facts. All 13 files (47098 bytes) were restored into
+another fresh directory and matched byte for byte. It contains no duplicate
+scientific bulk, binaries, credentials or raw papers.
+
+- Manifest: `s3://research-data-436908790672-eu-west-2/reproducible/handoffs/irreducible/native-round2-custody-proof-20261009t0335z/versions/6b79ad0471bcf428b2b90185b769fd70ada904d3dd1716d2787f1164f8dedd35/manifest.json`
+- SHA256: `391e0a38f95214da25541650d145356174b5c2a8f070ceec5d91f5bb26e3956a`
+- VersionId: `5lldTThy12_Q6W1xstx5s0x4tnhjnmDY`
+- Format: `research-named-manifest/v1`.
+
+The final Reproducible handoff, 334-test log and canonical restore receipt have
+their own small closure, with five files (9359 bytes), exact-version publication
+and an independently verified fresh byte-identical restoration. This preserves
+the last unique experiment metadata without repeating tests or scientific bulk.
+
+- Manifest: `s3://research-data-436908790672-eu-west-2/reproducible/handoffs/reproducible/native-round2-final-closure-20261009t033952z-59dde23f9f1a/versions/a4cf39fe3dd83d2a42681eff44950b42ae683fe93ab3e4c2503ba96b342b3a60/manifest.json`
+- SHA256: `498e5cc484fd311c55d74cfe826e2097e62b7376d26dbcdb55ad892279a349eb`
+- VersionId: `Tftfh7lXqNlisZal.dDq6XLvGjxi6JEK`
+- Format: `research-named-manifest/v1`.
+
+### Demonstrated commands
+
+The complete production archive used the canonical build entry point:
+
+```sh
+python3 tools/build.py --profile release --jobs 2 --native-tests core
+```
+
+The registered campaign contracts were explicitly built before CTest; all 20
+matched the ten model names above and passed. Installation used
+`cmake --install build/native-release --prefix <fresh-sdk-prefix>`. Ten consumers
+then compiled with `-std=c++20 -O2 -DNDEBUG -Wall -Wextra -Wpedantic
+-fno-fast-math -ffp-contract=off`, only the installed include directory and the
+complete installed archive. The bounded compiled experiment commands and exact
+pins are in
+[its guide](https://github.com/sprajs/reproducible/tree/main/experiments/native-fluid-population).
+The named transport `push --dry-run`, `push` and exact URI/SHA256/VersionId
+`pull` were exercised on the recorded selections; metadata records preserve
+full original argv and results.
+
+### Remaining scientific gaps and executable next work
+
+| Capability | Observed limit or prerequisite | Owner | Next action |
+| --- | --- | --- | --- |
+| Chaplygin full cosmological prediction | Background only; formal dp/de is not a perturbation/propagation closure | Irreducible | Specify source-compatible perturbations before spectrum/CMB use |
+| Measured Plummer stellar kinematics | One-component mass-traces-tracer law; no aperture/PSF/selection or calibrated stellar inputs | Reproducible | Acquire a licensed resolved velocity/tracer dataset with units and covariance before fitting |
+| Broader tracer populations | Isotropic self-gravitating Plummer only | Irreducible | Define anisotropic or independent tracer/potential contracts as new models |
+| Primary historical source review | Plummer/Hernquist/Jacobs/Eddington originals were inaccessible; own derivations remain distinct | Prospector | Obtain lawful original source access and complete selected-equation checks |
+| Original six-model numerical sweep | Scalar-diagnostic allowance and refined NFW projected/lens refusals remain | Irreducible | Investigate the retained failures in the later direct-improvement pass without weakening budgets |
+
+The next executable calculation is the pinned compiled Chaplygin/Plummer
+quick/broader response experiment, or the native population example for a new
+supplied SI mass/scale/radius/speed grid. Observational fitting needs the separate
+calibrated data and physical contracts above. Passing new-model controls does
+not promote the older incomplete sweep or historical conditional H0 work.
