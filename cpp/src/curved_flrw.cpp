@@ -70,7 +70,10 @@ CurvedFLRWBatch CurvedFLRW::evaluate(std::span<const double> zs,CurvedFLRWPolicy
             const long double jac=ctx.k>0?std::cosh(q*(chi+chierr)):1;
             const long double err=unit*jac*chierr+128*std::numeric_limits<double>::epsilon()*std::abs(dm);
             const long double radial=unit*chi, radialerr=unit*chierr;
-            if(!std::isfinite(dm)||!std::isfinite(err)||!std::isfinite(dm*(1.L+z))){row.status=S::overflow;}
+            const double stored_radial=static_cast<double>(radial),stored_dm=static_cast<double>(dm),stored_da=static_cast<double>(dm/(1.L+z)),stored_dl=static_cast<double>(dm*(1.L+z));
+            const double stored_e=static_cast<double>(evalue),stored_h=spec_.h0_km_s_mpc*stored_e;
+            if(!std::isfinite(dm)||!std::isfinite(err)||!std::isfinite(stored_radial)||!std::isfinite(stored_dm)||!std::isfinite(stored_da)||!std::isfinite(stored_dl)||!std::isfinite(stored_e)||!std::isfinite(stored_h)){row.status=S::overflow;}
+            else if(z>0 && (stored_radial<=0||stored_dm<=0||stored_da<=0||stored_dl<=0)){row.status=S::outside_domain;}
             else if(eerror>policy.relative_tolerance*evalue || err>policy.absolute_tolerance_mpc+policy.relative_tolerance*std::abs(dm)||radialerr>policy.absolute_tolerance_mpc+policy.relative_tolerance*std::abs(radial)){row.status=S::conditioning_budget_exceeded;}
             else{
               row.e=static_cast<double>(evalue);row.e_error_estimate=static_cast<double>(eerror);row.h_error_estimate_km_s_mpc=static_cast<double>(spec_.h0_km_s_mpc*eerror);row.h_km_s_mpc=spec_.h0_km_s_mpc*row.e;

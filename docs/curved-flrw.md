@@ -39,7 +39,8 @@ change. Equations are implemented originally, with no copied source code/assets.
 
 Admission checks the complete light path, not only its endpoint: the quartic
 E² has at most one positive interior minimum, found from its analytic derivative.
-Nonpositive or roundoff-unresolved minima are refused. Closed geometry refuses
+Nonpositive or roundoff-unresolved minima are refused. Positive-redshift distances
+that underflow to zero in binary64, and nonfinite stored outputs, are refused. Closed geometry refuses
 the first antipode sqrt(-Ok)chi>=pi, including its numerical diagnostic margin.
 It does not continue onto another image/winding branch or cross a turnaround.
 A loitering model can have positive endpoint H² yet fail this admission.

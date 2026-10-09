@@ -31,6 +31,7 @@ int main(){
   double beyond=5;CHECK(CurvedFLRW({70,.3,0,1.71345}).evaluate({&beyond,1}).status==S::outside_domain);
   double zz=1;CHECK(CurvedFLRW({70,0,0,2}).evaluate({&zz,1}).status==S::outside_domain);
   CHECK(CurvedFLRW({0,1,0,0}).status()==S::outside_domain);
+  double tiny=std::numeric_limits<double>::denorm_min();CHECK(milne.evaluate({&tiny,1}).status!=S::ok);
   CHECK(CurvedFLRW({70,-.1,0,1}).status()==S::outside_domain);CHECK(CurvedFLRW({std::numeric_limits<double>::infinity(),1,0,0}).status()==S::nonfinite_input);
   const double invalid[]={-1,std::numeric_limits<double>::quiet_NaN(),10001};auto bad=milne.evaluate(invalid);CHECK(bad.rows.size()==3);for(auto r:bad.rows)CHECK(r.status!=S::ok);
   auto policy=CurvedFLRWPolicy{};policy.maximum_points=1;CHECK(milne.evaluate(zs,policy).status==S::work_limit);policy={};policy.maximum_native_bytes=1;CHECK(milne.evaluate(zs,policy).status==S::work_limit);
