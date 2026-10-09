@@ -88,5 +88,68 @@ class StorageTests(unittest.TestCase):
         self.assertTrue((self.root / 'corrupt').exists())
         with self.assertRaises(ValueError):s.pull(f, r, self.source)
 
+    def published(self):
+        f = Fake()
+        with patch.object(s, 'ROOT', self.root):
+            pin = s.push(f, self.source, 'shared/archives/test', 'mixed-evidence', 'owned', self.provenance, False)
+        return f, pin
+
+    def test_eviction_verifies_remote_and_defaults_to_no_removal(self):
+        f, pin = self.published()
+        result = s.evict(f, pin, self.source)
+        self.assertFalse(result['applied']); self.assertTrue((self.source / 'receipt.json').exists())
+        with patch.object(s, 'ROOT', self.root):
+            result = s.evict(f, pin, self.source, True)
+        self.assertEqual(result['files'], 1); self.assertFalse((self.source / 'receipt.json').exists())
+        self.assertIn('complete', Path(result['journal']).read_text())
+        s.pull(f, pin, self.root / 'recovered')
+        self.assertIn('failed', (self.root / 'recovered/receipt.json').read_text())
+
+    def test_corrupt_remote_prevents_eviction(self):
+        f, pin = self.published()
+        doc = json.loads(f.objects[(pin['uri'], pin['version_id'])]); row = doc['files'][0]
+        f.objects[(row['uri'], row['version_id'])] = b'corrupt'
+        with self.assertRaises(ValueError):s.evict(f, pin, self.source, True)
+        self.assertTrue((self.source / 'receipt.json').exists())
+
+    def test_changed_or_extra_local_bytes_prevent_eviction(self):
+        f, pin = self.published()
+        (self.source / 'extra').write_text('unique draft')
+        with self.assertRaises(ValueError):s.evict(f, pin, self.source, True)
+        (self.source / 'extra').unlink(); (self.source / 'receipt.json').write_text('changed')
+        with self.assertRaises(ValueError):s.evict(f, pin, self.source, True)
+        self.assertEqual((self.source / 'receipt.json').read_text(), 'changed')
+
+    def test_remote_check_mutating_local_source_prevents_eviction(self):
+        f, pin = self.published(); real = f.get
+        def changed(pin, path):
+            real(pin, path)
+            if '/files/' in pin['uri']:(self.source / 'receipt.json').write_text('new result')
+        f.get = changed
+        with self.assertRaises(ValueError):s.evict(f, pin, self.source, True)
+        self.assertEqual((self.source / 'receipt.json').read_text(), 'new result')
+
+    def test_tracked_material_is_refused_before_upload_or_eviction(self):
+        f = Fake()
+        with patch.object(s.subprocess, 'run') as run:
+            run.return_value.returncode = 0; run.return_value.stdout = b'receipt.json\0'
+            with self.assertRaises(ValueError):
+                s.push(f, self.source, 'shared/archives/test', 'mixed-evidence', 'owned', self.provenance, False, True)
+        self.assertEqual(f.events, [])
+
+    def test_listing_excludes_partial_objects_and_reports_pagination(self):
+        f = Fake(); name = 'shared/archives/test'; release = 'a' * 64
+        key = name + '/versions/' + release + '/manifest.json'
+        def aws(*args):
+            if args[1] == 'list-objects-v2':
+                self.assertIn('--no-paginate', args)
+                return {'Contents': [{'Key': key}, {'Key': name + '/versions/' + release + '/files/manifest.json'}],
+                        'IsTruncated': True, 'NextContinuationToken': 'next'}
+            return {'VersionId': 'v1', 'ContentLength': 12, 'Metadata': {'sha256': 'b' * 64}}
+        f.aws = aws
+        result = s.list_releases(f, name)
+        self.assertEqual(len(result['entries']), 1); self.assertFalse(result['complete_listing'])
+        self.assertEqual(result['next_cursor'], 'next')
+
 
 if __name__ == '__main__':unittest.main()

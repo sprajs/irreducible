@@ -17,5 +17,6 @@
   "identity_policy": "Pin manifest URI, SHA256 and exact VersionId. Discovery pointer is mutable and is never a scientific pin.",
   "retention_policy": "Create-only objects, manifest last after full exact-version byte checks; no deletion or completed-object expiry.",
   "sharing_policy": "Owner-authorized private preservation does not approve redistribution; honor source restrictions and retain notices. Credentials are forbidden.",
-  "source_policy": "Git commit/path for source, reviews, candidate designs, configs and concise findings. Pinned acquisition/reconstruction recipes for disposable copies."
+  "source_policy": "Git commit/path for source, reviews, candidate designs, configs and concise findings. Pinned acquisition/reconstruction recipes for disposable copies.",
+  "local_storage_policy": "Git for source and concise findings; S3 for all useful persistent data/evidence/results/unfinished state. Local ignored directories are scratch/cache only. Publish and pin before handoff; evict only after fresh exact-version byte verification."
 }

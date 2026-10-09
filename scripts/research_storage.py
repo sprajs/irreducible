@@ -11,6 +11,7 @@ import re
 import stat
 import subprocess
 import tempfile
+import uuid
 
 ROOT = Path(__file__).resolve().parents[1]
 CONFIG = ROOT / 'storage-layout.json'
@@ -158,8 +159,10 @@ def collection(name):
     return name
 
 
-def push(storage, source, name, role, rights, provenance, dry):
+def push(storage, source, name, role, rights, provenance, dry, evict_local=False):
     collection(name)
+    if evict_local:
+        tracked_selection(source)
     rows = inventory(source)
     p = strict_json(provenance.read_text())
     if not isinstance(p, dict) or not p:
@@ -195,7 +198,87 @@ def push(storage, source, name, role, rights, provenance, dry):
     if not record.exists():
         with record.open('x') as f:
             json.dump(receipt, f, indent=2); f.write('\n')
+    if evict_local:
+        receipt = dict(receipt, local_eviction=evict(storage, receipt, source, True))
     return receipt
+
+
+def manifest_rows(storage, pin, marker):
+    storage.get(pin, marker)
+    doc = strict_json(marker.read_text())
+    if doc.get('schema') != 'research-named-manifest/v1':
+        raise ValueError('Use catalog authoritative restore route for this format')
+    collection(doc['collection'])
+    if not isinstance(doc.get('release'), str) or not SHA.fullmatch(doc['release']):
+        raise ValueError('Invalid release identity')
+    rows = doc['files']; names = set()
+    if not isinstance(rows, list) or not rows:
+        raise ValueError('Missing file records')
+    for row in rows:
+        identity(row); name = safe(row['path'])
+        if name in names or any(name.startswith(x + '/') or x.startswith(name + '/') for x in names):
+            raise ValueError('Duplicate/conflicting paths')
+        names.add(name)
+        if storage.key(row['uri']) != doc['collection'] + '/versions/' + doc['release'] + '/files/' + name:
+            raise ValueError('Object URI outside pinned collection')
+    if storage.key(pin['uri']) != doc['collection'] + '/versions/' + doc['release'] + '/manifest.json':
+        raise ValueError('Manifest URI outside pinned collection')
+    return doc
+
+
+def tracked_selection(source):
+    result = subprocess.run(['git', '-C', str(source), 'ls-files', '-z', '--', '.'],
+                            capture_output=True, timeout=60)
+    if result.returncode == 0 and result.stdout:
+        raise ValueError('Git-tracked material cannot be evicted')
+    if result.returncode not in (0, 128):
+        raise ValueError('Cannot establish Git ownership')
+
+
+def evict(storage, pin, source, apply=False):
+    """Remove only an unchanged complete selection after fresh remote byte checks."""
+    source = source.absolute()
+    if source.resolve() != source:
+        raise ValueError('Linked selection ancestors refused')
+    tracked_selection(source)
+    local = inventory(source)
+    storage.check()
+    with tempfile.TemporaryDirectory() as td:
+        doc = manifest_rows(storage, pin, Path(td) / 'manifest.json')
+        expected = [{'path': r['path'], 'bytes': r['bytes'], 'sha256': r['sha256']} for r in doc['files']]
+        if sorted(expected, key=lambda r: r['path']) != local:
+            raise ValueError('Local selection differs; changed or extra files retained')
+        for row in doc['files']:
+            storage.get(row, Path(td) / 'readback')
+    if inventory(source) != local:
+        raise ValueError('Local selection changed during verification')
+    tracked_selection(source)
+    result = {'applied': apply, 'files': len(local), 'bytes': sum(r['bytes'] for r in local),
+              'source': str(source), 'manifest_pin': pin, 'remote_exact_versions_verified': True}
+    if not apply:
+        return result
+    # Keep a local interruption journal; the remote manifest remains the durable
+    # recovery authority. Do not recurse over unlisted paths or remove directories.
+    records = ROOT / '.work/storage/evictions'; records.mkdir(parents=True, exist_ok=True)
+    journal = records / (uuid.uuid4().hex + '.jsonl')
+    if journal.is_relative_to(source):
+        raise ValueError('Eviction journal must be outside the selection')
+    with journal.open('x') as log:
+        log.write(json.dumps(dict(result, status='verified-before-removal')) + '\n'); log.flush(); os.fsync(log.fileno())
+        for row in local:
+            path = source / row['path']
+            fd = os.open(path, os.O_RDONLY | os.O_NOFOLLOW)
+            with os.fdopen(fd, 'rb') as f:
+                before = os.fstat(f.fileno())
+                if not stat.S_ISREG(before.st_mode) or before.st_size != row['bytes'] or hashlib.file_digest(f, 'sha256').hexdigest() != row['sha256']:
+                    raise ValueError('Changed local bytes retained')
+                after = path.lstat()
+                if (before.st_dev, before.st_ino, before.st_size, before.st_mtime_ns) != (after.st_dev, after.st_ino, after.st_size, after.st_mtime_ns):
+                    raise ValueError('Changed local path retained')
+                path.unlink()
+            log.write(json.dumps({'removed': row['path'], 'sha256': row['sha256'], 'bytes': row['bytes']}) + '\n'); log.flush()
+        log.write(json.dumps({'status': 'complete'}) + '\n'); log.flush(); os.fsync(log.fileno())
+    return dict(result, journal=str(journal))
 
 
 def pull(storage, pin, destination):
@@ -203,21 +286,8 @@ def pull(storage, pin, destination):
         raise ValueError('Restore destination must be new')
     storage.check()
     with tempfile.TemporaryDirectory() as td:
-        marker = Path(td) / 'manifest.json'; storage.get(pin, marker)
-        doc = strict_json(marker.read_text())
-        if doc.get('schema') != 'research-named-manifest/v1':
-            raise ValueError('Use catalog authoritative restore route for this format')
-        collection(doc['collection'])
-        rows = doc['files']; names = set()
-        if not isinstance(rows, list) or not rows:
-            raise ValueError('Missing file records')
-        for row in rows:
-            identity(row); name = safe(row['path'])
-            if name in names or any(name.startswith(x + '/') or x.startswith(name + '/') for x in names):
-                raise ValueError('Duplicate/conflicting paths')
-            names.add(name)
-            if storage.key(row['uri']) != doc['collection'] + '/versions/' + doc['release'] + '/files/' + name:
-                raise ValueError('Object URI outside pinned collection')
+        doc = manifest_rows(storage, pin, Path(td) / 'manifest.json')
+        rows = doc['files']
         destination.mkdir(parents=True, exist_ok=False)
         for row in rows:
             path = destination / row['path']; path.parent.mkdir(parents=True, exist_ok=True)
@@ -225,6 +295,30 @@ def pull(storage, pin, destination):
         if inventory(destination) != [{'path': r['path'], 'bytes': r['bytes'], 'sha256': r['sha256']} for r in rows]:
             raise ValueError('Restored inventory differs')
     return {'verified_files': len(rows), 'destination': str(destination)}
+
+
+def list_releases(storage, name, cursor=None):
+    """Bounded discovery of completed named uploads, including uncatalogued work."""
+    collection(name); storage.check()
+    args = ['s3api', 'list-objects-v2', '--bucket', storage.config['bucket'],
+            '--prefix', name + '/versions/', '--max-keys', '1000', '--no-paginate']
+    if cursor:
+        args += ['--continuation-token', cursor]
+    page = storage.aws(*args); entries = []
+    pattern = re.compile(re.escape(name) + r'/versions/([0-9a-f]{64})/manifest\.json')
+    for row in page.get('Contents', []):
+        if not pattern.fullmatch(row['Key']):
+            continue
+        head = storage.aws('s3api', 'head-object', '--bucket', storage.config['bucket'], '--key', row['Key'])
+        pin = {'uri': 's3://' + storage.config['bucket'] + '/' + row['Key'],
+               'version_id': head.get('VersionId'), 'sha256': head.get('Metadata', {}).get('sha256'),
+               'bytes': head['ContentLength']}
+        identity(pin)
+        if not pin['version_id'] or pin['version_id'] == 'null':
+            raise ValueError('Completed manifest lacks exact version')
+        entries.append({'manifest_format': 'research-named-manifest/v1', **pin})
+    return {'collection': name, 'entries': entries, 'complete_listing': not page.get('IsTruncated', False),
+            'next_cursor': page.get('NextContinuationToken'), 'discovery_only': True}
 
 
 def catalog(storage):
@@ -250,12 +344,17 @@ def main():
     commands = ap.add_subparsers(dest='command', required=True)
     commands.add_parser('status'); commands.add_parser('catalog')
     lookup = commands.add_parser('resolve'); lookup.add_argument('name')
+    listing = commands.add_parser('list'); listing.add_argument('--collection', required=True); listing.add_argument('--cursor')
     u = commands.add_parser('push'); u.add_argument('source', type=Path); u.add_argument('--collection', required=True)
     u.add_argument('--role', required=True, choices=['observations', 'calibrated-reductions', 'fitted-summaries', 'synthetic-controls', 'generated-results', 'source-review', 'mixed-evidence'])
     u.add_argument('--rights', required=True, choices=['owned', 'approved-redistribution', 'private-preservation-unreviewed'])
     u.add_argument('--provenance', type=Path, required=True); u.add_argument('--dry-run', action='store_true')
+    u.add_argument('--evict-local', action='store_true', help='remove unchanged selection only after fresh exact-version readback')
     d = commands.add_parser('pull'); d.add_argument('destination', type=Path); d.add_argument('--manifest-uri', required=True)
     d.add_argument('--manifest-sha256', required=True); d.add_argument('--manifest-version-id', required=True)
+    e = commands.add_parser('evict'); e.add_argument('source', type=Path); e.add_argument('--manifest-uri', required=True)
+    e.add_argument('--manifest-sha256', required=True); e.add_argument('--manifest-version-id', required=True)
+    e.add_argument('--apply', action='store_true', help='default only verifies and reports; apply removes listed regular files')
     a = ap.parse_args(); s = Storage(a.profile, a.ambient_credentials)
     if a.command == 'status':result = {'identity': s.check()['Arn'], **s.config}
     elif a.command == 'catalog':result = catalog(s)
@@ -263,7 +362,9 @@ def main():
         c = catalog(s); entries = [e for e in c['entries'] if e['name'] == a.name]
         if len(entries) != 1:raise ValueError('Unknown or ambiguous catalog name')
         result = {'catalog_pin': c['catalog_pin'], 'entry': entries[0]}
-    elif a.command == 'push':result = push(s, a.source, a.collection, a.role, a.rights, a.provenance, a.dry_run)
+    elif a.command == 'list':result = list_releases(s, a.collection, a.cursor)
+    elif a.command == 'push':result = push(s, a.source, a.collection, a.role, a.rights, a.provenance, a.dry_run, a.evict_local)
+    elif a.command == 'evict':result = evict(s, {'uri': a.manifest_uri, 'sha256': a.manifest_sha256, 'version_id': a.manifest_version_id}, a.source, a.apply)
     else:result = pull(s, {'uri': a.manifest_uri, 'sha256': a.manifest_sha256, 'version_id': a.manifest_version_id}, a.destination)
     print(json.dumps(result, indent=2))
 

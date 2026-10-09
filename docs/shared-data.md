@@ -30,8 +30,7 @@ into a run's provenance. Never pin a mutable `latest`/discovery pointer. Catalog
 entries can reference Git, acquisition recipes, old snapshots, exact-version
 approved evidence, or private preservation bundles; use their declared route.
 An old UUID snapshot is a historical directory copy. Its receipt and bytes remain
-intact while readable catalog entries provide navigation. No deletion is part of
-this migration. Completed objects and old versions have no automatic expiry.
+intact while readable catalog entries provide navigation. Local eviction requires exact-version readback and an unchanged-file inventory; remote history is never deleted. Completed objects and old versions have no automatic expiry.
 
 ## Keep source and working copies small
 
@@ -47,7 +46,52 @@ Local `data/`, `downloads/`, `results/`, `runs/`, `papers/` and `.work/` remain
 ignored working storage according to each repo's ignore rules. Restore into a new
 directory, verify bytes, then pass explicit local paths to the current controller
 or reader. No controller downloads from a mutable catalog or silently changes its
-request/model/build identity. Original inputs and historical receipts stay intact.
+request/model/build identity. Exact original inputs and historical receipts stay intact in Git or verified S3 custody; local copies are disposable only after the matching recovery route passes byte checks.
+
+## S3 is the persistent data store
+
+Git is authoritative for source, reviews, candidates, configurations and concise
+findings. The configured S3 bucket is authoritative for all useful bulk data,
+full evidence, results and unfinished research state needed by a later agent.
+Ignored directories are temporary scratch/cache, never a cross-run handoff.
+Do not rely on another chat's local path. Read the verified catalog first; restore
+only needed exact versions into fresh scratch and pass explicit verified paths
+to controllers. This policy does not change historical model/request/SDK pins.
+
+Before ending or handing off meaningful work, publish the selected completed,
+failed or interrupted attempt and record its manifest URI/SHA256/VersionId/format
+in the concise Git account or an S3 handoff. Unique partial work belongs in a
+named preservation collection. A blocked upload must be reported as unpreserved;
+retain its local bytes until resolved. Never delete the only copy. New acquisition
+may use the pinned upstream source, but any useful input retained between runs
+must have eligible verified S3 custody. If copying restrictions prevent custody,
+record that blocker and the acquisition recipe rather than claiming it persisted.
+Tools, environments and cheap products can be regenerated in scratch.
+
+`push --evict-local` publishes first, then freshly verifies the exact completion
+manifest and every remote file before removing the unchanged local regular files.
+`evict` does the same for an existing pin; it defaults to verification only and
+needs `--apply` to remove files. Changed/extra files, symlinks, credentials and
+Git-tracked material block eviction. It does not recursively delete directories.
+Keep exact restore pins before eviction. Interruption journals are local scratch;
+the remote completion manifest is the durable recovery authority.
+
+A newly published attempt need not wait for scientific catalog promotion to be
+recoverable: `list --collection COLLECTION` discovers its completed manifests.
+This bounded listing includes only completion markers, reports pagination and
+returns exact pins. Follow `next_cursor` with `--cursor` until `complete_listing`
+is true. It never treats partial uploads or the mutable catalog pointer as a
+scientific pin, and it does not qualify the result.
+
+```sh
+python scripts/research_storage.py list --collection shared/archives/my-handoff
+python scripts/research_storage.py push .work/my-handoff \
+  --collection shared/archives/my-handoff --role mixed-evidence --rights owned \
+  --provenance .work/handoff-provenance.json --evict-local
+python scripts/research_storage.py evict data/restored-attempt \
+  --manifest-uri s3://BUCKET/COLLECTION/versions/RELEASE/manifest.json \
+  --manifest-sha256 PINNED_SHA256 --manifest-version-id PINNED_VERSION_ID --apply
+```
 
 ## Commands
 
