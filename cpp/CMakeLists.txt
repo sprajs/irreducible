@@ -596,3 +596,12 @@ foreach(stress_test IN ITEMS thermal_stress effective_neutrino effective_neutrin
   target_compile_options(test_${stress_test} PRIVATE -Wall -Wextra -Wpedantic -fno-fast-math -ffp-contract=off)
   add_test(NAME ${stress_test}_contract COMMAND test_${stress_test})
 endforeach()
+
+# Proper cosmic clocks and particle horizon of the retained effective state.
+target_sources(irred_core PRIVATE src/thermal_clocks.cpp)
+foreach(clock_test IN ITEMS thermal_clocks thermal_clocks_installed)
+  add_executable(test_${clock_test} tests/test_${clock_test}.cpp)
+  target_link_libraries(test_${clock_test} PRIVATE irred_core)
+  target_compile_options(test_${clock_test} PRIVATE -Wall -Wextra -Wpedantic -fno-fast-math -ffp-contract=off)
+  add_test(NAME ${clock_test}_contract COMMAND test_${clock_test})
+endforeach()
