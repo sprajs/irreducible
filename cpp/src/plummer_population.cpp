@@ -26,10 +26,10 @@ numerics::ScalarResult project(W value,W inherited,double tolerance) {
       error>tolerance*std::abs(value)) return {S::conditioning_budget_exceeded};
   return {S::ok,v,static_cast<double>(error),0};
 }
-numerics::ScalarResult exponential(W logarithm,W relative_error,double tolerance) {
+numerics::ScalarResult exponential(W logarithm,W log_error,double tolerance) {
   W v=std::exp(logarithm);
   if(v==0) return {S::outside_domain}; // Positive support cannot underflow to zero.
-  W rel=relative_error+128*wide_epsilon*(1+std::abs(logarithm));
+  W rel=std::expm1(log_error+128*wide_epsilon*(1+std::abs(logarithm)));
   return project(v,std::abs(v)*rel,tolerance);
 }
 void fail(PlummerVelocityRow& row,S status) {
@@ -72,6 +72,7 @@ PlummerPopulation prepare_plummer_population(PlummerSphere source,std::span<cons
   auto bytes=plummer_population_payload_bound(radii.size());
   if(!bytes||*bytes>policy.maximum_payload_bytes||radii.size()>policy.maximum_radii||
       radii.size()>policy.maximum_native_evaluations/2) {out.status_=S::work_limit;return out;}
+  if(policy.relative_tolerance/16==0) {out.status_=S::conditioning_budget_exceeded;return out;}
   out.source_=source;
   W lb=std::log(W(source.scale_radius_metres)),lg=std::log(W(source.gravitational_coupling_m3_kg_s2)),
     lm=std::log(W(source.total_mass_kg));
@@ -153,10 +154,10 @@ PlummerPopulationBatch PlummerPopulation::evaluate(std::span<const PlummerVeloci
         } else {
           row.support=PlummerEnergySupport::bound;
           W log_energy=std::log(energy),log_f=log_coefficient_+3.5L*log_energy;
-          W relative=log_coefficient_error_+3.5L*error/energy+
+          W relative=log_coefficient_error_+3.5L*std::log1p(error/energy)+
                      128*wide_epsilon*(1+std::abs(log_f)+std::abs(log_energy));
           W rho=state.density_kg_m3.value,log_rho=std::log(rho);
-          W normalized_error=relative+state.density_kg_m3.error_estimate/rho+
+          W normalized_error=relative-std::log1p(-state.density_kg_m3.error_estimate/rho)+
                               128*wide_epsilon*(1+std::abs(log_rho));
           row.distribution_function_kg_s3_m6=exponential(log_f,relative,policy.relative_tolerance);
           row.vector_velocity_density_s3_m3=exponential(log_f-log_rho,normalized_error,policy.relative_tolerance);
