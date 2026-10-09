@@ -611,7 +611,9 @@ thin-lens observables from supplied geometry. Its center is regular, unlike the
 NFW and Hernquist cusp models. Independent shell/line-of-sight quadratures,
 high-precision fixtures, Poisson and derivative controls test the declared
 profile. Original-paper equation access remains unverified; no measured lens
-inference, stellar distribution function or certified global error bound follows.
+inference or certified global error bound follows. The separate
+[isotropic population](plummer-population.md) now supplies a qualified-prerequisite
+phase-space consumer; the static sphere itself does not own that distribution.
 
 ## Anisotropic Bianchi I model
 
@@ -626,3 +628,23 @@ Perfect-fluid radiation is not a collisionless anisotropic radiation treatment;
 optical distances, complete perturbations and observed-data fits remain absent.
 The historical citation's original equations remain unread after source-access
 failure; the guide states its independently checked Einstein/shear derivation.
+
+## Generalized Chaplygin fluid and Plummer population
+
+The native [Chaplygin background](chaplygin.md) adds a unified barotropic fluid
+with separately conserved ordinary dust/radiation in flat GR. Its retained
+state provides expansion, composition, EOS, a formal barotropic derivative and
+optional past-anchor flat distances. Exact dust/vacuum and alpha=0
+Lambda-plus-dust limits, independent continuity ODE/Gauss distances and
+high-precision near-endpoint fixtures test the declared background. The formal
+derivative does not qualify a rest-frame propagation law, perturbations or CMB.
+
+The [isotropic Plummer population](plummer-population.md) adds stationary
+collisionless phase-space and local speed/vector probability densities, escape
+diagnostics, one-axis velocity variance and projected mass-weighted LOS
+variance. It reuses the existing compiled Plummer gravity/density/projection
+owner. Density and velocity-moment integrals, Jeans and LOS quadratures test the
+population independently. Unresolved escape-support signs are explicit
+refusals. This is a Newtonian self-gravitating mass-traces-tracer model; measured
+stellar kinematics, anisotropic/multiple tracers and a full projected velocity
+PDF require further contracts.
