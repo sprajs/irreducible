@@ -37,6 +37,10 @@ public:
   CurvedFLRWSpec specification() const noexcept { return spec_; }
   double omega_k() const noexcept { return omega_k_; }
   CurvedFLRWBatch evaluate(std::span<const double>, CurvedFLRWPolicy={}) const;
+  // Direct radial interval in Mpc, sharing the retained E²/light-path law.
+  // This is not a difference of observer distances or angular distances.
+  numerics::ScalarResult radial_distance_between(double lower_redshift,
+      double upper_redshift, CurvedFLRWPolicy={}) const;
 private:
   CurvedFLRWSpec spec_{};
   double omega_k_=0;
