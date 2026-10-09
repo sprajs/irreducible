@@ -94,7 +94,7 @@ compiled consumer of the original six-model production SDK. Each run contains
 All four endpoint/reference/refusal controls passed in both corrected attempts.
 The numerical qualification is explicitly **rejected or incomplete**: quick has
 four failures; broader 24. These consist of scalar constraint diagnostics beyond
-the frozen comparison allowance and refined NFW shear conditioning refusals.
+the frozen comparison allowance and refined NFW projected/lens-output conditioning refusals.
 No allowance was weakened, refused row dropped or incomplete result relabeled.
 The original mislabeled Hessians, corrected new attempts, dirty-source refusal
 and successful model predictions are retained. Six-panel plots label the failed
